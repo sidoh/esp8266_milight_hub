@@ -17,7 +17,17 @@ void MiLightClient::read(MiLightPacket& packet) {
 void MiLightClient::write(MiLightPacket& packet, const unsigned int resendCount) {
   uint8_t *packetBytes = reinterpret_cast<uint8_t*>(&packet);
   
+  Serial.print("Packet bytes (");
+  Serial.print(sizeof(packet));
+  Serial.print(" bytes): ");
+  for (int i = 0; i < sizeof(packet); i++) {
+    Serial.print(packetBytes[i], HEX);
+    Serial.print(" ");
+  }
+  Serial.println();
+  
   for (int i = 0; i < resendCount; i++) {
+    Serial.print(".");
     radio.write(packetBytes, sizeof(packet));
   }
   Serial.println();
@@ -57,11 +67,11 @@ void MiLightClient::write(
 }
     
 void MiLightClient::updateColor(const uint16_t deviceId, const uint8_t groupId, const uint16_t hue) {
-  write(deviceId, hue, 0, groupId, MiLightButton::COLOR);
+  write(deviceId, hue, 0, groupId, COLOR);
 }
 
 void MiLightClient::updateBrightness(const uint16_t deviceId, const uint8_t groupId, const uint8_t brightness) {
-  write(deviceId, 0, brightness, groupId, MiLightButton::BRIGHTNESS);
+  write(deviceId, 0, brightness, groupId, BRIGHTNESS);
 }
 
 void MiLightClient::updateStatus(const uint16_t deviceId, const uint8_t groupId, MiLightStatus status) {
@@ -70,5 +80,13 @@ void MiLightClient::updateStatus(const uint16_t deviceId, const uint8_t groupId,
 }
 
 void MiLightClient::updateColorWhite(const uint16_t deviceId, const uint8_t groupId) {
-  write(deviceId, 0, 0, groupId, MiLightButton::COLOR_WHITE);
+  write(deviceId, 0, 0, groupId, COLOR_WHITE);
+}
+
+void MiLightClient::allOn(const uint16_t deviceId) {
+  write(deviceId, 0, 0, 0, ALL_ON);
+}
+
+void MiLightClient::allOff(const uint16_t deviceId) {
+  write(deviceId, 0, 0, 0, ALL_OFF);
 }

@@ -64,6 +64,9 @@ class MiLightClient {
     void updateStatus(const uint16_t deviceId, const uint8_t groupId, MiLightStatus status);
     void updateColorWhite(const uint16_t deviceId, const uint8_t groupId);
     
+    void allOn(const uint16_t deviceId);
+    void allOff(const uint16_t deviceId);
+    
   private:
     MiLightRadio& radio;
     uint8_t sequenceNum;
