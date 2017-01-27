@@ -84,9 +84,40 @@ void handleUpdateGateway() {
     if (request["command"] == "all_off") {
       milightClient.allOff(gatewayId);
     }
+    
+    if (request["command"] == "unpair") {
+      milightClient.unpair(gatewayId, groupId);
+    }
+    
+    if (request["command"] == "pair") {
+      milightClient.pair(gatewayId, groupId);
+    }
   }
   
   server.send(200, "application/json", "true");
+}
+
+void handleListenGateway() {
+  while (!mlr.available()) {
+    yield();
+  }
+  
+  MiLightPacket packet;
+  milightClient.read(packet);
+  
+  String response = "Packet received (";
+  response += String(sizeof(packet)) + " bytes)";
+  response += ":\n";
+  response += "Request type : " + String(packet.deviceType, HEX) + "\n";
+  response += "Device ID    : " + String(packet.deviceId, HEX) + "\n";
+  response += "Color        : " + String(packet.color, HEX) + "\n";
+  response += "Brightness   : " + String(packet.brightness, HEX) + "\n";
+  response += "Group ID     : " + String(packet.groupId, HEX) + "\n";
+  response += "Button       : " + String(packet.button, HEX) + "\n";
+  response += "Sequence Num : " + String(packet.sequenceNum, HEX) + "\n";
+  response += "\n\n";
+  
+  server.send(200, "text/plain", response);
 }
 
 void setup() {
@@ -95,6 +126,7 @@ void setup() {
   mlr.begin();
   
   server.on("/gateway", HTTP_PUT, handleUpdateGateway);
+  server.on("/gateway", HTTP_GET, handleListenGateway);
   server.on("/update", HTTP_POST, 
     [](){
       server.sendHeader("Connection", "close");

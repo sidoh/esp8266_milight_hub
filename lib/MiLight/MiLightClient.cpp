@@ -1,5 +1,34 @@
 #include <MiLightClient.h>
 
+void MiLightClient::deserializePacket(const uint8_t rawPacket[], MiLightPacket& packet) {
+  uint8_t ptr = 0;
+  
+  packet.deviceType = rawPacket[ptr++];
+  packet.deviceId = (rawPacket[ptr++] << 8) | rawPacket[ptr++];
+  packet.color = rawPacket[ptr++];
+  
+  packet.brightness = rawPacket[ptr] >> 3;
+  packet.groupId = rawPacket[ptr++] & 0x07;
+  
+  packet.button = rawPacket[ptr++];
+  packet.sequenceNum = rawPacket[ptr++];
+}
+
+void MiLightClient::serializePacket(uint8_t rawPacket[], const MiLightPacket& packet) {
+  uint8_t ptr = 0;
+  
+  rawPacket[ptr++] = packet.deviceType;
+  
+  // big endian
+  rawPacket[ptr++] = packet.deviceId >> 8;
+  rawPacket[ptr++] = packet.deviceId & 0xFF;
+  
+  rawPacket[ptr++] = packet.color;
+  rawPacket[ptr++] = (packet.brightness << 3) | (packet.groupId & 0x07);
+  rawPacket[ptr++] = packet.button;
+  rawPacket[ptr++] = packet.sequenceNum;
+}
+
 uint8_t MiLightClient::nextSequenceNum() {
   return sequenceNum++;
 }
@@ -9,18 +38,20 @@ bool MiLightClient::available() {
 }
 
 void MiLightClient::read(MiLightPacket& packet) {
-  uint8_t *packetBytes = reinterpret_cast<uint8_t*>(&packet);
-  size_t length = sizeof(packet);
+  uint8_t packetBytes[MILIGHT_PACKET_LENGTH];
+  size_t length;
   radio.read(packetBytes, length);
+  deserializePacket(packetBytes, packet);
 }
 
 void MiLightClient::write(MiLightPacket& packet, const unsigned int resendCount) {
-  uint8_t *packetBytes = reinterpret_cast<uint8_t*>(&packet);
+  uint8_t packetBytes[MILIGHT_PACKET_LENGTH];
+  serializePacket(packetBytes, packet);
   
   Serial.print("Packet bytes (");
-  Serial.print(sizeof(packet));
+  Serial.print(MILIGHT_PACKET_LENGTH);
   Serial.print(" bytes): ");
-  for (int i = 0; i < sizeof(packet); i++) {
+  for (int i = 0; i < MILIGHT_PACKET_LENGTH; i++) {
     Serial.print(packetBytes[i], HEX);
     Serial.print(" ");
   }
@@ -28,7 +59,7 @@ void MiLightClient::write(MiLightPacket& packet, const unsigned int resendCount)
   
   for (int i = 0; i < resendCount; i++) {
     Serial.print(".");
-    radio.write(packetBytes, sizeof(packet));
+    radio.write(packetBytes, MILIGHT_PACKET_LENGTH);
   }
   Serial.println();
 }
@@ -59,7 +90,8 @@ void MiLightClient::write(
   packet.deviceType = MiLightDeviceType::RGBW;
   packet.deviceId = deviceId;
   packet.color = adjustedColor;
-  packet.brightnessGroupId = (packetBrightnessValue << 3) | groupId;
+  packet.brightness = packetBrightnessValue;
+  packet.groupId = groupId;
   packet.button = button;
   packet.sequenceNum = nextSequenceNum();
   
@@ -76,11 +108,26 @@ void MiLightClient::updateBrightness(const uint16_t deviceId, const uint8_t grou
 
 void MiLightClient::updateStatus(const uint16_t deviceId, const uint8_t groupId, MiLightStatus status) {
   uint8_t button = MiLightButton::GROUP_1_ON + ((groupId - 1)*2) + status;
-  write(deviceId, 0, 0, 0, static_cast<MiLightButton>(button));
+  write(deviceId, 0, 0, groupId, static_cast<MiLightButton>(button));
 }
 
 void MiLightClient::updateColorWhite(const uint16_t deviceId, const uint8_t groupId) {
-  write(deviceId, 0, 0, groupId, COLOR_WHITE);
+  uint8_t button = MiLightButton::GROUP_1_MAX_LEVEL + ((groupId - 1)*2);
+  pressButton(deviceId, groupId, static_cast<MiLightButton>(button));
+}
+
+void MiLightClient::pair(const uint16_t deviceId, const uint8_t groupId) {
+  updateStatus(deviceId, groupId, ON);
+}
+
+void MiLightClient::unpair(const uint16_t deviceId, const uint8_t groupId) {
+  updateStatus(deviceId, groupId, ON);
+  delay(1);
+  updateColorWhite(deviceId, groupId);
+}
+    
+void MiLightClient::pressButton(const uint16_t deviceId, const uint8_t groupId, MiLightButton button) {
+  write(deviceId, 0, 0, groupId, button);
 }
 
 void MiLightClient::allOn(const uint16_t deviceId) {
