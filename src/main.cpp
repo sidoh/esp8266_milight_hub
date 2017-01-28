@@ -33,8 +33,6 @@ void handleUpdateGateway(const UrlTokenBindings* urlBindings) {
 }
 
 void handleUpdateGroup(const UrlTokenBindings* urlBindings) {
-  Serial.println("Yeehaw?");
-  
   DynamicJsonBuffer buffer;
   JsonObject& request = buffer.parse(server.arg("plain"));
   
@@ -43,19 +41,12 @@ void handleUpdateGroup(const UrlTokenBindings* urlBindings) {
     return;
   }
   
-  Serial.println("deserialized");
-  
   const uint16_t deviceId = parseInt<uint16_t>(urlBindings->get("device_id"));
   const uint8_t groupId = urlBindings->get("group_id").toInt();
-  
-  Serial.println(deviceId);
-  Serial.println(groupId);
   
   if (request.containsKey("status")) {
     const String& statusStr = request.get<String>("status");
     MiLightStatus status = (statusStr == "on" || statusStr == "true") ? ON : OFF;
-    Serial.println(status);
-    Serial.println((int)milightClient);
     milightClient->updateStatus(deviceId, groupId, status);
   }
   
