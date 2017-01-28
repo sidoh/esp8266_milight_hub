@@ -30,13 +30,13 @@ void handleUpdateGateway() {
   DynamicJsonBuffer buffer;
   JsonObject& request = buffer.parse(server.arg("plain"));
   
-  const uint16_t gatewayId = parseInt<uint16_t>(server.arg("gateway_id"));
+  const uint16_t deviceId = parseInt<uint16_t>(server.arg("device_id"));
   
   if (request.containsKey("status")) {
     if (request["status"] == "on") {
-      milightClient.allOn(gatewayId);
+      milightClient.allOn(deviceId);
     } else if (request["status"] == "off") {
-      milightClient.allOff(gatewayId);
+      milightClient.allOff(deviceId);
     }
   }
   
@@ -47,41 +47,42 @@ void handleUpdateGroup() {
   DynamicJsonBuffer buffer;
   JsonObject& request = buffer.parse(server.arg("plain"));
   
-  const uint16_t gatewayId = parseInt<uint16_t>(server.arg("gateway_id"));
+  const uint16_t deviceId = parseInt<uint16_t>(server.arg("device_id"));
   const uint8_t groupId = server.arg("group_id").toInt();
   
   if (request.containsKey("status")) {
-    MiLightStatus status = (request.get<String>("status") == "on") ? ON : OFF;
-    milightClient.updateStatus(gatewayId, groupId, status);
+    const String& statusStr = request.get<String>("status");
+    MiLightStatus status = (statusStr == "on" || statusStr == "true") ? ON : OFF;
+    milightClient.updateStatus(deviceId, groupId, status);
   }
   
   if (request.containsKey("hue")) {
-    milightClient.updateColor(gatewayId, groupId, request["hue"]);
+    milightClient.updateColor(deviceId, groupId, request["hue"]);
   }
   
   if (request.containsKey("level")) {
-    milightClient.updateBrightness(gatewayId, groupId, request["level"]);
+    milightClient.updateBrightness(deviceId, groupId, request["level"]);
   }
   
   if (request.containsKey("command")) {
     if (request["command"] == "set_white") {
-      milightClient.updateColorWhite(gatewayId, groupId);
+      milightClient.updateColorWhite(deviceId, groupId);
     }
     
     if (request["command"] == "all_on") {
-      milightClient.allOn(gatewayId);
+      milightClient.allOn(deviceId);
     }
     
     if (request["command"] == "all_off") {
-      milightClient.allOff(gatewayId);
+      milightClient.allOff(deviceId);
     }
     
     if (request["command"] == "unpair") {
-      milightClient.unpair(gatewayId, groupId);
+      milightClient.unpair(deviceId, groupId);
     }
     
     if (request["command"] == "pair") {
-      milightClient.pair(gatewayId, groupId);
+      milightClient.pair(deviceId, groupId);
     }
   }
   
@@ -115,39 +116,51 @@ void handleListenGateway() {
   server.send(200, "text/plain", response);
 }
 
-void serveFile(const String& file, const char* contentType = "text/html") {
+bool serveFile(const char* file, const char* contentType = "text/html") {
   if (SPIFFS.exists(file)) {
     File f = SPIFFS.open(file, "r");
-    server.send(200, "text/html", f.readString());
+    server.send(200, contentType, f.readString());
     f.close();
-  } else {
-    server.send(404);
+    return true;
   }
-}
-
-void handleIndex() {
-  serveFile(WEB_INDEX_FILENAME);
-}
-
-void handleWebUpdate() {
-  HTTPUpload& upload = server.upload();
   
-  if (upload.status == UPLOAD_FILE_START) {
-    updateFile = SPIFFS.open(WEB_INDEX_FILENAME, "w");
-  } else if(upload.status == UPLOAD_FILE_WRITE){
-    if (updateFile.write(upload.buf, upload.currentSize)) {
-      Serial.println("Error updating web file");
+  return false;
+}
+
+ESP8266WebServer::THandlerFunction handleServeFile(const char* filename, 
+  const char* contentType, 
+  const char* defaultText = NULL) {
+    
+  return [filename, contentType, defaultText]() {
+    if (!serveFile(filename)) {
+      if (defaultText) {
+        server.send(200, contentType, defaultText);
+      } else {
+        server.send(404);
+      }
     }
-  } else if (upload.status == UPLOAD_FILE_END) {
-    updateFile.close();
-  }
-  
+  };
+}
+
+ESP8266WebServer::THandlerFunction handleUpdateFile(const char* filename) {
+  return [filename]() {
+    HTTPUpload& upload = server.upload();
+    
+    if (upload.status == UPLOAD_FILE_START) {
+      updateFile = SPIFFS.open(filename, "w");
+    } else if(upload.status == UPLOAD_FILE_WRITE){
+      if (updateFile.write(upload.buf, upload.currentSize)) {
+        Serial.println("Error updating web file");
+      }
+    } else if (upload.status == UPLOAD_FILE_END) {
+      updateFile.close();
+    }
+  };
   yield();
 }
 
 void onWebUpdated() {
-  server.sendHeader("Location", "/");
-  server.send(302);
+  server.send(200, "text/plain", "success");
 }
 
 void setup() {
@@ -156,11 +169,11 @@ void setup() {
   mlr.begin();
   SPIFFS.begin();
   
-  server.on("/", HTTP_GET, handleIndex);
+  server.on("/", HTTP_GET, handleServeFile(WEB_INDEX_FILENAME, "text/html"));
   server.on("/gateway_traffic", HTTP_GET, handleListenGateway);
-  server.onPattern("/gateway/:gateway_id/:group_id", HTTP_PUT, handleUpdateGroup);
-  server.onPattern("/gateway/:gateway_id", HTTP_PUT, handleUpdateGateway);
-  server.on("/web", HTTP_POST, onWebUpdated, handleWebUpdate);
+  server.onPattern("/gateways/:device_id/:group_id", HTTP_PUT, handleUpdateGroup);
+  server.onPattern("/gateways/:device_id", HTTP_PUT, handleUpdateGateway);
+  server.on("/web", HTTP_POST, onWebUpdated, handleUpdateFile(WEB_INDEX_FILENAME));
   server.on("/firmware", HTTP_POST, 
     [](){
       server.sendHeader("Connection", "close");

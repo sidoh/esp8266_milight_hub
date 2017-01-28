@@ -61,8 +61,8 @@ void MiLightClient::write(
   const uint8_t groupId,
   const MiLightButton button) {
     
-  // Expect an input value in [0, 255]. Map it down to [0, 25].
-  const uint8_t adjustedBrightness = round(brightness * (25 / 255.0));
+  // Expect an input value in [0, 100]. Map it down to [0, 25].
+  const uint8_t adjustedBrightness = round(brightness * (25 / 100.0));
   
   // The actual protocol uses a bizarre range where min is 16, max is 23:
   // [16, 15, ..., 0, 31, ..., 23]

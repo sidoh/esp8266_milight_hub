@@ -1,0 +1,280 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <title>MiLight Hub</title>
+  <meta name="description" content="The HTML5 Herald">
+  <meta name="author" content="SitePoint">
+
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"/>
+  <link href="https://gitcdn.github.io/bootstrap-toggle/2.2.2/css/bootstrap-toggle.min.css" rel="stylesheet"/>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/9.7.0/css/bootstrap-slider.min.css" rel="stylesheet"/>
+
+  <!--[if lt IE 9]>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv.js"></script>
+  <![endif]-->
+  
+  <style>
+    .header-row { border-bottom: 1px solid #ccc; }
+    label { display: block; }
+    .radio-option { padding: 0 5px; cursor: pointer; }
+    .command-buttons { list-style: none; margin: 0; padding: 0; }
+    .command-buttons li { display: inline-block; margin-right: 1em; }
+    .btn-secondary { 
+      background-color: #fff; 
+      border: 1px solid #ccc;
+    }
+    .hue-picker {
+      height: 2em;
+      width: 100%;
+      display: block;
+    }
+    .hue-picker-inner {
+      height: 2em;
+      width: calc(100% - 3em);
+      display: inline-block;
+      cursor: pointer;
+      background: linear-gradient(to right, 
+        rgb(255, 0, 0) 0%, 
+        rgb(255, 255, 0) 16.6667%, 
+        rgb(0, 255, 0) 33.3333%, 
+        rgb(0, 255, 255) 50%, 
+        rgb(0, 0, 255) 66.6667%, 
+        rgb(255, 0, 255) 83.3333%, 
+        rgb(255, 0, 0) 100%
+      );
+    }
+    .hue-value-display { 
+      border: 1px solid #000;
+      margin-left: 0.5em;
+      width: 2em;
+      height: 2em;
+      display: inline-block;
+    }
+  </style>
+</head>
+
+<body>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+  <script src="https://gitcdn.github.io/bootstrap-toggle/2.2.2/js/bootstrap-toggle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/9.7.0/bootstrap-slider.min.js"></script>
+  
+  <script lang="text/javascript">
+    var activeUrl = function() {
+      return "/gateways/" +
+        $('input[name="deviceId"]').val() +
+        "/" +
+        $('#groupId input:checked').data('value');
+    }
+    
+    var updateGroup = _.throttle(
+      function(params) {
+        $.ajax(
+          activeUrl(),
+          {
+            method: 'PUT',
+            data: JSON.stringify(params),
+            contentType: 'application/json'
+          }
+        );
+      },
+      1000
+    );
+    
+    var sniffRequest;
+    var sniffing = false;
+    var getTraffic = function() {
+      sniffRequest = $.get('/gateway_traffic', function(data) {
+        $('#sniffed-traffic').html(data + $('#sniffed-traffic').html());
+        getTraffic();
+      });
+    };
+    
+    
+    $(function() {
+      $('.radio-option').click(function() {
+        $(this).prev().prop('checked', true);
+      });
+      
+      var hueDragging = false;
+      var colorUpdated = function(e) {
+        var x = e.pageX - $(this).offset().left
+          , pct = x/(1.0*$(this).width())
+          , hue = Math.round(360*pct)
+          ;
+          
+        $('.hue-value-display').css({
+          backgroundColor: "hsl(" + hue + ",100%,50%)"
+        });
+        
+        updateGroup({hue: hue});
+      };
+      
+      $('.hue-picker-inner')
+        .mousedown(function(e) {
+          hueDragging = true;
+          colorUpdated.call(this, e);
+        })
+        .mouseup(function(e) {
+          hueDragging = false;
+        })
+        .mouseout(function(e) {
+          hueDragging = false;
+        })
+        .mousemove(function(e) {
+          if (hueDragging) {
+            colorUpdated.call(this, e);
+          }
+        });
+        
+      $('.slider').slider();
+      
+      $('.raw-update').change(function() {
+        var data = {}
+          , val = $(this).attr('type') == 'checkbox' ? $(this).is(':checked') : $(this).val()
+          ;
+          
+        data[$(this).attr('name')] = val;
+        updateGroup(data);
+      });
+      
+      $('.command-btn').click(function() {
+        updateGroup({command: $(this).data('command')});
+      });
+      
+      $('#sniff').click(function() {
+        if (sniffing) {
+          sniffRequest.abort();
+          sniffing = false;
+          $(this).html('Start Sniffing');
+        } else {
+          sniffing = true;
+          getTraffic();
+          $(this).html('Stop Sniffing');
+        }
+      });
+    });
+  </script>
+  
+  <div class="container">
+    <div class="row header-row">
+      <div class="col-sm-12">
+        <h1>
+          Control Lights
+        </h1>
+      </div>
+    </div>
+    
+    <div>&nbsp;</div>
+    
+    <div class="row">
+      <div class="col-sm-4">
+        <label for="deviceId">Device Id</label>
+        <input type="text" class="input" name="deviceId" />
+      </div>
+      
+      <div class="col-sm-8">
+        <label for="groupId">Group</label>
+        
+        <div class="btn-group" id="groupId" data-toggle="buttons">
+          <label class="btn btn-secondary active">
+            <input type="radio" name="options" autocomplete="off" data-value="1" checked> 1
+          </label>
+          <label class="btn btn-secondary">
+            <input type="radio" name="options" autocomplete="off" data-value="2"> 2
+          </label>
+          <label class="btn btn-secondary">
+            <input type="radio" name="options" autocomplete="off" data-value="3"> 3
+          </label>
+          <label class="btn btn-secondary">
+            <input type="radio" name="options" autocomplete="off" data-value="4"> 4
+          </label>
+        </div>
+      </div>
+    </div>
+    
+    <div class="row">
+      <div class="col-sm-12">
+        <h5>Hue</h5>
+      </div>
+    </div>
+    
+    <div class="row">
+      <div class="col-sm-6">
+        <span class="hue-picker">
+          <span class="hue-picker-inner"></span>
+          <span class="hue-value-display"></span>
+        </span>
+      </div>
+    </div>
+    
+    <div class="row">
+      <div class="col-sm-6">
+        <h5>Brightness</h5>
+      </div>
+    </div>
+      
+    <div class="row">
+      <div class="col-sm-12">
+        <input class="slider raw-update" name="level"
+            data-slider-min="0"
+            data-slider-max="100"
+            data-slider-value="100"
+        />
+      </div>
+    </div>
+    
+    <div class="row">
+      <div class="col-sm-12">
+        <h5>Commands</h5>
+      </div>
+    </div>
+    
+    <div class="row">
+      <div class="col-sm-12">
+        <ul class="command-buttons">
+          <li>
+            <input type="checkbox" name="status" class="raw-update" data-toggle="toggle" checked/>
+          </li>
+          <li>
+            <button type="button" class="btn btn-secondary command-btn" data-command="set_white">White</button>
+          </li>
+          <li>
+            <button type="button" class="btn btn-success command-btn" data-command="pair">
+              <i class="glyphicon glyphicon-plus"></i>
+              Pair
+            </button>
+          </li>
+          <li>
+            <button type="button" class="btn btn-danger command-btn" data-command="unpair">
+              <i class="glyphicon glyphicon-remove"></i>
+              Unpair
+            </button>
+          </li>
+        </ul>
+      </div>
+    </div>
+    
+    
+    <div class="row header-row">
+      <div class="col-sm-12">
+        <h1>Sniff Traffic</h1>
+      </div>
+    </div>
+    
+    <div>&nbsp;</div>
+    
+    <div class="row">
+      <div class="col-sm-12">
+        <button type="button" id="sniff" class="btn btn-primary">Start Sniffing</button>
+        
+        <pre id="sniffed-traffic"></pre>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

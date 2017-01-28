@@ -31,7 +31,6 @@ public:
   }
   
   bool matchesPattern(const String& pattern, const String& url);
-  
   void onPattern(const String& pattern, const HTTPMethod method, const THandlerFunction fn);
   
   String arg(String key) {
@@ -54,7 +53,7 @@ private:
   
   void resetPathMatches();
   void checkPatterns();
-
+  
   DynamicJsonBuffer* buffer;
   JsonObject* pathMatches;
   Vector<PatternHandler*> handlers;
