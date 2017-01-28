@@ -48,20 +48,9 @@ void MiLightClient::write(MiLightPacket& packet, const unsigned int resendCount)
   uint8_t packetBytes[MILIGHT_PACKET_LENGTH];
   serializePacket(packetBytes, packet);
   
-  Serial.print("Packet bytes (");
-  Serial.print(MILIGHT_PACKET_LENGTH);
-  Serial.print(" bytes): ");
-  for (int i = 0; i < MILIGHT_PACKET_LENGTH; i++) {
-    Serial.print(packetBytes[i], HEX);
-    Serial.print(" ");
-  }
-  Serial.println();
-  
   for (int i = 0; i < resendCount; i++) {
-    Serial.print(".");
     radio.write(packetBytes, MILIGHT_PACKET_LENGTH);
   }
-  Serial.println();
 }
 
 

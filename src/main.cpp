@@ -4,14 +4,18 @@
 #include <WiFiManager.h>
 #include <ArduinoJson.h>
 #include <stdlib.h>
+#include <fs.h>
 
 #include <PL1167_nRF24.h>
 #include <MiLightRadio.h>
 #include <MiLightClient.h>
-#include <ESP8266WebServer.h>
+#include <WebServer.h>
+#include <IntParsing.h>
 
 #define CE_PIN D0 
 #define CSN_PIN D8
+
+#define WEB_INDEX_FILENAME "/index.html"
 
 RF24 radio(CE_PIN, CSN_PIN);
 PL1167_nRF24 prf(radio);
@@ -19,45 +23,32 @@ MiLightRadio mlr(prf);
 MiLightClient milightClient(mlr);
 
 WiFiManager wifiManager;
-ESP8266WebServer server(80);
-
-template <typename T>
-const T strToHex(const String& s) {
-  T value = 0;
-  uint32_t base = 1;
-  
-  for (int i = s.length() - 1; i >= 0; i--) {
-    const char c = s.charAt(i);
-    
-    if (c >= '0' && c <= '9') {
-      value += ((c - '0') * base);
-    } else if (c >= 'a' && c <= 'f') {
-      value += ((c - 'a' + 10) * base);
-    } else if (c >= 'A' && c <= 'F') {
-      value += ((c - 'A' + 10) * base);
-    } else {
-      break;
-    }
-    
-    base <<= 4;
-  }
-  
-  return value;
-}
+WebServer server(80);
+File updateFile;
 
 void handleUpdateGateway() {
   DynamicJsonBuffer buffer;
   JsonObject& request = buffer.parse(server.arg("plain"));
   
-  const String gatewayIdStr = request["gateway_id"];
-  const uint8_t groupId = request["group_id"];
-  uint16_t gatewayId;
+  const uint16_t gatewayId = parseInt<uint16_t>(server.arg("gateway_id"));
   
-  if (gatewayIdStr.startsWith("0x")) {
-    gatewayId = strToHex<uint16_t>(gatewayIdStr.substring(2));
-  } else {
-    gatewayId = request["gateway_id"];
+  if (request.containsKey("status")) {
+    if (request["status"] == "on") {
+      milightClient.allOn(gatewayId);
+    } else if (request["status"] == "off") {
+      milightClient.allOff(gatewayId);
+    }
   }
+  
+  server.send(200, "application/json", "true");
+}
+
+void handleUpdateGroup() {
+  DynamicJsonBuffer buffer;
+  JsonObject& request = buffer.parse(server.arg("plain"));
+  
+  const uint16_t gatewayId = parseInt<uint16_t>(server.arg("gateway_id"));
+  const uint8_t groupId = server.arg("group_id").toInt();
   
   if (request.containsKey("status")) {
     MiLightStatus status = (request.get<String>("status") == "on") ? ON : OFF;
@@ -99,6 +90,10 @@ void handleUpdateGateway() {
 
 void handleListenGateway() {
   while (!mlr.available()) {
+    if (!server.clientConnected()) {
+      return;
+    }
+    
     yield();
   }
   
@@ -120,14 +115,53 @@ void handleListenGateway() {
   server.send(200, "text/plain", response);
 }
 
+void serveFile(const String& file, const char* contentType = "text/html") {
+  if (SPIFFS.exists(file)) {
+    File f = SPIFFS.open(file, "r");
+    server.send(200, "text/html", f.readString());
+    f.close();
+  } else {
+    server.send(404);
+  }
+}
+
+void handleIndex() {
+  serveFile(WEB_INDEX_FILENAME);
+}
+
+void handleWebUpdate() {
+  HTTPUpload& upload = server.upload();
+  
+  if (upload.status == UPLOAD_FILE_START) {
+    updateFile = SPIFFS.open(WEB_INDEX_FILENAME, "w");
+  } else if(upload.status == UPLOAD_FILE_WRITE){
+    if (updateFile.write(upload.buf, upload.currentSize)) {
+      Serial.println("Error updating web file");
+    }
+  } else if (upload.status == UPLOAD_FILE_END) {
+    updateFile.close();
+  }
+  
+  yield();
+}
+
+void onWebUpdated() {
+  server.sendHeader("Location", "/");
+  server.send(302);
+}
+
 void setup() {
   Serial.begin(9600);
   wifiManager.autoConnect();
   mlr.begin();
+  SPIFFS.begin();
   
-  server.on("/gateway", HTTP_PUT, handleUpdateGateway);
-  server.on("/gateway", HTTP_GET, handleListenGateway);
-  server.on("/update", HTTP_POST, 
+  server.on("/", HTTP_GET, handleIndex);
+  server.on("/gateway_traffic", HTTP_GET, handleListenGateway);
+  server.onPattern("/gateway/:gateway_id/:group_id", HTTP_PUT, handleUpdateGroup);
+  server.onPattern("/gateway/:gateway_id", HTTP_PUT, handleUpdateGateway);
+  server.on("/web", HTTP_POST, onWebUpdated, handleWebUpdate);
+  server.on("/firmware", HTTP_POST, 
     [](){
       server.sendHeader("Connection", "close");
       server.sendHeader("Access-Control-Allow-Origin", "*");
