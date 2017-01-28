@@ -26,11 +26,11 @@ WiFiManager wifiManager;
 WebServer server(80);
 File updateFile;
 
-void handleUpdateGateway() {
+void handleUpdateGateway(const UrlTokenBindings* urlBindings) {
   DynamicJsonBuffer buffer;
   JsonObject& request = buffer.parse(server.arg("plain"));
   
-  const uint16_t deviceId = parseInt<uint16_t>(server.arg("device_id"));
+  const uint16_t deviceId = parseInt<uint16_t>(urlBindings->get("device_id"));
   
   if (request.containsKey("status")) {
     if (request["status"] == "on") {
@@ -43,12 +43,12 @@ void handleUpdateGateway() {
   server.send(200, "application/json", "true");
 }
 
-void handleUpdateGroup() {
+void handleUpdateGroup(const UrlTokenBindings* urlBindings) {
   DynamicJsonBuffer buffer;
   JsonObject& request = buffer.parse(server.arg("plain"));
   
-  const uint16_t deviceId = parseInt<uint16_t>(server.arg("device_id"));
-  const uint8_t groupId = server.arg("group_id").toInt();
+  const uint16_t deviceId = parseInt<uint16_t>(urlBindings->get("device_id"));
+  const uint8_t groupId = urlBindings->get("group_id").toInt();
   
   if (request.containsKey("status")) {
     const String& statusStr = request.get<String>("status");
