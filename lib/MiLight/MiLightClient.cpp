@@ -34,13 +34,13 @@ uint8_t MiLightClient::nextSequenceNum() {
 }
 
 bool MiLightClient::available() {
-  return radio.available();
+  return radio->available();
 }
 
 void MiLightClient::read(MiLightPacket& packet) {
   uint8_t packetBytes[MILIGHT_PACKET_LENGTH];
   size_t length;
-  radio.read(packetBytes, length);
+  radio->read(packetBytes, length);
   deserializePacket(packetBytes, packet);
 }
 
@@ -49,7 +49,7 @@ void MiLightClient::write(MiLightPacket& packet, const unsigned int resendCount)
   serializePacket(packetBytes, packet);
   
   for (int i = 0; i < resendCount; i++) {
-    radio.write(packetBytes, MILIGHT_PACKET_LENGTH);
+    radio->write(packetBytes, MILIGHT_PACKET_LENGTH);
   }
 }
 

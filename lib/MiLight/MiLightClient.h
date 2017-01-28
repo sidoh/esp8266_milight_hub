@@ -1,5 +1,7 @@
 #include <Arduino.h>
 #include <MiLightRadio.h>
+#include <PL1167_nRF24.h>
+#include <RF24.h>
 
 #ifndef _MILIGHTCLIENT_H
 #define _MILIGHTCLIENT_H
@@ -56,9 +58,22 @@ struct MiLightPacket {
 
 class MiLightClient {
   public:
-    MiLightClient(MiLightRadio& radio) :
-      radio(radio),
-      sequenceNum(0) {}
+    MiLightClient(uint8_t cePin, uint8_t csnPin) :
+      sequenceNum(0) {
+      rf = new RF24(cePin, csnPin);
+      prf = new PL1167_nRF24(*rf);
+      radio = new MiLightRadio(*prf);
+    }
+    
+    ~MiLightClient() {
+      delete rf;
+      delete prf;
+      delete radio;
+    }
+    
+    void begin() {
+      radio->begin();
+    }
     
     bool available();
     void read(MiLightPacket& packet);
@@ -88,7 +103,9 @@ class MiLightClient {
     static void serializePacket(uint8_t rawPacket[], const MiLightPacket& packet);
     
   private:
-    MiLightRadio& radio;
+    RF24 *rf;
+    PL1167_nRF24 *prf;
+    MiLightRadio* radio;
     uint8_t sequenceNum;
     
     uint8_t nextSequenceNum();

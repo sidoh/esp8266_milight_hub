@@ -1,30 +1,19 @@
 #include <SPI.h>
-#include <nRF24L01.h>
-#include <RF24.h>
 #include <WiFiManager.h>
 #include <ArduinoJson.h>
 #include <stdlib.h>
 #include <fs.h>
-
-#include <PL1167_nRF24.h>
-#include <MiLightRadio.h>
 #include <MiLightClient.h>
 #include <WebServer.h>
 #include <IntParsing.h>
+#include <Settings.h>
 
-#define CE_PIN D0 
-#define CSN_PIN D8
-
-#define WEB_INDEX_FILENAME "/index.html"
-
-RF24 radio(CE_PIN, CSN_PIN);
-PL1167_nRF24 prf(radio);
-MiLightRadio mlr(prf);
-MiLightClient milightClient(mlr);
+MiLightClient* milightClient;
 
 WiFiManager wifiManager;
 WebServer server(80);
 File updateFile;
+Settings settings;
 
 void handleUpdateGateway(const UrlTokenBindings* urlBindings) {
   DynamicJsonBuffer buffer;
@@ -34,9 +23,9 @@ void handleUpdateGateway(const UrlTokenBindings* urlBindings) {
   
   if (request.containsKey("status")) {
     if (request["status"] == "on") {
-      milightClient.allOn(deviceId);
+      milightClient->allOn(deviceId);
     } else if (request["status"] == "off") {
-      milightClient.allOff(deviceId);
+      milightClient->allOff(deviceId);
     }
   }
   
@@ -53,36 +42,36 @@ void handleUpdateGroup(const UrlTokenBindings* urlBindings) {
   if (request.containsKey("status")) {
     const String& statusStr = request.get<String>("status");
     MiLightStatus status = (statusStr == "on" || statusStr == "true") ? ON : OFF;
-    milightClient.updateStatus(deviceId, groupId, status);
+    milightClient->updateStatus(deviceId, groupId, status);
   }
   
   if (request.containsKey("hue")) {
-    milightClient.updateColor(deviceId, groupId, request["hue"]);
+    milightClient->updateColor(deviceId, groupId, request["hue"]);
   }
   
   if (request.containsKey("level")) {
-    milightClient.updateBrightness(deviceId, groupId, request["level"]);
+    milightClient->updateBrightness(deviceId, groupId, request["level"]);
   }
   
   if (request.containsKey("command")) {
     if (request["command"] == "set_white") {
-      milightClient.updateColorWhite(deviceId, groupId);
+      milightClient->updateColorWhite(deviceId, groupId);
     }
     
     if (request["command"] == "all_on") {
-      milightClient.allOn(deviceId);
+      milightClient->allOn(deviceId);
     }
     
     if (request["command"] == "all_off") {
-      milightClient.allOff(deviceId);
+      milightClient->allOff(deviceId);
     }
     
     if (request["command"] == "unpair") {
-      milightClient.unpair(deviceId, groupId);
+      milightClient->unpair(deviceId, groupId);
     }
     
     if (request["command"] == "pair") {
-      milightClient.pair(deviceId, groupId);
+      milightClient->pair(deviceId, groupId);
     }
   }
   
@@ -90,7 +79,7 @@ void handleUpdateGroup(const UrlTokenBindings* urlBindings) {
 }
 
 void handleListenGateway() {
-  while (!mlr.available()) {
+  while (!milightClient->available()) {
     if (!server.clientConnected()) {
       return;
     }
@@ -99,7 +88,7 @@ void handleListenGateway() {
   }
   
   MiLightPacket packet;
-  milightClient.read(packet);
+  milightClient->read(packet);
   
   String response = "Packet received (";
   response += String(sizeof(packet)) + " bytes)";
@@ -166,8 +155,11 @@ void onWebUpdated() {
 void setup() {
   Serial.begin(9600);
   wifiManager.autoConnect();
-  mlr.begin();
   SPIFFS.begin();
+  Settings::load(settings);
+  
+  milightClient = new MiLightClient(settings.cePin, settings.csnPin);
+  milightClient->begin();
   
   server.on("/", HTTP_GET, handleServeFile(WEB_INDEX_FILENAME, "text/html"));
   server.on("/gateway_traffic", HTTP_GET, handleListenGateway);
