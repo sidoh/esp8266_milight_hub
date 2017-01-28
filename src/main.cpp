@@ -33,15 +33,29 @@ void handleUpdateGateway(const UrlTokenBindings* urlBindings) {
 }
 
 void handleUpdateGroup(const UrlTokenBindings* urlBindings) {
+  Serial.println("Yeehaw?");
+  
   DynamicJsonBuffer buffer;
   JsonObject& request = buffer.parse(server.arg("plain"));
+  
+  if (!request.success()) {
+    server.send(400, "text/plain", "Invalid JSON");
+    return;
+  }
+  
+  Serial.println("deserialized");
   
   const uint16_t deviceId = parseInt<uint16_t>(urlBindings->get("device_id"));
   const uint8_t groupId = urlBindings->get("group_id").toInt();
   
+  Serial.println(deviceId);
+  Serial.println(groupId);
+  
   if (request.containsKey("status")) {
     const String& statusStr = request.get<String>("status");
     MiLightStatus status = (statusStr == "on" || statusStr == "true") ? ON : OFF;
+    Serial.println(status);
+    Serial.println((int)milightClient);
     milightClient->updateStatus(deviceId, groupId, status);
   }
   
@@ -152,16 +166,41 @@ void onWebUpdated() {
   server.send(200, "text/plain", "success");
 }
 
+void initMilightClient() {
+  if (milightClient) {
+    delete milightClient;
+  }
+  
+  milightClient = new MiLightClient(settings.cePin, settings.csnPin);
+  milightClient->begin();
+}
+
+void handleUpdateSettings() {
+  DynamicJsonBuffer buffer;
+  const String& rawSettings = server.arg("plain");
+  JsonObject& parsedSettings = buffer.parse(rawSettings);
+  
+  if (parsedSettings.success()) {
+    Settings::deserialize(settings, parsedSettings);
+    settings.save();
+    initMilightClient();
+    
+    server.send(200, "application/json", "true");
+  } else {
+    server.send(400, "application/json", "\"Invalid JSON\"");
+  }
+}
+
 void setup() {
   Serial.begin(9600);
   wifiManager.autoConnect();
   SPIFFS.begin();
   Settings::load(settings);
-  
-  milightClient = new MiLightClient(settings.cePin, settings.csnPin);
-  milightClient->begin();
+  initMilightClient();
   
   server.on("/", HTTP_GET, handleServeFile(WEB_INDEX_FILENAME, "text/html"));
+  server.on("/settings", HTTP_GET, handleServeFile(SETTINGS_FILE, "application/json"));
+  server.on("/settings", HTTP_POST, handleUpdateSettings);
   server.on("/gateway_traffic", HTTP_GET, handleListenGateway);
   server.onPattern("/gateways/:device_id/:group_id", HTTP_PUT, handleUpdateGroup);
   server.onPattern("/gateways/:device_id", HTTP_PUT, handleUpdateGateway);

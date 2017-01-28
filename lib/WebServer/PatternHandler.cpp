@@ -4,7 +4,7 @@ PatternHandler::PatternHandler(
     const String& pattern, 
     const HTTPMethod method, 
     const PatternHandler::TPatternHandlerFn fn
-  ) : method(method), fn(fn) {
+  ) : method(method), fn(fn), tokenPositions(NULL) {
   Vector<StringToken>* tokenPositions = new Vector<StringToken>();
   tokenize(pattern, tokenPositions);
   
@@ -31,6 +31,9 @@ bool PatternHandler::canHandle(HTTPMethod requestMethod, String requestUri) {
   
   tokenPositions = new Vector<StringToken>();
   tokenize(requestUri, tokenPositions);
+  
+  Serial.print(tokenPositions->size());
+  Serial.println(" tokens in URL");
   
   if (numPatternTokens == tokenPositions->size()) {
     for (int i = 0; i < numPatternTokens; i++) {

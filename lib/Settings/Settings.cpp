@@ -5,11 +5,16 @@
 void Settings::deserialize(Settings& settings, String json) {
   DynamicJsonBuffer jsonBuffer;
   JsonObject& parsedSettings = jsonBuffer.parseObject(json);
-    
-  settings.adminUsername = parsedSettings.get<String>("admin_username");
-  settings.adminPassword = parsedSettings.get<String>("admin_password");
-  settings.cePin = parsedSettings["ce_pin"];
-  settings.csnPin = parsedSettings["csn_pin"];
+  deserialize(settings, parsedSettings);
+}
+
+void Settings::deserialize(Settings& settings, JsonObject& parsedSettings) {
+  if (parsedSettings.success()) {
+    settings.adminUsername = parsedSettings.get<String>("admin_username");
+    settings.adminPassword = parsedSettings.get<String>("admin_password");
+    settings.cePin = parsedSettings["ce_pin"];
+    settings.csnPin = parsedSettings["csn_pin"];
+  }
 }
 
 void Settings::load(Settings& settings) {

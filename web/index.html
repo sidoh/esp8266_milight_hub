@@ -22,6 +22,8 @@
     .radio-option { padding: 0 5px; cursor: pointer; }
     .command-buttons { list-style: none; margin: 0; padding: 0; }
     .command-buttons li { display: inline-block; margin-right: 1em; }
+    .form-entry { margin: 0 0 20px 0; }
+    .form-entry .form-control { width: 20em; }
     .btn-secondary { 
       background-color: #fff; 
       border: 1px solid #ccc;
@@ -64,11 +66,18 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/9.7.0/bootstrap-slider.min.js"></script>
   
   <script lang="text/javascript">
+    var FORM_SETTINGS = ["admin_username", "admin_password", "ce_pin", "csn_pin"];
+  
     var activeUrl = function() {
-      return "/gateways/" +
-        $('input[name="deviceId"]').val() +
-        "/" +
-        $('#groupId input:checked').data('value');
+      var deviceId = $('input[name="deviceId"]').val()
+        , groupId = $('#groupId input:checked').data('value');
+        
+      if (deviceId == "") {
+        alert("Please enter a device ID.");
+        throw "abc";
+      }
+        
+      return "/gateways/" + deviceId + "/" + groupId;
     }
     
     var updateGroup = _.throttle(
@@ -94,6 +103,13 @@
       });
     };
     
+    var loadSettings = function() {
+      $.getJSON('/settings', function(val) {
+        Object.keys(val).forEach(function(k) {
+          $('#settings input[name="' + k + '"]').val(val[k]);
+        });
+      });
+    };
     
     $(function() {
       $('.radio-option').click(function() {
@@ -157,6 +173,38 @@
           $(this).html('Stop Sniffing');
         }
       });
+      
+      var settings = "";
+      
+      FORM_SETTINGS.forEach(function(k) {
+        var elmt = '<div class="form-entry">';
+        elmt += '<label for="' + k + '">' + k + '</label>';
+        elmt += '<input type="text" class="form-control" name="' + k + '"/>';
+        elmt += '</div>';
+        settings += elmt;
+      });
+        
+      $('#settings').prepend(settings);
+      $('#settings').submit(function(e) {
+        var obj = {};
+        FORM_SETTINGS.forEach(function(k) {
+          obj[k] = $('#settings input[name="' + k + '"]').val();
+        });
+        
+        $.ajax(
+          "/settings",
+          {
+            method: 'post',
+            contentType: 'application/json',
+            data: JSON.stringify(obj)
+          }
+        );
+        
+        e.preventDefault();
+        return false;
+      });
+      
+      loadSettings();
     });
   </script>
   
@@ -174,7 +222,7 @@
     <div class="row">
       <div class="col-sm-4">
         <label for="deviceId">Device Id</label>
-        <input type="text" class="input" name="deviceId" />
+        <input type="text" class="form-control" name="deviceId" />
       </div>
       
       <div class="col-sm-8">
@@ -259,6 +307,21 @@
       </div>
     </div>
     
+    <div class="row header-row">
+      <div class="col-sm-12">
+        <h1>Settings</h1>
+      </div>
+    </div>
+    
+    <div>&nbsp;</div>
+    
+    <div class="row">
+      <div class="col-sm-12">
+        <form action="#" id="settings">
+          <input type="submit" class="btn btn-success" value="Submit" />
+        </form>
+      </div>
+    </div>
     
     <div class="row header-row">
       <div class="col-sm-12">

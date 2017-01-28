@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <StringStream.h>
+#include <ArduinoJson.h>
 
 #ifndef _SETTINGS_H_INCLUDED
 #define _SETTINGS_H_INCLUDED
@@ -20,6 +21,7 @@ public:
   { }
 
   static void deserialize(Settings& settings, String json);
+  static void deserialize(Settings& settings, JsonObject& json);
   static void load(Settings& settings);
   
   void save();
