@@ -143,7 +143,7 @@ ESP8266WebServer::THandlerFunction handleUpdateFile(const char* filename) {
     if (upload.status == UPLOAD_FILE_START) {
       updateFile = SPIFFS.open(filename, "w");
     } else if(upload.status == UPLOAD_FILE_WRITE){
-      if (updateFile.write(upload.buf, upload.currentSize)) {
+      if (updateFile.write(upload.buf, upload.currentSize) != upload.currentSize) {
         Serial.println("Error updating web file");
       }
     } else if (upload.status == UPLOAD_FILE_END) {

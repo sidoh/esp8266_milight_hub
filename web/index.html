@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"/>
   <link href="https://gitcdn.github.io/bootstrap-toggle/2.2.2/css/bootstrap-toggle.min.css" rel="stylesheet"/>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/9.7.0/css/bootstrap-slider.min.css" rel="stylesheet"/>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.4/css/selectize.bootstrap3.min.css" rel="stylesheet"/>
 
   <!--[if lt IE 9]>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv.js"></script>
@@ -24,6 +25,10 @@
     .command-buttons li { display: inline-block; margin-right: 1em; }
     .form-entry { margin: 0 0 20px 0; }
     .form-entry .form-control { width: 20em; }
+    label:not(.error) .error-info { display: none; }
+    .error-info { color: #f00; font-size: 0.7em; }
+    .error-info:before { content: '('; }
+    .error-info:after { content: ')'; }
     .btn-secondary { 
       background-color: #fff; 
       border: 1px solid #ccc;
@@ -64,12 +69,15 @@
   <script src="https://gitcdn.github.io/bootstrap-toggle/2.2.2/js/bootstrap-toggle.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/9.7.0/bootstrap-slider.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.4/js/standalone/selectize.min.js"></script>
   
   <script lang="text/javascript">
     var FORM_SETTINGS = ["admin_username", "admin_password", "ce_pin", "csn_pin"];
+    
+    var selectize;
   
     var activeUrl = function() {
-      var deviceId = $('input[name="deviceId"]').val()
+      var deviceId = $('#deviceId option:selected').val()
         , groupId = $('#groupId input:checked').data('value');
         
       if (deviceId == "") {
@@ -106,9 +114,31 @@
     var loadSettings = function() {
       $.getJSON('/settings', function(val) {
         Object.keys(val).forEach(function(k) {
-          $('#settings input[name="' + k + '"]').val(val[k]);
+          var field = $('#settings input[name="' + k + '"]');
+          
+          if (field.length > 0) {
+            field.val(val[k]);
+          }
         });
+        
+        if (val.device_ids) {
+          selectize.clearOptions();
+          val.device_ids.forEach(function(v) {
+            var inHex = "0x" + (v).toString(16).toUpperCase();
+            selectize.addOption({text: inHex, value: v});
+          });
+          selectize.refreshOptions();
+        }
       });
+    };
+    
+    var deviceIdError = function(v) {
+      if (!v) {
+        $('#device-id-label').removeClass('error');
+      } else {
+        $('#device-id-label').addClass('error');
+        $('#device-id-label .error-info').html(v);
+      }
     };
     
     $(function() {
@@ -174,6 +204,29 @@
         }
       });
       
+      selectize = $('#deviceId').selectize({
+        create: true,
+        sortField: 'text',
+        createFilter: function(v) {
+          if (! v.match(/^(0x[a-fA-F0-9]{1,4}|[0-9]{1,5})$/)) {
+            deviceIdError("Must be an integer between 0x0000 and 0xFFFF");
+            return false;
+          }
+          
+          var value = parseInt(v);
+          
+          if (! (0 <= v && v <= 0xFFFF)) {
+            deviceIdError("Must be an integer between 0x0000 and 0xFFFF");
+            return false;
+          } 
+          
+          deviceIdError(false);
+          
+          return true;
+        }
+      });
+      selectize = selectize[0].selectize;
+      
       var settings = "";
       
       FORM_SETTINGS.forEach(function(k) {
@@ -187,9 +240,18 @@
       $('#settings').prepend(settings);
       $('#settings').submit(function(e) {
         var obj = {};
+        
         FORM_SETTINGS.forEach(function(k) {
           obj[k] = $('#settings input[name="' + k + '"]').val();
         });
+        
+        // pretty hacky. whatever.
+        obj.device_ids = _.map(
+          $('.selectize-control .option'),
+          function(x) { 
+            return parseInt($(x).data('value'), 16)
+          }
+        );
         
         $.ajax(
           "/settings",
@@ -221,8 +283,12 @@
     
     <div class="row">
       <div class="col-sm-4">
-        <label for="deviceId">Device Id</label>
-        <input type="text" class="form-control" name="deviceId" />
+        <label for="deviceId" id="device-id-label">
+          Device Id
+          <span class="error-info"></span>
+        </label>
+        <select id="deviceId" placeholder="Enter hub ID">
+				</select>
       </div>
       
       <div class="col-sm-8">

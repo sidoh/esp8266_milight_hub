@@ -14,6 +14,21 @@ void Settings::deserialize(Settings& settings, JsonObject& parsedSettings) {
     settings.adminPassword = parsedSettings.get<String>("admin_password");
     settings.cePin = parsedSettings["ce_pin"];
     settings.csnPin = parsedSettings["csn_pin"];
+    
+    JsonArray& arr = parsedSettings["device_ids"];
+    settings.updateDeviceIds(arr);
+  }
+}
+
+void Settings::updateDeviceIds(JsonArray& arr) {
+  if (arr.success()) {
+    if (this->deviceIds) {
+      delete this->deviceIds;
+    }
+    
+    this->deviceIds = new uint16_t[arr.size()];
+    this->numDeviceIds = arr.size();
+    arr.copyTo(this->deviceIds, arr.size());
   }
 }
 
@@ -55,6 +70,12 @@ void Settings::serialize(Stream& stream, const bool prettyPrint) {
   root["admin_password"] = this->adminPassword;
   root["ce_pin"] = this->cePin;
   root["csn_pin"] = this->csnPin;
+  
+  if (this->deviceIds) {
+    JsonArray& arr = jsonBuffer.createArray();
+    arr.copyFrom(this->deviceIds, this->numDeviceIds);
+    root["device_ids"] = arr;
+  }
   
   if (prettyPrint) {
     root.prettyPrintTo(stream);
