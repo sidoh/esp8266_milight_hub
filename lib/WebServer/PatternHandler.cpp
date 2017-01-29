@@ -32,9 +32,6 @@ bool PatternHandler::canHandle(HTTPMethod requestMethod, String requestUri) {
   tokenPositions = new Vector<StringToken>();
   tokenize(requestUri, tokenPositions);
   
-  Serial.print(tokenPositions->size());
-  Serial.println(" tokens in URL");
-  
   if (numPatternTokens == tokenPositions->size()) {
     for (int i = 0; i < numPatternTokens; i++) {
       const StringToken urlTokenP = (*tokenPositions)[i];
@@ -45,6 +42,8 @@ bool PatternHandler::canHandle(HTTPMethod requestMethod, String requestUri) {
         break;
       }
     }
+  } else {
+    canHandle = false;
   }
   
   return canHandle;
@@ -55,16 +54,9 @@ bool PatternHandler::handle(ESP8266WebServer& server, HTTPMethod requestMethod, 
     return false;
   }
   
-  Serial.println("Trying to handle.");
-  Serial.println(tokenPositions->size());
-  
   UrlTokenBindings* bindings = new UrlTokenBindings(patternTokens, tokenPositions, requestUri);
-  
-  Serial.println("Constructed bindings");
-  
   fn(bindings);
   
-  Serial.println("Called handler");
   delete bindings;
 }
 
