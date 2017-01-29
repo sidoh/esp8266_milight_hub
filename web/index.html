@@ -207,6 +207,9 @@
       selectize = $('#deviceId').selectize({
         create: true,
         sortField: 'text',
+        onOptionAdd: function(v, item) {
+          item.value = parseInt(item.value);
+        },
         createFilter: function(v) {
           if (! v.match(/^(0x[a-fA-F0-9]{1,4}|[0-9]{1,5})$/)) {
             deviceIdError("Must be an integer between 0x0000 and 0xFFFF");
@@ -249,14 +252,14 @@
         obj.device_ids = _.map(
           $('.selectize-control .option'),
           function(x) { 
-            return parseInt($(x).data('value'), 16)
+            return $(x).data('value')
           }
         );
         
         $.ajax(
           "/settings",
           {
-            method: 'post',
+            method: 'put',
             contentType: 'application/json',
             data: JSON.stringify(obj)
           }

@@ -172,7 +172,7 @@ void handleUpdateSettings() {
   JsonObject& parsedSettings = buffer.parse(rawSettings);
   
   if (parsedSettings.success()) {
-    Settings::deserialize(settings, parsedSettings);
+    settings.patch(parsedSettings);
     settings.save();
     initMilightClient();
     
@@ -191,7 +191,7 @@ void setup() {
   
   server.on("/", HTTP_GET, handleServeFile(WEB_INDEX_FILENAME, "text/html"));
   server.on("/settings", HTTP_GET, handleServeFile(SETTINGS_FILE, "application/json"));
-  server.on("/settings", HTTP_POST, handleUpdateSettings);
+  server.on("/settings", HTTP_PUT, handleUpdateSettings);
   server.on("/gateway_traffic", HTTP_GET, handleListenGateway);
   server.onPattern("/gateways/:device_id/:group_id", HTTP_PUT, handleUpdateGroup);
   server.onPattern("/gateways/:device_id", HTTP_PUT, handleUpdateGateway);

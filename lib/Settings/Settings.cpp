@@ -32,6 +32,27 @@ void Settings::updateDeviceIds(JsonArray& arr) {
   }
 }
 
+void Settings::patch(JsonObject& parsedSettings) {
+  if (parsedSettings.success()) {
+    if (parsedSettings.containsKey("admin_username")) {
+      this->adminUsername = parsedSettings.get<String>("admin_username");
+    }
+    if (parsedSettings.containsKey("admin_password")) {
+      this->adminPassword = parsedSettings.get<String>("admin_password");
+    }
+    if (parsedSettings.containsKey("ce_pin")) {
+      this->cePin = parsedSettings["ce_pin"];
+    }
+    if (parsedSettings.containsKey("csn_pin")) {
+      this->csnPin = parsedSettings["csn_pin"];
+    }
+    if (parsedSettings.containsKey("device_ids")) {
+      JsonArray& arr = parsedSettings["device_ids"];
+      updateDeviceIds(arr);
+    }
+  }
+}
+
 void Settings::load(Settings& settings) {
   if (SPIFFS.exists(SETTINGS_FILE)) {
     File f = SPIFFS.open(SETTINGS_FILE, "r");

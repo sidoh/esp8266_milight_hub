@@ -36,6 +36,7 @@ public:
   String toJson(const bool prettyPrint = true);
   void serialize(Stream& stream, const bool prettyPrint = false);
   void updateDeviceIds(JsonArray& arr);
+  void patch(JsonObject& obj);
   
   String adminUsername;
   String adminPassword;
