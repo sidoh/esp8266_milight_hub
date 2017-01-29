@@ -1,3 +1,7 @@
+/**
+ * Taken from: https://redstoner.com/forums/threads/840-minimal-class-to-replace-std-vector-in-c-for-arduino
+ */
+ 
 #ifndef _VECTOR_H
 #define _VECTOR_H
 
