@@ -39,7 +39,6 @@ success%
 
 You should now be able to navigate to `http://<ip of ESP>`. It should look like this:
 
-![Web UI](http://imgur.com/1V6AJ6l.png?1)
 
 ## REST endpoints
 
