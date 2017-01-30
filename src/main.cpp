@@ -11,13 +11,13 @@
 MiLightClient* milightClient;
 
 WiFiManager wifiManager;
-WebServer server(80);
+WebServer *server = new WebServer(80);
 File updateFile;
 Settings settings;
 
 void handleUpdateGateway(const UrlTokenBindings* urlBindings) {
   DynamicJsonBuffer buffer;
-  JsonObject& request = buffer.parse(server.arg("plain"));
+  JsonObject& request = buffer.parse(server->arg("plain"));
   
   const uint16_t deviceId = parseInt<uint16_t>(urlBindings->get("device_id"));
   
@@ -29,15 +29,15 @@ void handleUpdateGateway(const UrlTokenBindings* urlBindings) {
     }
   }
   
-  server.send(200, "application/json", "true");
+  server->send(200, "application/json", "true");
 }
 
 void handleUpdateGroup(const UrlTokenBindings* urlBindings) {
   DynamicJsonBuffer buffer;
-  JsonObject& request = buffer.parse(server.arg("plain"));
+  JsonObject& request = buffer.parse(server->arg("plain"));
   
   if (!request.success()) {
-    server.send(400, "text/plain", "Invalid JSON");
+    server->send(400, "text/plain", "Invalid JSON");
     return;
   }
   
@@ -80,12 +80,12 @@ void handleUpdateGroup(const UrlTokenBindings* urlBindings) {
     }
   }
   
-  server.send(200, "application/json", "true");
+  server->send(200, "application/json", "true");
 }
 
 void handleListenGateway() {
   while (!milightClient->available()) {
-    if (!server.clientConnected()) {
+    if (!server->clientConnected()) {
       return;
     }
     
@@ -107,13 +107,13 @@ void handleListenGateway() {
   response += "Sequence Num : " + String(packet.sequenceNum, HEX) + "\n";
   response += "\n\n";
   
-  server.send(200, "text/plain", response);
+  server->send(200, "text/plain", response);
 }
 
 bool serveFile(const char* file, const char* contentType = "text/html") {
   if (SPIFFS.exists(file)) {
     File f = SPIFFS.open(file, "r");
-    server.send(200, contentType, f.readString());
+    server->send(200, contentType, f.readString());
     f.close();
     return true;
   }
@@ -128,9 +128,9 @@ ESP8266WebServer::THandlerFunction handleServeFile(const char* filename,
   return [filename, contentType, defaultText]() {
     if (!serveFile(filename)) {
       if (defaultText) {
-        server.send(200, contentType, defaultText);
+        server->send(200, contentType, defaultText);
       } else {
-        server.send(404);
+        server->send(404);
       }
     }
   };
@@ -138,7 +138,7 @@ ESP8266WebServer::THandlerFunction handleServeFile(const char* filename,
 
 ESP8266WebServer::THandlerFunction handleUpdateFile(const char* filename) {
   return [filename]() {
-    HTTPUpload& upload = server.upload();
+    HTTPUpload& upload = server->upload();
     
     if (upload.status == UPLOAD_FILE_START) {
       updateFile = SPIFFS.open(filename, "w");
@@ -154,7 +154,7 @@ ESP8266WebServer::THandlerFunction handleUpdateFile(const char* filename) {
 }
 
 void onWebUpdated() {
-  server.send(200, "text/plain", "success");
+  server->send(200, "text/plain", "success");
 }
 
 void initMilightClient() {
@@ -168,7 +168,7 @@ void initMilightClient() {
 
 void handleUpdateSettings() {
   DynamicJsonBuffer buffer;
-  const String& rawSettings = server.arg("plain");
+  const String& rawSettings = server->arg("plain");
   JsonObject& parsedSettings = buffer.parse(rawSettings);
   
   if (parsedSettings.success()) {
@@ -176,9 +176,15 @@ void handleUpdateSettings() {
     settings.save();
     initMilightClient();
     
-    server.send(200, "application/json", "true");
+    if (server->authenticationRequired() && !settings.hasAuthSettings()) {
+      server->disableAuthentication();
+    } else {
+      server->requireAuthentication(settings.adminUsername, settings.adminPassword);
+    }
+    
+    server->send(200, "application/json", "true");
   } else {
-    server.send(400, "application/json", "\"Invalid JSON\"");
+    server->send(400, "application/json", "\"Invalid JSON\"");
   }
 }
 
@@ -189,22 +195,22 @@ void setup() {
   Settings::load(settings);
   initMilightClient();
   
-  server.on("/", HTTP_GET, handleServeFile(WEB_INDEX_FILENAME, "text/html"));
-  server.on("/settings", HTTP_GET, handleServeFile(SETTINGS_FILE, "application/json"));
-  server.on("/settings", HTTP_PUT, handleUpdateSettings);
-  server.on("/gateway_traffic", HTTP_GET, handleListenGateway);
-  server.onPattern("/gateways/:device_id/:group_id", HTTP_PUT, handleUpdateGroup);
-  server.onPattern("/gateways/:device_id", HTTP_PUT, handleUpdateGateway);
-  server.on("/web", HTTP_POST, onWebUpdated, handleUpdateFile(WEB_INDEX_FILENAME));
-  server.on("/firmware", HTTP_POST, 
+  server->on("/", HTTP_GET, handleServeFile(WEB_INDEX_FILENAME, "text/html"));
+  server->on("/settings", HTTP_GET, handleServeFile(SETTINGS_FILE, "application/json"));
+  server->on("/settings", HTTP_PUT, handleUpdateSettings);
+  server->on("/gateway_traffic", HTTP_GET, handleListenGateway);
+  server->onPattern("/gateways/:device_id/:group_id", HTTP_PUT, handleUpdateGroup);
+  server->onPattern("/gateways/:device_id", HTTP_PUT, handleUpdateGateway);
+  server->on("/web", HTTP_POST, onWebUpdated, handleUpdateFile(WEB_INDEX_FILENAME));
+  server->on("/firmware", HTTP_POST, 
     [](){
-      server.sendHeader("Connection", "close");
-      server.sendHeader("Access-Control-Allow-Origin", "*");
-      server.send(200, "text/plain", (Update.hasError())?"FAIL":"OK");
+      server->sendHeader("Connection", "close");
+      server->sendHeader("Access-Control-Allow-Origin", "*");
+      server->send(200, "text/plain", (Update.hasError())?"FAIL":"OK");
       ESP.restart();
     },
     [](){
-      HTTPUpload& upload = server.upload();
+      HTTPUpload& upload = server->upload();
       if(upload.status == UPLOAD_FILE_START){
         WiFiUDP::stopAll();
         uint32_t maxSketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
@@ -225,9 +231,13 @@ void setup() {
     }
   );
   
-  server.begin();
+  if (settings.adminUsername.length() > 0 && settings.adminPassword.length() > 0) {
+    server->requireAuthentication(settings.adminUsername, settings.adminPassword);
+  }
+  
+  server->begin();
 }
 
 void loop() {
-  server.handleClient();
+  server->handleClient();
 }

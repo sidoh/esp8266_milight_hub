@@ -27,6 +27,10 @@ public:
       delete deviceIds;
     }
   }
+  
+  bool hasAuthSettings() {
+    return adminUsername.length() > 0 && adminPassword.length() > 0;
+  }
 
   static void deserialize(Settings& settings, String json);
   static void deserialize(Settings& settings, JsonObject& json);
