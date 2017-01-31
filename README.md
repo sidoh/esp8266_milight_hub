@@ -18,7 +18,7 @@ This is a replacement for a Milight/LimitlessLED remote/gateway hosted on an ESP
 
 #### Connect the NRF24L01+
 
-This module is an SPI device. [This guide] details how to connect it. I used GPIO 16 for CE and GPIO 15 for CSN. These can be configured later.
+This module is an SPI device. [This guide](https://www.mysensors.org/build/esp8266_gateway) details how to connect it. I used GPIO 16 for CE and GPIO 15 for CSN. These can be configured later.
 
 #### Setting up the ESP
 
@@ -28,7 +28,7 @@ This module is an SPI device. [This guide] details how to connect it. I used GPI
 
 #### Installing the Web UI
 
-The HTTP endpoints will be fully functional at this point, but the firmware doesn't ship with a web UI (I didn't want to maintain a website in Arduino Strings).
+The HTTP endpoints (shown below) will be fully functional at this point, but the firmware doesn't ship with a web UI (I didn't want to maintain a website in Arduino Strings).
 
 If you want the UI, upload it to the `/web` endpoint. curl command:
 
