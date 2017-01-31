@@ -3,16 +3,16 @@ This is a replacement for a Milight/LimitlessLED remote/gateway hosted on an ESP
 
 [Milight bulbs](https://www.amazon.com/Mi-light-Dimmable-RGBWW-Spotlight-Smart/dp/B01LPRQ4BK/r) are cheap smart bulbs that are controllable with an undocumented 2.4 GHz protocol. In order to control them, you either need a [remote](https://www.amazon.com/Mi-light-Dimmable-RGBWW-Spotlight-Smart/dp/B01LCSALV6/r?th=1) (~$13), which allows you to control them directly, or a [WiFi gateway](https://www.amazon.com/BTF-LIGHTING-Mi-Light-WiFi-Bridge-Controller/dp/B01H87DYR8/ref=sr_1_7?ie=UTF8&qid=1485715984&sr=8-7&keywords=milight) (~$30), which allows you to control them with a mobile app or a [UDP protocol](http://www.limitlessled.com/dev/).
 
-## What you'll need
-
-1. An ESP8266. I used a NodeMCU.
-2. A NRF24L01+ module (~$3 on ebay).
-
 ## Why this is useful
 
 1. Both the remote and the WiFi gateway are limited to four groups. This means if you want to control more than four groups of bulbs, you need another remote or another gateway. This project allows you to control 262,144 groups (4*2^16, the limit imposed by the protocol).
 2. This project exposes a nice REST API to control your bulbs.
 3. You can secure the ESP8266 with a username/password, which is more than you can say for the Milight gateway! (The 2.4 GHz protocol is still totally insecure, so this doesn't accomplish much :).
+
+## What you'll need
+
+1. An ESP8266. I used a NodeMCU.
+2. A NRF24L01+ module (~$3 on ebay).
 
 ## Installing
 
