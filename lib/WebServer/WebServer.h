@@ -40,9 +40,6 @@ protected:
   bool authEnabled;
   String username;
   String password;
-  
-  void resetPathMatches();
-  void checkPatterns();
 };
 
 #endif
