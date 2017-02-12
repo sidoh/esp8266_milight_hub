@@ -7,9 +7,9 @@
 #include <WebServer.h>
 #include <IntParsing.h>
 #include <Settings.h>
+#include <MiLightUdpServer.h>
 
 MiLightClient* milightClient;
-
 WiFiManager wifiManager;
 WebServer *server = new WebServer(80);
 File updateFile;
@@ -51,7 +51,7 @@ void handleUpdateGroup(const UrlTokenBindings* urlBindings) {
   }
   
   if (request.containsKey("hue")) {
-    milightClient->updateColor(deviceId, groupId, request["hue"]);
+    milightClient->updateHue(deviceId, groupId, request["hue"]);
   }
   
   if (request.containsKey("level")) {

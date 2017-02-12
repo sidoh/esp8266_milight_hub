@@ -81,13 +81,15 @@ class MiLightClient {
     
     void write(
       const uint16_t deviceId,
-      const uint16_t color,
+      const uint8_t color,
       const uint8_t brightness,
       const uint8_t groupId,
       const MiLightButton button
     );
     
-    void updateColor(const uint16_t deviceId, const uint8_t groupId, const uint16_t hue);
+    void updateColorRaw(const uint16_t deviceId, const uint8_t groupId, const uint16_t color);
+    
+    void updateHue(const uint16_t deviceId, const uint8_t groupId, const uint16_t hue);
     void updateBrightness(const uint16_t deviceId, const uint8_t groupId, const uint8_t brightness);
     void updateStatus(const uint16_t deviceId, const uint8_t groupId, MiLightStatus status);
     void updateColorWhite(const uint16_t deviceId, const uint8_t groupId);
