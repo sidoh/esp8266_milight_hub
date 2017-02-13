@@ -85,3 +85,7 @@ Set color to white (disable RGB):
 $ curl --data-binary '{"command":"set_white"}' -X PUT http://esp8266/gateways/0xCD86/2
 true%
 ```
+
+## UDP Gateways
+
+You can add an arbitrary number of UDP gateways through the REST API or through the web UI. Each gateway server listens on a port and responds to the standard set of commands supported by the Milight protocol. This should allow you to use one of these with standard Milight integrations (SmartThings, Home Assistant, OpenHAB, etc.).
