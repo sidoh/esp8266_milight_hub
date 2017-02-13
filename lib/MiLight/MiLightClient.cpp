@@ -56,7 +56,7 @@ void MiLightClient::write(MiLightPacket& packet, const unsigned int resendCount)
 
 void MiLightClient::write(
   const uint16_t deviceId,
-  const uint16_t color,
+  const uint8_t color,
   const uint8_t brightness,
   const uint8_t groupId,
   const MiLightButton button) {
@@ -70,15 +70,10 @@ void MiLightClient::write(
     ((31 - adjustedBrightness) + 17) % 32
   );
   
-  // Map color as a Hue value in [0, 359] to [0, 255]. The protocol also has
-  // 0 being roughly magenta (#FF00FF)
-  const int16_t remappedColor = (color + 40) % 360;
-  const uint8_t adjustedColor = round(remappedColor * (255 / 359.0));
-  
   MiLightPacket packet;
   packet.deviceType = MiLightDeviceType::RGBW;
   packet.deviceId = deviceId;
-  packet.color = adjustedColor;
+  packet.color = color;
   packet.brightness = packetBrightnessValue;
   packet.groupId = groupId;
   packet.button = button;
@@ -87,8 +82,17 @@ void MiLightClient::write(
   write(packet);
 }
     
-void MiLightClient::updateColor(const uint16_t deviceId, const uint8_t groupId, const uint16_t hue) {
-  write(deviceId, hue, 0, groupId, COLOR);
+void MiLightClient::updateColorRaw(const uint16_t deviceId, const uint8_t groupId, const uint16_t color) {
+  write(deviceId, color, 0, groupId, COLOR);
+}
+
+void MiLightClient::updateHue(const uint16_t deviceId, const uint8_t groupId, const uint16_t hue) {
+  // Map color as a Hue value in [0, 359] to [0, 255]. The protocol also has
+  // 0 being roughly magenta (#FF00FF)
+  const int16_t remappedColor = (hue + 40) % 360;
+  const uint8_t adjustedColor = round(remappedColor * (255 / 360.0));
+  
+  write(deviceId, adjustedColor, 0, groupId, COLOR);
 }
 
 void MiLightClient::updateBrightness(const uint16_t deviceId, const uint8_t groupId, const uint8_t brightness) {

@@ -10,6 +10,19 @@
 
 #define WEB_INDEX_FILENAME "/index.html"
 
+class GatewayConfig {
+public:
+  GatewayConfig(uint16_t deviceId, uint16_t port, uint8_t protocolVersion) 
+    : deviceId(deviceId),
+      port(port),
+      protocolVersion(protocolVersion)
+    { }
+  
+  const uint16_t deviceId;
+  const uint16_t port;
+  const uint8_t protocolVersion;
+};
+
 class Settings {
 public:
   Settings() :
@@ -19,7 +32,9 @@ public:
     cePin(D0),
     csnPin(D8),
     deviceIds(NULL),
-    numDeviceIds(0)
+    gatewayConfigs(NULL),
+    numDeviceIds(0),
+    numGatewayConfigs(0)
   { }
   
   ~Settings() {
@@ -40,6 +55,7 @@ public:
   String toJson(const bool prettyPrint = true);
   void serialize(Stream& stream, const bool prettyPrint = false);
   void updateDeviceIds(JsonArray& arr);
+  void updateGatewayConfigs(JsonArray& arr);
   void patch(JsonObject& obj);
   
   String adminUsername;
@@ -47,6 +63,8 @@ public:
   uint8_t cePin;
   uint8_t csnPin;
   uint16_t *deviceIds;
+  GatewayConfig **gatewayConfigs;
+  size_t numGatewayConfigs;
   size_t numDeviceIds;
 };
 

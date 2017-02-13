@@ -29,6 +29,7 @@
     .error-info { color: #f00; font-size: 0.7em; }
     .error-info:before { content: '('; }
     .error-info:after { content: ')'; }
+    .header-btn { margin: 20px; }
     .btn-secondary { 
       background-color: #fff; 
       border: 1px solid #ccc;
@@ -75,6 +76,10 @@
     var FORM_SETTINGS = ["admin_username", "admin_password", "ce_pin", "csn_pin"];
     
     var selectize;
+    
+    var toHex = function(v) {
+      return "0x" + (v).toString(16).toUpperCase();
+    }
   
     var activeUrl = function() {
       var deviceId = $('#deviceId option:selected').val()
@@ -111,6 +116,23 @@
       });
     };
     
+    var gatewayServerRow = function(deviceId, port) {
+      var elmt = '<tr>';
+      elmt += '<td>';
+      elmt += '<input name="deviceIds[]" class="form-control" value="' + deviceId + '"/>';
+      elmt += '</td>';
+      elmt += '<td>'
+      elmt += '<input name="ports[]" class="form-control" value="' + port + '"/>';;
+      elmt += '</td>';
+      elmt += '<td>';
+      elmt += '<button class="btn btn-danger remove-gateway-server">';
+      elmt += '<i class="glyphicon glyphicon-remove"></i>';
+      elmt += '</button>';
+      elmt += '</td>';
+      elmt += '</tr>';
+      return elmt;
+    }
+    
     var loadSettings = function() {
       $.getJSON('/settings', function(val) {
         Object.keys(val).forEach(function(k) {
@@ -124,12 +146,64 @@
         if (val.device_ids) {
           selectize.clearOptions();
           val.device_ids.forEach(function(v) {
-            var inHex = "0x" + (v).toString(16).toUpperCase();
-            selectize.addOption({text: inHex, value: v});
+            selectize.addOption({text: toHex(v), value: v});
           });
           selectize.refreshOptions();
         }
+        
+        var gatewayForm = $('#gateway-server-configs').html('');
+        if (val.gateway_configs) {
+          val.gateway_configs.forEach(function(v) {
+            gatewayForm.append(gatewayServerRow(toHex(v[0]), v[1]));
+          });
+        }
       });
+    };
+    
+    var saveGatewayConfigs = function() {
+      var form = $('#gateway-server-form')
+        , errors = false;
+        
+      $('input', form).removeClass('error');
+      
+      var deviceIds = $('input[name="deviceIds[]"]', form).map(function(i, v) {
+        var val = $(v).val();
+        
+        if (isNaN(val)) {
+          errors = true;
+          $(v).addClass('error');
+          return null;
+        } else {
+          return val;
+        }
+      });
+      
+      var ports = $('input[name="ports[]"]', form).map(function(i, v) {
+        var val = $(v).val();
+        
+        if (isNaN(val)) {
+          errors = true;
+          $(v).addClass('error');
+          return null;
+        } else {
+          return val;
+        }
+      });
+        
+      if (!errors) {
+        var data = [];
+        for (var i = 0; i < deviceIds.length; i++) {
+          data[i] = [deviceIds[i], ports[i], 0];
+        }
+        $.ajax(
+          '/settings',
+          {
+            method: 'put',
+            contentType: 'application/json',
+            data: JSON.stringify({gateway_configs: data})
+          }
+        )
+      }
     };
     
     var deviceIdError = function(v) {
@@ -204,6 +278,14 @@
         }
       });
       
+      $('#add-server-btn').click(function() {
+        $('#gateway-server-configs').append(gatewayServerRow('', ''));
+      });
+      
+      $('body').on('click', '.remove-gateway-server', function() {
+        $(this).closest('tr').remove();
+      });
+      
       selectize = $('#deviceId').selectize({
         create: true,
         sortField: 'text',
@@ -265,6 +347,12 @@
           }
         );
         
+        e.preventDefault();
+        return false;
+      });
+      
+      $('#gateway-server-form').submit(function(e) {
+        saveGatewayConfigs();
         e.preventDefault();
         return false;
       });
@@ -375,6 +463,39 @@
         </ul>
       </div>
     </div>
+    
+    <div class="row header-row">
+      <div class="col col-sm-10">
+        <h1>Gateway Servers</h1>
+      </div>
+      
+      <div class="col col-sm-2">
+        <button class="btn btn-success header-btn" id="add-server-btn">
+          <i class="glyphicon glyphicon-plus"></i>
+          Add Server
+        </button>
+      </div>
+    </div>
+    
+    <div class="row">
+      <div class="col col-sm-12">
+        <form id="gateway-server-form">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Device ID</th>
+                <th>UDP Port</th>
+              </tr>
+            </thead>
+            <tbody id="gateway-server-configs">
+            </tbody>
+          </table>
+          <input type="submit" class="btn btn-success" value="Save" />
+        </form>
+      </div>
+    </div>
+    
+    <div>&nbsp;</div>
     
     <div class="row header-row">
       <div class="col-sm-12">

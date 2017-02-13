@@ -1,6 +1,7 @@
 #include <Settings.h>
 #include <ArduinoJson.h>
 #include <FS.h>
+#include <IntParsing.h>
 
 void Settings::deserialize(Settings& settings, String json) {
   DynamicJsonBuffer jsonBuffer;
@@ -17,6 +18,9 @@ void Settings::deserialize(Settings& settings, JsonObject& parsedSettings) {
     
     JsonArray& arr = parsedSettings["device_ids"];
     settings.updateDeviceIds(arr);
+    
+    JsonArray& gatewayArr = parsedSettings["gateway_configs"];
+    settings.updateGatewayConfigs(gatewayArr);
   }
 }
 
@@ -29,6 +33,28 @@ void Settings::updateDeviceIds(JsonArray& arr) {
     this->deviceIds = new uint16_t[arr.size()];
     this->numDeviceIds = arr.size();
     arr.copyTo(this->deviceIds, arr.size());
+  }
+}
+
+void Settings::updateGatewayConfigs(JsonArray& arr) {
+  if (arr.success()) {
+    if (this->gatewayConfigs) {
+      delete[] this->gatewayConfigs;
+    }
+    
+    this->gatewayConfigs = new GatewayConfig*[arr.size()];
+    this->numGatewayConfigs = arr.size();
+    
+    for (size_t i = 0; i < arr.size(); i++) {
+      JsonArray& params = arr[i];
+      
+      if (params.success() && params.size() == 3) {
+        this->gatewayConfigs[i] = new GatewayConfig(parseInt<uint16_t>(params[0]), params[1], params[2]);
+      } else {
+        Serial.print("Settings - skipped parsing gateway ports settings for element #");
+        Serial.println(i);
+      }
+    }
   }
 }
 
@@ -49,6 +75,10 @@ void Settings::patch(JsonObject& parsedSettings) {
     if (parsedSettings.containsKey("device_ids")) {
       JsonArray& arr = parsedSettings["device_ids"];
       updateDeviceIds(arr);
+    }
+    if (parsedSettings.containsKey("gateway_configs")) {
+      JsonArray& arr = parsedSettings["gateway_configs"];
+      updateGatewayConfigs(arr);
     }
   }
 }
@@ -96,6 +126,19 @@ void Settings::serialize(Stream& stream, const bool prettyPrint) {
     JsonArray& arr = jsonBuffer.createArray();
     arr.copyFrom(this->deviceIds, this->numDeviceIds);
     root["device_ids"] = arr;
+  }
+  
+  if (this->gatewayConfigs) {
+    JsonArray& arr = jsonBuffer.createArray();
+    for (size_t i = 0; i < this->numGatewayConfigs; i++) {
+      JsonArray& elmt = jsonBuffer.createArray();
+      elmt.add(this->gatewayConfigs[i]->deviceId);
+      elmt.add(this->gatewayConfigs[i]->port);
+      elmt.add(this->gatewayConfigs[i]->protocolVersion);
+      arr.add(elmt);
+    }
+    
+    root["gateway_configs"] = arr;
   }
   
   if (prettyPrint) {
