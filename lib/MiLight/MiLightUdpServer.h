@@ -39,7 +39,9 @@ enum MiLightUdpCommands {
 class MiLightUdpServer {
 public:
   MiLightUdpServer(MiLightClient*& client, uint16_t port, uint16_t deviceId);
+  ~MiLightUdpServer();
     
+  void stop();
   void begin();
   void handleClient();
     

@@ -10,6 +10,8 @@
 #include <MiLightUdpServer.h>
 
 MiLightClient* milightClient;
+MiLightUdpServer** udpServers;
+int numUdpServers = 0;
 WiFiManager wifiManager;
 WebServer *server = new WebServer(80);
 File updateFile;
@@ -157,6 +159,33 @@ void onWebUpdated() {
   server->send(200, "text/plain", "success");
 }
 
+void initMilightUdpServers() {
+  if (udpServers) {
+    for (int i = 0; i < numUdpServers; i++) {
+      if (udpServers[i]) {
+        delete udpServers[i];
+      }
+    }
+    
+    delete udpServers;
+  }
+  
+  udpServers = new MiLightUdpServer*[settings.numGatewayConfigs];
+  numUdpServers = settings.numGatewayConfigs;
+  
+  for (size_t i = 0; i < settings.numGatewayConfigs; i++) {
+    GatewayConfig* config = settings.gatewayConfigs[i];
+    
+    if (config->protocolVersion == 0) {
+      udpServers[i] = new MiLightUdpServer(milightClient, config->port, config->deviceId);
+      udpServers[i]->begin();
+    } else {
+      Serial.print("Error initializing milight UDP server - Unsupported protocolVersion: ");
+      Serial.println(config->protocolVersion);
+    }
+  }
+}
+
 void initMilightClient() {
   if (milightClient) {
     delete milightClient;
@@ -175,6 +204,7 @@ void handleUpdateSettings() {
     settings.patch(parsedSettings);
     settings.save();
     initMilightClient();
+    initMilightUdpServers();
     
     if (server->authenticationRequired() && !settings.hasAuthSettings()) {
       server->disableAuthentication();
@@ -194,6 +224,7 @@ void setup() {
   SPIFFS.begin();
   Settings::load(settings);
   initMilightClient();
+  initMilightUdpServers();
   
   server->on("/", HTTP_GET, handleServeFile(WEB_INDEX_FILENAME, "text/html"));
   server->on("/settings", HTTP_GET, handleServeFile(SETTINGS_FILE, "application/json"));
@@ -240,4 +271,11 @@ void setup() {
 
 void loop() {
   server->handleClient();
+  
+  if (udpServers) {
+    for (size_t i = 0; i < settings.numGatewayConfigs; i++) {
+      yield();
+      udpServers[i]->handleClient();
+    }
+  }
 }

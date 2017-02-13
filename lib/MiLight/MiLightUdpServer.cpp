@@ -7,8 +7,16 @@ MiLightUdpServer::MiLightUdpServer(MiLightClient*& client, uint16_t port, uint16
     lastGroup(0)
 { }
 
+MiLightUdpServer::~MiLightUdpServer() {
+  stop();
+}
+
 void MiLightUdpServer::begin() {
   socket.begin(this->port);
+}
+
+void MiLightUdpServer::stop() {
+  socket.stop();
 }
 
 void MiLightUdpServer::handleClient() {
