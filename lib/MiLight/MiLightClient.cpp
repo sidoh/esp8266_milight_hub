@@ -90,7 +90,7 @@ void MiLightClient::updateHue(const uint16_t deviceId, const uint8_t groupId, co
   // Map color as a Hue value in [0, 359] to [0, 255]. The protocol also has
   // 0 being roughly magenta (#FF00FF)
   const int16_t remappedColor = (hue + 40) % 360;
-  const uint8_t adjustedColor = round(remappedColor * (255 / 359.0));
+  const uint8_t adjustedColor = round(remappedColor * (255 / 360.0));
   
   write(deviceId, adjustedColor, 0, groupId, COLOR);
 }

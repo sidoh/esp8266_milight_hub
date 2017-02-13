@@ -46,7 +46,6 @@ void MiLightUdpServer::handleCommand(uint8_t command, uint8_t commandArg) {
     client->updateColorWhite(deviceId, groupId);
     this->lastGroup = groupId;
   } else {
-    // Group on/off
     switch (command) {
       case UDP_ALL_ON:
         client->allOn(deviceId);
@@ -57,7 +56,8 @@ void MiLightUdpServer::handleCommand(uint8_t command, uint8_t commandArg) {
         break;
       
       case UDP_COLOR:
-        client->updateColorRaw(deviceId, this->lastGroup, commandArg);
+        // UDP color is shifted by 0xC8 from 2.4 GHz color ...
+        client->updateColorRaw(deviceId, this->lastGroup, commandArg + 0xC8);
         break;
         
       case UDP_DISCO_MODE:
