@@ -100,7 +100,7 @@
     
     var updateGroup = _.throttle(
       function(params) {
-        params.mode = currentMode();
+        params.mode = getCurrentMode();
         
         $.ajax(
           activeUrl(),

@@ -9,7 +9,7 @@
 
 #define PACKET_ID(packet) ( ((packet[1] & 0xF0)<<24) | (packet[2]<<16) | (packet[3]<<8) | (packet[7]) )
 
-MiLightRadio::MiLightRadio(AbstractPL1167 &pl1167, MiLightRadioConfig& config)
+MiLightRadio::MiLightRadio(AbstractPL1167 &pl1167, const MiLightRadioConfig& config)
   : _pl1167(pl1167), config(config) {
   _waiting = false;
 }
@@ -20,8 +20,19 @@ int MiLightRadio::begin()
   if (retval < 0) {
     return retval;
   }
+  
+  retval = configure();
+  if (retval < 0) {
+    return retval;
+  }
 
-  retval = _pl1167.setCRC(true);
+  available();
+
+  return 0;
+}
+
+int MiLightRadio::configure() {
+  int retval = _pl1167.setCRC(true);
   if (retval < 0) {
     return retval;
   }
@@ -36,8 +47,6 @@ int MiLightRadio::begin()
     return retval;
   }
 
-  // retval = _pl1167.setSyncword(0x147A, 0x258B);
-  // retval = _pl1167.setSyncword(0x050A, 0x55AA);
   retval = _pl1167.setSyncword(config.syncword0, config.syncword3);
   if (retval < 0) {
     return retval;
@@ -47,29 +56,26 @@ int MiLightRadio::begin()
   if (retval < 0) {
     return retval;
   }
-
-  available();
-
+  
   return 0;
 }
 
 bool MiLightRadio::available()
 {
+  configure();
+  
   if (_waiting) {
     return true;
   }
   
   if (_pl1167.receive(config.channels[0]) > 0) {
-  Serial.println(1);
     size_t packet_length = sizeof(_packet);
     if (_pl1167.readFIFO(_packet, packet_length) < 0) {
       return false;
     }
-  Serial.println(2);
     if (packet_length == 0 || packet_length != _packet[0] + 1U) {
       return false;
     }
-  Serial.println(3);
 
     uint32_t packet_id = PACKET_ID(_packet);
     if (packet_id == _prev_packet_id) {
@@ -115,6 +121,8 @@ int MiLightRadio::write(uint8_t frame[], size_t frame_length)
   if (frame_length > sizeof(_out_packet) - 1) {
     return -1;
   }
+  
+  configure();
 
   memcpy(_out_packet + 1, frame, frame_length);
   _out_packet[0] = frame_length;

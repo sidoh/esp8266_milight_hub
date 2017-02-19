@@ -21,7 +21,7 @@
 
 class MiLightRadio {
   public:
-    MiLightRadio(AbstractPL1167 &pl1167, MiLightRadioConfig& config);
+    MiLightRadio(AbstractPL1167 &pl1167, const MiLightRadioConfig& config);
     
     int begin();
     bool available();
@@ -29,6 +29,7 @@ class MiLightRadio {
     int dupesReceived();
     int write(uint8_t frame[], size_t frame_length);
     int resend();
+    int configure();
   private:
     AbstractPL1167 &_pl1167;
     const MiLightRadioConfig& config;

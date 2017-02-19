@@ -61,15 +61,15 @@ void MiLightUdpServer::handleCommand(uint8_t command, uint8_t commandArg) {
         break;
         
       case UDP_DISCO_MODE:
-        pressButton(this->lastGroup, DISCO_MODE);
+        pressButton(this->lastGroup, RGBW_DISCO_MODE);
         break;
         
       case UDP_SPEED_DOWN:
-        pressButton(this->lastGroup, SPEED_DOWN);
+        pressButton(this->lastGroup, RGBW_SPEED_DOWN);
         break;
         
       case UDP_SPEED_UP:
-        pressButton(this->lastGroup, SPEED_UP);
+        pressButton(this->lastGroup, RGBW_SPEED_UP);
         break;
         
       case UDP_BRIGHTNESS:
@@ -88,6 +88,6 @@ void MiLightUdpServer::handleCommand(uint8_t command, uint8_t commandArg) {
   }
 }
 
-void MiLightUdpServer::pressButton(uint8_t group, MiLightButton button) {
-  client->write(deviceId, 0, 0, group, button);
+void MiLightUdpServer::pressButton(uint8_t group, uint8_t button) {
+  client->writeRgbw(deviceId, 0, 0, group, button);
 }  

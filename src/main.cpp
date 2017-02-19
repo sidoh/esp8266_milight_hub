@@ -86,26 +86,34 @@ void handleUpdateGroup(const UrlTokenBindings* urlBindings) {
 }
 
 void handleListenGateway() {
-  while (!milightClient->available()) {
+  uint8_t readType = 0;
+  
+  while (readType == 0) {
     if (!server->clientConnected()) {
       return;
+    }
+    
+    if (milightClient->available(RGBW)) {
+      readType = RGBW;
+    } else if (milightClient->available(CCT)) {
+      readType = CCT;
     }
     
     yield();
   }
   
   MiLightPacket packet;
-  milightClient->read(packet);
+  milightClient->read(static_cast<MiLightRadioType>(readType), packet);
   
   String response = "Packet received (";
   response += String(sizeof(packet)) + " bytes)";
   response += ":\n";
+  response += "Type         : " + String(readType) + "\n";
   response += "Request type : " + String(packet.deviceType, HEX) + "\n";
   response += "Device ID    : " + String(packet.deviceId, HEX) + "\n";
-  response += "Color        : " + String(packet.color, HEX) + "\n";
-  response += "Brightness   : " + String(packet.brightness, HEX) + "\n";
-  response += "Group ID     : " + String(packet.groupId, HEX) + "\n";
-  response += "Button       : " + String(packet.button, HEX) + "\n";
+  response += "B1           : " + String(packet.b1, HEX) + "\n";
+  response += "B2           : " + String(packet.b2, HEX) + "\n";
+  response += "B3           : " + String(packet.b3, HEX) + "\n";
   response += "Sequence Num : " + String(packet.sequenceNum, HEX) + "\n";
   response += "\n\n";
   
@@ -186,7 +194,7 @@ void initMilightUdpServers() {
   }
 }
 
-void initMilightClients() {
+void initMilightClient() {
   if (milightClient) {
     delete milightClient;
   }
@@ -203,7 +211,7 @@ void handleUpdateSettings() {
   if (parsedSettings.success()) {
     settings.patch(parsedSettings);
     settings.save();
-    initMilightClients();
+    initMilightClient();
     initMilightUdpServers();
     
     if (server->authenticationRequired() && !settings.hasAuthSettings()) {
@@ -223,7 +231,7 @@ void setup() {
   wifiManager.autoConnect();
   SPIFFS.begin();
   Settings::load(settings);
-  initMilightClients();
+  initMilightClient();
   initMilightUdpServers();
   
   server->on("/", HTTP_GET, handleServeFile(WEB_INDEX_FILENAME, "text/html"));
