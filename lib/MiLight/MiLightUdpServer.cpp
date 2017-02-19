@@ -23,11 +23,11 @@ void MiLightUdpServer::handleClient() {
   const size_t packetSize = socket.parsePacket();
   
   if (packetSize) {
-    if (packetSize == 3) {
+    if (packetSize < 2 || packetSize > 3) {
       socket.read(packetBuffer, packetSize);
       handleCommand(packetBuffer[0], packetBuffer[1]);
     } else {
-      Serial.print("Error, unexpected packet length (should always be 3, was: ");
+      Serial.print("Error, unexpected packet length (should always be 2-3, was: ");
       Serial.println(packetSize);
     }
   }
