@@ -23,7 +23,7 @@ void MiLightUdpServer::handleClient() {
   const size_t packetSize = socket.parsePacket();
   
   if (packetSize) {
-    if (packetSize < 2 || packetSize > 3) {
+    if (packetSize >= 2 && packetSize <= 3) {
       socket.read(packetBuffer, packetSize);
       handleCommand(packetBuffer[0], packetBuffer[1]);
     } else {
