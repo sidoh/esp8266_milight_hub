@@ -58,11 +58,11 @@ struct MiLightPacket {
 
 class MiLightClient {
   public:
-    MiLightClient(uint8_t cePin, uint8_t csnPin) :
+    MiLightClient(uint8_t cePin, uint8_t csnPin, MiLightRadioConfig& config) :
       sequenceNum(0) {
       rf = new RF24(cePin, csnPin);
       prf = new PL1167_nRF24(*rf);
-      radio = new MiLightRadio(*prf);
+      radio = new MiLightRadio(*prf, config);
     }
     
     ~MiLightClient() {

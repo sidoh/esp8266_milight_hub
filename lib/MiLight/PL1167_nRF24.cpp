@@ -145,6 +145,9 @@ int PL1167_nRF24::receive(uint8_t channel)
 
   _radio.startListening();
   if (_radio.available()) {
+#ifdef DEBUG_PRINTF
+  printf("Radio is available");
+#endif
     internal_receive();
   }
 

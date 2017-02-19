@@ -15,6 +15,8 @@
 #ifndef PL1167_NRF24_H_
 #define PL1167_NRF24_H_
 
+#define DEBUG_PRINTF
+
 class PL1167_nRF24 : public AbstractPL1167 {
   public:
     PL1167_nRF24(RF24 &radio);

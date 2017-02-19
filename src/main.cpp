@@ -186,7 +186,7 @@ void initMilightUdpServers() {
   }
 }
 
-void initMilightClient() {
+void initMilightClients() {
   if (milightClient) {
     delete milightClient;
   }
@@ -203,7 +203,7 @@ void handleUpdateSettings() {
   if (parsedSettings.success()) {
     settings.patch(parsedSettings);
     settings.save();
-    initMilightClient();
+    initMilightClients();
     initMilightUdpServers();
     
     if (server->authenticationRequired() && !settings.hasAuthSettings()) {
@@ -223,7 +223,7 @@ void setup() {
   wifiManager.autoConnect();
   SPIFFS.begin();
   Settings::load(settings);
-  initMilightClient();
+  initMilightClients();
   initMilightUdpServers();
   
   server->on("/", HTTP_GET, handleServeFile(WEB_INDEX_FILENAME, "text/html"));

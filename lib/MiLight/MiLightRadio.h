@@ -14,13 +14,15 @@
 #endif
 
 #include "AbstractPL1167.h"
+#include <MiLightRadioConfig.h>
 
 #ifndef MILIGHTRADIO_H_
 #define MILIGHTRADIO_H_
 
 class MiLightRadio {
   public:
-    MiLightRadio(AbstractPL1167 &pl1167);
+    MiLightRadio(AbstractPL1167 &pl1167, MiLightRadioConfig& config);
+    
     int begin();
     bool available();
     int read(uint8_t frame[], size_t &frame_length);
@@ -29,6 +31,7 @@ class MiLightRadio {
     int resend();
   private:
     AbstractPL1167 &_pl1167;
+    const MiLightRadioConfig& config;
     uint32_t _prev_packet_id;
 
     uint8_t _packet[8], _out_packet[8];
