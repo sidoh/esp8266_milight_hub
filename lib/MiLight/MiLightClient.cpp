@@ -66,7 +66,8 @@ void MiLightClient::writeRgbw(
   const uint8_t color,
   const uint8_t brightness,
   const uint8_t groupId,
-  const uint8_t button) {
+  const uint8_t button,
+  const unsigned int resendCount) {
   
   uint8_t packet[MilightRgbwConfig.packetLength];
   size_t packetPtr = 0;
@@ -79,12 +80,13 @@ void MiLightClient::writeRgbw(
   packet[packetPtr++] = button;
   packet[packetPtr++] = nextSequenceNum();
   
-  write(RGBW, packet);
+  write(RGBW, packet, resendCount);
 }
 
 void MiLightClient::writeCct(const uint16_t deviceId,
   const uint8_t groupId,
-  const uint8_t button) {
+  const uint8_t button,
+  const unsigned int resendCount) {
     
   uint8_t packet[MilightRgbwConfig.packetLength];
   uint8_t sequenceNum = nextSequenceNum();
@@ -98,7 +100,7 @@ void MiLightClient::writeCct(const uint16_t deviceId,
   packet[packetPtr++] = sequenceNum;
   packet[packetPtr++] = sequenceNum;
   
-  write(CCT, packet);
+  write(CCT, packet, resendCount);
 }
     
 void MiLightClient::updateColorRaw(const uint16_t deviceId, const uint8_t groupId, const uint16_t color) {
@@ -183,11 +185,11 @@ void MiLightClient::allOff(const MiLightRadioType type, const uint16_t deviceId)
 }
 
 void MiLightClient::increaseCctBrightness(const uint16_t deviceId, const uint8_t groupId) {
-  writeCct(deviceId, groupId, CCT_BRIGHTNESS_UP);
+  writeCct(deviceId, groupId, CCT_BRIGHTNESS_UP, 10);
 }
 
 void MiLightClient::decreaseCctBrightness(const uint16_t deviceId, const uint8_t groupId) {
-  writeCct(deviceId, groupId, CCT_BRIGHTNESS_DOWN);
+  writeCct(deviceId, groupId, CCT_BRIGHTNESS_DOWN, 10);
 }
 
 void MiLightClient::updateCctBrightness(const uint16_t deviceId, const uint8_t groupId, const uint8_t brightness) {
@@ -200,11 +202,11 @@ void MiLightClient::updateCctBrightness(const uint16_t deviceId, const uint8_t g
 }
 
 void MiLightClient::increaseTemperature(const uint16_t deviceId, const uint8_t groupId) {
-  writeCct(deviceId, groupId, CCT_TEMPERATURE_UP);
+  writeCct(deviceId, groupId, CCT_TEMPERATURE_UP, 10);
 }
 
 void MiLightClient::decreaseTemperature(const uint16_t deviceId, const uint8_t groupId) {
-  writeCct(deviceId, groupId, CCT_TEMPERATURE_DOWN);
+  writeCct(deviceId, groupId, CCT_TEMPERATURE_DOWN, 10);
 }
 
 void MiLightClient::updateTemperature(const uint16_t deviceId, const uint8_t groupId, const uint8_t temperature) {
