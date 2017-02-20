@@ -70,7 +70,7 @@ class MiLightClient {
     
     bool available(const MiLightRadioType radioType);
     void read(const MiLightRadioType radioType, MiLightPacket& packet);
-    void write(const MiLightRadioType radioType, MiLightPacket& packet, const unsigned int resendCount = 10);
+    void write(const MiLightRadioType radioType, MiLightPacket& packet, const unsigned int resendCount = 50);
     
     void writeRgbw(
       const uint16_t deviceId,
