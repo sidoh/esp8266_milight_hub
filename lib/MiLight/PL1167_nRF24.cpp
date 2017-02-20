@@ -349,16 +349,23 @@ int PL1167_nRF24::internal_receive()
 
   if (_crc) {
     if (outp < 2) {
+#ifdef DEBUG_PRINTF
+  printf("Failed CRC: outp < 2\n");
+#endif
       return 0;
     }
     uint16_t crc = calc_crc(tmp, outp - 2);
     if ( ((crc & 0xff) != tmp[outp - 2]) || (((crc >> 8) & 0xff) != tmp[outp - 1]) ) {
+#ifdef DEBUG_PRINTF
+  printf("Failed CRC: expected %d, got %d (%d,%d)\n", crc, tmp[outp-2], tmp[outp-1]);
+#endif
       return 0;
     }
     outp -= 2;
   }
 
   memcpy(_packet, tmp, outp);
+  
   _packet_length = outp;
   _received = true;
   return outp;

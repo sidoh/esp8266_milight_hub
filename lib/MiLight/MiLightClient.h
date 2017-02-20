@@ -13,19 +13,11 @@
 enum MiLightRadioType {
   UNKNOWN = 0,
   RGBW  = 0xB8,
-  CCT   = 0x5A
+  CCT   = 0x5A,
+  RGBW_CCT = 0x99
 };
 
 enum MiLightStatus { ON = 0, OFF = 1 };
-  
-struct MiLightPacket {
-  uint8_t deviceType;
-  uint16_t deviceId;
-  uint8_t b1;
-  uint8_t b2;
-  uint8_t b3;
-  uint8_t sequenceNum;
-};
 
 class MiLightRadioStack {
 public:
@@ -56,21 +48,24 @@ class MiLightClient {
     {
       rgbwRadio = new MiLightRadioStack(rf, MilightRgbwConfig);
       cctRadio = new MiLightRadioStack(rf, MilightCctConfig);
+      rgbwCctRadio = new MiLightRadioStack(rf, MilightRgbwCctConfig);
     }
     
     ~MiLightClient() {
       delete rgbwRadio;
       delete cctRadio;
+      delete rgbwCctRadio;
     }
     
     void begin() {
       rgbwRadio->getRadio()->begin();
       cctRadio->getRadio()->begin();
+      rgbwCctRadio->getRadio()->begin();
     }
     
     bool available(const MiLightRadioType radioType);
-    void read(const MiLightRadioType radioType, MiLightPacket& packet);
-    void write(const MiLightRadioType radioType, MiLightPacket& packet, const unsigned int resendCount = 50);
+    void read(const MiLightRadioType radioType, uint8_t packet[]);
+    void write(const MiLightRadioType radioType, uint8_t packet[], const unsigned int resendCount = 50);
     
     void writeRgbw(
       const uint16_t deviceId,
@@ -110,9 +105,6 @@ class MiLightClient {
     
     MiLightRadio* getRadio(const MiLightRadioType type);
     
-    static void deserializePacket(const uint8_t rawPacket[], MiLightPacket& packet);
-    static void serializePacket(uint8_t rawPacket[], const MiLightPacket& packet);
-    
     static uint8_t getCctStatusButton(uint8_t groupId, MiLightStatus status);
     static MiLightRadioType getRadioType(const String& typeName);
     
@@ -120,6 +112,7 @@ class MiLightClient {
     RF24 rf;
     MiLightRadioStack* rgbwRadio;
     MiLightRadioStack* cctRadio;
+    MiLightRadioStack* rgbwCctRadio;
     
     uint8_t sequenceNum;
     uint8_t nextSequenceNum();

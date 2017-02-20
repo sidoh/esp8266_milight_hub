@@ -1,4 +1,5 @@
 #include <MiLightClient.h>
+#include <MiLightRadioConfig.h>
 
 MiLightRadio* MiLightClient::getRadio(const MiLightRadioType type) {
   MiLightRadio* radio = NULL;
@@ -7,39 +8,15 @@ MiLightRadio* MiLightClient::getRadio(const MiLightRadioType type) {
     return rgbwRadio->getRadio();
   } else if (type == CCT) {
     return cctRadio->getRadio();
-  } 
+  } else if (type == RGBW_CCT) {
+    return rgbwCctRadio->getRadio();
+  }
   
   if (radio != NULL) {
     radio->configure();
   }
   
   return radio;
-}
-
-void MiLightClient::deserializePacket(const uint8_t rawPacket[], MiLightPacket& packet) {
-  uint8_t ptr = 0;
-  
-  packet.deviceType = rawPacket[ptr++];
-  packet.deviceId = (rawPacket[ptr++] << 8) | rawPacket[ptr++];
-  packet.b1 = rawPacket[ptr++];
-  packet.b2 = rawPacket[ptr++];
-  packet.b3 = rawPacket[ptr++];
-  packet.sequenceNum = rawPacket[ptr++];
-}
-
-void MiLightClient::serializePacket(uint8_t rawPacket[], const MiLightPacket& packet) {
-  uint8_t ptr = 0;
-  
-  rawPacket[ptr++] = packet.deviceType;
-  
-  // big endian
-  rawPacket[ptr++] = packet.deviceId >> 8;
-  rawPacket[ptr++] = packet.deviceId & 0xFF;
-  
-  rawPacket[ptr++] = packet.b1;
-  rawPacket[ptr++] = packet.b2;
-  rawPacket[ptr++] = packet.b3;
-  rawPacket[ptr++] = packet.sequenceNum;
 }
 
 uint8_t MiLightClient::nextSequenceNum() {
@@ -57,25 +34,21 @@ bool MiLightClient::available(const MiLightRadioType radioType) {
   return radio->available();
 }
 
-void MiLightClient::read(const MiLightRadioType radioType, MiLightPacket& packet) {
+void MiLightClient::read(const MiLightRadioType radioType, uint8_t packet[]) {
   MiLightRadio* radio = getRadio(radioType);
   
   if (radio == NULL) {
     return;
   }
   
-  uint8_t packetBytes[MILIGHT_PACKET_LENGTH];
   size_t length;
-  radio->read(packetBytes, length);
-  deserializePacket(packetBytes, packet);
+  radio->read(packet, length);
 }
 
 void MiLightClient::write(const MiLightRadioType radioType, 
-  MiLightPacket& packet, 
+  uint8_t packet[],
   const unsigned int resendCount) {
     
-  uint8_t packetBytes[MILIGHT_PACKET_LENGTH];
-  serializePacket(packetBytes, packet);
   MiLightRadio* radio = getRadio(radioType);
   
   if (radio == NULL) {
@@ -83,7 +56,7 @@ void MiLightClient::write(const MiLightRadioType radioType,
   }
   
   for (int i = 0; i < resendCount; i++) {
-    radio->write(packetBytes, MILIGHT_PACKET_LENGTH);
+    radio->write(packet, MILIGHT_PACKET_LENGTH);
     yield();
   }
 }
@@ -95,13 +68,16 @@ void MiLightClient::writeRgbw(
   const uint8_t groupId,
   const uint8_t button) {
   
-  MiLightPacket packet;
-  packet.deviceType = RGBW;
-  packet.deviceId = deviceId;
-  packet.b1 = color;
-  packet.b2 = (brightness << 3) | (groupId & 0x07);
-  packet.b3 = button;
-  packet.sequenceNum = nextSequenceNum();
+  uint8_t packet[MilightRgbwConfig.packetLength];
+  size_t packetPtr = 0;
+  
+  packet[packetPtr++] = RGBW;
+  packet[packetPtr++] = deviceId >> 8;
+  packet[packetPtr++] = deviceId & 0xFF;
+  packet[packetPtr++] = color;
+  packet[packetPtr++] = (brightness << 3) | (groupId & 0x07);
+  packet[packetPtr++] = button;
+  packet[packetPtr++] = nextSequenceNum();
   
   write(RGBW, packet);
 }
@@ -109,14 +85,18 @@ void MiLightClient::writeRgbw(
 void MiLightClient::writeCct(const uint16_t deviceId,
   const uint8_t groupId,
   const uint8_t button) {
+    
+  uint8_t packet[MilightRgbwConfig.packetLength];
+  uint8_t sequenceNum = nextSequenceNum();
+  size_t packetPtr = 0;
   
-  MiLightPacket packet;
-  packet.deviceType = CCT;
-  packet.deviceId = deviceId;
-  packet.b1 = groupId;
-  packet.b2 = button;
-  packet.b3 = nextSequenceNum();
-  packet.sequenceNum = packet.b3;
+  packet[packetPtr++] = CCT;
+  packet[packetPtr++] = deviceId >> 8;
+  packet[packetPtr++] = deviceId & 0xFF;
+  packet[packetPtr++] = groupId;
+  packet[packetPtr++] = button;
+  packet[packetPtr++] = sequenceNum;
+  packet[packetPtr++] = sequenceNum;
   
   write(CCT, packet);
 }

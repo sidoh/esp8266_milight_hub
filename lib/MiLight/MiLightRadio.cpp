@@ -65,6 +65,9 @@ bool MiLightRadio::available()
   configure();
   
   if (_waiting) {
+#ifdef DEBUG_PRINTF
+  printf("_waiting\n");
+#endif
     return true;
   }
   
@@ -76,7 +79,6 @@ bool MiLightRadio::available()
     if (packet_length == 0 || packet_length != _packet[0] + 1U) {
       return false;
     }
-
     uint32_t packet_id = PACKET_ID(_packet);
     if (packet_id == _prev_packet_id) {
       _dupes_received++;

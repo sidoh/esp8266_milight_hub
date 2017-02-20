@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <fs.h>
 #include <MiLightClient.h>
+#include <MiLightRadioConfig.h>
 #include <WebServer.h>
 #include <IntParsing.h>
 #include <Settings.h>
@@ -127,6 +128,7 @@ void handleUpdateGroup(const UrlTokenBindings* urlBindings) {
 
 void handleListenGateway() {
   uint8_t readType = 0;
+  MiLightRadioConfig *config;
   
   while (readType == 0) {
     if (!server->clientConnected()) {
@@ -135,26 +137,29 @@ void handleListenGateway() {
     
     if (milightClient->available(RGBW)) {
       readType = RGBW;
+      config = &MilightRgbwConfig;
     } else if (milightClient->available(CCT)) {
       readType = CCT;
+      config = &MilightCctConfig;
+    } else if (milightClient->available(RGBW_CCT)) {
+      readType = RGBW_CCT;
+      config = &MilightRgbwCctConfig;
     }
     
     yield();
   }
   
-  MiLightPacket packet;
+  uint8_t packet[config->packetLength];
   milightClient->read(static_cast<MiLightRadioType>(readType), packet);
   
   String response = "Packet received (";
   response += String(sizeof(packet)) + " bytes)";
   response += ":\n";
-  response += "Type         : " + String(readType) + "\n";
-  response += "Request type : " + String(packet.deviceType, HEX) + "\n";
-  response += "Device ID    : " + String(packet.deviceId, HEX) + "\n";
-  response += "B1           : " + String(packet.b1, HEX) + "\n";
-  response += "B2           : " + String(packet.b2, HEX) + "\n";
-  response += "B3           : " + String(packet.b3, HEX) + "\n";
-  response += "Sequence Num : " + String(packet.sequenceNum, HEX) + "\n";
+  
+  for (int i = 0; i < sizeof(packet); i++) {
+    response += String(packet[i], HEX) + " ";
+  }
+  
   response += "\n\n";
   
   server->send(200, "text/plain", response);
