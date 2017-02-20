@@ -22,12 +22,21 @@ void handleUpdateGateway(const UrlTokenBindings* urlBindings) {
   JsonObject& request = buffer.parse(server->arg("plain"));
   
   const uint16_t deviceId = parseInt<uint16_t>(urlBindings->get("device_id"));
+  const MiLightRadioType type = MiLightClient::getRadioType(urlBindings->get("type"));
+  
+  if (type == UNKNOWN) {
+    String body = "Unknown device type: ";
+    body += urlBindings->get("type");
+    
+    server->send(400, "text/plain", body);
+    return;
+  }
   
   if (request.containsKey("status")) {
     if (request["status"] == "on") {
-      milightClient->allOn(deviceId);
+      milightClient->allOn(type, deviceId);
     } else if (request["status"] == "off") {
-      milightClient->allOff(deviceId);
+      milightClient->allOff(type, deviceId);
     }
   }
   
@@ -45,42 +54,73 @@ void handleUpdateGroup(const UrlTokenBindings* urlBindings) {
   
   const uint16_t deviceId = parseInt<uint16_t>(urlBindings->get("device_id"));
   const uint8_t groupId = urlBindings->get("group_id").toInt();
+  const MiLightRadioType type = MiLightClient::getRadioType(urlBindings->get("type"));
   
+  if (type == UNKNOWN) {
+    String body = "Unknown device type: ";
+    body += urlBindings->get("type");
+    
+    server->send(400, "text/plain", body);
+    return;
+  }
+    
   if (request.containsKey("status")) {
     const String& statusStr = request.get<String>("status");
     MiLightStatus status = (statusStr == "on" || statusStr == "true") ? ON : OFF;
-    milightClient->updateStatus(deviceId, groupId, status);
+    milightClient->updateStatus(type, deviceId, groupId, status);
   }
-  
-  if (request.containsKey("hue")) {
-    milightClient->updateHue(deviceId, groupId, request["hue"]);
-  }
-  
-  if (request.containsKey("level")) {
-    milightClient->updateBrightness(deviceId, groupId, request["level"]);
-  }
-  
+      
   if (request.containsKey("command")) {
-    if (request["command"] == "set_white") {
-      milightClient->updateColorWhite(deviceId, groupId);
-    }
-    
-    if (request["command"] == "all_on") {
-      milightClient->allOn(deviceId);
-    }
-    
-    if (request["command"] == "all_off") {
-      milightClient->allOff(deviceId);
-    }
-    
     if (request["command"] == "unpair") {
-      milightClient->unpair(deviceId, groupId);
+      milightClient->unpair(type, deviceId, groupId);
     }
     
     if (request["command"] == "pair") {
-      milightClient->pair(deviceId, groupId);
+      milightClient->pair(type, deviceId, groupId);
     }
   }
+  
+  if (type == RGBW) {
+    if (request.containsKey("hue")) {
+      milightClient->updateHue(deviceId, groupId, request["hue"]);
+    }
+    
+    if (request.containsKey("level")) {
+      milightClient->updateBrightness(deviceId, groupId, request["level"]);
+    }
+    
+    if (request.containsKey("command")) {
+      if (request["command"] == "set_white") {
+        milightClient->updateColorWhite(deviceId, groupId);
+      }
+    }
+  } else if (type == CCT) {
+    if (request.containsKey("temperature")) {
+      milightClient->updateTemperature(deviceId, groupId, request["temperature"]);
+    }
+    
+    if (request.containsKey("level")) {
+      milightClient->updateCctBrightness(deviceId, groupId, request["level"]);
+    }
+    
+    if (request.containsKey("command")) {
+      if (request["command"] == "level_up") {
+        milightClient->increaseCctBrightness(deviceId, groupId);
+      }
+      
+      if (request["command"] == "level_down") {
+        milightClient->decreaseCctBrightness(deviceId, groupId);
+      }
+      
+      if (request["command"] == "temperature_up") {
+        milightClient->increaseTemperature(deviceId, groupId);
+      }
+      
+      if (request["command"] == "temperature_down") {
+        milightClient->decreaseTemperature(deviceId, groupId);
+      }
+    }
+  } 
   
   server->send(200, "application/json", "true");
 }
@@ -238,8 +278,8 @@ void setup() {
   server->on("/settings", HTTP_GET, handleServeFile(SETTINGS_FILE, "application/json"));
   server->on("/settings", HTTP_PUT, handleUpdateSettings);
   server->on("/gateway_traffic", HTTP_GET, handleListenGateway);
-  server->onPattern("/gateways/:device_id/:group_id", HTTP_PUT, handleUpdateGroup);
-  server->onPattern("/gateways/:device_id", HTTP_PUT, handleUpdateGateway);
+  server->onPattern("/gateways/:device_id/:type/:group_id", HTTP_PUT, handleUpdateGroup);
+  server->onPattern("/gateways/:device_id/:type", HTTP_PUT, handleUpdateGateway);
   server->on("/web", HTTP_POST, onWebUpdated, handleUpdateFile(WEB_INDEX_FILENAME));
   server->on("/firmware", HTTP_POST, 
     [](){

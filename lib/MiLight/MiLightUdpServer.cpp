@@ -38,7 +38,7 @@ void MiLightUdpServer::handleCommand(uint8_t command, uint8_t commandArg) {
     const MiLightStatus status = (command % 2) == 1 ? ON : OFF;
     const uint8_t groupId = (command - UDP_GROUP_1_ON + 2)/2;
     
-    client->updateStatus(deviceId, groupId, status);
+    client->updateStatus(RGBW, deviceId, groupId, status);
     
     this->lastGroup = groupId;
   } else if (command >= UDP_GROUP_ALL_WHITE && command <= UDP_GROUP_4_WHITE) {
@@ -48,11 +48,11 @@ void MiLightUdpServer::handleCommand(uint8_t command, uint8_t commandArg) {
   } else {
     switch (command) {
       case UDP_ALL_ON:
-        client->allOn(deviceId);
+        client->allOn(RGBW, deviceId);
         break;
       
       case UDP_ALL_OFF:
-        client->allOff(deviceId);
+        client->allOff(RGBW, deviceId);
         break;
       
       case UDP_COLOR:

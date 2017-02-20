@@ -84,14 +84,15 @@
   
     var activeUrl = function() {
       var deviceId = $('#deviceId option:selected').val()
-        , groupId = $('#groupId input:checked').data('value');
+        , groupId = $('#groupId input:checked').data('value')
+        , mode = getCurrentMode();
         
       if (deviceId == "") {
         alert("Please enter a device ID.");
         throw "Must enter device ID";
       }
         
-      return "/gateways/" + deviceId + "/" + groupId;
+      return "/gateways/" + deviceId + "/" + mode + "/" + groupId;
     }
     
     var getCurrentMode = function() {
@@ -100,8 +101,6 @@
     
     var updateGroup = _.throttle(
       function(params) {
-        params.mode = getCurrentMode();
-        
         $.ajax(
           activeUrl(),
           {
@@ -467,10 +466,10 @@
       </div>
       <div class="row">
         <div class="col-sm-6">
-          <input class="slider raw-update" name="color-temperature"
+          <input class="slider raw-update" name="temperature"
               data-slider-min="0"
-              data-slider-max="100"
-              data-slider-value="100"
+              data-slider-max="10"
+              data-slider-value="10"
           />
         </div>
       </div>

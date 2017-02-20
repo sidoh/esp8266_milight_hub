@@ -8,8 +8,10 @@
 #define _MILIGHTCLIENT_H
 
 #define MILIGHT_PACKET_LENGTH 7
+#define MILIGHT_CCT_INTERVALS 10
 
 enum MiLightRadioType {
+  UNKNOWN = 0,
   RGBW  = 0xB8,
   CCT   = 0x5A
 };
@@ -68,7 +70,7 @@ class MiLightClient {
     
     bool available(const MiLightRadioType radioType);
     void read(const MiLightRadioType radioType, MiLightPacket& packet);
-    void write(const MiLightRadioType radioType, MiLightPacket& packet, const unsigned int resendCount = 50);
+    void write(const MiLightRadioType radioType, MiLightPacket& packet, const unsigned int resendCount = 10);
     
     void writeRgbw(
       const uint16_t deviceId,
@@ -78,13 +80,19 @@ class MiLightClient {
       const uint8_t button
     );
     
+    void writeCct(
+      const uint16_t deviceId,
+      const uint8_t groupId,
+      const uint8_t button
+    );
+    
     // Common methods
-    void updateStatus(const uint16_t deviceId, const uint8_t groupId, MiLightStatus status);
-    void pair(const uint16_t deviceId, const uint8_t groupId);
-    void unpair(const uint16_t deviceId, const uint8_t groupId);
-    void allOn(const uint16_t deviceId);
-    void allOff(const uint16_t deviceId);
-    void pressButton(const uint16_t deviceId, const uint8_t groupId, uint8_t button);
+    void updateStatus(const MiLightRadioType type,const uint16_t deviceId, const uint8_t groupId, MiLightStatus status);
+    void pair(const MiLightRadioType type,const uint16_t deviceId, const uint8_t groupId);
+    void unpair(const MiLightRadioType type,const uint16_t deviceId, const uint8_t groupId);
+    void allOn(const MiLightRadioType type,const uint16_t deviceId);
+    void allOff(const MiLightRadioType type,const uint16_t deviceId);
+    void pressButton(const MiLightRadioType type, const uint16_t deviceId, const uint8_t groupId, uint8_t button);
     
     // RGBW methods
     void updateHue(const uint16_t deviceId, const uint8_t groupId, const uint16_t hue);
@@ -93,12 +101,20 @@ class MiLightClient {
     void updateColorRaw(const uint16_t deviceId, const uint8_t groupId, const uint16_t color);
 
     // CCT methods
-    void updateColorTemperature(const uint8_t colorTemperature);
+    void updateTemperature(const uint16_t deviceId, const uint8_t groupId, const uint8_t colorTemperature);
+    void decreaseTemperature(const uint16_t deviceId, const uint8_t groupId);
+    void increaseTemperature(const uint16_t deviceId, const uint8_t groupId);
+    void updateCctBrightness(const uint16_t deviceId, const uint8_t groupId, const uint8_t brightness);
+    void decreaseCctBrightness(const uint16_t deviceId, const uint8_t groupId);
+    void increaseCctBrightness(const uint16_t deviceId, const uint8_t groupId);
     
     MiLightRadio* getRadio(const MiLightRadioType type);
     
     static void deserializePacket(const uint8_t rawPacket[], MiLightPacket& packet);
     static void serializePacket(uint8_t rawPacket[], const MiLightPacket& packet);
+    
+    static uint8_t getCctStatusButton(uint8_t groupId, MiLightStatus status);
+    static MiLightRadioType getRadioType(const String& typeName);
     
   private:
     RF24 rf;
