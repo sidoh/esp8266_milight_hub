@@ -171,9 +171,10 @@ void MiLightClient::unpair(const MiLightRadioType type, const uint16_t deviceId,
     delay(1);
     updateColorWhite(deviceId, groupId);
   } else if (type == CCT) {
-    // Leading nibble is a "held" modifier
-    uint8_t button = 0x10 | getCctStatusButton(groupId, ON);
-    pressButton(CCT, deviceId, groupId, button);
+    for (int i = 0; i < 5; i++) {
+      updateStatus(CCT, deviceId, groupId, ON);
+      delay(1);
+    }
   }
 }
     
