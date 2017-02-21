@@ -9,14 +9,7 @@
 
 #define MILIGHT_PACKET_LENGTH 7
 #define MILIGHT_CCT_INTERVALS 10
-#define MILIGHT_DEFAULT_RESEND_COUNT 50
-
-enum MiLightRadioType {
-  UNKNOWN = 0,
-  RGBW  = 0xB8,
-  CCT   = 0x5A,
-  RGBW_CCT = 0x99
-};
+#define MILIGHT_DEFAULT_RESEND_COUNT 10
 
 enum MiLightStatus { ON = 0, OFF = 1 };
 
@@ -49,7 +42,8 @@ class MiLightClient {
   public:
     MiLightClient(uint8_t cePin, uint8_t csnPin)
     : sequenceNum(0),
-      rf(RF24(cePin, csnPin))
+      rf(RF24(cePin, csnPin)),
+      resendCount(MILIGHT_DEFAULT_RESEND_COUNT)
     {
       rgbwRadio = new MiLightRadioStack(rf, MilightRgbwConfig);
       cctRadio = new MiLightRadioStack(rf, MilightCctConfig);
@@ -68,24 +62,24 @@ class MiLightClient {
       rgbwCctRadio->getRadio()->begin();
     }
     
+    void setResendCount(const unsigned int resendCount);
+    
     bool available(const MiLightRadioType radioType);
     void read(const MiLightRadioType radioType, uint8_t packet[]);
-    void write(const MiLightRadioType radioType, uint8_t packet[], const unsigned int resendCount = MILIGHT_DEFAULT_RESEND_COUNT);
+    void write(const MiLightRadioType radioType, uint8_t packet[]);
     
     void writeRgbw(
       const uint16_t deviceId,
       const uint8_t color,
       const uint8_t brightness,
       const uint8_t groupId,
-      const uint8_t button,
-      const unsigned int resendCount = MILIGHT_DEFAULT_RESEND_COUNT
+      const uint8_t button
     );
     
     void writeCct(
       const uint16_t deviceId,
       const uint8_t groupId,
-      const uint8_t button,
-      const unsigned int resendCount = MILIGHT_DEFAULT_RESEND_COUNT
+      const uint8_t button
     );
     
     // Common methods
