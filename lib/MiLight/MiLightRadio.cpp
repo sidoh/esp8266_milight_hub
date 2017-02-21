@@ -62,7 +62,6 @@ int MiLightRadio::configure() {
 
 bool MiLightRadio::available()
 {
-  configure(); 
   if (_waiting) {
 #ifdef DEBUG_PRINTF
   printf("_waiting\n");

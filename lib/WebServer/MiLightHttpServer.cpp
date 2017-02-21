@@ -181,6 +181,8 @@ void MiLightHttpServer::handleUpdateGroup(const UrlTokenBindings* urlBindings) {
     server.send(400, "text/plain", body);
     return;
   }
+  
+  milightClient->setResendCount(MILIGHT_RESEND_COUNT_FOR_HTTP);
     
   if (request.containsKey("status")) {
     const String& statusStr = request.get<String>("status");
@@ -222,6 +224,9 @@ void MiLightHttpServer::handleUpdateGroup(const UrlTokenBindings* urlBindings) {
     }
     
     if (request.containsKey("command")) {
+      // CCT command work more effectively with a lower number of repeats it seems.
+      milightClient->setResendCount(MILIGHT_DEFAULT_RESEND_COUNT);
+      
       if (request["command"] == "level_up") {
         milightClient->increaseCctBrightness(deviceId, groupId);
       }
@@ -240,6 +245,8 @@ void MiLightHttpServer::handleUpdateGroup(const UrlTokenBindings* urlBindings) {
     }
   } 
   
+  milightClient->setResendCount(MILIGHT_DEFAULT_RESEND_COUNT);
+  
   server.send(200, "application/json", "true");
 }
 
@@ -257,6 +264,8 @@ void MiLightHttpServer::handleUpdateGateway(const UrlTokenBindings* urlBindings)
     server.send(400, "text/plain", body);
     return;
   }
+  
+  milightClient->setResendCount(MILIGHT_DEFAULT_RESEND_COUNT);
   
   if (request.containsKey("status")) {
     if (request["status"] == "on") {

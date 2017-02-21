@@ -5,6 +5,8 @@
 #ifndef _MILIGHT_HTTP_SERVER
 #define _MILIGHT_HTTP_SERVER 
 
+#define MILIGHT_RESEND_COUNT_FOR_HTTP 50
+
 typedef std::function<void(void)> SettingsSavedHandler;
 
 class MiLightHttpServer {
