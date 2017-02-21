@@ -22,7 +22,9 @@ enum MiLightStatus { ON = 0, OFF = 1 };
 
 class MiLightRadioStack {
 public:
-  MiLightRadioStack(RF24& rf, const MiLightRadioConfig& config) {
+  MiLightRadioStack(RF24& rf, const MiLightRadioConfig& config) 
+    : type(config.type)
+  {
     nrf = new PL1167_nRF24(rf);
     radio = new MiLightRadio(*nrf, config);
   }
@@ -35,6 +37,8 @@ public:
   inline MiLightRadio* getRadio() {
     return this->radio;
   }
+  
+  const MiLightRadioType& type;
   
 private:
   PL1167_nRF24 *nrf;
@@ -116,9 +120,11 @@ class MiLightClient {
     MiLightRadioStack* rgbwRadio;
     MiLightRadioStack* cctRadio;
     MiLightRadioStack* rgbwCctRadio;
+    MiLightRadioType currentRadio;
     
     uint8_t sequenceNum;
     uint8_t nextSequenceNum();
+    unsigned int resendCount;
 };
 
 #endif

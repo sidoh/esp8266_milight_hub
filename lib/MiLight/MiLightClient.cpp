@@ -2,21 +2,28 @@
 #include <MiLightRadioConfig.h>
 
 MiLightRadio* MiLightClient::getRadio(const MiLightRadioType type) {
-  MiLightRadio* radio = NULL;
+  MiLightRadioStack* stack = NULL;
   
   if (type == RGBW) {
-    return rgbwRadio->getRadio();
+    stack = rgbwRadio;
   } else if (type == CCT) {
-    return cctRadio->getRadio();
+    stack = cctRadio;
   } else if (type == RGBW_CCT) {
-    return rgbwCctRadio->getRadio();
+    stack = rgbwCctRadio;
   }
   
-  if (radio != NULL) {
-    radio->configure();
+  if (stack != NULL) {
+    MiLightRadio *radio = stack->getRadio();
+    
+    if (currentRadio != stack->type) {
+      radio->configure();
+    }
+    
+    currentRadio = stack->type;
+    return radio;
   }
   
-  return radio;
+  return NULL;
 }
 
 uint8_t MiLightClient::nextSequenceNum() {
