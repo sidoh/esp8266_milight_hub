@@ -34,6 +34,7 @@
       background-color: #fff; 
       border: 1px solid #ccc;
     }
+    .inline { display: inline-block; }
     .hue-picker {
       height: 2em;
       width: 100%;
@@ -83,15 +84,20 @@
   
     var activeUrl = function() {
       var deviceId = $('#deviceId option:selected').val()
-        , groupId = $('#groupId input:checked').data('value');
+        , groupId = $('#groupId input:checked').data('value')
+        , mode = getCurrentMode();
         
       if (deviceId == "") {
         alert("Please enter a device ID.");
-        throw "abc";
+        throw "Must enter device ID";
       }
         
-      return "/gateways/" + deviceId + "/" + groupId;
+      return "/gateways/" + deviceId + "/" + mode + "/" + groupId;
     }
+    
+    var getCurrentMode = function() {
+      return $('input[name="mode"]:checked').data('value');
+    };
     
     var updateGroup = _.throttle(
       function(params) {
@@ -215,6 +221,18 @@
       }
     };
     
+    var updateModeOptions = function() {
+      var currentMode = getCurrentMode();
+      
+      $('.mode-option').map(function() {
+        if ($(this).data('for') != currentMode) {
+          $(this).hide();
+        } else {
+          $(this).show();
+        }
+      });
+    };
+    
     $(function() {
       $('.radio-option').click(function() {
         $(this).prev().prop('checked', true);
@@ -281,6 +299,8 @@
       $('#add-server-btn').click(function() {
         $('#gateway-server-configs').append(gatewayServerRow('', ''));
       });
+      
+      $('#mode').change(updateModeOptions);
       
       $('body').on('click', '.remove-gateway-server', function() {
         $(this).closest('tr').remove();
@@ -358,6 +378,7 @@
       });
       
       loadSettings();
+      updateModeOptions();
     });
   </script>
   
@@ -382,7 +403,7 @@
 				</select>
       </div>
       
-      <div class="col-sm-8">
+      <div class="col-sm-3">
         <label for="groupId">Group</label>
         
         <div class="btn-group" id="groupId" data-toggle="buttons">
@@ -403,25 +424,59 @@
           </label>
         </div>
       </div>
+      
+      <div class="col-sm-4">
+        <label for="groupId">Mode</label>
+        
+        <div class="btn-group" id="mode" data-toggle="buttons">
+          <label class="btn btn-secondary active">
+            <input type="radio" name="mode" autocomplete="off" data-value="rgbw" checked> RGBW
+          </label>
+          <label class="btn btn-secondary">
+            <input type="radio" name="mode" autocomplete="off" data-value="cct"> CCT
+          </label>
+        </div>
+      </div>
+    </div>
+    
+    <div class="row"><div class="col-sm-12">
+    <div class="mode-option" data-for="rgbw">
+      <div class="row">
+        <div class="col-sm-12">
+          <h5>Hue</h5>
+        </div>
+      </div>
+      
+      <div class="row">
+        <div class="col-sm-6">
+          <span class="hue-picker">
+            <span class="hue-picker-inner"></span>
+            <span class="hue-value-display"></span>
+          </span>
+        </div>
+      </div>
+    </div>
+    </div></div>
+          
+    <div class="mode-option" data-for="cct">
+      <div class="row">
+        <div class="col-sm-12">
+          <h5>Color Temperature</h5>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-sm-6">
+          <input class="slider raw-update" name="temperature"
+              data-slider-min="0"
+              data-slider-max="10"
+              data-slider-value="10"
+          />
+        </div>
+      </div>
     </div>
     
     <div class="row">
       <div class="col-sm-12">
-        <h5>Hue</h5>
-      </div>
-    </div>
-    
-    <div class="row">
-      <div class="col-sm-6">
-        <span class="hue-picker">
-          <span class="hue-picker-inner"></span>
-          <span class="hue-value-display"></span>
-        </span>
-      </div>
-    </div>
-    
-    <div class="row">
-      <div class="col-sm-6">
         <h5>Brightness</h5>
       </div>
     </div>
@@ -448,9 +503,11 @@
           <li>
             <input type="checkbox" name="status" class="raw-update" data-toggle="toggle" checked/>
           </li>
-          <li>
-            <button type="button" class="btn btn-secondary command-btn" data-command="set_white">White</button>
-          </li>
+          <div class="mode-option inline" data-for="rgbw">
+            <li>
+              <button type="button" class="btn btn-secondary command-btn" data-command="set_white">White</button>
+            </li>
+          </div>
           <li>
             <button type="button" class="btn btn-success command-btn" data-command="pair">
               <i class="glyphicon glyphicon-plus"></i>
