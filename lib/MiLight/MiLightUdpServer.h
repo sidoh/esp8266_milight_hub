@@ -7,6 +7,9 @@
 
 #define MILIGHT_PACKET_BUFFER_SIZE 10
 
+// Uncomment to enable Serial printing of packets
+//#define MILIGHT_UDP_DEBUG
+
 #ifndef _MILIGHT_UDP_SERVER
 #define _MILIGHT_UDP_SERVER 
 
