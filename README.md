@@ -50,8 +50,8 @@ You should now be able to navigate to `http://<ip of ESP>`. It should look like 
 2. `GET /settings`. Gets current settings as JSON.
 3. `PUT /settings`. Patches settings (e.g., doesn't overwrite keys that aren't present). Accepts a JSON blob in the body.
 4. `GET /gateway_traffic`. Starts an HTTP long poll. Returns any Milight traffic it hears. Useful if you need to know what your Milight gateway/remote ID is.
-5. `PUT /gateways/:device_id/:group_id`. Controls or sends commands to `:group_id` from `:device_id`. Accepts a JSON blob.
-6. `PUT /gateways/:device_id`. A few commands have support for being sent to all groups. You can send those here.
+5. `PUT /gateways/:device_id/:device_type/:group_id`. Controls or sends commands to `:group_id` from `:device_id`. Since protocols for RGBW/CCT are different, specify one of `rgbw` or `cct` as `:device_type. Accepts a JSON blob.
+6. `PUT /gateways/:device_id/:device_type`. A few commands have support for being sent to all groups. You can send those here.
 7. `POST /firmware`. OTA firmware update.
 8. `POST /web`. Update web UI.
 
@@ -60,10 +60,11 @@ You should now be able to navigate to `http://<ip of ESP>`. It should look like 
 Route (5) supports these commands:
 
 1. `status`. Toggles on/off. Can be "on", "off", "true", or "false".
-2. `hue`. This is the only way to control color with these bulbs. Should be in the range `[0, 359]`.
-3. `level`. Controls brightness. Should be in the range `[0, 100]`.
-4. `command`. Sends a command to the group. Can be one of:
-   * `set_white`. Turns off RGB and enters WW/CW mode.
+2. `hue`. (RGBW only) This is the only way to control color with these bulbs. Should be in the range `[0, 359]`.
+3. `level`. (RGBW only) Controls brightness. Should be in the range `[0, 100]`.
+4. `temperature`. (CCT only) Controls white temperature. Should be in the range `[0, 10]`.
+5. `command`. Sends a command to the group. Can be one of:
+   * `set_white`. (RGBW only) Turns off RGB and enters WW/CW mode.
    * `pair`. Emulates the pairing process. Send this command right as you connect an unpaired bulb and it will pair with the device ID being used.
    * `unpair`. Emulates the unpairing process. Send as you connect a paired bulb to have it disassociate with the device ID being used.
    
