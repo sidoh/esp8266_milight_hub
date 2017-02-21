@@ -36,7 +36,6 @@ uint8_t MiLightClient::nextSequenceNum() {
 
 bool MiLightClient::available(const MiLightRadioType radioType) {
   MiLightRadio* radio = getRadio(radioType);
-  radio->begin();
   
   if (radio == NULL) {
     return false;
