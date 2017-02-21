@@ -2,21 +2,32 @@
 #include <MiLightRadioConfig.h>
 
 MiLightRadio* MiLightClient::getRadio(const MiLightRadioType type) {
-  MiLightRadio* radio = NULL;
+  MiLightRadioStack* stack = NULL;
   
   if (type == RGBW) {
-    return rgbwRadio->getRadio();
+    stack = rgbwRadio;
   } else if (type == CCT) {
-    return cctRadio->getRadio();
+    stack = cctRadio;
   } else if (type == RGBW_CCT) {
-    return rgbwCctRadio->getRadio();
+    stack = rgbwCctRadio;
   }
   
-  if (radio != NULL) {
-    radio->configure();
+  if (stack != NULL) {
+    MiLightRadio *radio = stack->getRadio();
+    
+    if (currentRadio != stack->type) {
+      radio->configure();
+    }
+    
+    currentRadio = stack->type;
+    return radio;
   }
   
-  return radio;
+  return NULL;
+}
+
+void MiLightClient::setResendCount(const unsigned int resendCount) {
+  this->resendCount = resendCount;
 }
 
 uint8_t MiLightClient::nextSequenceNum() {
@@ -25,7 +36,6 @@ uint8_t MiLightClient::nextSequenceNum() {
 
 bool MiLightClient::available(const MiLightRadioType radioType) {
   MiLightRadio* radio = getRadio(radioType);
-  radio->begin();
   
   if (radio == NULL) {
     return false;
@@ -46,8 +56,7 @@ void MiLightClient::read(const MiLightRadioType radioType, uint8_t packet[]) {
 }
 
 void MiLightClient::write(const MiLightRadioType radioType, 
-  uint8_t packet[],
-  const unsigned int resendCount) {
+  uint8_t packet[]) {
     
   MiLightRadio* radio = getRadio(radioType);
   
@@ -55,9 +64,8 @@ void MiLightClient::write(const MiLightRadioType radioType,
     return;
   }
   
-  for (int i = 0; i < resendCount; i++) {
+  for (int i = 0; i < this->resendCount; i++) {
     radio->write(packet, MILIGHT_PACKET_LENGTH);
-    yield();
   }
 }
 
@@ -66,8 +74,7 @@ void MiLightClient::writeRgbw(
   const uint8_t color,
   const uint8_t brightness,
   const uint8_t groupId,
-  const uint8_t button,
-  const unsigned int resendCount) {
+  const uint8_t button) {
   
   uint8_t packet[MilightRgbwConfig.packetLength];
   size_t packetPtr = 0;
@@ -80,13 +87,12 @@ void MiLightClient::writeRgbw(
   packet[packetPtr++] = button;
   packet[packetPtr++] = nextSequenceNum();
   
-  write(RGBW, packet, resendCount);
+  write(RGBW, packet);
 }
 
 void MiLightClient::writeCct(const uint16_t deviceId,
   const uint8_t groupId,
-  const uint8_t button,
-  const unsigned int resendCount) {
+  const uint8_t button) {
     
   uint8_t packet[MilightRgbwConfig.packetLength];
   uint8_t sequenceNum = nextSequenceNum();
@@ -100,7 +106,7 @@ void MiLightClient::writeCct(const uint16_t deviceId,
   packet[packetPtr++] = sequenceNum;
   packet[packetPtr++] = sequenceNum;
   
-  write(CCT, packet, resendCount);
+  write(CCT, packet);
 }
     
 void MiLightClient::updateColorRaw(const uint16_t deviceId, const uint8_t groupId, const uint16_t color) {
@@ -185,11 +191,11 @@ void MiLightClient::allOff(const MiLightRadioType type, const uint16_t deviceId)
 }
 
 void MiLightClient::increaseCctBrightness(const uint16_t deviceId, const uint8_t groupId) {
-  writeCct(deviceId, groupId, CCT_BRIGHTNESS_UP, 10);
+  writeCct(deviceId, groupId, CCT_BRIGHTNESS_UP);
 }
 
 void MiLightClient::decreaseCctBrightness(const uint16_t deviceId, const uint8_t groupId) {
-  writeCct(deviceId, groupId, CCT_BRIGHTNESS_DOWN, 10);
+  writeCct(deviceId, groupId, CCT_BRIGHTNESS_DOWN);
 }
 
 void MiLightClient::updateCctBrightness(const uint16_t deviceId, const uint8_t groupId, const uint8_t brightness) {
@@ -202,11 +208,11 @@ void MiLightClient::updateCctBrightness(const uint16_t deviceId, const uint8_t g
 }
 
 void MiLightClient::increaseTemperature(const uint16_t deviceId, const uint8_t groupId) {
-  writeCct(deviceId, groupId, CCT_TEMPERATURE_UP, 10);
+  writeCct(deviceId, groupId, CCT_TEMPERATURE_UP);
 }
 
 void MiLightClient::decreaseTemperature(const uint16_t deviceId, const uint8_t groupId) {
-  writeCct(deviceId, groupId, CCT_TEMPERATURE_DOWN, 10);
+  writeCct(deviceId, groupId, CCT_TEMPERATURE_DOWN);
 }
 
 void MiLightClient::updateTemperature(const uint16_t deviceId, const uint8_t groupId, const uint8_t temperature) {

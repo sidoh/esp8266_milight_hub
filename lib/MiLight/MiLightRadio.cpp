@@ -62,8 +62,6 @@ int MiLightRadio::configure() {
 
 bool MiLightRadio::available()
 {
-  configure();
-  
   if (_waiting) {
 #ifdef DEBUG_PRINTF
   printf("_waiting\n");
@@ -123,8 +121,6 @@ int MiLightRadio::write(uint8_t frame[], size_t frame_length)
   if (frame_length > sizeof(_out_packet) - 1) {
     return -1;
   }
-  
-  configure();
 
   memcpy(_out_packet + 1, frame, frame_length);
   _out_packet[0] = frame_length;

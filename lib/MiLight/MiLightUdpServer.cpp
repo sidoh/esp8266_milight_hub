@@ -25,6 +25,14 @@ void MiLightUdpServer::handleClient() {
   if (packetSize) {
     if (packetSize >= 2 && packetSize <= 3) {
       socket.read(packetBuffer, packetSize);
+      
+#ifdef MILIGHT_UDP_DEBUG
+      Serial.print("Handling command: ");
+      Serial.print(String(packetBuffer[0], HEX));
+      Serial.print(" ");
+      Serial.println(String(packetBuffer[1], HEX));
+#endif
+      
       handleCommand(packetBuffer[0], packetBuffer[1]);
     } else {
       Serial.print("Error, unexpected packet length (should always be 2-3, was: ");
