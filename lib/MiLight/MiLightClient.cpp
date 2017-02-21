@@ -64,7 +64,6 @@ void MiLightClient::write(const MiLightRadioType radioType,
   
   for (int i = 0; i < resendCount; i++) {
     radio->write(packet, MILIGHT_PACKET_LENGTH);
-    yield();
   }
 }
 

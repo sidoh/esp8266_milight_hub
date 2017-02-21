@@ -327,7 +327,6 @@ void loop() {
   
   if (udpServers) {
     for (size_t i = 0; i < settings.numGatewayConfigs; i++) {
-      yield();
       udpServers[i]->handleClient();
     }
   }
