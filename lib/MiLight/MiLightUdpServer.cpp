@@ -73,8 +73,9 @@ void MiLightUdpServer::handleCommand(uint8_t command, uint8_t commandArg) {
         break;
       
       case UDP_RGBW_COLOR:
-        // UDP color is shifted by 0xC8 from 2.4 GHz color ...
-        client->updateColorRaw(deviceId, this->lastGroup, commandArg + 0xC8);
+        // UDP color is shifted by 0xC8 from 2.4 GHz color, and the spectrum is
+        // flipped (R->B->G instead of R->G->B)
+        client->updateColorRaw(deviceId, this->lastGroup, 0xFF-(commandArg + 0x35));
         break;
         
       case UDP_RGBW_DISCO_MODE:
