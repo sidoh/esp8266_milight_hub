@@ -6,9 +6,12 @@
 #include <MiLightRadioConfig.h>
 
 void MiLightHttpServer::begin() {
+  applySettings(settings);
+  
   server.on("/", HTTP_GET, handleServeFile(WEB_INDEX_FILENAME, "text/html"));
   server.on("/settings", HTTP_GET, handleServeFile(SETTINGS_FILE, "application/json"));
   server.on("/settings", HTTP_PUT, [this]() { handleUpdateSettings(); });
+  server.on("/settings", HTTP_POST, [this]() { server.send(200, "text/plain", "success"); }, handleUpdateFile(SETTINGS_FILE));
   server.on("/gateway_traffic", HTTP_GET, [this]() { handleListenGateway(); });
   server.onPattern("/gateways/:device_id/:type/:group_id", HTTP_PUT, [this](const UrlTokenBindings* b) { handleUpdateGroup(b); });
   server.onPattern("/gateways/:device_id/:type", HTTP_PUT, [this](const UrlTokenBindings* b) { handleUpdateGateway(b); });
