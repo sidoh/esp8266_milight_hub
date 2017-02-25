@@ -34,7 +34,9 @@ public:
     deviceIds(NULL),
     gatewayConfigs(NULL),
     numDeviceIds(0),
-    numGatewayConfigs(0)
+    numGatewayConfigs(0),
+    packetRepeats(10),
+    httpRepeatFactor(5)
   { }
   
   ~Settings() {
@@ -66,6 +68,8 @@ public:
   GatewayConfig **gatewayConfigs;
   size_t numGatewayConfigs;
   size_t numDeviceIds;
+  size_t packetRepeats;
+  size_t httpRepeatFactor;
 };
 
 #endif 

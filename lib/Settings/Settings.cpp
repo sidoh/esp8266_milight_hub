@@ -11,10 +11,29 @@ void Settings::deserialize(Settings& settings, String json) {
 
 void Settings::deserialize(Settings& settings, JsonObject& parsedSettings) {
   if (parsedSettings.success()) {
-    settings.adminUsername = parsedSettings.get<String>("admin_username");
-    settings.adminPassword = parsedSettings.get<String>("admin_password");
-    settings.cePin = parsedSettings["ce_pin"];
-    settings.csnPin = parsedSettings["csn_pin"];
+    if (parsedSettings.containsKey("admin_username")) {
+      settings.adminUsername = parsedSettings.get<String>("admin_username");
+    }
+    
+    if (parsedSettings.containsKey("admin_password")) {
+      settings.adminPassword = parsedSettings.get<String>("admin_password");
+    }
+    
+    if (parsedSettings.containsKey("ce_pin")) {
+      settings.cePin = parsedSettings["ce_pin"];
+    }
+    
+    if (parsedSettings.containsKey("csn_pin")) {
+      settings.csnPin = parsedSettings["csn_pin"];
+    }
+    
+    if (parsedSettings.containsKey("packet_repeats")) {
+      settings.packetRepeats = parsedSettings["packet_repeats"];
+    }
+    
+    if (parsedSettings.containsKey("http_repeat_factor")) {
+      settings.httpRepeatFactor = parsedSettings["http_repeat_factor"];
+    }
     
     JsonArray& arr = parsedSettings["device_ids"];
     settings.updateDeviceIds(arr);
@@ -72,6 +91,12 @@ void Settings::patch(JsonObject& parsedSettings) {
     if (parsedSettings.containsKey("csn_pin")) {
       this->csnPin = parsedSettings["csn_pin"];
     }
+    if (parsedSettings.containsKey("packet_repeats")) {
+      this->packetRepeats = parsedSettings["packet_repeats"];
+    }
+    if (parsedSettings.containsKey("http_repeat_factor")) {
+      this->httpRepeatFactor = parsedSettings["http_repeat_factor"];
+    }
     if (parsedSettings.containsKey("device_ids")) {
       JsonArray& arr = parsedSettings["device_ids"];
       updateDeviceIds(arr);
@@ -121,6 +146,8 @@ void Settings::serialize(Stream& stream, const bool prettyPrint) {
   root["admin_password"] = this->adminPassword;
   root["ce_pin"] = this->cePin;
   root["csn_pin"] = this->csnPin;
+  root["packet_repeats"] = this->packetRepeats;
+  root["http_repeat_factor"] = this->httpRepeatFactor;
   
   if (this->deviceIds) {
     JsonArray& arr = jsonBuffer.createArray();

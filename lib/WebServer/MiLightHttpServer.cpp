@@ -55,6 +55,8 @@ void MiLightHttpServer::applySettings(Settings& settings) {
   } else {
     server.requireAuthentication(settings.adminUsername, settings.adminPassword);
   }
+  
+  milightClient->setResendCount(settings.packetRepeats);
 }
 
 void MiLightHttpServer::onSettingsSaved(SettingsSavedHandler handler) {
@@ -182,8 +184,10 @@ void MiLightHttpServer::handleUpdateGroup(const UrlTokenBindings* urlBindings) {
     return;
   }
   
-  milightClient->setResendCount(MILIGHT_RESEND_COUNT_FOR_HTTP);
-    
+  milightClient->setResendCount(
+    settings.httpRepeatFactor * settings.packetRepeats
+  );
+  
   if (request.containsKey("status")) {
     const String& statusStr = request.get<String>("status");
     MiLightStatus status = (statusStr == "on" || statusStr == "true") ? ON : OFF;
@@ -242,10 +246,12 @@ void MiLightHttpServer::handleUpdateGroup(const UrlTokenBindings* urlBindings) {
       if (request["command"] == "temperature_down") {
         milightClient->decreaseTemperature(deviceId, groupId);
       }
+  
+      milightClient->setResendCount(settings.packetRepeats);
     }
   } 
   
-  milightClient->setResendCount(MILIGHT_DEFAULT_RESEND_COUNT);
+  milightClient->setResendCount(settings.packetRepeats);
   
   server.send(200, "application/json", "true");
 }
