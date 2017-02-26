@@ -108,6 +108,9 @@ class MiLightClient {
     
     static uint8_t getCctStatusButton(uint8_t groupId, MiLightStatus status);
     static MiLightRadioType getRadioType(const String& typeName);
+    static const MiLightRadioConfig& getRadioConfig(const String& typeName);
+    
+    void formatPacket(MiLightRadioConfig& config, uint8_t* packet, char* buffer);
     
   private:
     RF24 rf;

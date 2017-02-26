@@ -62,6 +62,8 @@ int MiLightRadio::configure() {
 
 bool MiLightRadio::available()
 {
+  configure();
+  
   if (_waiting) {
 #ifdef DEBUG_PRINTF
   printf("_waiting\n");
@@ -70,13 +72,22 @@ bool MiLightRadio::available()
   }
   
   if (_pl1167.receive(config.channels[0]) > 0) {
+#ifdef DEBUG_PRINTF
+  printf("0");
+#endif
     size_t packet_length = sizeof(_packet);
     if (_pl1167.readFIFO(_packet, packet_length) < 0) {
       return false;
     }
+#ifdef DEBUG_PRINTF
+  printf("1");
+#endif
     if (packet_length == 0 || packet_length != _packet[0] + 1U) {
       return false;
     }
+#ifdef DEBUG_PRINTF
+  printf("2");
+#endif
     uint32_t packet_id = PACKET_ID(_packet);
     if (packet_id == _prev_packet_id) {
       _dupes_received++;

@@ -12,7 +12,7 @@ void MiLightHttpServer::begin() {
   server.on("/settings", HTTP_GET, handleServeFile(SETTINGS_FILE, "application/json"));
   server.on("/settings", HTTP_PUT, [this]() { handleUpdateSettings(); });
   server.on("/settings", HTTP_POST, [this]() { server.send(200, "text/plain", "success"); }, handleUpdateFile(SETTINGS_FILE));
-  server.on("/gateway_traffic", HTTP_GET, [this]() { handleListenGateway(); });
+  server.onPattern("/gateway_traffic/:type", HTTP_GET, [this](const UrlTokenBindings* b) { handleListenGateway(b); });
   server.onPattern("/gateways/:device_id/:type/:group_id", HTTP_PUT, [this](const UrlTokenBindings* b) { handleUpdateGroup(b); });
   server.onPattern("/gateways/:device_id/:type", HTTP_PUT, [this](const UrlTokenBindings* b) { handleUpdateGateway(b); });
   server.on("/web", HTTP_POST, [this]() { server.send(200, "text/plain", "success"); }, handleUpdateFile(WEB_INDEX_FILENAME));
@@ -127,39 +127,32 @@ void MiLightHttpServer::handleUpdateSettings() {
   }
 }
 
-void MiLightHttpServer::handleListenGateway() {
-  uint8_t readType = 0;
-  MiLightRadioConfig *config;
+void MiLightHttpServer::handleListenGateway(const UrlTokenBindings* bindings) {
+  bool available = false;
+  MiLightRadioConfig config = milightClient->getRadioConfig(bindings->get("type"));
   
-  while (readType == 0) {
+  while (!available) {
     if (!server.clientConnected()) {
       return;
     }
     
-    if (milightClient->available(RGBW)) {
-      readType = RGBW;
-      config = &MilightRgbwConfig;
-    } else if (milightClient->available(CCT)) {
-      readType = CCT;
-      config = &MilightCctConfig;
-    } else if (milightClient->available(RGBW_CCT)) {
-      readType = RGBW_CCT;
-      config = &MilightRgbwCctConfig;
+    if (milightClient->available(config.type)) {
+      available = true;
     }
     
     yield();
   }
   
-  uint8_t packet[config->packetLength];
-  milightClient->read(static_cast<MiLightRadioType>(readType), packet);
+  uint8_t packet[config.packetLength];
+  milightClient->read(static_cast<MiLightRadioType>(config.type), packet);
   
   String response = "Packet received (";
   response += String(sizeof(packet)) + " bytes)";
   response += ":\n";
   
-  for (int i = 0; i < sizeof(packet); i++) {
-    response += String(packet[i], HEX) + " ";
-  }
+  char ppBuffer[200];
+  milightClient->formatPacket(config, packet, ppBuffer);
+  response += String(ppBuffer);
   
   response += "\n\n";
   

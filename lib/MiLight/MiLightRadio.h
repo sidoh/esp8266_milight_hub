@@ -16,6 +16,8 @@
 #include "AbstractPL1167.h"
 #include <MiLightRadioConfig.h>
 
+#define DEBUG_PRINTF
+
 #ifndef MILIGHTRADIO_H_
 #define MILIGHTRADIO_H_
 
