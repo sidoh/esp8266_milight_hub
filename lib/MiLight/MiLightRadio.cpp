@@ -52,7 +52,8 @@ int MiLightRadio::configure() {
     return retval;
   }
 
-  retval = _pl1167.setMaxPacketLength(8);
+  // +1 to be able to buffer the length 
+  retval = _pl1167.setMaxPacketLength(config.packetLength + 1);
   if (retval < 0) {
     return retval;
   }
@@ -60,8 +61,7 @@ int MiLightRadio::configure() {
   return 0;
 }
 
-bool MiLightRadio::available()
-{
+bool MiLightRadio::available() {
   if (_waiting) {
 #ifdef DEBUG_PRINTF
   printf("_waiting\n");
@@ -70,13 +70,22 @@ bool MiLightRadio::available()
   }
   
   if (_pl1167.receive(config.channels[0]) > 0) {
+#ifdef DEBUG_PRINTF
+  printf("MiLightRadio - received packet!\n");
+#endif
     size_t packet_length = sizeof(_packet);
     if (_pl1167.readFIFO(_packet, packet_length) < 0) {
       return false;
     }
+#ifdef DEBUG_PRINTF
+  printf("MiLightRadio - Checking packet length (expecting %d, is %d)\n", _packet[0] + 1U, packet_length);
+#endif
     if (packet_length == 0 || packet_length != _packet[0] + 1U) {
       return false;
     }
+#ifdef DEBUG_PRINTF
+  printf("2");
+#endif
     uint32_t packet_id = PACKET_ID(_packet);
     if (packet_id == _prev_packet_id) {
       _dupes_received++;

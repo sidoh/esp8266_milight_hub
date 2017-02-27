@@ -8,8 +8,8 @@ MiLightRadio* MiLightClient::getRadio(const MiLightRadioType type) {
     stack = rgbwRadio;
   } else if (type == CCT) {
     stack = cctRadio;
-  } else if (type == RGBW_CCT) {
-    stack = rgbwCctRadio;
+  } else if (type == RGB_CCT) {
+    stack = rgbCctRadio;
   }
   
   if (stack != NULL) {
@@ -267,7 +267,52 @@ MiLightRadioType MiLightClient::getRadioType(const String& typeName) {
     return RGBW;
   } else if (typeName.equalsIgnoreCase("cct")) {
     return CCT;
+  } else if (typeName.equalsIgnoreCase("rgb_cct")) {
+    return RGB_CCT;
   } else {
     return UNKNOWN;
+  }
+}
+
+const MiLightRadioConfig& MiLightClient::getRadioConfig(const String& typeName) {
+  switch (getRadioType(typeName)) {
+    case RGBW:
+      return MilightRgbwConfig;
+    case CCT:
+      return MilightCctConfig;
+    case RGB_CCT:
+      return MilightRgbCctConfig;
+    default:
+      Serial.print("Unknown radio type: ");
+      Serial.println(typeName);
+      return MilightRgbwConfig;
+  }
+}
+    
+void MiLightClient::formatPacket(MiLightRadioConfig& config, uint8_t* packet, char* buffer) {
+  if (config.type == RGBW || config.type == CCT) {
+    String format = String("Request type  : %02X\n") 
+      + "Device ID     : %02X%02X\n"
+      + "b1            : %02X\n"
+      + "b2            : %02X\n"
+      + "b3            : %02X\n"
+      + "Sequence Num. : %02X";
+      
+    sprintf(
+      buffer,
+      format.c_str(),
+      packet[0],
+      packet[1], packet[2],
+      packet[3],
+      packet[4],
+      packet[5],
+      packet[6]
+    );
+  } else {
+    for (int i = 0; i < config.packetLength; i++) {
+      sprintf(buffer, "%02X ", packet[i]);
+      buffer += 3;
+    }
+    sprintf(buffer, "\n\n");
   }
 }

@@ -47,19 +47,19 @@ class MiLightClient {
     {
       rgbwRadio = new MiLightRadioStack(rf, MilightRgbwConfig);
       cctRadio = new MiLightRadioStack(rf, MilightCctConfig);
-      rgbwCctRadio = new MiLightRadioStack(rf, MilightRgbwCctConfig);
+      rgbCctRadio = new MiLightRadioStack(rf, MilightRgbCctConfig);
     }
     
     ~MiLightClient() {
       delete rgbwRadio;
       delete cctRadio;
-      delete rgbwCctRadio;
+      delete rgbCctRadio;
     }
     
     void begin() {
       rgbwRadio->getRadio()->begin();
       cctRadio->getRadio()->begin();
-      rgbwCctRadio->getRadio()->begin();
+      rgbCctRadio->getRadio()->begin();
     }
     
     void setResendCount(const unsigned int resendCount);
@@ -108,12 +108,15 @@ class MiLightClient {
     
     static uint8_t getCctStatusButton(uint8_t groupId, MiLightStatus status);
     static MiLightRadioType getRadioType(const String& typeName);
+    static const MiLightRadioConfig& getRadioConfig(const String& typeName);
+    
+    void formatPacket(MiLightRadioConfig& config, uint8_t* packet, char* buffer);
     
   private:
     RF24 rf;
     MiLightRadioStack* rgbwRadio;
     MiLightRadioStack* cctRadio;
-    MiLightRadioStack* rgbwCctRadio;
+    MiLightRadioStack* rgbCctRadio;
     MiLightRadioType currentRadio;
     
     uint8_t sequenceNum;

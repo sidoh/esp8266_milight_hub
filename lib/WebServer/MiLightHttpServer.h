@@ -32,7 +32,7 @@ protected:
   void applySettings(Settings& settings);
   
   void handleUpdateSettings();
-  void handleListenGateway();
+  void handleListenGateway(const UrlTokenBindings* urlBindings);
   void handleUpdateGroup(const UrlTokenBindings* urlBindings);
   void handleUpdateGateway(const UrlTokenBindings* urlBindings);
   
