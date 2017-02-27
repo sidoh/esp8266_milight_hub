@@ -267,6 +267,8 @@ MiLightRadioType MiLightClient::getRadioType(const String& typeName) {
     return RGBW;
   } else if (typeName.equalsIgnoreCase("cct")) {
     return CCT;
+  } else if (typeName.equalsIgnoreCase("rgbw_cct")) {
+    return RGBW_CCT;
   } else {
     return UNKNOWN;
   }

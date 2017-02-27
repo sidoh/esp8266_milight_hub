@@ -146,12 +146,17 @@ int PL1167_nRF24::receive(uint8_t channel)
   _radio.startListening();
   if (_radio.available()) {
 #ifdef DEBUG_PRINTF
-  printf("Radio is available");
+  printf("Radio is available\n");
 #endif
     internal_receive();
   }
 
   if(_received) {
+#ifdef DEBUG_PRINTF
+  if (_packet_length > 0) {
+    printf("Received packet (len = %d)!\n", _packet_length);
+  }
+#endif
     return _packet_length;
   } else {
     return 0;
@@ -285,7 +290,7 @@ int PL1167_nRF24::internal_receive()
 #ifdef DEBUG_PRINTF
   printf("Packet received: ");
   for (int i = 0; i < _receive_length; i++) {
-    printf("%02X", reverse_bits(tmp[i]));
+    printf("%02X", tmp[i]);
   }
   printf("\n");
 #endif
@@ -360,7 +365,8 @@ int PL1167_nRF24::internal_receive()
     uint16_t crc = calc_crc(tmp, outp - 2);
     if ( ((crc & 0xff) != tmp[outp - 2]) || (((crc >> 8) & 0xff) != tmp[outp - 1]) ) {
 #ifdef DEBUG_PRINTF
-  printf("Failed CRC: expected %d, got (%d,%d)\n", crc, tmp[outp-2], tmp[outp-1]);
+  uint16_t recv_crc = ((tmp[outp - 2] & 0xFF) << 8) | (tmp[outp - 1] & 0xFF);
+  printf("Failed CRC: expected %d, got %d\n", crc, recv_crc);
 #endif
       return 0;
     }
@@ -371,6 +377,11 @@ int PL1167_nRF24::internal_receive()
   
   _packet_length = outp;
   _received = true;
+  
+#ifdef DEBUG_PRINTF
+  printf("Successfully parsed packet of length %d\n", _packet_length);
+#endif
+  
   return outp;
 }
 

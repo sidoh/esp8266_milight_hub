@@ -46,7 +46,7 @@ static MiLightRadioConfig MilightCctConfig(
 
 const uint8_t RGBWCCT_CHANNELS[] = {70, 39, 8};
 static MiLightRadioConfig MilightRgbwCctConfig(
-  0x7236, 0x1809, 8, RGBWCCT_CHANNELS, 3, RGBW_CCT
+  0x7236, 0x1809, 9, RGBWCCT_CHANNELS, 3, RGBW_CCT
 );
 
 #endif

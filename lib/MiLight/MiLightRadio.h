@@ -32,12 +32,14 @@ class MiLightRadio {
     int write(uint8_t frame[], size_t frame_length);
     int resend();
     int configure();
+    
   private:
     AbstractPL1167 &_pl1167;
     const MiLightRadioConfig& config;
     uint32_t _prev_packet_id;
 
-    uint8_t _packet[8], _out_packet[8];
+    uint8_t _packet[10];
+    uint8_t _out_packet[10];
     bool _waiting;
     int _dupes_received;
 };
