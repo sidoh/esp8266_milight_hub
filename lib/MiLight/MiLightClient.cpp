@@ -8,8 +8,8 @@ MiLightRadio* MiLightClient::getRadio(const MiLightRadioType type) {
     stack = rgbwRadio;
   } else if (type == CCT) {
     stack = cctRadio;
-  } else if (type == RGBW_CCT) {
-    stack = rgbwCctRadio;
+  } else if (type == RGB_CCT) {
+    stack = rgbCctRadio;
   }
   
   if (stack != NULL) {
@@ -267,8 +267,8 @@ MiLightRadioType MiLightClient::getRadioType(const String& typeName) {
     return RGBW;
   } else if (typeName.equalsIgnoreCase("cct")) {
     return CCT;
-  } else if (typeName.equalsIgnoreCase("rgbw_cct")) {
-    return RGBW_CCT;
+  } else if (typeName.equalsIgnoreCase("rgb_cct")) {
+    return RGB_CCT;
   } else {
     return UNKNOWN;
   }
@@ -280,8 +280,8 @@ const MiLightRadioConfig& MiLightClient::getRadioConfig(const String& typeName) 
       return MilightRgbwConfig;
     case CCT:
       return MilightCctConfig;
-    case RGBW_CCT:
-      return MilightRgbwCctConfig;
+    case RGB_CCT:
+      return MilightRgbCctConfig;
     default:
       Serial.print("Unknown radio type: ");
       Serial.println(typeName);

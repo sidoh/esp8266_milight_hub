@@ -7,7 +7,7 @@ enum MiLightRadioType {
   UNKNOWN = 0,
   RGBW  = 0xB8,
   CCT   = 0x5A,
-  RGBW_CCT = 0x99
+  RGB_CCT = 0x99
 };
 
 class MiLightRadioConfig {
@@ -44,9 +44,9 @@ static MiLightRadioConfig MilightCctConfig(
   0x050A, 0x55AA, 7, CCT_CHANNELS, 3, CCT
 );
 
-const uint8_t RGBWCCT_CHANNELS[] = {70, 39, 8};
-static MiLightRadioConfig MilightRgbwCctConfig(
-  0x7236, 0x1809, 9, RGBWCCT_CHANNELS, 3, RGBW_CCT
+const uint8_t RGBCCT_CHANNELS[] = {70, 39, 8};
+static MiLightRadioConfig MilightRgbCctConfig(
+  0x7236, 0x1809, 9, RGBCCT_CHANNELS, 3, RGB_CCT
 );
 
 #endif
