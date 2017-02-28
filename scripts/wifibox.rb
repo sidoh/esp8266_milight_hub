@@ -2,13 +2,27 @@ require 'socket'
 require 'set'
 require 'net/http'
 
+STD_COMMAND_PREFIX = [ 0x31, 0x00, 0x00, 0x08 ]
+STD_COMMAND_SUFFIX = [ 0x00, 0x00, 0x00 ]
+
 class Commands
+  def self.std_command(*cmd)
+    ->() { STD_COMMAND_PREFIX + cmd + STD_COMMAND_SUFFIX }
+  end
+
+  def self.arg_command(prefix)
+    ->(val) { STD_COMMAND_PREFIX + [prefix, val] + STD_COMMAND_SUFFIX }
+  end
+
   VALUES = [
-    LIGHT_ON = ->() { [0x04, 0x01] },
-    LIGHT_OFF = ->() { [0x04, 0x02] },
-    SATURATION = ->(val) { [0x02, val] },
-    BRIGHTNESS = ->(val) { [0x03, val] },
-    KELVIN = ->(val) { [0x05, val] }
+    LIGHT_ON = std_command(0x04, 0x01),
+    LIGHT_OFF = std_command(0x04, 0x02),
+    SATURATION = arg_command(0x02),
+    BRIGHTNESS = arg_command(0x03),
+    KELVIN = arg_command(0x05),
+    WHITE_ON = std_command(0x05, 0x64),
+    LINK = ->() { [ 0x3D, 0x00, 0x00, 0x08, 0x00, 0x00 ] + STD_COMMAND_SUFFIX },
+    UNLINK = ->() { [ 0x3D, 0x00, 0x00, 0x08, 0x00, 0x00 ] + STD_COMMAND_SUFFIX },
   ]
 end
 
@@ -53,9 +67,8 @@ class Milight
     start_session if !@session
     
     msg = [0x80, 0, 0, 0, 0x11, @session[0], @session[1], 0, @sequence, 0]
-    msg += [0x31, 0, 0, 8]
     msg += cmd
-    msg += [0,0,0,zone,0]
+    msg += [zone,0]
     msg += [msg[-11..-1].reduce(&:+)&0xFF]
     
     send(msg.pack('C*'))
@@ -67,7 +80,8 @@ class Milight
 end
 
 def get_file(cmd, value, group)
-  File.expand_path(File.join(__FILE__, "../../packet_captures/sidoh_wifibox1/rgbcct_group#{group}_#{cmd}_#{value}.txt"))
+  name = "../../packet_captures/sidoh_wifibox1/rgbcct_group#{group}_#{cmd}#{value.nil? ? "" : "_#{value}}"}.txt"
+  File.expand_path(File.join(__FILE__, name))
 end
 
 def get_packet
@@ -77,17 +91,16 @@ end
 milight = Milight.new
 
 (1..4).each do |group|
-  (0..0x10).each do |value|
     seen_keys = Set.new
     last_val = 0
     
-    file = get_file("brightness", value, group)
+    file = get_file("unlink", nil, group)
     
     if File.exists?(file)
       File.read(file).split("\n").each { |x| seen_keys << x.split(' ').first }
     end
     
-    puts "Processing: #{value}"
+    puts "Processing: #{file}"
     
     File.open(file, 'a') do |f|
       while seen_keys.size < 255
@@ -100,18 +113,17 @@ milight = Milight.new
         end
         
         while %w(sleep run).include?(t.status)
-          milight.send_command(Commands::BRIGHTNESS.call(value), group)
+          milight.send_command(Commands::UNLINK.call, group)
           sleep 0.1
           print "."
         end
         
         print '*'
         
-        puts "\n#{value} - #{seen_keys.length}" if last_val < seen_keys.length
+        puts "\n#{file} - #{seen_keys.length}" if last_val < seen_keys.length
         last_val = seen_keys.length
       end
     end
-  end
 end
 
 # 10000.times do
