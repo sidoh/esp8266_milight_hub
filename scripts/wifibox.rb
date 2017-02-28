@@ -23,6 +23,7 @@ class Commands
     WHITE_ON = std_command(0x05, 0x64),
     LINK = ->() { [ 0x3D, 0x00, 0x00, 0x08, 0x00, 0x00 ] + STD_COMMAND_SUFFIX },
     UNLINK = ->() { [ 0x3D, 0x00, 0x00, 0x08, 0x00, 0x00 ] + STD_COMMAND_SUFFIX },
+    COLOR = ->(value) { STD_COMMAND_PREFIX + [0x01] + ([value]*4) }
   ]
 end
 
@@ -80,7 +81,7 @@ class Milight
 end
 
 def get_file(cmd, value, group)
-  name = "../../packet_captures/sidoh_wifibox1/rgbcct_group#{group}_#{cmd}#{value.nil? ? "" : "_#{value}}"}.txt"
+  name = "../../packet_captures/sidoh_wifibox1/rgbcct_group#{group}_#{cmd}#{value.nil? ? "" : "_#{value}"}.txt"
   File.expand_path(File.join(__FILE__, name))
 end
 
@@ -91,10 +92,11 @@ end
 milight = Milight.new
 
 (1..4).each do |group|
+  (0..0xFF).each do |value|
     seen_keys = Set.new
     last_val = 0
     
-    file = get_file("unlink", nil, group)
+    file = get_file("color", value, group)
     
     if File.exists?(file)
       File.read(file).split("\n").each { |x| seen_keys << x.split(' ').first }
@@ -113,7 +115,7 @@ milight = Milight.new
         end
         
         while %w(sleep run).include?(t.status)
-          milight.send_command(Commands::UNLINK.call, group)
+          milight.send_command(Commands::COLOR.call(value), group)
           sleep 0.1
           print "."
         end
@@ -124,6 +126,7 @@ milight = Milight.new
         last_val = seen_keys.length
       end
     end
+  end
 end
 
 # 10000.times do
