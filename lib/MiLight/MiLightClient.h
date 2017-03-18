@@ -11,8 +11,6 @@
 #define MILIGHT_CCT_INTERVALS 10
 #define MILIGHT_DEFAULT_RESEND_COUNT 10
 
-enum MiLightStatus { ON = 0, OFF = 1 };
-
 class MiLightRadioStack {
 public:
   MiLightRadioStack(RF24& rf, const MiLightRadioConfig& config) 
@@ -40,6 +38,8 @@ private:
 
 class MiLightClient {
   public:
+    static uint8_t const V2_OFFSETS[][4];
+    
     MiLightClient(uint8_t cePin, uint8_t csnPin)
     : sequenceNum(0),
       rf(RF24(cePin, csnPin)),
@@ -66,7 +66,7 @@ class MiLightClient {
     
     bool available(const MiLightRadioType radioType);
     void read(const MiLightRadioType radioType, uint8_t packet[]);
-    void write(const MiLightRadioType radioType, uint8_t packet[]);
+    void write(const MiLightRadioConfig& radioConfig, uint8_t packet[]);
     
     void writeRgbw(
       const uint16_t deviceId,
@@ -82,12 +82,18 @@ class MiLightClient {
       const uint8_t button
     );
     
+    void writeRgbCct(const uint16_t deviceId,
+      const uint8_t command,
+      const uint8_t arg,
+      const uint8_t group
+    );
+    
     // Common methods
-    void updateStatus(const MiLightRadioType type,const uint16_t deviceId, const uint8_t groupId, MiLightStatus status);
-    void pair(const MiLightRadioType type,const uint16_t deviceId, const uint8_t groupId);
-    void unpair(const MiLightRadioType type,const uint16_t deviceId, const uint8_t groupId);
-    void allOn(const MiLightRadioType type,const uint16_t deviceId);
-    void allOff(const MiLightRadioType type,const uint16_t deviceId);
+    void updateStatus(const MiLightRadioType type, const uint16_t deviceId, const uint8_t groupId, MiLightStatus status);
+    void pair(const MiLightRadioType type, const uint16_t deviceId, const uint8_t groupId);
+    void unpair(const MiLightRadioType type, const uint16_t deviceId, const uint8_t groupId);
+    void allOn(const MiLightRadioType type, const uint16_t deviceId);
+    void allOff(const MiLightRadioType type, const uint16_t deviceId);
     void pressButton(const MiLightRadioType type, const uint16_t deviceId, const uint8_t groupId, uint8_t button);
     
     // RGBW methods
@@ -122,6 +128,10 @@ class MiLightClient {
     uint8_t sequenceNum;
     uint8_t nextSequenceNum();
     unsigned int resendCount;
+    
+    static void encodeV2Packet(uint8_t* packet);
+    static uint8_t xorKey(uint8_t key);
+    static uint8_t encodeByte(uint8_t byte, uint8_t s1, uint8_t xorKey, uint8_t s2);
 };
 
 #endif

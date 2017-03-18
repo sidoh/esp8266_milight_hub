@@ -1,5 +1,19 @@
 #include <MiLightClient.h>
 #include <MiLightRadioConfig.h>
+#include <Arduino.h>
+
+#define V2_OFFSET(byte, key) ( V2_OFFSETS[byte-1][key%4] )
+
+uint8_t const MiLightClient::V2_OFFSETS[][4] = {
+  { 0x45, 0x1F, 0x14, 0x5C },
+  { 0xAB, 0x49, 0x63, 0x91 },
+  { 0x2D, 0x1F, 0x4A, 0xEB },
+  { 0xAF, 0x03, 0x1D, 0xF3 },
+  { 0x5A, 0x22, 0x30, 0x11 },
+  { 0x04, 0xD8, 0x71, 0x42 },
+  { 0xAF, 0x04, 0xDD, 0x07 },
+  { 0xE1, 0x93, 0xB8, 0xE4 }
+};
 
 MiLightRadio* MiLightClient::getRadio(const MiLightRadioType type) {
   MiLightRadioStack* stack = NULL;
@@ -55,17 +69,17 @@ void MiLightClient::read(const MiLightRadioType radioType, uint8_t packet[]) {
   radio->read(packet, length);
 }
 
-void MiLightClient::write(const MiLightRadioType radioType, 
+void MiLightClient::write(const MiLightRadioConfig& radioConfig, 
   uint8_t packet[]) {
     
-  MiLightRadio* radio = getRadio(radioType);
+  MiLightRadio* radio = getRadio(radioConfig.type);
   
   if (radio == NULL) {
     return;
   }
   
   for (int i = 0; i < this->resendCount; i++) {
-    radio->write(packet, MILIGHT_PACKET_LENGTH);
+    radio->write(packet, radioConfig.packetLength);
   }
 }
 
@@ -87,7 +101,7 @@ void MiLightClient::writeRgbw(
   packet[packetPtr++] = button;
   packet[packetPtr++] = nextSequenceNum();
   
-  write(RGBW, packet);
+  write(MilightRgbwConfig, packet);
 }
 
 void MiLightClient::writeCct(const uint16_t deviceId,
@@ -106,7 +120,37 @@ void MiLightClient::writeCct(const uint16_t deviceId,
   packet[packetPtr++] = sequenceNum;
   packet[packetPtr++] = sequenceNum;
   
-  write(CCT, packet);
+  write(MilightCctConfig, packet);
+}
+
+void MiLightClient::writeRgbCct(const uint16_t deviceId,
+  const uint8_t command,
+  const uint8_t arg,
+  const uint8_t group) {
+    
+  uint8_t packet[MilightRgbCctConfig.packetLength];
+  uint8_t sequenceNum = nextSequenceNum();
+  size_t packetPtr = 0;
+  
+  packet[packetPtr++] = 0x00;
+  packet[packetPtr++] = RGB_CCT;
+  packet[packetPtr++] = deviceId >> 8;
+  packet[packetPtr++] = deviceId & 0xFF;
+  packet[packetPtr++] = command;
+  packet[packetPtr++] = arg;
+  packet[packetPtr++] = sequenceNum;
+  packet[packetPtr++] = group;
+  packet[packetPtr++] = 0;
+  
+  printf("Constructed raw packet: ");
+  for (int i = 0; i < MilightRgbCctConfig.packetLength; i++) {
+    printf("%02X ", packet[i]);
+  }
+  printf("\n");
+  
+  encodeV2Packet(packet);
+  
+  write(MilightRgbCctConfig, packet);
 }
     
 void MiLightClient::updateColorRaw(const uint16_t deviceId, const uint8_t groupId, const uint16_t color) {
@@ -139,6 +183,13 @@ void MiLightClient::updateStatus(const MiLightRadioType type, const uint16_t dev
   if (type == RGBW) {
     uint8_t button = RGBW_GROUP_1_ON + ((groupId - 1)*2) + status;
     writeRgbw(deviceId, 0, 0, groupId, button);
+  } else if (type == RGB_CCT) {
+    writeRgbCct(
+      deviceId,
+      RGB_CCT_ON,
+      0xC0 + groupId + (status == OFF ? 0x05 : 0x00),
+      groupId
+    );
   } else {
     writeCct(deviceId, groupId, getCctStatusButton(groupId, status));
   }
@@ -150,17 +201,28 @@ void MiLightClient::updateColorWhite(const uint16_t deviceId, const uint8_t grou
 }
 
 void MiLightClient::pair(const MiLightRadioType type, const uint16_t deviceId, const uint8_t groupId) {
-  updateStatus(type, deviceId, groupId, ON);
+  if (type == RGBW || type == CCT) {
+    updateStatus(type, deviceId, groupId, ON);
+  } else if (type == RGB_CCT) {
+    updateStatus(type, deviceId, groupId, ON);
+    delay(1);
+    updateStatus(type, deviceId, groupId, ON);
+  }
 }
 
 void MiLightClient::unpair(const MiLightRadioType type, const uint16_t deviceId, const uint8_t groupId) {
   if (type == RGBW) {
-    updateStatus(RGBW, deviceId, groupId, ON);
+    updateStatus(type, deviceId, groupId, ON);
     delay(1);
     updateColorWhite(deviceId, groupId);
   } else if (type == CCT) {
     for (int i = 0; i < 5; i++) {
-      updateStatus(CCT, deviceId, groupId, ON);
+      updateStatus(type, deviceId, groupId, ON);
+      delay(1);
+    }
+  } else if (type == RGB_CCT) {
+    for (int i = 0; i < 5; i++) {
+      updateStatus(type, deviceId, 0, ON);
       delay(1);
     }
   }
@@ -179,6 +241,8 @@ void MiLightClient::allOn(const MiLightRadioType type, const uint16_t deviceId) 
     writeRgbw(deviceId, 0, 0, 0, RGBW_ALL_ON);
   } else if (type == CCT) {
     writeCct(deviceId, 0, CCT_ALL_ON);
+  } else if (type == RGB_CCT) {
+    updateStatus(RGB_CCT, deviceId, 0, ON);
   }
 }
 
@@ -187,6 +251,8 @@ void MiLightClient::allOff(const MiLightRadioType type, const uint16_t deviceId)
     writeRgbw(deviceId, 0, 0, 0, RGBW_ALL_OFF);
   } else if (type == CCT) {
     writeCct(deviceId, 0, CCT_ALL_OFF);
+  } else if (type == RGB_CCT) {
+    updateStatus(RGB_CCT, deviceId, 0, OFF);
   }
 }
 
@@ -315,4 +381,42 @@ void MiLightClient::formatPacket(MiLightRadioConfig& config, uint8_t* packet, ch
     }
     sprintf(buffer, "\n\n");
   }
+}
+
+uint8_t MiLightClient::xorKey(uint8_t key) {
+  // Generate most significant nibble
+  const uint8_t shift = (key & 0x0F) < 0x04 ? 0 : 1;
+  const uint8_t x = (((key & 0xF0) >> 4) + shift + 6) % 8;
+  const uint8_t msn = (((4 + x) ^ 1) & 0x0F) << 4;
+
+  // Generate least significant nibble
+  const uint8_t lsn = ((((key & 0xF) + 4)^2) & 0x0F);
+
+  return ( msn | lsn );
+}
+
+uint8_t MiLightClient::encodeByte(uint8_t byte, uint8_t s1, uint8_t xorKey, uint8_t s2) {
+  uint8_t value = (byte + s1) % 0x100;
+  value = value ^ xorKey;
+  value = (value + s2) % 0x100;
+  
+  return value;
+}
+
+void MiLightClient::encodeV2Packet(uint8_t *packet) {
+  uint8_t key = xorKey(packet[0]);
+  uint8_t sum = key;
+  
+  for (size_t i = 1; i <= 7; i++) {
+    sum += packet[i];
+    packet[i] = encodeByte(packet[i], 0, key, V2_OFFSET(i, packet[0]));
+  }
+  
+  packet[8] = encodeByte(sum, 2, key, V2_OFFSET(8, packet[0]));
+  
+  printf("encoded packet: ");
+  for (int i = 0; i < MilightRgbCctConfig.packetLength; i++) {
+    printf("%02X ", packet[i]);
+  }
+  printf("\n");
 }
