@@ -15,6 +15,7 @@ void MiLightHttpServer::begin() {
   server.onPattern("/gateway_traffic/:type", HTTP_GET, [this](const UrlTokenBindings* b) { handleListenGateway(b); });
   server.onPattern("/gateways/:device_id/:type/:group_id", HTTP_PUT, [this](const UrlTokenBindings* b) { handleUpdateGroup(b); });
   server.onPattern("/gateways/:device_id/:type", HTTP_PUT, [this](const UrlTokenBindings* b) { handleUpdateGateway(b); });
+  server.onPattern("/send_raw/:type", HTTP_PUT, [this](const UrlTokenBindings* b) { handleSendRaw(b); });
   server.on("/web", HTTP_POST, [this]() { server.send(200, "text/plain", "success"); }, handleUpdateFile(WEB_INDEX_FILENAME));
   server.on("/firmware", HTTP_POST, 
     [this](){
@@ -278,4 +279,25 @@ void MiLightHttpServer::handleUpdateGateway(const UrlTokenBindings* urlBindings)
   }
   
   server.send(200, "application/json", "true");
+}
+
+void MiLightHttpServer::handleSendRaw(const UrlTokenBindings* bindings) {
+  DynamicJsonBuffer buffer;
+  JsonObject& request = buffer.parse(server.arg("plain"));
+  MiLightRadioConfig config = milightClient->getRadioConfig(bindings->get("type"));
+  
+  uint8_t packet[config.packetLength];
+  const String& hexPacket = request["packet"];
+  hexStrToBytes<uint8_t>(hexPacket.c_str(), hexPacket.length(), packet, config.packetLength);
+  
+  size_t numRepeats = MILIGHT_DEFAULT_RESEND_COUNT;
+  if (request.containsKey("num_repeats")) {
+    numRepeats = request["num_repeats"];
+  }
+  
+  for (size_t i = 0; i < numRepeats; i++) {
+    milightClient->getRadio(config.type)->write(packet, config.packetLength);
+  }
+  
+  server.send(200, "text/plain", "true");
 }

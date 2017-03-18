@@ -33,6 +33,7 @@ protected:
   
   void handleUpdateSettings();
   void handleListenGateway(const UrlTokenBindings* urlBindings);
+  void handleSendRaw(const UrlTokenBindings* urlBindings);
   void handleUpdateGroup(const UrlTokenBindings* urlBindings);
   void handleUpdateGateway(const UrlTokenBindings* urlBindings);
   
