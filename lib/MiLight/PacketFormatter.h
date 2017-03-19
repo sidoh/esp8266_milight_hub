@@ -32,6 +32,8 @@ public:
   // cct 
   virtual void increaseTemperature();
   virtual void decreaseTemperature();
+  virtual void increaseBrightness();
+  virtual void decreaseBrightness();
   
   // rgb+cct
   virtual void updateTemperature(uint8_t value);

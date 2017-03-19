@@ -17,6 +17,8 @@ void PacketFormatter::updateColorWhite() { }
 
 void PacketFormatter::increaseTemperature() { }
 void PacketFormatter::decreaseTemperature() { }
+void PacketFormatter::increaseBrightness() { }
+void PacketFormatter::decreaseBrightness() { }
 
 void PacketFormatter::updateTemperature(uint8_t value) { }
 void PacketFormatter::updateSaturation(uint8_t value) { }

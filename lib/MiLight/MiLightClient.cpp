@@ -137,12 +137,12 @@ void MiLightClient::unpair() {
 }
     
 void MiLightClient::increaseBrightness() {
-  formatter->increaseTemperature();
+  formatter->increaseBrightness();
   flushPacket();
 }
 
 void MiLightClient::decreaseBrightness() {
-  formatter->increaseTemperature();
+  formatter->decreaseBrightness();
   flushPacket();
 }
 

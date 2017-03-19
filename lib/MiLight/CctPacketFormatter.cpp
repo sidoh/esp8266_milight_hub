@@ -12,9 +12,29 @@ void CctPacketFormatter::reset() {
   packet[packetPtr++] = sequenceNum;
   packet[packetPtr++] = sequenceNum++;
 }
+  
+void CctPacketFormatter::command(uint8_t command, uint8_t arg) {
+  packet[CCT_COMMAND_INDEX] = command;
+}
 
-void CctPacketFormatter::status(MiLightStatus status, uint8_t groupId) {
-  packet[CCT_COMMAND_INDEX] = getCctStatusButton(groupId, status);
+void CctPacketFormatter::updateStatus(MiLightStatus status, uint8_t groupId) {
+  command(getCctStatusButton(groupId, status), 0);
+}
+  
+void CctPacketFormatter::increaseTemperature() {
+  command(CCT_TEMPERATURE_UP, 0);
+}
+
+void CctPacketFormatter::decreaseTemperature() {
+  command(CCT_TEMPERATURE_DOWN, 0);
+}
+
+void CctPacketFormatter::increaseBrightness() {
+  command(CCT_BRIGHTNESS_UP, 0);
+}
+
+void CctPacketFormatter::decreaseBrightness() {
+  command(CCT_BRIGHTNESS_DOWN, 0);
 }
 
 uint8_t CctPacketFormatter::getCctStatusButton(uint8_t groupId, MiLightStatus status) {
