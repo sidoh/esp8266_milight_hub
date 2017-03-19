@@ -46,84 +46,92 @@ void MiLightUdpServer::handleCommand(uint8_t command, uint8_t commandArg) {
     const MiLightStatus status = (command % 2) == 1 ? ON : OFF;
     const uint8_t groupId = (command - UDP_RGBW_GROUP_1_ON + 2)/2;
     
-    client->updateStatus(RGBW, deviceId, groupId, status);
+    client->prepare(MilightRgbwConfig, deviceId, groupId);
+    client->updateStatus(status);
     
     this->lastGroup = groupId;
   } else if (command >= UDP_RGBW_GROUP_ALL_WHITE && command <= UDP_RGBW_GROUP_4_WHITE) {
     const uint8_t groupId = (command - UDP_RGBW_GROUP_ALL_WHITE)/2;
-    client->updateColorWhite(deviceId, groupId);
+    client->prepare(MilightRgbwConfig, deviceId, groupId);
+    client->updateColorWhite();
     this->lastGroup = groupId;
   } else if (uint8_t cctGroup = cctCommandIdToGroup(command)) {
-    client->updateStatus(
-      CCT,
-      deviceId,
-      cctGroup,
-      cctCommandToStatus(command)
-    );
+    client->prepare(MilightCctConfig, deviceId, cctGroup);
+    client->updateStatus(cctCommandToStatus(command));
     this->lastGroup = cctGroup;
   }
   else {
+    client->prepare(MilightRgbwConfig, deviceId, lastGroup);
+    bool handled = true;
+    
     switch (command) {
       case UDP_RGBW_ALL_ON:
-        client->allOn(RGBW, deviceId);
+        client->updateStatus(ON, 0);
         break;
       
       case UDP_RGBW_ALL_OFF:
-        client->allOff(RGBW, deviceId);
+        client->updateStatus(OFF, 0);
         break;
       
       case UDP_RGBW_COLOR:
         // UDP color is shifted by 0xC8 from 2.4 GHz color, and the spectrum is
         // flipped (R->B->G instead of R->G->B)
-        client->updateColorRaw(deviceId, this->lastGroup, 0xFF-(commandArg + 0x35));
+        client->updateColorRaw(0xFF-(commandArg + 0x35));
         break;
         
       case UDP_RGBW_DISCO_MODE:
-        pressButton(this->lastGroup, RGBW_DISCO_MODE);
+        pressButton(RGBW_DISCO_MODE);
         break;
         
       case UDP_RGBW_SPEED_DOWN:
-        pressButton(this->lastGroup, RGBW_SPEED_DOWN);
+        pressButton(RGBW_SPEED_DOWN);
         break;
         
       case UDP_RGBW_SPEED_UP:
-        pressButton(this->lastGroup, RGBW_SPEED_UP);
+        pressButton(RGBW_SPEED_UP);
         break;
         
       case UDP_RGBW_BRIGHTNESS:
         // map [2, 27] --> [0, 100]
         client->updateBrightness(
-          deviceId, 
-          this->lastGroup, 
           round(((commandArg - 2) / 25.0)*100)
         );
         break;
         
+      default:
+        handled = false;
+    }
+    
+    client->prepare(MilightCctConfig);
+    
+    switch(command) {
       case UDP_CCT_BRIGHTNESS_DOWN:
-        client->decreaseCctBrightness(deviceId, this->lastGroup);
+        client->decreaseBrightness();
         break;
         
       case UDP_CCT_BRIGHTNESS_UP:
-        client->increaseCctBrightness(deviceId, this->lastGroup);
+        client->increaseBrightness();
         break;
         
       case UDP_CCT_TEMPERATURE_DOWN:
-        client->decreaseTemperature(deviceId, this->lastGroup);
+        client->decreaseTemperature();
         break;
         
       case UDP_CCT_TEMPERATURE_UP:
-        client->increaseTemperature(deviceId, this->lastGroup);
+        client->increaseTemperature();
         break;
         
       default:
-        Serial.print("MiLightUdpServer - Unhandled command: ");
-        Serial.println(command);
+        if (!handled) {
+          Serial.print("MiLightUdpServer - Unhandled command: ");
+          Serial.println(command);
+        }
     }
   }
 }
 
-void MiLightUdpServer::pressButton(uint8_t group, uint8_t button) {
-  client->writeRgbw(deviceId, 0, 0, group, button);
+void MiLightUdpServer::pressButton(uint8_t button) {
+  client->command(button, 0);
 }  
 
 uint8_t MiLightUdpServer::cctCommandIdToGroup(uint8_t command) {

@@ -1,6 +1,13 @@
 #ifndef _MILIGHT_BUTTONS
 #define _MILIGHT_BUTTONS 
 
+enum MiLightRadioType {
+  UNKNOWN = 0,
+  RGBW  = 0xB8,
+  CCT   = 0x5A,
+  RGB_CCT = 0x20
+};
+
 enum MiLightRgbCctCommand {
   RGB_CCT_ON = 0x01,
   RGB_CCT_OFF = 0x01,

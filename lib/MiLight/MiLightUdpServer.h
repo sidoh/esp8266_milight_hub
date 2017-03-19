@@ -67,7 +67,7 @@ protected:
   char packetBuffer[MILIGHT_PACKET_BUFFER_SIZE];
   
   void handleCommand(uint8_t command, uint8_t commandArg);
-  void pressButton(uint8_t group, uint8_t button);
+  void pressButton(uint8_t button);
   uint8_t cctCommandIdToGroup(uint8_t command);
   MiLightStatus cctCommandToStatus(uint8_t command);
 };

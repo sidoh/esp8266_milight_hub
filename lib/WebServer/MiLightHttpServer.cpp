@@ -130,29 +130,39 @@ void MiLightHttpServer::handleUpdateSettings() {
 
 void MiLightHttpServer::handleListenGateway(const UrlTokenBindings* bindings) {
   bool available = false;
-  MiLightRadioConfig config = milightClient->getRadioConfig(bindings->get("type"));
+  MiLightRadioConfig* config = MiLightRadioConfig::fromString(bindings->get("type"));
+  
+  if (config == NULL) {
+    String body = "Unknown device type: ";
+    body += bindings->get("type");
+    
+    server.send(400, "text/plain", body);
+    return;
+  }
+  
+  milightClient->prepare(*config, 0, 0);
   
   while (!available) {
     if (!server.clientConnected()) {
       return;
     }
     
-    if (milightClient->available(config.type)) {
+    if (milightClient->available()) {
       available = true;
     }
     
     yield();
   }
   
-  uint8_t packet[config.packetLength];
-  milightClient->read(static_cast<MiLightRadioType>(config.type), packet);
+  uint8_t packet[config->packetLength];
+  milightClient->read(packet);
   
   String response = "Packet received (";
   response += String(sizeof(packet)) + " bytes)";
   response += ":\n";
   
   char ppBuffer[200];
-  milightClient->formatPacket(config, packet, ppBuffer);
+  milightClient->formatPacket(*config, packet, ppBuffer);
   response += String(ppBuffer);
   
   response += "\n\n";
@@ -171,9 +181,9 @@ void MiLightHttpServer::handleUpdateGroup(const UrlTokenBindings* urlBindings) {
   
   const uint16_t deviceId = parseInt<uint16_t>(urlBindings->get("device_id"));
   const uint8_t groupId = urlBindings->get("group_id").toInt();
-  const MiLightRadioType type = MiLightClient::getRadioType(urlBindings->get("type"));
+  MiLightRadioConfig* config = MiLightRadioConfig::fromString(urlBindings->get("type"));
   
-  if (type == UNKNOWN) {
+  if (config == NULL) {
     String body = "Unknown device type: ";
     body += urlBindings->get("type");
     
@@ -184,69 +194,64 @@ void MiLightHttpServer::handleUpdateGroup(const UrlTokenBindings* urlBindings) {
   milightClient->setResendCount(
     settings.httpRepeatFactor * settings.packetRepeats
   );
+  milightClient->prepare(*config, deviceId, groupId);
   
   if (request.containsKey("status")) {
     const String& statusStr = request.get<String>("status");
     MiLightStatus status = (statusStr == "on" || statusStr == "true") ? ON : OFF;
-    milightClient->updateStatus(type, deviceId, groupId, status);
+    milightClient->updateStatus(status);
   }
       
   if (request.containsKey("command")) {
     if (request["command"] == "unpair") {
-      milightClient->unpair(type, deviceId, groupId);
+      milightClient->unpair();
     }
     
     if (request["command"] == "pair") {
-      milightClient->pair(type, deviceId, groupId);
+      milightClient->pair();
     }
+    
+    if (request["command"] == "set_white") {
+      milightClient->updateColorWhite();
+    }
+      
+    // CCT command work more effectively with a lower number of repeats it seems.
+    milightClient->setResendCount(MILIGHT_DEFAULT_RESEND_COUNT);
+    
+    if (request["command"] == "level_up") {
+      milightClient->increaseBrightness();
+    }
+    
+    if (request["command"] == "level_down") {
+      milightClient->decreaseBrightness();
+    }
+    
+    if (request["command"] == "temperature_up") {
+      milightClient->increaseTemperature();
+    }
+    
+    if (request["command"] == "temperature_down") {
+      milightClient->decreaseTemperature();
+    }
+
+    milightClient->setResendCount(settings.packetRepeats);
   }
   
-  if (type == RGBW) {
-    if (request.containsKey("hue")) {
-      milightClient->updateHue(deviceId, groupId, request["hue"]);
-    }
+  if (request.containsKey("hue")) {
+    milightClient->updateHue(request["hue"]);
+  }
     
-    if (request.containsKey("level")) {
-      milightClient->updateBrightness(deviceId, groupId, request["level"]);
-    }
+  if (request.containsKey("level")) {
+    milightClient->updateBrightness(request["level"]);
+  }
     
-    if (request.containsKey("command")) {
-      if (request["command"] == "set_white") {
-        milightClient->updateColorWhite(deviceId, groupId);
-      }
-    }
-  } else if (type == CCT) {
-    if (request.containsKey("temperature")) {
-      milightClient->updateTemperature(deviceId, groupId, request["temperature"]);
-    }
-    
-    if (request.containsKey("level")) {
-      milightClient->updateCctBrightness(deviceId, groupId, request["level"]);
-    }
-    
-    if (request.containsKey("command")) {
-      // CCT command work more effectively with a lower number of repeats it seems.
-      milightClient->setResendCount(MILIGHT_DEFAULT_RESEND_COUNT);
-      
-      if (request["command"] == "level_up") {
-        milightClient->increaseCctBrightness(deviceId, groupId);
-      }
-      
-      if (request["command"] == "level_down") {
-        milightClient->decreaseCctBrightness(deviceId, groupId);
-      }
-      
-      if (request["command"] == "temperature_up") {
-        milightClient->increaseTemperature(deviceId, groupId);
-      }
-      
-      if (request["command"] == "temperature_down") {
-        milightClient->decreaseTemperature(deviceId, groupId);
-      }
+  if (request.containsKey("temperature")) {
+    milightClient->updateTemperature(request["temperature"]);
+  }
   
-      milightClient->setResendCount(settings.packetRepeats);
-    }
-  } 
+  if (request.containsKey("saturation")) {
+    milightClient->updateSaturation(request["saturation"]);
+  }
   
   milightClient->setResendCount(settings.packetRepeats);
   
@@ -258,9 +263,9 @@ void MiLightHttpServer::handleUpdateGateway(const UrlTokenBindings* urlBindings)
   JsonObject& request = buffer.parse(server.arg("plain"));
   
   const uint16_t deviceId = parseInt<uint16_t>(urlBindings->get("device_id"));
-  const MiLightRadioType type = MiLightClient::getRadioType(urlBindings->get("type"));
+  MiLightRadioConfig* config = MiLightRadioConfig::fromString(urlBindings->get("type"));
   
-  if (type == UNKNOWN) {
+  if (config == NULL) {
     String body = "Unknown device type: ";
     body += urlBindings->get("type");
     
@@ -268,13 +273,13 @@ void MiLightHttpServer::handleUpdateGateway(const UrlTokenBindings* urlBindings)
     return;
   }
   
-  milightClient->setResendCount(MILIGHT_DEFAULT_RESEND_COUNT);
+  milightClient->prepare(*config, deviceId, 0);
   
   if (request.containsKey("status")) {
     if (request["status"] == "on") {
-      milightClient->allOn(type, deviceId);
+      milightClient->updateStatus(ON);
     } else if (request["status"] == "off") {
-      milightClient->allOff(type, deviceId);
+      milightClient->updateStatus(OFF);
     }
   }
   
@@ -284,19 +289,29 @@ void MiLightHttpServer::handleUpdateGateway(const UrlTokenBindings* urlBindings)
 void MiLightHttpServer::handleSendRaw(const UrlTokenBindings* bindings) {
   DynamicJsonBuffer buffer;
   JsonObject& request = buffer.parse(server.arg("plain"));
-  MiLightRadioConfig config = milightClient->getRadioConfig(bindings->get("type"));
+  MiLightRadioConfig* config = MiLightRadioConfig::fromString(bindings->get("type"));
   
-  uint8_t packet[config.packetLength];
+  if (config == NULL) {
+    String body = "Unknown device type: ";
+    body += bindings->get("type");
+    
+    server.send(400, "text/plain", body);
+    return;
+  }
+  
+  uint8_t packet[config->packetLength];
   const String& hexPacket = request["packet"];
-  hexStrToBytes<uint8_t>(hexPacket.c_str(), hexPacket.length(), packet, config.packetLength);
+  hexStrToBytes<uint8_t>(hexPacket.c_str(), hexPacket.length(), packet, config->packetLength);
   
   size_t numRepeats = MILIGHT_DEFAULT_RESEND_COUNT;
   if (request.containsKey("num_repeats")) {
     numRepeats = request["num_repeats"];
   }
   
+  milightClient->prepare(*config, 0, 0);
+  
   for (size_t i = 0; i < numRepeats; i++) {
-    milightClient->getRadio(config.type)->write(packet, config.packetLength);
+    milightClient->write(packet);
   }
   
   server.send(200, "text/plain", "true");

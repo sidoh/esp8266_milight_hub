@@ -230,10 +230,10 @@
       var currentMode = getCurrentMode();
       
       $('.mode-option').map(function() {
-        if ($(this).data('for') != currentMode) {
-          $(this).hide();
-        } else {
+        if ($(this).data('for').split(',').includes(currentMode)) {
           $(this).show();
+        } else {
+          $(this).hide();
         }
       });
     };
@@ -440,12 +440,15 @@
           <label class="btn btn-secondary">
             <input type="radio" name="mode" autocomplete="off" data-value="cct"> CCT
           </label>
+          <label class="btn btn-secondary">
+            <input type="radio" name="mode" autocomplete="off" data-value="rgb_cct"> RGB+CCT
+          </label>
         </div>
       </div>
     </div>
     
     <div class="row"><div class="col-sm-12">
-    <div class="mode-option" data-for="rgbw">
+    <div class="mode-option" data-for="rgbw,rgb_cct">
       <div class="row">
         <div class="col-sm-12">
           <h5>Hue</h5>
@@ -462,8 +465,25 @@
       </div>
     </div>
     </div></div>
+    
+    <div class="mode-option" data-for="rgb_cct">
+      <div class="row">
+        <div class="col-sm-12">
+          <h5>Saturation</h5>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-sm-6">
+          <input class="slider raw-update" name="saturation"
+              data-slider-min="0"
+              data-slider-max="100"
+              data-slider-value="100"
+          />
+        </div>
+      </div>
+    </div>
           
-    <div class="mode-option" data-for="cct">
+    <div class="mode-option" data-for="cct,rgb_cct">
       <div class="row">
         <div class="col-sm-12">
           <h5>Color Temperature</h5>
@@ -473,8 +493,8 @@
         <div class="col-sm-6">
           <input class="slider raw-update" name="temperature"
               data-slider-min="0"
-              data-slider-max="10"
-              data-slider-value="10"
+              data-slider-max="100"
+              data-slider-value="100"
           />
         </div>
       </div>
@@ -508,7 +528,7 @@
           <li>
             <input type="checkbox" name="status" class="raw-update" data-toggle="toggle" checked/>
           </li>
-          <div class="mode-option inline" data-for="rgbw">
+          <div class="mode-option inline" data-for="rgbw,rgb_cct">
             <li>
               <button type="button" class="btn btn-secondary command-btn" data-command="set_white">White</button>
             </li>

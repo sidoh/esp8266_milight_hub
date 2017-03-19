@@ -16,19 +16,22 @@ public:
   }
   
   // all
-  virtual void updateStatus(MiLightStatus status);
+  void updateStatus(MiLightStatus status);
+  virtual void updateStatus(MiLightStatus status, uint8_t groupId);
   virtual void updateBrightness(uint8_t value);
+  virtual void command(uint8_t command, uint8_t arg);
   virtual void updateMode(uint8_t value);
   virtual void modeSpeedDown();
   virtual void modeSpeedUp();
   
   // rgbw, rgb+cct
-  virtual void updateHue(uint8_t value);
+  virtual void updateHue(uint16_t value);
   virtual void updateColorRaw(uint8_t value);
+  virtual void updateColorWhite();
   
   // cct 
-  virtual void increaseTemperature(uint8_t value);
-  virtual void decreaseTemperature(uint8_t value);
+  virtual void increaseTemperature();
+  virtual void decreaseTemperature();
   
   // rgb+cct
   virtual void updateTemperature(uint8_t value);
@@ -36,7 +39,12 @@ public:
   
   virtual void reset() = 0;
   
-  uint8_t const* buildPacket() {
+  virtual uint8_t* buildPacket() {
+    printf("Packet: ");
+    for(size_t i = 0; i < 7; i++) {
+      printf("%02X ", this->packet[i]);
+    }
+    printf("\n");
     return this->packet;
   }
   
@@ -46,8 +54,9 @@ public:
     reset();
   }
   
-  static uint8_t rescale(uint8_t value, uint8_t max) {
-    return round(value * (max / 255.0));
+  template <typename T>
+  static T rescale(T value, uint8_t newMax, float oldMax = 255.0) {
+    return round(value * (newMax / oldMax));
   }
   
 protected:
