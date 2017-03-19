@@ -64,6 +64,8 @@ void MiLightClient::write(uint8_t packet[]) {
     return;
   }
   
+  printf("Resend count = %d\n", this->resendCount);
+  
   for (int i = 0; i < this->resendCount; i++) {
     currentRadio->getRadio()->write(packet, currentRadio->config.packetLength);
   }
@@ -80,8 +82,24 @@ void MiLightClient::updateHue(const uint16_t hue) {
 }
 
 void MiLightClient::updateBrightness(const uint8_t brightness) {
-  formatter->updateBrightness(brightness);
-  flushPacket();
+  const MiLightRadioType type = currentRadio->config.type;
+  
+  if (type == CCT) {
+    const unsigned int oldResend = resendCount;
+    setResendCount(MILIGHT_DEFAULT_RESEND_COUNT);
+    
+    for (int i = 0; i < MILIGHT_CCT_INTERVALS; i++) {
+      decreaseBrightness();
+    }
+    for (int i = 0; i < brightness/(100/MILIGHT_CCT_INTERVALS); i++) {
+      increaseBrightness();
+    }  
+    
+    setResendCount(oldResend);
+  } else {
+    formatter->updateBrightness(brightness);
+    flushPacket();
+  }
 }
     
 void MiLightClient::updateStatus(MiLightStatus status, uint8_t groupId) {
@@ -113,7 +131,7 @@ void MiLightClient::pair() {
 }
 
 void MiLightClient::unpair() {
-  MiLightRadioType type = currentRadio->config.type;
+  const MiLightRadioType type = currentRadio->config.type;
   
   if (type == RGBW) {
     formatter->updateStatus(ON);
@@ -157,8 +175,24 @@ void MiLightClient::decreaseTemperature() {
 }
 
 void MiLightClient::updateTemperature(const uint8_t temperature) {
-  formatter->updateTemperature(temperature);
-  flushPacket();
+  MiLightRadioType type = currentRadio->config.type;
+  
+  if (type == CCT) {
+    const unsigned int oldResend = resendCount;
+    setResendCount(MILIGHT_DEFAULT_RESEND_COUNT);
+    
+    for (int i = 0; i < MILIGHT_CCT_INTERVALS; i++) {
+      decreaseTemperature();
+    }
+    for (int i = 0; i < temperature/(100/MILIGHT_CCT_INTERVALS); i++) {
+      increaseTemperature();
+    }  
+    
+    setResendCount(oldResend);
+  } else {
+    formatter->updateTemperature(temperature);
+    flushPacket();
+  }
 }
 
 void MiLightClient::command(uint8_t command, uint8_t arg) {
@@ -195,6 +229,8 @@ void MiLightClient::formatPacket(MiLightRadioConfig& config, uint8_t* packet, ch
 }
     
 void MiLightClient::flushPacket() {
+  printf("Writing packet\n");
   write(formatter->buildPacket());
+  printf("Resetting\n");
   formatter->reset();
 }

@@ -214,9 +214,6 @@ void MiLightHttpServer::handleUpdateGroup(const UrlTokenBindings* urlBindings) {
     if (request["command"] == "set_white") {
       milightClient->updateColorWhite();
     }
-      
-    // CCT command work more effectively with a lower number of repeats it seems.
-    milightClient->setResendCount(MILIGHT_DEFAULT_RESEND_COUNT);
     
     if (request["command"] == "level_up") {
       milightClient->increaseBrightness();
@@ -233,8 +230,6 @@ void MiLightHttpServer::handleUpdateGroup(const UrlTokenBindings* urlBindings) {
     if (request["command"] == "temperature_down") {
       milightClient->decreaseTemperature();
     }
-
-    milightClient->setResendCount(settings.packetRepeats);
   }
   
   if (request.containsKey("hue")) {
