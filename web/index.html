@@ -12,7 +12,6 @@
   <link href="https://gitcdn.github.io/bootstrap-toggle/2.2.2/css/bootstrap-toggle.min.css" rel="stylesheet"/>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/9.7.0/css/bootstrap-slider.min.css" rel="stylesheet"/>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.4/css/selectize.bootstrap3.min.css" rel="stylesheet"/>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-colorpicker/2.5.1/css/bootstrap-colorpicker.min.css" rel="stylesheet"/>
 
   <!--[if lt IE 9]>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv.js"></script>
@@ -73,7 +72,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/9.7.0/bootstrap-slider.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.4/js/standalone/selectize.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-colorpicker/2.5.1/js/bootstrap-colorpicker.min.js"></script>
   
   <script lang="text/javascript">
     var FORM_SETTINGS = [
@@ -384,14 +382,6 @@
         return false;
       });
       
-      $('#cp2')
-        .colorpicker({
-          format: 'hex'
-        })
-        .on('changeColor', function(e) {
-          console.log(e);
-        });
-      
       loadSettings();
       updateModeOptions();
     });
@@ -458,7 +448,7 @@
     </div>
     
     <div class="row"><div class="col-sm-12">
-    <div class="mode-option" data-for="rgbw">
+    <div class="mode-option" data-for="rgbw,rgb_cct">
       <div class="row">
         <div class="col-sm-12">
           <h5>Hue</h5>
@@ -479,15 +469,16 @@
     <div class="mode-option" data-for="rgb_cct">
       <div class="row">
         <div class="col-sm-12">
-          <h5>Color</h5>
+          <h5>Saturation</h5>
         </div>
       </div>
       <div class="row">
         <div class="col-sm-6">
-          <div id="cp2" class="input-group colorpicker-component">
-            <input type="text" value="#FFFFFF" class="form-control" />
-            <span class="input-group-addon"><i></i></span>
-          </div>
+          <input class="slider raw-update" name="saturation"
+              data-slider-min="0"
+              data-slider-max="100"
+              data-slider-value="100"
+          />
         </div>
       </div>
     </div>
