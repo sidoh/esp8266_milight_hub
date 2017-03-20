@@ -137,7 +137,6 @@ void RgbCctPacketFormatter::encodeV2Packet(uint8_t *packet) {
     sum += packet[i];
     
     if (i != 5) {
-      printf("%d s2 = %02X\n", i, V2_OFFSET(i, packet[0], BYTE_JUMP_STARTS[i]));
       packet[i] = encodeByte(packet[i], 0, key, V2_OFFSET(i, packet[0], BYTE_JUMP_STARTS[i]));
     }
   }

@@ -57,9 +57,7 @@ void initMilightClient() {
 }
 
 void applySettings() {
-  Serial.println(" Init client");
   initMilightClient();
-  Serial.println(" Init UDP servers");
   initMilightUdpServers();
 }
 
@@ -68,9 +66,7 @@ void setup() {
   wifiManager.autoConnect();
   SPIFFS.begin();
   Settings::load(settings);
-  Serial.println("Applying settings");
   applySettings();
-  Serial.println("Done");
   
   httpServer = new MiLightHttpServer(settings, milightClient);
   httpServer->onSettingsSaved(applySettings);

@@ -64,8 +64,6 @@ void MiLightClient::write(uint8_t packet[]) {
     return;
   }
   
-  printf("Resend count = %d\n", this->resendCount);
-  
   for (int i = 0; i < this->resendCount; i++) {
     currentRadio->getRadio()->write(packet, currentRadio->config.packetLength);
   }
@@ -205,8 +203,6 @@ void MiLightClient::formatPacket(uint8_t* packet, char* buffer) {
 }
     
 void MiLightClient::flushPacket() {
-  printf("Writing packet\n");
   write(formatter->buildPacket());
-  printf("Resetting\n");
   formatter->reset();
 }
