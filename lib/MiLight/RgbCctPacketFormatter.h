@@ -9,6 +9,8 @@
 class RgbCctPacketFormatter : public PacketFormatter {
 public:
   static uint8_t const V2_OFFSETS[][4];
+  static uint8_t const BYTE_JUMP_STARTS[];
+  static uint8_t const ARG_JUMP_STARTS[];
     
   RgbCctPacketFormatter(size_t packetLength)
     : PacketFormatter(packetLength)
@@ -24,12 +26,15 @@ public:
   virtual void updateColorWhite();
   virtual void updateTemperature(uint8_t value);
   virtual void updateSaturation(uint8_t value);
+  virtual void format(uint8_t const* packet, char* buffer);
   
   virtual uint8_t* buildPacket();
     
   static void encodeV2Packet(uint8_t* packet);
+  static void decodeV2Packet(uint8_t* packet);
   static uint8_t xorKey(uint8_t key);
   static uint8_t encodeByte(uint8_t byte, uint8_t s1, uint8_t xorKey, uint8_t s2);
+  static uint8_t decodeByte(uint8_t byte, uint8_t s1, uint8_t xorKey, uint8_t s2);
 };
 
 #endif

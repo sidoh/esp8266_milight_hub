@@ -1,6 +1,10 @@
 #include <RgbCctPacketFormatter.h>
 
-#define V2_OFFSET(byte, key) ( V2_OFFSETS[byte-1][key%4] )
+#define V2_OFFSET(byte, key, jumpStart) ( \
+  V2_OFFSETS[byte-1][key%4] \
+    + \
+  ((jumpStart > 0 && key >= jumpStart && key <= jumpStart+0x80) ? 0x80 : 0) \
+)
 
 uint8_t const RgbCctPacketFormatter::V2_OFFSETS[][4] = {
   { 0x45, 0x1F, 0x14, 0x5C },
@@ -11,6 +15,23 @@ uint8_t const RgbCctPacketFormatter::V2_OFFSETS[][4] = {
   { 0x04, 0xD8, 0x71, 0x42 },
   { 0xAF, 0x04, 0xDD, 0x07 },
   { 0xE1, 0x93, 0xB8, 0xE4 }
+};
+  
+uint8_t const RgbCctPacketFormatter::BYTE_JUMP_STARTS[] = {
+  0, // key byte doesn't get shifted
+  0x54, 0x54, 0x14, 0x54, 
+  0, // argument byte gets different shifts for different commands
+  0x54, 0x54,
+  0  // checksum isn't shifted
+};
+
+uint8_t const RgbCctPacketFormatter::ARG_JUMP_STARTS[] = {
+  0,    // no command with id = 0
+  0x14, // on
+  0x14, // color
+  0x14, // kelvin
+  0x54, // brightness, saturation
+  0x14  // mode
 };
 
 void RgbCctPacketFormatter::reset() {
@@ -78,6 +99,14 @@ uint8_t RgbCctPacketFormatter::xorKey(uint8_t key) {
   return ( msn | lsn );
 }
 
+uint8_t RgbCctPacketFormatter::decodeByte(uint8_t byte, uint8_t s1, uint8_t xorKey, uint8_t s2) {
+  uint8_t value = byte - s2;
+  value = value ^ xorKey;
+  value = value - s1;
+  
+  return value;
+}
+
 uint8_t RgbCctPacketFormatter::encodeByte(uint8_t byte, uint8_t s1, uint8_t xorKey, uint8_t s2) {
   uint8_t value = (byte + s1) % 0x100;
   value = value ^ xorKey;
@@ -86,20 +115,55 @@ uint8_t RgbCctPacketFormatter::encodeByte(uint8_t byte, uint8_t s1, uint8_t xorK
   return value;
 }
 
+void RgbCctPacketFormatter::decodeV2Packet(uint8_t *packet) {
+  uint8_t key = xorKey(packet[0]);
+  
+  for (size_t i = 1; i <= 8; i++) {
+    if (i != 5) {
+      packet[i] = decodeByte(packet[i], 0, key, V2_OFFSET(i, packet[0], BYTE_JUMP_STARTS[i]));
+    }
+  }
+      
+  packet[5] = decodeByte(packet[5], 0, key, V2_OFFSET(5, packet[0], ARG_JUMP_STARTS[packet[4]]));
+}
+
 void RgbCctPacketFormatter::encodeV2Packet(uint8_t *packet) {
   uint8_t key = xorKey(packet[0]);
   uint8_t sum = key;
-  
-  printf("Packet: ");
-  for (size_t i = 0; i < 9; i++) {
-    printf("%02X ", packet[i]);
-  }
-  printf("\n");
+  uint8_t command = packet[4];
+  size_t ptr = 0;
   
   for (size_t i = 1; i <= 7; i++) {
     sum += packet[i];
-    packet[i] = encodeByte(packet[i], 0, key, V2_OFFSET(i, packet[0]));
+    
+    if (i != 5) {
+      printf("%d s2 = %02X\n", i, V2_OFFSET(i, packet[0], BYTE_JUMP_STARTS[i]));
+      packet[i] = encodeByte(packet[i], 0, key, V2_OFFSET(i, packet[0], BYTE_JUMP_STARTS[i]));
+    }
   }
   
-  packet[8] = encodeByte(sum, 2, key, V2_OFFSET(8, packet[0]));
+  packet[5] = encodeByte(packet[5], 0, key, V2_OFFSET(5, packet[0], ARG_JUMP_STARTS[command]));
+  packet[8] = encodeByte(sum, 2, key, V2_OFFSET(8, packet[0], 0));
+}
+
+void RgbCctPacketFormatter::format(uint8_t const* packet, char* buffer) {
+  buffer += sprintf(buffer, "Raw packet: ");
+  for (int i = 0; i < packetLength; i++) {
+    buffer += sprintf(buffer, "%02X ", packet[i]);
+  }
+  
+  uint8_t decodedPacket[packetLength];
+  memcpy(decodedPacket, packet, packetLength);
+  
+  decodeV2Packet(decodedPacket);
+  
+  buffer += sprintf(buffer, "\n\nDecoded:\n");
+  buffer += sprintf(buffer, "Key      : %02X\n", decodedPacket[0]);
+  buffer += sprintf(buffer, "b1       : %02X\n", decodedPacket[1]);
+  buffer += sprintf(buffer, "ID       : %02X%02X\n", decodedPacket[2], decodedPacket[3]);
+  buffer += sprintf(buffer, "Command  : %02X\n", decodedPacket[4]);
+  buffer += sprintf(buffer, "Argument : %02X\n", decodedPacket[5]);
+  buffer += sprintf(buffer, "Sequence : %02X\n", decodedPacket[6]);
+  buffer += sprintf(buffer, "Group    : %02X\n", decodedPacket[7]);
+  buffer += sprintf(buffer, "Checksum : %02X", decodedPacket[8]);
 }

@@ -17,6 +17,7 @@ public:
   virtual void decreaseTemperature();
   virtual void increaseBrightness();
   virtual void decreaseBrightness();
+  virtual void format(uint8_t const* packet, char* buffer);
   
   virtual void reset();
   

@@ -74,3 +74,7 @@ uint8_t CctPacketFormatter::getCctStatusButton(uint8_t groupId, MiLightStatus st
   
   return button;
 }
+
+void CctPacketFormatter::format(uint8_t const* packet, char* buffer) {
+  PacketFormatter::formatV1Packet(packet, buffer);
+}

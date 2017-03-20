@@ -162,7 +162,7 @@ void MiLightHttpServer::handleListenGateway(const UrlTokenBindings* bindings) {
   response += ":\n";
   
   char ppBuffer[200];
-  milightClient->formatPacket(*config, packet, ppBuffer);
+  milightClient->formatPacket(packet, ppBuffer);
   response += String(ppBuffer);
   
   response += "\n\n";

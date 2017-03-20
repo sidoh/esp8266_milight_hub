@@ -7,9 +7,10 @@
 
 class PacketFormatter {
 public:
-  PacketFormatter(const size_t packetLength) {
-    this->packet = new uint8_t[packetLength];
-  }
+  PacketFormatter(const size_t packetLength) 
+    : packetLength(packetLength),
+      packet(new uint8_t[packetLength])
+  { }
   
   ~PacketFormatter() {
     delete this->packet;
@@ -41,20 +42,11 @@ public:
   
   virtual void reset() = 0;
   
-  virtual uint8_t* buildPacket() {
-    printf("Packet: ");
-    for(size_t i = 0; i < 7; i++) {
-      printf("%02X ", this->packet[i]);
-    }
-    printf("\n");
-    return this->packet;
-  }
+  virtual uint8_t* buildPacket();
+  virtual void prepare(uint16_t deviceId, uint8_t groupId);
+  virtual void format(uint8_t const* packet, char* buffer);
   
-  void prepare(uint16_t deviceId, uint8_t groupId) {
-    this->deviceId = deviceId;
-    this->groupId = groupId;
-    reset();
-  }
+  static void formatV1Packet(uint8_t const* packet, char* buffer);
   
   template <typename T>
   static T rescale(T value, uint8_t newMax, float oldMax = 255.0) {
@@ -63,6 +55,7 @@ public:
   
 protected:
   uint8_t* packet;
+  size_t packetLength;
   uint16_t deviceId;
   uint8_t groupId;
   uint8_t sequenceNum;

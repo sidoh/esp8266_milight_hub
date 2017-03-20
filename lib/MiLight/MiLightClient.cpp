@@ -200,32 +200,8 @@ void MiLightClient::command(uint8_t command, uint8_t arg) {
   flushPacket();
 }
 
-void MiLightClient::formatPacket(MiLightRadioConfig& config, uint8_t* packet, char* buffer) {
-  if (config.type == RGBW || config.type == CCT) {
-    String format = String("Request type  : %02X\n") 
-      + "Device ID     : %02X%02X\n"
-      + "b1            : %02X\n"
-      + "b2            : %02X\n"
-      + "b3            : %02X\n"
-      + "Sequence Num. : %02X";
-      
-    sprintf(
-      buffer,
-      format.c_str(),
-      packet[0],
-      packet[1], packet[2],
-      packet[3],
-      packet[4],
-      packet[5],
-      packet[6]
-    );
-  } else {
-    for (int i = 0; i < config.packetLength; i++) {
-      sprintf(buffer, "%02X ", packet[i]);
-      buffer += 3;
-    }
-    sprintf(buffer, "\n\n");
-  }
+void MiLightClient::formatPacket(uint8_t* packet, char* buffer) {
+  formatter->format(packet, buffer);
 }
     
 void MiLightClient::flushPacket() {

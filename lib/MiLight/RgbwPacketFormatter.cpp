@@ -50,3 +50,7 @@ void RgbwPacketFormatter::updateColorWhite() {
   uint8_t button = RGBW_GROUP_1_MAX_LEVEL + ((groupId - 1)*2);
   command(button, 0);
 }
+
+void RgbwPacketFormatter::format(uint8_t const* packet, char* buffer) {
+  PacketFormatter::formatV1Packet(packet, buffer);
+}

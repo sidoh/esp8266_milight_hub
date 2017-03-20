@@ -67,7 +67,7 @@ class MiLightClient {
     
     void updateSaturation(const uint8_t saturation);
     
-    void formatPacket(MiLightRadioConfig& config, uint8_t* packet, char* buffer);
+    void formatPacket(uint8_t* packet, char* buffer);
     
     
   protected:
