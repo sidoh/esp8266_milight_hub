@@ -2,6 +2,7 @@
 
 #define RGB_CCT_COMMAND_INDEX 4
 #define RGB_CCT_ARGUMENT_INDEX 5
+#define V2_OFFSET_JUMP_START 0x54
 
 #ifndef _RGB_CCT_PACKET_FORMATTER_H
 #define _RGB_CCT_PACKET_FORMATTER_H 
@@ -9,8 +10,6 @@
 class RgbCctPacketFormatter : public PacketFormatter {
 public:
   static uint8_t const V2_OFFSETS[][4];
-  static uint8_t const BYTE_JUMP_STARTS[];
-  static uint8_t const ARG_JUMP_STARTS[];
     
   RgbCctPacketFormatter(size_t packetLength)
     : PacketFormatter(packetLength)

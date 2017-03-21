@@ -8,30 +8,13 @@
 
 uint8_t const RgbCctPacketFormatter::V2_OFFSETS[][4] = {
   { 0x45, 0x1F, 0x14, 0x5C },
-  { 0xAB, 0x49, 0x63, 0x91 },
-  { 0x2D, 0x1F, 0x4A, 0xEB },
+  { 0x2B, 0xC9, 0xE3, 0x11 },
+  { 0xEE, 0xDE, 0x0B, 0xAA },
   { 0xAF, 0x03, 0x1D, 0xF3 },
-  { 0x5A, 0x22, 0x30, 0x11 },
+  { 0x1A, 0xE2, 0xF0, 0xD1 },
   { 0x04, 0xD8, 0x71, 0x42 },
   { 0xAF, 0x04, 0xDD, 0x07 },
   { 0xE1, 0x93, 0xB8, 0xE4 }
-};
-  
-uint8_t const RgbCctPacketFormatter::BYTE_JUMP_STARTS[] = {
-  0, // key byte doesn't get shifted
-  0x54, 0x54, 0x14, 0x54, 
-  0, // argument byte gets different shifts for different commands
-  0x54, 0x54,
-  0  // checksum isn't shifted
-};
-
-uint8_t const RgbCctPacketFormatter::ARG_JUMP_STARTS[] = {
-  0,    // no command with id = 0
-  0x14, // on
-  0x14, // color
-  0x14, // kelvin
-  0x54, // brightness, saturation
-  0x14  // mode
 };
 
 void RgbCctPacketFormatter::reset() {
@@ -54,28 +37,29 @@ void RgbCctPacketFormatter::command(uint8_t command, uint8_t arg) {
 }
 
 void RgbCctPacketFormatter::updateStatus(MiLightStatus status, uint8_t groupId) {
-  command(RGB_CCT_ON, 0xC0 + groupId + (status == OFF ? 5 : 0));
+  command(RGB_CCT_ON, groupId + (status == OFF ? 5 : 0));
 }
 
 void RgbCctPacketFormatter::updateBrightness(uint8_t brightness) {
-  command(RGB_CCT_BRIGHTNESS, 0x4F + brightness);
+  command(RGB_CCT_BRIGHTNESS, 0x8F + brightness);
 }
   
 void RgbCctPacketFormatter::updateHue(uint16_t value) {
-  const int16_t remappedColor = (value + 20) % 360;
-  updateColorRaw(rescale(remappedColor, 255, 360));
+  uint8_t remapped = rescale(value, 255, 360) + 0xA;
+  updateColorRaw(remapped);
 }
 
 void RgbCctPacketFormatter::updateColorRaw(uint8_t value) {
-  command(RGB_CCT_COLOR, 0x15 + value);
+  command(RGB_CCT_COLOR, value);
 }
   
 void RgbCctPacketFormatter::updateTemperature(uint8_t value) {
-  command(RGB_CCT_KELVIN, (0x4C + value)*2);
+  command(RGB_CCT_KELVIN, (0xCC + value)*2);
 }
 
 void RgbCctPacketFormatter::updateSaturation(uint8_t value) {
-  command(RGB_CCT_SATURATION, value - 0x33);
+  uint8_t remapped = 0x71 - value;
+  command(RGB_CCT_SATURATION, remapped);
 }
   
 void RgbCctPacketFormatter::updateColorWhite() {
@@ -119,12 +103,8 @@ void RgbCctPacketFormatter::decodeV2Packet(uint8_t *packet) {
   uint8_t key = xorKey(packet[0]);
   
   for (size_t i = 1; i <= 8; i++) {
-    if (i != 5) {
-      packet[i] = decodeByte(packet[i], 0, key, V2_OFFSET(i, packet[0], BYTE_JUMP_STARTS[i]));
-    }
+    packet[i] = decodeByte(packet[i], 0, key, V2_OFFSET(i, packet[0], V2_OFFSET_JUMP_START));
   }
-      
-  packet[5] = decodeByte(packet[5], 0, key, V2_OFFSET(5, packet[0], ARG_JUMP_STARTS[packet[4]]));
 }
 
 void RgbCctPacketFormatter::encodeV2Packet(uint8_t *packet) {
@@ -135,14 +115,10 @@ void RgbCctPacketFormatter::encodeV2Packet(uint8_t *packet) {
   
   for (size_t i = 1; i <= 7; i++) {
     sum += packet[i];
-    
-    if (i != 5) {
-      packet[i] = encodeByte(packet[i], 0, key, V2_OFFSET(i, packet[0], BYTE_JUMP_STARTS[i]));
-    }
+    packet[i] = encodeByte(packet[i], 0, key, V2_OFFSET(i, packet[0], V2_OFFSET_JUMP_START));
   }
   
-  packet[5] = encodeByte(packet[5], 0, key, V2_OFFSET(5, packet[0], ARG_JUMP_STARTS[command]));
-  packet[8] = encodeByte(sum, 2, key, V2_OFFSET(8, packet[0], 0));
+  packet[8] = encodeByte(sum, 3, key, V2_OFFSET(8, packet[0], 0));
 }
 
 void RgbCctPacketFormatter::format(uint8_t const* packet, char* buffer) {
