@@ -20,7 +20,9 @@ uint8_t const RgbCctPacketFormatter::V2_OFFSETS[][4] = {
 void RgbCctPacketFormatter::reset() {
   size_t packetPtr = 0;
   
+  // Always encode with 0x00 key. No utility in varying it.
   packet[packetPtr++] = 0x00;
+  
   packet[packetPtr++] = 0x20;
   packet[packetPtr++] = deviceId >> 8;
   packet[packetPtr++] = deviceId & 0xFF;
