@@ -45,7 +45,7 @@ void RgbCctPacketFormatter::updateBrightness(uint8_t brightness) {
 }
   
 void RgbCctPacketFormatter::updateHue(uint16_t value) {
-  uint8_t remapped = rescale(value, 255, 360) + 0xA;
+  uint8_t remapped = rescale(value, 255, 360) + 0x5F;
   updateColorRaw(remapped);
 }
 
@@ -54,11 +54,11 @@ void RgbCctPacketFormatter::updateColorRaw(uint8_t value) {
 }
   
 void RgbCctPacketFormatter::updateTemperature(uint8_t value) {
-  command(RGB_CCT_KELVIN, (0xCC + value)*2);
+  command(RGB_CCT_KELVIN, 0x94 - (value*2));
 }
 
 void RgbCctPacketFormatter::updateSaturation(uint8_t value) {
-  uint8_t remapped = 0x71 - value;
+  uint8_t remapped = value + 0xD;
   command(RGB_CCT_SATURATION, remapped);
 }
   
@@ -92,9 +92,9 @@ uint8_t RgbCctPacketFormatter::decodeByte(uint8_t byte, uint8_t s1, uint8_t xorK
 }
 
 uint8_t RgbCctPacketFormatter::encodeByte(uint8_t byte, uint8_t s1, uint8_t xorKey, uint8_t s2) {
-  uint8_t value = (byte + s1) % 0x100;
+  uint8_t value = byte + s1;
   value = value ^ xorKey;
-  value = (value + s2) % 0x100;
+  value = value + s2;
   
   return value;
 }
@@ -110,8 +110,6 @@ void RgbCctPacketFormatter::decodeV2Packet(uint8_t *packet) {
 void RgbCctPacketFormatter::encodeV2Packet(uint8_t *packet) {
   uint8_t key = xorKey(packet[0]);
   uint8_t sum = key;
-  uint8_t command = packet[4];
-  size_t ptr = 0;
   
   for (size_t i = 1; i <= 7; i++) {
     sum += packet[i];
