@@ -1,47 +1,17 @@
-#include <MiLightUdpServer.h>
+#include <V5MiLightUdpServer.h>
 
-MiLightUdpServer::MiLightUdpServer(MiLightClient*& client, uint16_t port, uint16_t deviceId)
-  : client(client), 
-    port(port),
-    deviceId(deviceId),
-    lastGroup(0)
-{ }
-
-MiLightUdpServer::~MiLightUdpServer() {
-  stop();
-}
-
-void MiLightUdpServer::begin() {
-  socket.begin(this->port);
-}
-
-void MiLightUdpServer::stop() {
-  socket.stop();
-}
-
-void MiLightUdpServer::handleClient() {
-  const size_t packetSize = socket.parsePacket();
-  
-  if (packetSize) {
-    if (packetSize >= 2 && packetSize <= 3) {
-      socket.read(packetBuffer, packetSize);
-      
-#ifdef MILIGHT_UDP_DEBUG
-      Serial.print("Handling command: ");
-      Serial.print(String(packetBuffer[0], HEX));
-      Serial.print(" ");
-      Serial.println(String(packetBuffer[1], HEX));
-#endif
-      
-      handleCommand(packetBuffer[0], packetBuffer[1]);
-    } else {
-      Serial.print("Error, unexpected packet length (should always be 2-3, was: ");
-      Serial.println(packetSize);
-    }
+size_t V5MiLightUdpServer::handlePacket(uint8_t* packet, size_t packetSize, uint8_t* responseBuffer) {
+  if (packetSize == 2 || packetSize == 3) {
+    handleCommand(packet[0], packet[1]);
+  } else {
+    Serial.print("V5MilightUdpServer: unexpected packet length. Should always be 2-3, was: ");
+    Serial.println(packetSize);  
   }
+  
+  return 0;
 }
 
-void MiLightUdpServer::handleCommand(uint8_t command, uint8_t commandArg) {
+void V5MiLightUdpServer::handleCommand(uint8_t command, uint8_t commandArg) {
   if (command >= UDP_RGBW_GROUP_1_ON && command <= UDP_RGBW_GROUP_4_OFF) {
     const MiLightStatus status = (command % 2) == 1 ? ON : OFF;
     const uint8_t groupId = (command - UDP_RGBW_GROUP_1_ON + 2)/2;
@@ -123,18 +93,18 @@ void MiLightUdpServer::handleCommand(uint8_t command, uint8_t commandArg) {
         
       default:
         if (!handled) {
-          Serial.print("MiLightUdpServer - Unhandled command: ");
+          Serial.print("V5MiLightUdpServer - Unhandled command: ");
           Serial.println(command);
         }
     }
   }
 }
 
-void MiLightUdpServer::pressButton(uint8_t button) {
+void V5MiLightUdpServer::pressButton(uint8_t button) {
   client->command(button, 0);
 }  
 
-uint8_t MiLightUdpServer::cctCommandIdToGroup(uint8_t command) {
+uint8_t V5MiLightUdpServer::cctCommandIdToGroup(uint8_t command) {
   switch (command) {
     case UDP_CCT_GROUP_1_ON:
     case UDP_CCT_GROUP_1_OFF:
@@ -153,7 +123,7 @@ uint8_t MiLightUdpServer::cctCommandIdToGroup(uint8_t command) {
   return 0;
 }  
   
-MiLightStatus MiLightUdpServer::cctCommandToStatus(uint8_t command) {
+MiLightStatus V5MiLightUdpServer::cctCommandToStatus(uint8_t command) {
   switch (command) {
     case UDP_CCT_GROUP_1_ON:
     case UDP_CCT_GROUP_2_ON:
