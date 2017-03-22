@@ -9,9 +9,6 @@
 #ifndef _V5_MILIGHT_UDP_SERVER
 #define _V5_MILIGHT_UDP_SERVER 
 
-// Uncomment to enable Serial printing of packets
-//#define MILIGHT_UDP_DEBUG
-
 enum MiLightUdpCommands {
   UDP_CCT_GROUP_1_ON         = 0x38,
   UDP_CCT_GROUP_1_OFF        = 0x3B,

@@ -5,7 +5,7 @@
 // This protocol is documented here:
 // http://www.limitlessled.com/dev/
 
-#define MILIGHT_PACKET_BUFFER_SIZE 10
+#define MILIGHT_PACKET_BUFFER_SIZE 30 
 
 // Uncomment to enable Serial printing of packets
 //#define MILIGHT_UDP_DEBUG
