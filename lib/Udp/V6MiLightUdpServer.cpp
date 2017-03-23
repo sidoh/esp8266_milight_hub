@@ -1,5 +1,6 @@
 #include <V6MiLightUdpServer.h>
 #include <ESP8266WiFi.h>
+#include <Arduino.h>
   
 uint8_t V6MiLightUdpServer::START_SESSION_COMMAND[] = {
   0x20, 0x00, 0x00, 0x00, 0x16, 0x02, 0x62, 0x3A, 0xD5, 0xED, 0xA3, 0x01, 0xAE, 
@@ -67,6 +68,19 @@ uint16_t V6MiLightUdpServer::beginSession() {
   V6Session* session = new V6Session(socket.remoteIP(), socket.remotePort(), id);
   session->next = firstSession;
   firstSession = session;
+  
+  if (numSessions >= V6_MAX_SESSIONS) {
+    V6Session* cur = firstSession;
+    
+    for (size_t i = 1; i < V6_MAX_SESSIONS; i++) {
+      cur = cur->next;
+    }
+    
+    delete cur->next;
+    cur->next = NULL;
+  } else {
+    numSessions++;
+  }
   
   return id;
 }

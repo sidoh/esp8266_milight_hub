@@ -8,6 +8,7 @@
 #include <Vector.h>
 
 #define V6_COMMAND_LEN 8
+#define V6_MAX_SESSIONS 10
 
 #ifndef _V6_MILIGHT_UDP_SERVER
 #define _V6_MILIGHT_UDP_SERVER 
@@ -39,6 +40,7 @@ public:
   V6MiLightUdpServer(MiLightClient*& client, uint16_t port, uint16_t deviceId)
     : MiLightUdpServer(client, port, deviceId),
       sessionId(0),
+      numSessions(0),
       firstSession(NULL)
   { }
   
@@ -58,8 +60,11 @@ protected:
   static uint8_t START_SESSION_RESPONSE[];
   static uint8_t COMMAND_HEADER[];
   static uint8_t COMMAND_RESPONSE[];
+  static uint8_t SEARCH_COMMAND[];
+  static uint8_t LOCAL_SEARCH_COMMAND[];
   
   V6Session* firstSession;
+  size_t numSessions;
   uint16_t sessionId;
   
   uint16_t beginSession();
