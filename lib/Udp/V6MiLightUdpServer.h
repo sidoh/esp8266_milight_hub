@@ -62,6 +62,7 @@ protected:
   static uint8_t COMMAND_RESPONSE[];
   static uint8_t SEARCH_COMMAND[];
   static uint8_t LOCAL_SEARCH_COMMAND[];
+  static uint8_t HEARTBEAT_HEADER[];
   
   V6Session* firstSession;
   size_t numSessions;
@@ -71,6 +72,7 @@ protected:
   void sendResponse(uint16_t sessionId, uint8_t* responseBuffer, size_t responseSize);
   
   void handleStartSession();
+  void handleHeartbeat(uint16_t sessionId);
   void handleCommand(
     uint16_t sessionId,
     uint8_t sequenceNum,
