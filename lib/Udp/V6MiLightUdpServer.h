@@ -38,8 +38,11 @@ class V6MiLightUdpServer : public MiLightUdpServer {
 public:
   V6MiLightUdpServer(MiLightClient*& client, uint16_t port, uint16_t deviceId)
     : MiLightUdpServer(client, port, deviceId),
-      sessionId(0)
+      sessionId(0),
+      firstSession(NULL)
   { }
+  
+  ~V6MiLightUdpServer();
   
   // Should return size of the response packet
   virtual void handlePacket(uint8_t* packet, size_t packetSize);
@@ -56,7 +59,7 @@ protected:
   static uint8_t COMMAND_HEADER[];
   static uint8_t COMMAND_RESPONSE[];
   
-  Vector<V6Session> sessions;
+  V6Session* firstSession;
   uint16_t sessionId;
   
   uint16_t beginSession();

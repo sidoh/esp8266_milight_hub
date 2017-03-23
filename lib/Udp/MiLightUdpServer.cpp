@@ -1,6 +1,7 @@
 #include <MiLightUdpServer.h>
 #include <V5MiLightUdpServer.h>
 #include <V6MiLightUdpServer.h>
+#include <ESP8266WiFi.h>
 
 MiLightUdpServer::MiLightUdpServer(MiLightClient*& client, uint16_t port, uint16_t deviceId)
   : client(client), 
@@ -14,7 +15,7 @@ MiLightUdpServer::~MiLightUdpServer() {
 }
 
 void MiLightUdpServer::begin() {
-  socket.begin(this->port);
+  socket.begin(port);
 }
 
 void MiLightUdpServer::stop() {

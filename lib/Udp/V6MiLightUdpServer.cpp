@@ -28,6 +28,16 @@ size_t size(T(&)[sz]) {
     return sz;
 }
 
+V6MiLightUdpServer::~V6MiLightUdpServer() {
+  V6Session* cur = firstSession;
+  
+  while (cur != NULL) {
+    V6Session* next = cur->next;
+    delete cur;
+    cur = next;
+  }
+}
+
 template <typename T>
 T V6MiLightUdpServer::readInt(uint8_t* packet) {
   size_t numBytes = sizeof(T);
@@ -54,8 +64,10 @@ uint8_t* V6MiLightUdpServer::writeInt(const T& value, uint8_t* packet) {
 uint16_t V6MiLightUdpServer::beginSession() {
   const uint16_t id = sessionId++;
   
-  V6Session session(socket.remoteIP(), socket.remotePort(), id);
-  sessions.push_back(session);
+  V6Session* session = new V6Session(socket.remoteIP(), socket.remotePort(), id);
+  session->next = firstSession;
+  firstSession = session;
+  
   return id;
 }
 
@@ -73,15 +85,16 @@ void V6MiLightUdpServer::handleStartSession() {
 }
   
 void V6MiLightUdpServer::sendResponse(uint16_t sessionId, uint8_t* responseBuffer, size_t responseSize) {
-  V6Session* session = NULL;
+  V6Session* session = firstSession;
   
-  for (size_t i = 0; i < sessions.size(); i++) {
-    if (sessions[i].sessionId == sessionId) {
-      session = &sessions[i];
+  while (session != NULL) {
+    if (session->sessionId == sessionId) {
+      break;
     }
+    session = session->next;
   }
   
-  if (session == NULL) {
+  if (session == NULL || session->sessionId != sessionId) {
     Serial.print("Tried to send response to untracked session id: ");
     Serial.println(sessionId);
     return;
