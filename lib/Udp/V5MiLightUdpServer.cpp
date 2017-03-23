@@ -1,14 +1,12 @@
 #include <V5MiLightUdpServer.h>
 
-size_t V5MiLightUdpServer::handlePacket(uint8_t* packet, size_t packetSize, uint8_t* responseBuffer) {
+void V5MiLightUdpServer::handlePacket(uint8_t* packet, size_t packetSize) {
   if (packetSize == 2 || packetSize == 3) {
     handleCommand(packet[0], packet[1]);
   } else {
     Serial.print("V5MilightUdpServer: unexpected packet length. Should always be 2-3, was: ");
     Serial.println(packetSize);  
   }
-  
-  return 0;
 }
 
 void V5MiLightUdpServer::handleCommand(uint8_t command, uint8_t commandArg) {

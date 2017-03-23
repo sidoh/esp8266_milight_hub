@@ -52,7 +52,7 @@ public:
   { }
   
   // Should return size of the response packet
-  virtual size_t handlePacket(uint8_t* packet, size_t packetSize, uint8_t* responseBuffer);
+  virtual void handlePacket(uint8_t* packet, size_t packetSize);
     
 protected:
   void handleCommand(uint8_t command, uint8_t commandArg);

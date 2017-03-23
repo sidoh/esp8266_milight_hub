@@ -47,12 +47,12 @@ void RgbCctPacketFormatter::updateBrightness(uint8_t brightness) {
 }
   
 void RgbCctPacketFormatter::updateHue(uint16_t value) {
-  uint8_t remapped = rescale(value, 255, 360) + 0x5F;
+  uint8_t remapped = rescale(value, 255, 360);
   updateColorRaw(remapped);
 }
 
 void RgbCctPacketFormatter::updateColorRaw(uint8_t value) {
-  command(RGB_CCT_COLOR, value);
+  command(RGB_CCT_COLOR, 0x5F + value);
 }
   
 void RgbCctPacketFormatter::updateTemperature(uint8_t value) {

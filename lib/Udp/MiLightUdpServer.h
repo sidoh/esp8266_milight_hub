@@ -8,7 +8,7 @@
 #define MILIGHT_PACKET_BUFFER_SIZE 30 
 
 // Uncomment to enable Serial printing of packets
-//#define MILIGHT_UDP_DEBUG
+#define MILIGHT_UDP_DEBUG
 
 #ifndef _MILIGHT_UDP_SERVER
 #define _MILIGHT_UDP_SERVER 
@@ -34,7 +34,7 @@ protected:
   uint8_t responseBuffer[MILIGHT_PACKET_BUFFER_SIZE];
   
   // Should return size of the response packet
-  virtual size_t handlePacket(uint8_t* packet, size_t packetSize, uint8_t* responseBuffer) = 0;
+  virtual void handlePacket(uint8_t* packet, size_t packetSize) = 0;
 };
 
 #endif

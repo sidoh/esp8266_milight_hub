@@ -1,5 +1,6 @@
 #include <MiLightUdpServer.h>
 #include <V5MiLightUdpServer.h>
+#include <V6MiLightUdpServer.h>
 
 MiLightUdpServer::MiLightUdpServer(MiLightClient*& client, uint16_t port, uint16_t deviceId)
   : client(client), 
@@ -27,24 +28,22 @@ void MiLightUdpServer::handleClient() {
     socket.read(packetBuffer, packetSize);
     
 #ifdef MILIGHT_UDP_DEBUG
-    Serial.print("Handling packet: ");
+    printf("Handling packet: ");
     for (size_t i = 0; i < packetSize; i++) {
-      Serial.printf("%02X ", packetBuffer[0])
+      printf("%02X ", packetBuffer[i]);
     }
-    Serial.println();
+    printf("\n");
 #endif
     
-    size_t responseSize = handlePacket(packetBuffer, packetSize, responseBuffer);
-    
-    if (responseSize > 0) {
-      socket.write(responseBuffer, responseSize);
-    }
+    handlePacket(packetBuffer, packetSize);
   }
 }
 
 MiLightUdpServer* MiLightUdpServer::fromVersion(uint8_t version, MiLightClient*& client, uint16_t port, uint16_t deviceId) {
   if (version == 0 || version == 5) {
     return new V5MiLightUdpServer(client, port, deviceId);
+  } else if (version == 6) {
+    return new V6MiLightUdpServer(client, port, deviceId);
   }
   
   return NULL;
