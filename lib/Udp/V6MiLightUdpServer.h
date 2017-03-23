@@ -54,6 +54,7 @@ protected:
   static uint8_t START_SESSION_COMMAND[];
   static uint8_t START_SESSION_RESPONSE[];
   static uint8_t COMMAND_HEADER[];
+  static uint8_t COMMAND_RESPONSE[];
   
   Vector<V6Session> sessions;
   uint16_t sessionId;
