@@ -112,7 +112,7 @@ void V6MiLightUdpServer::sendResponse(uint16_t sessionId, uint8_t* responseBuffe
   }
   
   if (session == NULL || session->sessionId != sessionId) {
-    Serial.print("Tried to send response to untracked session id: ");
+    Serial.print("Received request with untracked session ID: ");
     Serial.println(sessionId);
     return;
   }
