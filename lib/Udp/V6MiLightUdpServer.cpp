@@ -222,7 +222,9 @@ void V6MiLightUdpServer::handleHeartbeat(uint16_t sessionId) {
 }
 
 void V6MiLightUdpServer::handlePacket(uint8_t* packet, size_t packetSize) {
+#ifdef MILIGHT_UDP_DEBUG
   printf("Packet size: %d\n", packetSize);
+#endif
   
   if (packetSize >= size(START_SESSION_COMMAND) && memcmp(START_SESSION_COMMAND, packet, size(START_SESSION_COMMAND)) == 0) {
     handleStartSession();
