@@ -79,6 +79,9 @@
       "http_repeat_factor"
     ];
     
+    var UDP_PROTOCOL_VERSIONS = [ 5, 6 ];
+    var DEFAULT_UDP_PROTOCL_VERSION = 5;
+    
     var selectize;
     
     var toHex = function(v) {
@@ -127,7 +130,7 @@
       });
     };
     
-    var gatewayServerRow = function(deviceId, port) {
+    var gatewayServerRow = function(deviceId, port, version) {
       var elmt = '<tr>';
       elmt += '<td>';
       elmt += '<input name="deviceIds[]" class="form-control" value="' + deviceId + '"/>';
@@ -135,6 +138,20 @@
       elmt += '<td>'
       elmt += '<input name="ports[]" class="form-control" value="' + port + '"/>';;
       elmt += '</td>';
+      elmt += '<td>';
+      elmt += '<div class="btn-group" data-toggle="buttons">';
+      
+      for (var i = 0; i < UDP_PROTOCOL_VERSIONS.length; i++) {
+        var val = UDP_PROTOCOL_VERSIONS[i]
+          , selected = (version == val || (val == DEFAULT_UDP_PROTOCL_VERSION && !UDP_PROTOCOL_VERSIONS.includes(version)));
+        
+        elmt += '<label class="btn btn-secondary' + (selected ? ' active' : '') + '">';
+        elmt += '<input type="radio" name="versions[]" autocomplete="off" data-value="' + val + '" ' 
+          + (selected ? 'checked' : '') +'> ' + val;
+        elmt += '</label>';
+      }
+      
+      elmt += '</div></td>';
       elmt += '<td>';
       elmt += '<button class="btn btn-danger remove-gateway-server">';
       elmt += '<i class="glyphicon glyphicon-remove"></i>';
@@ -165,7 +182,7 @@
         var gatewayForm = $('#gateway-server-configs').html('');
         if (val.gateway_configs) {
           val.gateway_configs.forEach(function(v) {
-            gatewayForm.append(gatewayServerRow(toHex(v[0]), v[1]));
+            gatewayForm.append(gatewayServerRow(toHex(v[0]), v[1], v[2]));
           });
         }
       });
@@ -200,11 +217,15 @@
           return val;
         }
       });
+      
+      var versions = $('.active input[name="versions[]"]', form).map(function(i, v) {
+        return $(v).data('value');
+      });
         
       if (!errors) {
         var data = [];
         for (var i = 0; i < deviceIds.length; i++) {
-          data[i] = [deviceIds[i], ports[i], 0];
+          data[i] = [deviceIds[i], ports[i], versions[i]];
         }
         $.ajax(
           '/settings',
@@ -570,6 +591,7 @@
               <tr>
                 <th>Device ID</th>
                 <th>UDP Port</th>
+                <th>Protocol Version</th>
               </tr>
             </thead>
             <tbody id="gateway-server-configs">
