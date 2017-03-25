@@ -10,6 +10,7 @@ This is a replacement for a Milight/LimitlessLED remote/gateway hosted on an ESP
 1. Both the remote and the WiFi gateway are limited to four groups. This means if you want to control more than four groups of bulbs, you need another remote or another gateway. This project allows you to control 262,144 groups (4*2^16, the limit imposed by the protocol).
 2. This project exposes a nice REST API to control your bulbs.
 3. You can secure the ESP8266 with a username/password, which is more than you can say for the Milight gateway! (The 2.4 GHz protocol is still totally insecure, so this doesn't accomplish much :).
+4. Official hubs connect to remote servers to enable WAN access, and this behavior is not disableable.
 
 ## What you'll need
 
