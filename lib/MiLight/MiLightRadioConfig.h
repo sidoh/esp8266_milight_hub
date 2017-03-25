@@ -10,46 +10,45 @@
 
 class MiLightRadioConfig {
 public:
+  static const size_t NUM_CHANNELS = 3;
+  
   MiLightRadioConfig(const uint16_t syncword0,
   const uint16_t syncword3,
-  const size_t packetLength,
-  const uint8_t* channels,
-  const size_t numChannels,
   PacketFormatter* packetFormatter,
-  const MiLightRadioType type) 
+  const MiLightRadioType type,
+  const uint8_t channel0,
+  const uint8_t channel1,
+  const uint8_t channel2) 
     : syncword0(syncword0),
       syncword3(syncword3),
-      packetLength(packetLength),
-      channels(channels),
-      numChannels(numChannels),
       packetFormatter(packetFormatter),
       type(type)
-  {}
+  {
+    channels[0] = channel0;
+    channels[1] = channel1;
+    channels[2] = channel2;
+  }
     
   const uint16_t syncword0;
   const uint16_t syncword3;
-  const size_t packetLength;
-  const uint8_t* channels;
-  const size_t numChannels;
+  uint8_t channels[3];
   PacketFormatter* packetFormatter;
   const MiLightRadioType type;
   
   static MiLightRadioConfig* fromString(const String& s);
+  size_t getPacketLength() const;
 };
 
-const uint8_t RGBW_CHANNELS[] = {9, 40, 71};
 static MiLightRadioConfig MilightRgbwConfig(
-  0x147A, 0x258B, 7, RGBW_CHANNELS, 3, new RgbwPacketFormatter(8), RGBW
+  0x147A, 0x258B, new RgbwPacketFormatter(8), RGBW, 9, 40, 71
 );
 
-const uint8_t CCT_CHANNELS[] = {4, 39, 74};
 static MiLightRadioConfig MilightCctConfig(
-  0x050A, 0x55AA, 7, CCT_CHANNELS, 3, new CctPacketFormatter(8), CCT
+  0x050A, 0x55AA, new CctPacketFormatter(8), CCT, 4, 39, 74
 );
 
-const uint8_t RGBCCT_CHANNELS[] = {70, 39, 8};
 static MiLightRadioConfig MilightRgbCctConfig(
-  0x7236, 0x1809, 9, RGBCCT_CHANNELS, 3, new RgbCctPacketFormatter(9), RGB_CCT
+  0x7236, 0x1809, new RgbCctPacketFormatter(9), RGB_CCT, 8, 39, 70
 );
 
 #endif

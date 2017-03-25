@@ -53,7 +53,7 @@ int MiLightRadio::configure() {
   }
 
   // +1 to be able to buffer the length 
-  retval = _pl1167.setMaxPacketLength(config.packetLength + 1);
+  retval = _pl1167.setMaxPacketLength(config.getPacketLength() + 1);
   if (retval < 0) {
     return retval;
   }
@@ -143,7 +143,7 @@ int MiLightRadio::write(uint8_t frame[], size_t frame_length)
 
 int MiLightRadio::resend()
 {
-  for (size_t i = 0; i < config.numChannels; i++) {
+  for (size_t i = 0; i < MiLightRadioConfig::NUM_CHANNELS; i++) {
     _pl1167.writeFIFO(_out_packet, _out_packet[0] + 1);
     _pl1167.transmit(config.channels[i]);
   }

@@ -11,3 +11,7 @@ MiLightRadioConfig* MiLightRadioConfig::fromString(const String& s) {
   
   return NULL;
 }
+
+size_t MiLightRadioConfig::getPacketLength() const {
+  return packetFormatter->getPacketLength();
+}

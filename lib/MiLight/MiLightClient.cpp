@@ -65,7 +65,7 @@ void MiLightClient::write(uint8_t packet[]) {
   }
   
   for (int i = 0; i < this->resendCount; i++) {
-    currentRadio->getRadio()->write(packet, currentRadio->config.packetLength);
+    currentRadio->getRadio()->write(packet, currentRadio->config.getPacketLength());
   }
 }
     

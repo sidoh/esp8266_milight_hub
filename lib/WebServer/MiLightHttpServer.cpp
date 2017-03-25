@@ -154,7 +154,7 @@ void MiLightHttpServer::handleListenGateway(const UrlTokenBindings* bindings) {
     yield();
   }
   
-  uint8_t packet[config->packetLength];
+  uint8_t packet[config->getPacketLength()];
   milightClient->read(packet);
   
   String response = "Packet received (";
@@ -294,9 +294,9 @@ void MiLightHttpServer::handleSendRaw(const UrlTokenBindings* bindings) {
     return;
   }
   
-  uint8_t packet[config->packetLength];
+  uint8_t packet[config->getPacketLength()];
   const String& hexPacket = request["packet"];
-  hexStrToBytes<uint8_t>(hexPacket.c_str(), hexPacket.length(), packet, config->packetLength);
+  hexStrToBytes<uint8_t>(hexPacket.c_str(), hexPacket.length(), packet, config->getPacketLength());
   
   size_t numRepeats = MILIGHT_DEFAULT_RESEND_COUNT;
   if (request.containsKey("num_repeats")) {

@@ -60,3 +60,7 @@ void PacketFormatter::formatV1Packet(uint8_t const* packet, char* buffer) {
     packet[6]
   );
 }
+  
+size_t PacketFormatter::getPacketLength() const {
+  return packetLength;
+}

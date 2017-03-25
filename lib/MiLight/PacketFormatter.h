@@ -53,6 +53,8 @@ public:
     return round(value * (newMax / oldMax));
   }
   
+  size_t getPacketLength() const;
+  
 protected:
   uint8_t* packet;
   size_t packetLength;
