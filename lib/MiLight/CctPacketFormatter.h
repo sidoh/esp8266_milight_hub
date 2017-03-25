@@ -7,8 +7,8 @@
 
 class CctPacketFormatter : public PacketFormatter {
 public:
-  CctPacketFormatter(size_t packetLength)
-    : PacketFormatter(packetLength)
+  CctPacketFormatter()
+    : PacketFormatter(7)
   { }
   
   virtual void updateStatus(MiLightStatus status, uint8_t groupId);

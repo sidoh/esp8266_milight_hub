@@ -11,8 +11,8 @@ class RgbCctPacketFormatter : public PacketFormatter {
 public:
   static uint8_t const V2_OFFSETS[][4];
     
-  RgbCctPacketFormatter(size_t packetLength)
-    : PacketFormatter(packetLength)
+  RgbCctPacketFormatter()
+    : PacketFormatter(9)
   { }
   
   virtual void reset();

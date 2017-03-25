@@ -46,15 +46,15 @@ public:
 };
 
 static MiLightRadioConfig MilightRgbwConfig(
-  0x147A, 0x258B, new RgbwPacketFormatter(8), RGBW, "rgbw", 9, 40, 71
+  0x147A, 0x258B, new RgbwPacketFormatter(), RGBW, "rgbw", 9, 40, 71
 );
 
 static MiLightRadioConfig MilightCctConfig(
-  0x050A, 0x55AA, new CctPacketFormatter(8), CCT, "cct", 4, 39, 74
+  0x050A, 0x55AA, new CctPacketFormatter(), CCT, "cct", 4, 39, 74
 );
 
 static MiLightRadioConfig MilightRgbCctConfig(
-  0x7236, 0x1809, new RgbCctPacketFormatter(9), RGB_CCT, "rgb_cct", 8, 39, 70
+  0x7236, 0x1809, new RgbCctPacketFormatter(), RGB_CCT, "rgb_cct", 8, 39, 70
 );
 
 #endif

@@ -9,8 +9,8 @@
 
 class RgbwPacketFormatter : public PacketFormatter {
 public:
-  RgbwPacketFormatter(size_t packetLength)
-    : PacketFormatter(packetLength)
+  RgbwPacketFormatter()
+    : PacketFormatter(7)
   { }
   
   virtual void updateStatus(MiLightStatus status, uint8_t groupId);
