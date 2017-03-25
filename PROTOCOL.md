@@ -1,6 +1,6 @@
 # Protocol
 
-Here are some sloppy notes on the 2.4GHz protocol. Borrows from [Henryk's work](https://hackaday.io/project/5888-reverse-engineering-the-milight-on-air-protocol).
+Here are some sloppy notes on the 2.4GHz protocols. Borrows from [Henryk's work](https://hackaday.io/project/5888-reverse-engineering-the-milight-on-air-protocol).
 
 ## Structure
 
