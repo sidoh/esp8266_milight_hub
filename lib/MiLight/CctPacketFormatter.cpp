@@ -1,7 +1,7 @@
 #include <CctPacketFormatter.h>
 #include <MiLightButtons.h>
 
-void CctPacketFormatter::reset() {
+void CctPacketFormatter::initializePacket(uint8_t* packet) {
   size_t packetPtr = 0;
   
   packet[packetPtr++] = CCT;
@@ -14,7 +14,8 @@ void CctPacketFormatter::reset() {
 }
   
 void CctPacketFormatter::command(uint8_t command, uint8_t arg) {
-  packet[CCT_COMMAND_INDEX] = command;
+  pushPacket();
+  currentPacket[CCT_COMMAND_INDEX] = command;
 }
 
 void CctPacketFormatter::updateStatus(MiLightStatus status, uint8_t groupId) {

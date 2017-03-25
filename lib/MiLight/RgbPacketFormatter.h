@@ -14,13 +14,14 @@ enum MiLightRgbButton {
   RGB_SPEED_UP        = 0x05,
   RGB_SPEED_DOWN      = 0x06,
   RGB_MODE_UP         = 0x07,
-  RGB_MODE_DOWN       = 0x08
+  RGB_MODE_DOWN       = 0x08,
+  RGB_PAIR            = RGB_SPEED_UP
 };
 
 class RgbPacketFormatter : public PacketFormatter {
 public:
   RgbPacketFormatter()
-    : PacketFormatter(6)
+    : PacketFormatter(6, 20)
   { }
   
   virtual void updateStatus(MiLightStatus status, uint8_t groupId);
@@ -31,7 +32,7 @@ public:
   virtual void updateColorRaw(uint8_t value);
   virtual void format(uint8_t const* packet, char* buffer);
   
-  virtual void reset();
+  virtual void initializePacket(uint8_t* packet);
 };
 
 #endif

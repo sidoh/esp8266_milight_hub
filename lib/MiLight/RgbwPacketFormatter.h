@@ -21,7 +21,7 @@ public:
   virtual void updateColorWhite();
   virtual void format(uint8_t const* packet, char* buffer);
   
-  virtual void reset();
+  virtual void initializePacket(uint8_t* packet);
 };
 
 #endif

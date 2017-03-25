@@ -17,7 +17,7 @@ uint8_t const RgbCctPacketFormatter::V2_OFFSETS[][4] = {
   { 0xE1, 0x93, 0xB8, 0xE4 }
 };
 
-void RgbCctPacketFormatter::reset() {
+void RgbCctPacketFormatter::initializePacket(uint8_t* packet) {
   size_t packetPtr = 0;
   
   // Always encode with 0x00 key. No utility in varying it.
@@ -34,8 +34,9 @@ void RgbCctPacketFormatter::reset() {
 }
   
 void RgbCctPacketFormatter::command(uint8_t command, uint8_t arg) {
-  packet[RGB_CCT_COMMAND_INDEX] = command;
-  packet[RGB_CCT_ARGUMENT_INDEX] = arg;
+  pushPacket();
+  currentPacket[RGB_CCT_COMMAND_INDEX] = command;
+  currentPacket[RGB_CCT_ARGUMENT_INDEX] = arg;
 }
 
 void RgbCctPacketFormatter::updateStatus(MiLightStatus status, uint8_t groupId) {
@@ -68,9 +69,8 @@ void RgbCctPacketFormatter::updateColorWhite() {
   updateTemperature(0);
 }
   
-uint8_t* RgbCctPacketFormatter::buildPacket() {
+void RgbCctPacketFormatter::finalizePacket(uint8_t* packet) {
   encodeV2Packet(packet);
-  return packet;
 }
 
 uint8_t RgbCctPacketFormatter::xorKey(uint8_t key) {

@@ -1,7 +1,7 @@
 #include <RgbwPacketFormatter.h>
 #include <MiLightButtons.h>
 
-void RgbwPacketFormatter::reset() {
+void RgbwPacketFormatter::initializePacket(uint8_t* packet) {
   size_t packetPtr = 0;
   
   packet[packetPtr++] = RGBW;
@@ -15,7 +15,7 @@ void RgbwPacketFormatter::reset() {
 
 void RgbwPacketFormatter::updateStatus(MiLightStatus status, uint8_t groupId) {
   uint8_t button = RGBW_GROUP_1_ON + ((groupId - 1)*2) + status;
-  packet[RGBW_COMMAND_INDEX] = button;
+  command(button, 0);
 }
   
 void RgbwPacketFormatter::updateBrightness(uint8_t value) {
@@ -29,11 +29,12 @@ void RgbwPacketFormatter::updateBrightness(uint8_t value) {
   );
   
   command(RGBW_BRIGHTNESS, 0);
-  packet[RGBW_BRIGHTNESS_GROUP_INDEX] |= (packetBrightnessValue << 3);
+  currentPacket[RGBW_BRIGHTNESS_GROUP_INDEX] |= (packetBrightnessValue << 3);
 }
 
 void RgbwPacketFormatter::command(uint8_t command, uint8_t arg) {
-  packet[RGBW_COMMAND_INDEX] = command;
+  pushPacket();
+  currentPacket[RGBW_COMMAND_INDEX] = command;
 }
   
 void RgbwPacketFormatter::updateHue(uint16_t value) {
@@ -42,7 +43,7 @@ void RgbwPacketFormatter::updateHue(uint16_t value) {
 }
 
 void RgbwPacketFormatter::updateColorRaw(uint8_t value) {
-  packet[RGBW_COLOR_INDEX] = value;
+  currentPacket[RGBW_COLOR_INDEX] = value;
   command(RGBW_COLOR, 0);
 }
 

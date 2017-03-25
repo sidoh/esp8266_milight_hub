@@ -15,7 +15,7 @@ public:
     : PacketFormatter(9)
   { }
   
-  virtual void reset();
+  virtual void initializePacket(uint8_t* packet);
   
   virtual void updateStatus(MiLightStatus status, uint8_t group);
   virtual void updateBrightness(uint8_t value);
@@ -27,7 +27,7 @@ public:
   virtual void updateSaturation(uint8_t value);
   virtual void format(uint8_t const* packet, char* buffer);
   
-  virtual uint8_t* buildPacket();
+  virtual void finalizePacket(uint8_t* packet);
     
   static void encodeV2Packet(uint8_t* packet);
   static void decodeV2Packet(uint8_t* packet);

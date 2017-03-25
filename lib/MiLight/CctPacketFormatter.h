@@ -8,7 +8,7 @@
 class CctPacketFormatter : public PacketFormatter {
 public:
   CctPacketFormatter()
-    : PacketFormatter(7)
+    : PacketFormatter(7, 20)
   { }
   
   virtual void updateStatus(MiLightStatus status, uint8_t groupId);
@@ -19,7 +19,7 @@ public:
   virtual void decreaseBrightness();
   virtual void format(uint8_t const* packet, char* buffer);
   
-  virtual void reset();
+  virtual void initializePacket(uint8_t* packet);
   
   static uint8_t getCctStatusButton(uint8_t groupId, MiLightStatus status);
 };

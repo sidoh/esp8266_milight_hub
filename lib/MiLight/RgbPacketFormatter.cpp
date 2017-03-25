@@ -1,6 +1,6 @@
 #include <RgbPacketFormatter.h>
 
-void RgbPacketFormatter::reset() {
+void RgbPacketFormatter::initializePacket(uint8_t *packet) {
   size_t packetPtr = 0;
   
   packet[packetPtr++] = RGB;
@@ -16,7 +16,8 @@ void RgbPacketFormatter::updateStatus(MiLightStatus status, uint8_t groupId) {
 }
 
 void RgbPacketFormatter::command(uint8_t command, uint8_t arg) {
-  packet[RGB_COMMAND_INDEX] = command;
+  pushPacket();
+  currentPacket[RGB_COMMAND_INDEX] = command;
 }
   
 void RgbPacketFormatter::updateHue(uint16_t value) {
@@ -25,7 +26,7 @@ void RgbPacketFormatter::updateHue(uint16_t value) {
 }
 
 void RgbPacketFormatter::updateColorRaw(uint8_t value) {
-  packet[RGB_COLOR_INDEX] = value;
+  currentPacket[RGB_COLOR_INDEX] = value;
   command(0, 0);
 }
 

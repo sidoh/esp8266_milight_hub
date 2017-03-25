@@ -1,5 +1,34 @@
 #include <PacketFormatter.h>
 
+PacketStream::PacketStream()
+    : packetStream(NULL),
+      numPackets(0),
+      packetLength(0),
+      currentPacket(0)
+  { }
+  
+bool PacketStream::hasNext() {
+  return currentPacket < numPackets;
+}
+
+uint8_t* PacketStream::next() {
+  uint8_t* packet = packetStream + (currentPacket * numPackets);
+  currentPacket++;
+  return packet;
+}
+
+PacketFormatter::PacketFormatter(const size_t packetLength, const size_t maxPackets)
+  : packetLength(packetLength),
+    packetBuffer(new uint8_t[packetLength * maxPackets]),
+    numPackets(0),
+    currentPacket(NULL)
+{ 
+  packetStream.packetLength = packetLength;
+  packetStream.packetStream = packetBuffer;
+}
+  
+void PacketFormatter::finalizePacket(uint8_t* packet) { }
+  
 void PacketFormatter::updateStatus(MiLightStatus status) { 
   updateStatus(status, groupId);
 }
@@ -23,14 +52,40 @@ void PacketFormatter::decreaseBrightness() { }
 void PacketFormatter::updateTemperature(uint8_t value) { }
 void PacketFormatter::updateSaturation(uint8_t value) { }
   
-uint8_t* PacketFormatter::buildPacket() {
-  return this->packet;
+void PacketFormatter::pair() { }
+void PacketFormatter::unpair() { }
+  
+PacketStream& PacketFormatter::buildPackets() {
+  if (numPackets > 0) {
+    finalizePacket(currentPacket);
+  }
+  
+  packetStream.numPackets = numPackets;
+  packetStream.currentPacket = 0;
+  
+  return packetStream;
 }
+  
 
 void PacketFormatter::prepare(uint16_t deviceId, uint8_t groupId) {
   this->deviceId = deviceId;
   this->groupId = groupId;
   reset();
+}
+
+void PacketFormatter::reset() {
+  this->numPackets = 0;
+  this->currentPacket = currentPacket;
+}
+
+void PacketFormatter::pushPacket() {
+  if (numPackets > 0) {
+    finalizePacket(currentPacket);
+  }
+  
+  currentPacket = packetBuffer + (numPackets * packetLength);
+  numPackets++;
+  initializePacket(currentPacket);
 }
 
 void PacketFormatter::format(uint8_t const* packet, char* buffer) {
