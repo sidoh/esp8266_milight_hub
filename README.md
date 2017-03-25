@@ -77,14 +77,14 @@ Route (6) suports the `command`s `all_on` and `all_off`, which do as you'd expec
 Turn on group 2 for device ID 0xCD86, set hue to 100, and brightness to 50%:
 
 ```
-$ curl --data-binary '{"status":"on","hue":100,"level":50}' -X PUT http://esp8266/gateways/0xCD86/2
+$ curl --data-binary '{"status":"on","hue":100,"level":50}' -X PUT http://esp8266/gateways/0xCD86/rgbw/2
 true%
 ```
 
 Set color to white (disable RGB):
 
 ```
-$ curl --data-binary '{"command":"set_white"}' -X PUT http://esp8266/gateways/0xCD86/2
+$ curl --data-binary '{"command":"set_white"}' -X PUT http://esp8266/gateways/0xCD86/rgbw/2
 true%
 ```
 

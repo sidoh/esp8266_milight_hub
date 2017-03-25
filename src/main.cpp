@@ -2,7 +2,7 @@
 #include <WiFiManager.h>
 #include <ArduinoJson.h>
 #include <stdlib.h>
-#include <fs.h>
+#include <FS.h>
 #include <IntParsing.h>
 #include <MiLightClient.h>
 #include <MiLightRadioConfig.h>
