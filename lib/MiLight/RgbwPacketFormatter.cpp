@@ -13,6 +13,11 @@ void RgbwPacketFormatter::initializePacket(uint8_t* packet) {
   packet[packetPtr++] = sequenceNum++;
 }
 
+void RgbwPacketFormatter::unpair() { 
+  PacketFormatter::updateStatus(ON);
+  updateColorWhite();
+}
+
 void RgbwPacketFormatter::updateStatus(MiLightStatus status, uint8_t groupId) {
   uint8_t button = RGBW_GROUP_1_ON + ((groupId - 1)*2) + status;
   command(button, 0);

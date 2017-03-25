@@ -32,6 +32,12 @@ void RgbCctPacketFormatter::initializePacket(uint8_t* packet) {
   packet[packetPtr++] = groupId;
   packet[packetPtr++] = 0;
 }
+
+void RgbCctPacketFormatter::unpair() { 
+  for (size_t i = 0; i < 5; i++) {
+    updateStatus(ON, 0);
+  }
+}
   
 void RgbCctPacketFormatter::command(uint8_t command, uint8_t arg) {
   pushPacket();

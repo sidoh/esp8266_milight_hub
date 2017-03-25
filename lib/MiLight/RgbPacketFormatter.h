@@ -33,6 +33,8 @@ public:
   virtual void updateHue(uint16_t value);
   virtual void updateColorRaw(uint8_t value);
   virtual void format(uint8_t const* packet, char* buffer);
+  virtual void pair();
+  virtual void unpair();
   
   virtual void initializePacket(uint8_t* packet);
 };

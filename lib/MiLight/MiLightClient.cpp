@@ -116,35 +116,13 @@ void MiLightClient::updateColorWhite() {
 }
 
 void MiLightClient::pair() {
-  for (size_t i = 0; i < 5; i++) {
-    formatter->updateStatus(ON);
-    flushPacket();
-    delay(1);
-  }
+  formatter->pair();
+  flushPacket();
 }
 
 void MiLightClient::unpair() {
-  const MiLightRadioType type = currentRadio->config.type;
-  
-  if (type == RGBW) {
-    formatter->updateStatus(ON);
-    flushPacket();
-    yield();
-    formatter->updateColorWhite();
-    flushPacket();
-  } else if (type == CCT) {
-    for (int i = 0; i < 5; i++) {
-      formatter->updateStatus(ON);
-      flushPacket();
-      delay(1);
-    }
-  } else if (type == RGB_CCT) {
-    for (int i = 0; i < 5; i++) {
-      formatter->updateStatus(ON, 0);
-      flushPacket();
-      delay(1);
-    }
-  }
+  formatter->unpair();
+  flushPacket();
 }
     
 void MiLightClient::increaseBrightness() {

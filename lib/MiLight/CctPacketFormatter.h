@@ -22,8 +22,8 @@ public:
   virtual void updateBrightness(uint8_t value);
   virtual void increaseBrightness();
   virtual void decreaseBrightness();
-  virtual void format(uint8_t const* packet, char* buffer);
   
+  virtual void format(uint8_t const* packet, char* buffer);
   virtual void initializePacket(uint8_t* packet);
   
   static uint8_t getCctStatusButton(uint8_t groupId, MiLightStatus status);

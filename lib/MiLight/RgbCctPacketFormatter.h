@@ -26,6 +26,7 @@ public:
   virtual void updateTemperature(uint8_t value);
   virtual void updateSaturation(uint8_t value);
   virtual void format(uint8_t const* packet, char* buffer);
+  virtual void unpair();
   
   virtual void finalizePacket(uint8_t* packet);
     

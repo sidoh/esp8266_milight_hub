@@ -11,6 +11,18 @@ void RgbPacketFormatter::initializePacket(uint8_t *packet) {
   packet[packetPtr++] = sequenceNum++;
 }
 
+void RgbPacketFormatter::pair() { 
+  for (size_t i = 0; i < 5; i++) {
+    command(RGB_SPEED_UP, 0);
+  }
+}
+
+void RgbPacketFormatter::unpair() { 
+  for (size_t i = 0; i < 5; i++) {
+    command(RGB_SPEED_UP | 0x10, 0);
+  }
+}
+
 void RgbPacketFormatter::updateStatus(MiLightStatus status, uint8_t groupId) {
   command(status == ON ? RGB_ON : RGB_OFF, 0);
 }

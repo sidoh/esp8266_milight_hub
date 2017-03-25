@@ -52,8 +52,15 @@ void PacketFormatter::decreaseBrightness() { }
 void PacketFormatter::updateTemperature(uint8_t value) { }
 void PacketFormatter::updateSaturation(uint8_t value) { }
   
-void PacketFormatter::pair() { }
-void PacketFormatter::unpair() { }
+void PacketFormatter::pair() { 
+  for (size_t i = 0; i < 5; i++) {
+    updateStatus(ON);
+  }
+}
+
+void PacketFormatter::unpair() { 
+  pair();
+}
   
 PacketStream& PacketFormatter::buildPackets() {
   if (numPackets > 0) {
