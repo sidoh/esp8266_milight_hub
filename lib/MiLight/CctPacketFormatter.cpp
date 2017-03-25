@@ -12,6 +12,24 @@ void CctPacketFormatter::initializePacket(uint8_t* packet) {
   packet[packetPtr++] = sequenceNum;
   packet[packetPtr++] = sequenceNum++;
 }
+
+void CctPacketFormatter::updateBrightness(uint8_t value) {
+  valueByStepFunction(
+    &PacketFormatter::increaseBrightness,
+    &PacketFormatter::decreaseBrightness,
+    CCT_INTERVALS,
+    value / CCT_INTERVALS
+  );
+}
+
+void CctPacketFormatter::updateTemperature(uint8_t value) {
+  valueByStepFunction(
+    &PacketFormatter::increaseTemperature,
+    &PacketFormatter::decreaseTemperature,
+    CCT_INTERVALS,
+    value / CCT_INTERVALS
+  );
+}
   
 void CctPacketFormatter::command(uint8_t command, uint8_t arg) {
   pushPacket();

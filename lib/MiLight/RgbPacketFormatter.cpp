@@ -30,6 +30,15 @@ void RgbPacketFormatter::updateColorRaw(uint8_t value) {
   command(0, 0);
 }
 
+void RgbPacketFormatter::updateBrightness(uint8_t value) {
+  valueByStepFunction(
+    &PacketFormatter::increaseBrightness,
+    &PacketFormatter::decreaseBrightness,
+    RGB_INTERVALS,
+    value / RGB_INTERVALS
+  );
+}
+
 void RgbPacketFormatter::increaseBrightness() {
   command(RGB_BRIGHTNESS_UP, 0);
 }

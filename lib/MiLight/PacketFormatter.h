@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <inttypes.h>
+#include <functional>
 #include <MiLightButtons.h>
 
 #ifndef _PACKET_FORMATTER_H
@@ -24,6 +25,8 @@ public:
   ~PacketFormatter() {
     delete this->packetBuffer;
   }
+  
+  typedef void (PacketFormatter::*StepFunction)();
   
   // all
   void updateStatus(MiLightStatus status);
@@ -77,6 +80,8 @@ protected:
   PacketStream packetStream;
   
   void pushPacket();
+  void valueByStepFunction(StepFunction increase, StepFunction decrease, uint8_t numSteps, uint8_t value);
+  
   virtual void initializePacket(uint8_t* packetStart) = 0;
   virtual void finalizePacket(uint8_t* packet);
 };

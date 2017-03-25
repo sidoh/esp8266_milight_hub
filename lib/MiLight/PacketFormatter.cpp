@@ -12,7 +12,7 @@ bool PacketStream::hasNext() {
 }
 
 uint8_t* PacketStream::next() {
-  uint8_t* packet = packetStream + (currentPacket * numPackets);
+  uint8_t* packet = packetStream + (currentPacket * packetLength);
   currentPacket++;
   return packet;
 }
@@ -66,6 +66,15 @@ PacketStream& PacketFormatter::buildPackets() {
   return packetStream;
 }
   
+void PacketFormatter::valueByStepFunction(StepFunction increase, StepFunction decrease, uint8_t numSteps, uint8_t value) {
+  for (size_t i = 0; i < numSteps; i++) {
+    (this->*decrease)();
+  }
+  
+  for (size_t i = 0; i < value; i++) {
+    (this->*increase)();
+  }
+}
 
 void PacketFormatter::prepare(uint16_t deviceId, uint8_t groupId) {
   this->deviceId = deviceId;

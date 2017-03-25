@@ -5,6 +5,7 @@
 
 #define RGB_COMMAND_INDEX 4
 #define RGB_COLOR_INDEX 3
+#define RGB_INTERVALS 10
 
 enum MiLightRgbButton {
   RGB_OFF             = 0x01,
@@ -25,6 +26,7 @@ public:
   { }
   
   virtual void updateStatus(MiLightStatus status, uint8_t groupId);
+  virtual void updateBrightness(uint8_t value);
   virtual void increaseBrightness();
   virtual void decreaseBrightness();
   virtual void command(uint8_t command, uint8_t arg);
