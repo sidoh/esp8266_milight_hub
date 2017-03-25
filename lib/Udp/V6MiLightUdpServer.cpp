@@ -127,6 +127,7 @@ void V6MiLightUdpServer::sendResponse(uint16_t sessionId, uint8_t* responseBuffe
 }
 
 bool V6MiLightUdpServer::handleV1BulbCommand(uint8_t group, uint32_t _cmd, uint32_t _arg) {
+  // Makes more sense to use V5 protocol for now.
 }
 
 bool V6MiLightUdpServer::handleV2BulbCommand(uint8_t group, uint32_t _cmd, uint32_t _arg) {
@@ -159,7 +160,7 @@ bool V6MiLightUdpServer::handleV2BulbCommand(uint8_t group, uint32_t _cmd, uint3
       break;
       
     case V2_SATURATION:
-      client->updateSaturation(arg);
+      client->updateSaturation(100 - arg);
       break;
       
     default:

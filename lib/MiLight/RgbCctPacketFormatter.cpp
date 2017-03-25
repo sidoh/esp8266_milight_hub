@@ -60,7 +60,7 @@ void RgbCctPacketFormatter::updateTemperature(uint8_t value) {
 }
 
 void RgbCctPacketFormatter::updateSaturation(uint8_t value) {
-  uint8_t remapped = 0x71 - value;
+  uint8_t remapped = value + 0xD;
   command(RGB_CCT_SATURATION, remapped);
 }
   
