@@ -206,20 +206,15 @@ void MiLightClient::formatPacket(uint8_t* packet, char* buffer) {
 }
     
 void MiLightClient::flushPacket() {
-  Serial.print("Flushing packets");
-  
   PacketStream& stream = formatter->buildPackets();
   
   while (stream.hasNext()) {
-    Serial.print(".");
     write(stream.next());
     
     if (stream.hasNext()) {
       delay(10);
     }
   }
-  
-  Serial.println();
   
   formatter->reset();
 }
