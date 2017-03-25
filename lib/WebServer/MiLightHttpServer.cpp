@@ -12,6 +12,7 @@ void MiLightHttpServer::begin() {
   server.on("/settings", HTTP_GET, handleServeFile(SETTINGS_FILE, "application/json"));
   server.on("/settings", HTTP_PUT, [this]() { handleUpdateSettings(); });
   server.on("/settings", HTTP_POST, [this]() { server.send(200, "text/plain", "success"); }, handleUpdateFile(SETTINGS_FILE));
+  server.on("/radio_configs", HTTP_GET, [this]() { handleGetRadioConfigs(); });
   server.onPattern("/gateway_traffic/:type", HTTP_GET, [this](const UrlTokenBindings* b) { handleListenGateway(b); });
   server.onPattern("/gateways/:device_id/:type/:group_id", HTTP_PUT, [this](const UrlTokenBindings* b) { handleUpdateGroup(b); });
   server.onPattern("/gateways/:device_id/:type", HTTP_PUT, [this](const UrlTokenBindings* b) { handleUpdateGateway(b); });
@@ -65,6 +66,21 @@ void MiLightHttpServer::applySettings(Settings& settings) {
 
 void MiLightHttpServer::onSettingsSaved(SettingsSavedHandler handler) {
   this->settingsSavedHandler = handler;
+}
+  
+void MiLightHttpServer::handleGetRadioConfigs() {
+  DynamicJsonBuffer buffer;
+  JsonArray& arr = buffer.createArray();
+  
+  for (size_t i = 0; i < MiLightRadioConfig::NUM_CONFIGS; i++) {
+    const MiLightRadioConfig* config = MiLightRadioConfig::ALL_CONFIGS[i];
+    arr.add(config->name);
+  }
+  
+  String body;
+  arr.printTo(body);
+  
+  server.send(200, "application/json", body);
 }
   
 ESP8266WebServer::THandlerFunction MiLightHttpServer::handleServeFile(

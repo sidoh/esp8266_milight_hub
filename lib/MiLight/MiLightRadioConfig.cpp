@@ -1,4 +1,10 @@
 #include <MiLightRadioConfig.h>
+  
+const MiLightRadioConfig* MiLightRadioConfig::ALL_CONFIGS[] = {
+  &MilightRgbwConfig,
+  &MilightCctConfig,
+  &MilightRgbCctConfig
+};
 
 MiLightRadioConfig* MiLightRadioConfig::fromString(const String& s) {
   if (s.equalsIgnoreCase("rgbw")) {

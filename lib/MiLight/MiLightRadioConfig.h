@@ -16,13 +16,15 @@ public:
   const uint16_t syncword3,
   PacketFormatter* packetFormatter,
   const MiLightRadioType type,
+  const char* name,
   const uint8_t channel0,
   const uint8_t channel1,
   const uint8_t channel2) 
     : syncword0(syncword0),
       syncword3(syncword3),
       packetFormatter(packetFormatter),
-      type(type)
+      type(type),
+      name(name)
   {
     channels[0] = channel0;
     channels[1] = channel1;
@@ -34,21 +36,25 @@ public:
   uint8_t channels[3];
   PacketFormatter* packetFormatter;
   const MiLightRadioType type;
+  const char* name;
+  
+  static const size_t NUM_CONFIGS = 3;
+  static const MiLightRadioConfig* ALL_CONFIGS[NUM_CONFIGS];
   
   static MiLightRadioConfig* fromString(const String& s);
   size_t getPacketLength() const;
 };
 
 static MiLightRadioConfig MilightRgbwConfig(
-  0x147A, 0x258B, new RgbwPacketFormatter(8), RGBW, 9, 40, 71
+  0x147A, 0x258B, new RgbwPacketFormatter(8), RGBW, "rgbw", 9, 40, 71
 );
 
 static MiLightRadioConfig MilightCctConfig(
-  0x050A, 0x55AA, new CctPacketFormatter(8), CCT, 4, 39, 74
+  0x050A, 0x55AA, new CctPacketFormatter(8), CCT, "cct", 4, 39, 74
 );
 
 static MiLightRadioConfig MilightRgbCctConfig(
-  0x7236, 0x1809, new RgbCctPacketFormatter(9), RGB_CCT, 8, 39, 70
+  0x7236, 0x1809, new RgbCctPacketFormatter(9), RGB_CCT, "rgb_cct", 8, 39, 70
 );
 
 #endif
