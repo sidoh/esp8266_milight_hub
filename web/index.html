@@ -97,6 +97,10 @@
         alert("Please enter a device ID.");
         throw "Must enter device ID";
       }
+      
+      if (! $('#group-option').data('for').split(',').includes(mode)) {
+        groupId = 0;
+      }
         
       return "/gateways/" + deviceId + "/" + mode + "/" + groupId;
     }
@@ -430,24 +434,26 @@
       </div>
       
       <div class="col-sm-3">
-        <label for="groupId">Group</label>
+        <div class="mode-option" id="group-option" data-for="cct,rgbw,rgb_cct">
+          <label for="groupId">Group</label>
         
-        <div class="btn-group" id="groupId" data-toggle="buttons">
-          <label class="btn btn-secondary active">
-            <input type="radio" name="options" autocomplete="off" data-value="1" checked> 1
-          </label>
-          <label class="btn btn-secondary">
-            <input type="radio" name="options" autocomplete="off" data-value="2"> 2
-          </label>
-          <label class="btn btn-secondary">
-            <input type="radio" name="options" autocomplete="off" data-value="3"> 3
-          </label>
-          <label class="btn btn-secondary">
-            <input type="radio" name="options" autocomplete="off" data-value="4"> 4
-          </label>
-          <label class="btn btn-secondary">
-            <input type="radio" name="options" autocomplete="off" data-value="0"> All
-          </label>
+          <div class="btn-group" id="groupId" data-toggle="buttons">
+            <label class="btn btn-secondary active">
+              <input type="radio" name="options" autocomplete="off" data-value="1" checked> 1
+            </label>
+            <label class="btn btn-secondary">
+              <input type="radio" name="options" autocomplete="off" data-value="2"> 2
+            </label>
+            <label class="btn btn-secondary">
+              <input type="radio" name="options" autocomplete="off" data-value="3"> 3
+            </label>
+            <label class="btn btn-secondary">
+              <input type="radio" name="options" autocomplete="off" data-value="4"> 4
+            </label>
+            <label class="btn btn-secondary">
+              <input type="radio" name="options" autocomplete="off" data-value="0"> All
+            </label>
+          </div>
         </div>
       </div>
       
@@ -464,12 +470,15 @@
           <label class="btn btn-secondary">
             <input type="radio" name="mode" autocomplete="off" data-value="rgb_cct"> RGB+CCT
           </label>
+          <label class="btn btn-secondary">
+            <input type="radio" name="mode" autocomplete="off" data-value="rgb"> RGB
+          </label>
         </div>
       </div>
     </div>
     
     <div class="row"><div class="col-sm-12">
-    <div class="mode-option" data-for="rgbw,rgb_cct">
+    <div class="mode-option" data-for="rgbw,rgb_cct,rgb">
       <div class="row">
         <div class="col-sm-12">
           <h5>Hue</h5>
@@ -641,6 +650,9 @@
           </label>
           <label class="btn btn-secondary">
             <input type="radio" name="options" autocomplete="off" data-value="rgb_cct"> RGB+CCT
+          </label>
+          <label class="btn btn-secondary">
+            <input type="radio" name="options" autocomplete="off" data-value="rgb"> RGB
           </label>
         </div>
         

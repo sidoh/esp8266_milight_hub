@@ -3,7 +3,8 @@
 const MiLightRadioConfig* MiLightRadioConfig::ALL_CONFIGS[] = {
   &MilightRgbwConfig,
   &MilightCctConfig,
-  &MilightRgbCctConfig
+  &MilightRgbCctConfig,
+  &MilightRgbConfig
 };
 
 MiLightRadioConfig* MiLightRadioConfig::fromString(const String& s) {
@@ -13,6 +14,8 @@ MiLightRadioConfig* MiLightRadioConfig::fromString(const String& s) {
     return &MilightCctConfig;
   } else if (s.equalsIgnoreCase("rgb_cct")) {
     return &MilightRgbCctConfig;
+  } else if (s.equalsIgnoreCase("rgb")) {
+    return &MilightRgbConfig;
   }
   
   return NULL;

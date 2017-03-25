@@ -85,7 +85,7 @@ void MiLightClient::updateHue(const uint16_t hue) {
 void MiLightClient::updateBrightness(const uint8_t brightness) {
   const MiLightRadioType type = currentRadio->config.type;
   
-  if (type == CCT) {
+  if (type == CCT || type == RGB) {
     const unsigned int oldResend = resendCount;
     setResendCount(MILIGHT_DEFAULT_RESEND_COUNT);
     

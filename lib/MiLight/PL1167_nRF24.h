@@ -12,7 +12,7 @@
 #include "AbstractPL1167.h"
 #include "RF24.h"
 
-// #define DEBUG_PRINTF
+#define DEBUG_PRINTF
 
 #ifndef PL1167_NRF24_H_
 #define PL1167_NRF24_H_

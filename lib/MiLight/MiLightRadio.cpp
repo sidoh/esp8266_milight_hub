@@ -7,7 +7,7 @@
 
 #include "MiLightRadio.h"
 
-#define PACKET_ID(packet) ( ((packet[1] & 0xF0)<<24) | (packet[2]<<16) | (packet[3]<<8) | (packet[7]) )
+#define PACKET_ID(packet, packet_length) ( (packet[1] << 8) | packet[packet_length - 1] )
 
 MiLightRadio::MiLightRadio(AbstractPL1167 &pl1167, const MiLightRadioConfig& config)
   : _pl1167(pl1167), config(config) {
@@ -83,10 +83,10 @@ bool MiLightRadio::available() {
     if (packet_length == 0 || packet_length != _packet[0] + 1U) {
       return false;
     }
+    uint32_t packet_id = PACKET_ID(_packet, packet_length);
 #ifdef DEBUG_PRINTF
-  printf("2");
+  printf("Packet id: %d\n", packet_id);
 #endif
-    uint32_t packet_id = PACKET_ID(_packet);
     if (packet_id == _prev_packet_id) {
       _dupes_received++;
     } else {

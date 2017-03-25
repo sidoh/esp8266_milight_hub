@@ -3,6 +3,7 @@
 #include <RgbCctPacketFormatter.h>
 #include <RgbwPacketFormatter.h>
 #include <CctPacketFormatter.h>
+#include <RgbPacketFormatter.h>
 #include <MiLightButtons.h>
 
 #ifndef _MILIGHT_RADIO_CONFIG
@@ -38,7 +39,7 @@ public:
   const MiLightRadioType type;
   const char* name;
   
-  static const size_t NUM_CONFIGS = 3;
+  static const size_t NUM_CONFIGS = 4;
   static const MiLightRadioConfig* ALL_CONFIGS[NUM_CONFIGS];
   
   static MiLightRadioConfig* fromString(const String& s);
@@ -55,6 +56,10 @@ static MiLightRadioConfig MilightCctConfig(
 
 static MiLightRadioConfig MilightRgbCctConfig(
   0x7236, 0x1809, new RgbCctPacketFormatter(), RGB_CCT, "rgb_cct", 8, 39, 70
+);
+
+static MiLightRadioConfig MilightRgbConfig(
+  0x9AAB, 0xBCCD, new RgbPacketFormatter(), RGB, "rgb", 3, 38, 73
 );
 
 #endif
