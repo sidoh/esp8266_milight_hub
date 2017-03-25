@@ -8,7 +8,7 @@
 
 class RadioStack {
 public:
-  RadioStack(RF24& rf, MiLightRadioConfig& config) 
+  RadioStack(RF24& rf, const MiLightRadioConfig& config) 
     : config(config)
   {
     nrf = new PL1167_nRF24(rf);
@@ -24,7 +24,7 @@ public:
     return this->radio;
   }
   
-  MiLightRadioConfig& config;
+  const MiLightRadioConfig& config;
   
 private:
   PL1167_nRF24 *nrf;

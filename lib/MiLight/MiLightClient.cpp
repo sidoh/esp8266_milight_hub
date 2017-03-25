@@ -5,7 +5,7 @@
 MiLightRadio* MiLightClient::switchRadio(const MiLightRadioType type) {
   RadioStack* stack = NULL;
   
-  for (int i = 0; i < NUM_RADIOS; i++) {
+  for (int i = 0; i < numRadios; i++) {
     if (radios[i]->config.type == type) {
       stack = radios[i];
       break;
@@ -22,6 +22,9 @@ MiLightRadio* MiLightClient::switchRadio(const MiLightRadioType type) {
     currentRadio = stack;
     formatter = stack->config.packetFormatter;
     return radio;
+  } else {
+    Serial.print("MiLightClient - tried to get radio for unknown type: ");
+    Serial.println(type);
   }
   
   return NULL;

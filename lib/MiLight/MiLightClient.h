@@ -10,20 +10,20 @@
 
 #define MILIGHT_CCT_INTERVALS 10
 #define MILIGHT_DEFAULT_RESEND_COUNT 10
-#define NUM_RADIOS 3
 
 class MiLightClient {
   public:
     MiLightClient(uint8_t cePin, uint8_t csnPin)
       : rf(RF24(cePin, csnPin)),
       resendCount(MILIGHT_DEFAULT_RESEND_COUNT),
-      currentRadio(NULL)
+      currentRadio(NULL),
+      numRadios(MiLightRadioConfig::NUM_CONFIGS)
     {
-      size_t ix = 0;
-      radios = new RadioStack*[NUM_RADIOS];
-      radios[ix++] = new RadioStack(rf, MilightRgbwConfig);
-      radios[ix++] = new RadioStack(rf, MilightCctConfig);
-      radios[ix++] = new RadioStack(rf, MilightRgbCctConfig);
+      radios = new RadioStack*[numRadios];
+      
+      for (size_t i = 0; i < numRadios; i++) {
+        radios[i] = new RadioStack(rf, *MiLightRadioConfig::ALL_CONFIGS[i]);
+      }
       
       currentRadio = radios[0];
       currentRadio->getRadio()->configure();
@@ -34,7 +34,7 @@ class MiLightClient {
     }
     
     void begin() {
-      for (size_t i = 0; i < NUM_RADIOS; i++) {
+      for (size_t i = 0; i < numRadios; i++) {
         radios[i]->getRadio()->begin();
       }
     }
@@ -75,6 +75,7 @@ class MiLightClient {
     RadioStack** radios;
     RadioStack* currentRadio;
     PacketFormatter* formatter;
+    const size_t numRadios;
     
     unsigned int resendCount;
     
