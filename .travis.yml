@@ -9,6 +9,7 @@ cache:
 
 install:
     - pip install -U platformio
+    - platformio lib install
 
 script:
     - platformio run
