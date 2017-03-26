@@ -17,6 +17,18 @@ void RgbwPacketFormatter::unpair() {
   PacketFormatter::updateStatus(ON);
   updateColorWhite();
 }
+  
+void RgbwPacketFormatter::modeSpeedDown() {
+  command(RGBW_SPEED_DOWN, 0);
+}
+
+void RgbwPacketFormatter::modeSpeedUp() {
+  command(RGBW_SPEED_UP, 0);
+}
+
+void RgbwPacketFormatter::nextMode() {
+  command(RGBW_DISCO_MODE, 0);
+}
 
 void RgbwPacketFormatter::updateStatus(MiLightStatus status, uint8_t groupId) {
   uint8_t button = RGBW_GROUP_1_ON + ((groupId - 1)*2) + status;
