@@ -38,8 +38,8 @@ void RgbPacketFormatter::updateHue(uint16_t value) {
 }
 
 void RgbPacketFormatter::updateColorRaw(uint8_t value) {
-  currentPacket[RGB_COLOR_INDEX] = value;
   command(0, 0);
+  currentPacket[RGB_COLOR_INDEX] = value;
 }
 
 void RgbPacketFormatter::updateBrightness(uint8_t value) {
