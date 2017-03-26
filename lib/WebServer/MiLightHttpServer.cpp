@@ -246,6 +246,14 @@ void MiLightHttpServer::handleUpdateGroup(const UrlTokenBindings* urlBindings) {
     if (request["command"] == "temperature_down") {
       milightClient->decreaseTemperature();
     }
+    
+    if (request["command"] == "next_mode") {
+      milightClient->nextMode();
+    }
+    
+    if (request["command"] == "previous_mode") {
+      milightClient->previousMode();
+    }
   }
   
   if (request.containsKey("hue")) {
@@ -262,6 +270,10 @@ void MiLightHttpServer::handleUpdateGroup(const UrlTokenBindings* urlBindings) {
   
   if (request.containsKey("saturation")) {
     milightClient->updateSaturation(request["saturation"]);
+  }
+  
+  if (request.containsKey("mode")) {
+    milightClient->updateMode(request["mode"]);
   }
   
   milightClient->setResendCount(settings.packetRepeats);
