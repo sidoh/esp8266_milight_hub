@@ -48,6 +48,27 @@ void RgbCctPacketFormatter::command(uint8_t command, uint8_t arg) {
 void RgbCctPacketFormatter::updateStatus(MiLightStatus status, uint8_t groupId) {
   command(RGB_CCT_ON, groupId + (status == OFF ? 5 : 0));
 }
+  
+void RgbCctPacketFormatter::modeSpeedDown() {
+  command(RGB_CCT_ON, RGB_CCT_MODE_SPEED_DOWN);
+}
+
+void RgbCctPacketFormatter::modeSpeedUp() {
+  command(RGB_CCT_ON, RGB_CCT_MODE_SPEED_UP);
+}
+
+void RgbCctPacketFormatter::updateMode(uint8_t mode) {
+  lastMode = mode;
+  command(RGB_CCT_MODE, mode);
+}
+
+void RgbCctPacketFormatter::nextMode() {
+  updateMode((lastMode+1)%RGB_CCT_NUM_MODES);
+}
+
+void RgbCctPacketFormatter::previousMode() {
+  updateMode((lastMode-1)%RGB_CCT_NUM_MODES);
+}
 
 void RgbCctPacketFormatter::updateBrightness(uint8_t brightness) {
   command(RGB_CCT_BRIGHTNESS, 0x8F + brightness);

@@ -9,18 +9,6 @@ enum MiLightRadioType {
   RGB = 0xA4
 };
 
-enum MiLightRgbCctCommand {
-  RGB_CCT_ON = 0x01,
-  RGB_CCT_OFF = 0x01,
-  RGB_CCT_MODE_SPEED_UP = 0x01,
-  RGB_CCT_MODE_SPEED_DOWN = 0x01,
-  RGB_CCT_COLOR = 0x02,
-  RGB_CCT_KELVIN = 0x03,
-  RGB_CCT_BRIGHTNESS = 0x04,
-  RGB_CCT_SATURATION = 0x04,
-  RGB_CCT_MODE = 0x05,
-};
-
 enum MiLightStatus { 
   ON = 0, 
   OFF = 1 
