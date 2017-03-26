@@ -36,6 +36,8 @@ public:
   virtual void updateMode(uint8_t value);
   virtual void modeSpeedDown();
   virtual void modeSpeedUp();
+  virtual void nextMode();
+  virtual void previousMode();
   
   virtual void pair();
   virtual void unpair();

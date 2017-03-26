@@ -38,6 +38,8 @@ void PacketFormatter::updateBrightness(uint8_t value) { }
 void PacketFormatter::updateMode(uint8_t value) { }
 void PacketFormatter::modeSpeedDown() { }
 void PacketFormatter::modeSpeedUp() { }
+void PacketFormatter::nextMode() { }
+void PacketFormatter::previousMode() { }
 void PacketFormatter::command(uint8_t command, uint8_t arg) { }
 
 void PacketFormatter::updateHue(uint16_t value) { }
