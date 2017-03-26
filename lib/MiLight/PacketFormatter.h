@@ -28,30 +28,33 @@ public:
   
   typedef void (PacketFormatter::*StepFunction)();
   
-  // all
   void updateStatus(MiLightStatus status);
   virtual void updateStatus(MiLightStatus status, uint8_t groupId);
-  virtual void updateBrightness(uint8_t value);
   virtual void command(uint8_t command, uint8_t arg);
+  
+  // Mode
   virtual void updateMode(uint8_t value);
   virtual void modeSpeedDown();
   virtual void modeSpeedUp();
+  
   virtual void pair();
   virtual void unpair();
   
-  // rgbw, rgb+cct
+  // Color
   virtual void updateHue(uint16_t value);
   virtual void updateColorRaw(uint8_t value);
   virtual void updateColorWhite();
   
-  // cct 
+  // White temperature
   virtual void increaseTemperature();
   virtual void decreaseTemperature();
+  virtual void updateTemperature(uint8_t value);
+  
+  // Brightness
+  virtual void updateBrightness(uint8_t value);
   virtual void increaseBrightness();
   virtual void decreaseBrightness();
   
-  // rgb+cct
-  virtual void updateTemperature(uint8_t value);
   virtual void updateSaturation(uint8_t value);
   
   virtual void reset();
