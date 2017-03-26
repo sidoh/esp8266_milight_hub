@@ -62,6 +62,34 @@
       height: 2em;
       display: inline-block;
     }
+    .plus-minus-group { 
+      overflow: auto;
+      width: 100%;
+      clear: both;
+      display: block;
+    }
+    .plus-minus-group button:first-of-type { 
+      border-bottom-right-radius: 0;
+      border-top-right-radius: 0;
+      float: left;
+      display: block;
+    }
+    .plus-minus-group button:last-of-type { 
+      border-bottom-left-radius: 0;
+      border-top-left-radius: 0;
+      display: block;
+    }
+    .plus-minus-group .title { 
+      border-width: 1px 0;
+      border-color: #ccc;
+      border-style: solid;
+      padding: 5px 5px 5px 7px;
+      margin: 0;
+      height: 34px;
+      line-height: 1.49;
+      float: left;
+      display: block;
+    }
   </style>
 </head>
 
@@ -575,6 +603,37 @@
               Unpair
             </button>
           </li>
+        </ul>
+        <p></p>
+        <ul class="command-buttons">
+          <div class="mode-option inline" data-for="rgb,rgbw,rgb_cct">
+            <li>
+              <div class="plus-minus-group">
+                <button type="button" class="btn btn-default btn-number command-btn" data-command="previous_mode">
+                  <span class="glyphicon glyphicon-minus"></span>
+                </button>
+                <span class="title">Mode</span>
+                <button type="button" class="btn btn-default btn-number command-btn clearfix" data-command="next_mode">
+                  <span class="glyphicon glyphicon-plus"></span>
+                </button>
+                <div class="clearfix"></div>
+              </div>
+            </li>
+          </div>
+          <div class="mode-option inline" data-for="rgb,rgbw,rgb_cct">
+            <li>
+              <div class="plus-minus-group">
+                <button type="button" class="btn btn-default btn-number command-btn" data-command="mode_speed_down">
+                  <span class="glyphicon glyphicon-minus"></span>
+                </button>
+                <span class="title">Speed</span>
+                <button type="button" class="btn btn-default btn-number command-btn" data-command="mode_speed_up">
+                  <span class="glyphicon glyphicon-plus"></span>
+                </button>
+                <div class="clearfix"></div>
+              </div>
+            </li>
+          </div>
         </ul>
       </div>
     </div>

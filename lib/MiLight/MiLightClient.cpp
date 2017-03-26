@@ -109,6 +109,15 @@ void MiLightClient::previousMode() {
   formatter->previousMode();
   flushPacket();
 }
+
+void MiLightClient::modeSpeedDown() {
+  formatter->modeSpeedDown();
+  flushPacket();
+}
+void MiLightClient::modeSpeedUp() {
+  formatter->modeSpeedUp();
+  flushPacket();
+}
     
 void MiLightClient::updateStatus(MiLightStatus status, uint8_t groupId) {
   formatter->updateStatus(status, groupId);

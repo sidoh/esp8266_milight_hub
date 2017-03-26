@@ -254,6 +254,14 @@ void MiLightHttpServer::handleUpdateGroup(const UrlTokenBindings* urlBindings) {
     if (request["command"] == "previous_mode") {
       milightClient->previousMode();
     }
+    
+    if (request["command"] == "mode_speed_down") {
+      milightClient->modeSpeedDown();
+    }
+    
+    if (request["command"] == "mode_speed_up") {
+      milightClient->modeSpeedUp();
+    }
   }
   
   if (request.containsKey("hue")) {
