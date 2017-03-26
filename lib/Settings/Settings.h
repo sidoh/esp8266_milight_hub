@@ -8,7 +8,7 @@
 #define SETTINGS_FILE  "/config.json"
 #define SETTINGS_TERMINATOR '\0'
 
-#define WEB_INDEX_FILENAME "/index.html"
+#define WEB_INDEX_FILENAME "/web/index.html"
 
 class GatewayConfig {
 public:
