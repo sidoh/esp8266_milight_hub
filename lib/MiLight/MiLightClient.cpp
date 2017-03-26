@@ -95,6 +95,21 @@ void MiLightClient::updateBrightness(const uint8_t brightness) {
   flushPacket();
 }
     
+void MiLightClient::updateMode(uint8_t mode) {
+  formatter->updateMode(mode);
+  flushPacket();
+}
+
+void MiLightClient::nextMode() {
+  formatter->nextMode();
+  flushPacket();
+}
+
+void MiLightClient::previousMode() {
+  formatter->previousMode();
+  flushPacket();
+}
+    
 void MiLightClient::updateStatus(MiLightStatus status, uint8_t groupId) {
   formatter->updateStatus(status, groupId);
   flushPacket();
