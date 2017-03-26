@@ -7,7 +7,7 @@
 
 #include "MiLightRadio.h"
 
-#define PACKET_ID(packet) ( ((packet[1] & 0xF0)<<24) | (packet[2]<<16) | (packet[3]<<8) | (packet[7]) )
+#define PACKET_ID(packet, packet_length) ( (packet[1] << 8) | packet[packet_length - 1] )
 
 MiLightRadio::MiLightRadio(AbstractPL1167 &pl1167, const MiLightRadioConfig& config)
   : _pl1167(pl1167), config(config) {
@@ -53,7 +53,7 @@ int MiLightRadio::configure() {
   }
 
   // +1 to be able to buffer the length 
-  retval = _pl1167.setMaxPacketLength(config.packetLength + 1);
+  retval = _pl1167.setMaxPacketLength(config.getPacketLength() + 1);
   if (retval < 0) {
     return retval;
   }
@@ -83,10 +83,10 @@ bool MiLightRadio::available() {
     if (packet_length == 0 || packet_length != _packet[0] + 1U) {
       return false;
     }
+    uint32_t packet_id = PACKET_ID(_packet, packet_length);
 #ifdef DEBUG_PRINTF
-  printf("2");
+  printf("Packet id: %d\n", packet_id);
 #endif
-    uint32_t packet_id = PACKET_ID(_packet);
     if (packet_id == _prev_packet_id) {
       _dupes_received++;
     } else {
@@ -143,7 +143,7 @@ int MiLightRadio::write(uint8_t frame[], size_t frame_length)
 
 int MiLightRadio::resend()
 {
-  for (size_t i = 0; i < config.numChannels; i++) {
+  for (size_t i = 0; i < MiLightRadioConfig::NUM_CHANNELS; i++) {
     _pl1167.writeFIFO(_out_packet, _out_packet[0] + 1);
     _pl1167.transmit(config.channels[i]);
   }

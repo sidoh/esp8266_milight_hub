@@ -36,13 +36,19 @@ void initMilightUdpServers() {
   
   for (size_t i = 0; i < settings.numGatewayConfigs; i++) {
     GatewayConfig* config = settings.gatewayConfigs[i];
+    MiLightUdpServer* server = MiLightUdpServer::fromVersion(
+      config->protocolVersion,
+      milightClient,
+      config->port,
+      config->deviceId
+    );
     
-    if (config->protocolVersion == 0) {
-      udpServers[i] = new MiLightUdpServer(milightClient, config->port, config->deviceId);
-      udpServers[i]->begin();
-    } else {
-      Serial.print("Error initializing milight UDP server - Unsupported protocolVersion: ");
+    if (server == NULL) {
+      Serial.print("Error creating UDP server with protocol version: ");
       Serial.println(config->protocolVersion);
+    } else {
+      udpServers[i] = server;
+      udpServers[i]->begin();
     }
   }
 }

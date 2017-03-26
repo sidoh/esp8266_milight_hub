@@ -1,17 +1,13 @@
-#include <Arduino.h>
-#include <MiLightClient.h>
-#include <WiFiUdp.h>
-
 // This protocol is documented here:
 // http://www.limitlessled.com/dev/
 
-#define MILIGHT_PACKET_BUFFER_SIZE 10
+#include <Arduino.h>
+#include <MiLightClient.h>
+#include <WiFiUdp.h>
+#include <MiLightUdpServer.h>
 
-// Uncomment to enable Serial printing of packets
-//#define MILIGHT_UDP_DEBUG
-
-#ifndef _MILIGHT_UDP_SERVER
-#define _MILIGHT_UDP_SERVER 
+#ifndef _V5_MILIGHT_UDP_SERVER
+#define _V5_MILIGHT_UDP_SERVER 
 
 enum MiLightUdpCommands {
   UDP_CCT_GROUP_1_ON         = 0x38,
@@ -49,25 +45,18 @@ enum MiLightUdpCommands {
   UDP_RGBW_COLOR             = 0x40
 };
 
-class MiLightUdpServer {
+class V5MiLightUdpServer : public MiLightUdpServer {
 public:
-  MiLightUdpServer(MiLightClient*& client, uint16_t port, uint16_t deviceId);
-  ~MiLightUdpServer();
-    
-  void stop();
-  void begin();
-  void handleClient();
+  V5MiLightUdpServer(MiLightClient*& client, uint16_t port, uint16_t deviceId)
+    : MiLightUdpServer(client, port, deviceId)
+  { }
+  
+  // Should return size of the response packet
+  virtual void handlePacket(uint8_t* packet, size_t packetSize);
     
 protected:
-  WiFiUDP socket;
-  MiLightClient*& client;
-  uint16_t port;
-  uint16_t deviceId;
-  uint8_t lastGroup;
-  char packetBuffer[MILIGHT_PACKET_BUFFER_SIZE];
-  
   void handleCommand(uint8_t command, uint8_t commandArg);
-  void pressButton(uint8_t group, uint8_t button);
+  void pressButton(uint8_t button);
   uint8_t cctCommandIdToGroup(uint8_t command);
   MiLightStatus cctCommandToStatus(uint8_t command);
 };

@@ -79,6 +79,9 @@
       "http_repeat_factor"
     ];
     
+    var UDP_PROTOCOL_VERSIONS = [ 5, 6 ];
+    var DEFAULT_UDP_PROTOCL_VERSION = 5;
+    
     var selectize;
     
     var toHex = function(v) {
@@ -93,6 +96,10 @@
       if (deviceId == "") {
         alert("Please enter a device ID.");
         throw "Must enter device ID";
+      }
+      
+      if (! $('#group-option').data('for').split(',').includes(mode)) {
+        groupId = 0;
       }
         
       return "/gateways/" + deviceId + "/" + mode + "/" + groupId;
@@ -127,7 +134,7 @@
       });
     };
     
-    var gatewayServerRow = function(deviceId, port) {
+    var gatewayServerRow = function(deviceId, port, version) {
       var elmt = '<tr>';
       elmt += '<td>';
       elmt += '<input name="deviceIds[]" class="form-control" value="' + deviceId + '"/>';
@@ -135,6 +142,20 @@
       elmt += '<td>'
       elmt += '<input name="ports[]" class="form-control" value="' + port + '"/>';;
       elmt += '</td>';
+      elmt += '<td>';
+      elmt += '<div class="btn-group" data-toggle="buttons">';
+      
+      for (var i = 0; i < UDP_PROTOCOL_VERSIONS.length; i++) {
+        var val = UDP_PROTOCOL_VERSIONS[i]
+          , selected = (version == val || (val == DEFAULT_UDP_PROTOCL_VERSION && !UDP_PROTOCOL_VERSIONS.includes(version)));
+        
+        elmt += '<label class="btn btn-secondary' + (selected ? ' active' : '') + '">';
+        elmt += '<input type="radio" name="versions[]" autocomplete="off" data-value="' + val + '" ' 
+          + (selected ? 'checked' : '') +'> ' + val;
+        elmt += '</label>';
+      }
+      
+      elmt += '</div></td>';
       elmt += '<td>';
       elmt += '<button class="btn btn-danger remove-gateway-server">';
       elmt += '<i class="glyphicon glyphicon-remove"></i>';
@@ -165,7 +186,7 @@
         var gatewayForm = $('#gateway-server-configs').html('');
         if (val.gateway_configs) {
           val.gateway_configs.forEach(function(v) {
-            gatewayForm.append(gatewayServerRow(toHex(v[0]), v[1]));
+            gatewayForm.append(gatewayServerRow(toHex(v[0]), v[1], v[2]));
           });
         }
       });
@@ -200,11 +221,15 @@
           return val;
         }
       });
+      
+      var versions = $('.active input[name="versions[]"]', form).map(function(i, v) {
+        return $(v).data('value');
+      });
         
       if (!errors) {
         var data = [];
         for (var i = 0; i < deviceIds.length; i++) {
-          data[i] = [deviceIds[i], ports[i], 0];
+          data[i] = [deviceIds[i], ports[i], versions[i]];
         }
         $.ajax(
           '/settings',
@@ -230,10 +255,10 @@
       var currentMode = getCurrentMode();
       
       $('.mode-option').map(function() {
-        if ($(this).data('for') != currentMode) {
-          $(this).hide();
-        } else {
+        if ($(this).data('for').split(',').includes(currentMode)) {
           $(this).show();
+        } else {
+          $(this).hide();
         }
       });
     };
@@ -409,24 +434,26 @@
       </div>
       
       <div class="col-sm-3">
-        <label for="groupId">Group</label>
+        <div class="mode-option" id="group-option" data-for="cct,rgbw,rgb_cct">
+          <label for="groupId">Group</label>
         
-        <div class="btn-group" id="groupId" data-toggle="buttons">
-          <label class="btn btn-secondary active">
-            <input type="radio" name="options" autocomplete="off" data-value="1" checked> 1
-          </label>
-          <label class="btn btn-secondary">
-            <input type="radio" name="options" autocomplete="off" data-value="2"> 2
-          </label>
-          <label class="btn btn-secondary">
-            <input type="radio" name="options" autocomplete="off" data-value="3"> 3
-          </label>
-          <label class="btn btn-secondary">
-            <input type="radio" name="options" autocomplete="off" data-value="4"> 4
-          </label>
-          <label class="btn btn-secondary">
-            <input type="radio" name="options" autocomplete="off" data-value="0"> All
-          </label>
+          <div class="btn-group" id="groupId" data-toggle="buttons">
+            <label class="btn btn-secondary active">
+              <input type="radio" name="options" autocomplete="off" data-value="1" checked> 1
+            </label>
+            <label class="btn btn-secondary">
+              <input type="radio" name="options" autocomplete="off" data-value="2"> 2
+            </label>
+            <label class="btn btn-secondary">
+              <input type="radio" name="options" autocomplete="off" data-value="3"> 3
+            </label>
+            <label class="btn btn-secondary">
+              <input type="radio" name="options" autocomplete="off" data-value="4"> 4
+            </label>
+            <label class="btn btn-secondary">
+              <input type="radio" name="options" autocomplete="off" data-value="0"> All
+            </label>
+          </div>
         </div>
       </div>
       
@@ -440,12 +467,18 @@
           <label class="btn btn-secondary">
             <input type="radio" name="mode" autocomplete="off" data-value="cct"> CCT
           </label>
+          <label class="btn btn-secondary">
+            <input type="radio" name="mode" autocomplete="off" data-value="rgb_cct"> RGB+CCT
+          </label>
+          <label class="btn btn-secondary">
+            <input type="radio" name="mode" autocomplete="off" data-value="rgb"> RGB
+          </label>
         </div>
       </div>
     </div>
     
     <div class="row"><div class="col-sm-12">
-    <div class="mode-option" data-for="rgbw">
+    <div class="mode-option" data-for="rgbw,rgb_cct,rgb">
       <div class="row">
         <div class="col-sm-12">
           <h5>Hue</h5>
@@ -462,8 +495,25 @@
       </div>
     </div>
     </div></div>
+    
+    <div class="mode-option" data-for="rgb_cct">
+      <div class="row">
+        <div class="col-sm-12">
+          <h5>Saturation</h5>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-sm-6">
+          <input class="slider raw-update" name="saturation"
+              data-slider-min="0"
+              data-slider-max="100"
+              data-slider-value="100"
+          />
+        </div>
+      </div>
+    </div>
           
-    <div class="mode-option" data-for="cct">
+    <div class="mode-option" data-for="cct,rgb_cct">
       <div class="row">
         <div class="col-sm-12">
           <h5>Color Temperature</h5>
@@ -473,8 +523,8 @@
         <div class="col-sm-6">
           <input class="slider raw-update" name="temperature"
               data-slider-min="0"
-              data-slider-max="10"
-              data-slider-value="10"
+              data-slider-max="100"
+              data-slider-value="100"
           />
         </div>
       </div>
@@ -508,7 +558,7 @@
           <li>
             <input type="checkbox" name="status" class="raw-update" data-toggle="toggle" checked/>
           </li>
-          <div class="mode-option inline" data-for="rgbw">
+          <div class="mode-option inline" data-for="rgbw,rgb_cct">
             <li>
               <button type="button" class="btn btn-secondary command-btn" data-command="set_white">White</button>
             </li>
@@ -550,6 +600,7 @@
               <tr>
                 <th>Device ID</th>
                 <th>UDP Port</th>
+                <th>Protocol Version</th>
               </tr>
             </thead>
             <tbody id="gateway-server-configs">
@@ -598,7 +649,10 @@
             <input type="radio" name="options" autocomplete="off" data-value="cct"> CCT
           </label>
           <label class="btn btn-secondary">
-            <input type="radio" name="options" autocomplete="off" data-value="rgbw_cct"> RGBW+CCT
+            <input type="radio" name="options" autocomplete="off" data-value="rgb_cct"> RGB+CCT
+          </label>
+          <label class="btn btn-secondary">
+            <input type="radio" name="options" autocomplete="off" data-value="rgb"> RGB
           </label>
         </div>
         

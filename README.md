@@ -26,35 +26,39 @@ This module is an SPI device. [This guide](https://www.mysensors.org/build/esp82
 
 #### Setting up the ESP
 
-1. Build from source. I use [PlatformIO](http://platformio.org/), but it's probably not hard to build this in the Arduino IDE.
-2. Flash an ESP8266 with the firmware.
-3. Connect to the "ESP XXXX" WiFi network to configure network settings. Alternatively you can update `main.cpp` to connect to your network directly.
-
-#### Installing the Web UI
-
-The HTTP endpoints (shown below) will be fully functional at this point, but the firmware doesn't ship with a web UI (I didn't want to maintain a website in Arduino Strings).
-
-If you want the UI, upload it to the `/web` endpoint. curl command:
+You'll need to flash the firmware and a SPIFFS image. It's really easy to do this with [PlatformIO](http://platformio.org/):
 
 ```
-$ curl -X POST -F 'image=@web/index.html' <ip of ESP>/web
-success%
+export ESP_BOARD=nodemcuv2
+platformio run -u $ESP_BOARD --target upload
+platformio run -u $ESP_BOARD --target uploadfs
 ```
 
-You should now be able to navigate to `http://<ip of ESP>`. It should look like this:
+Of course make sure to substitute `nodemcuv2` with the board that you're using.
+
+#### Configure WiFi
+
+This project uses [WiFiManager](https://github.com/tzapu/WiFiManager) to avoid the need to hardcode AP credentials in the firmware.
+
+When the ESP powers on, you should be able to see a network named "ESPXXXXX", with XXXXX being an identifier for your ESP. Connect to this AP and a window should pop up prompting you to enter WiFi credentials.
+
+#### Use it!
+
+The HTTP endpoints (shown below) will be fully functional at this point. You should also be able to navigate to `http://<ip_of_esp>`. The UI should look like this:
 
 ![Web UI](http://imgur.com/XNNigvL.png)
 
 ## REST endpoints
 
 1. `GET /`. Opens web UI. You'll need to upload it first.
-2. `GET /settings`. Gets current settings as JSON.
-3. `PUT /settings`. Patches settings (e.g., doesn't overwrite keys that aren't present). Accepts a JSON blob in the body.
-4. `GET /gateway_traffic`. Starts an HTTP long poll. Returns any Milight traffic it hears. Useful if you need to know what your Milight gateway/remote ID is.
-5. `PUT /gateways/:device_id/:device_type/:group_id`. Controls or sends commands to `:group_id` from `:device_id`. Since protocols for RGBW/CCT are different, specify one of `rgbw` or `cct` as `:device_type. Accepts a JSON blob.
-6. `PUT /gateways/:device_id/:device_type`. A few commands have support for being sent to all groups. You can send those here.
-7. `POST /firmware`. OTA firmware update.
-8. `POST /web`. Update web UI.
+1. `GET /settings`. Gets current settings as JSON.
+1. `PUT /settings`. Patches settings (e.g., doesn't overwrite keys that aren't present). Accepts a JSON blob in the body.
+1. `GET /radio_configs`. Get a list of supported radio configs (aka `device_type`s).
+1. `GET /gateway_traffic/:device_type`. Starts an HTTP long poll. Returns any Milight traffic it hears. Useful if you need to know what your Milight gateway/remote ID is. Since protocols for RGBW/CCT are different, specify one of `rgbw`, `cct`, or `rgb_cct` as `:device_type. Accepts a JSON blob.
+1. `PUT /gateways/:device_id/:device_type/:group_id`. Controls or sends commands to `:group_id` from `:device_id`. 
+1. `PUT /gateways/:device_id/:device_type`. A few commands have support for being sent to all groups. You can send those here.
+1. `POST /firmware`. OTA firmware update.
+1. `POST /web`. Update web UI.
 
 #### Bulb commands
 
@@ -63,8 +67,9 @@ Route (5) supports these commands:
 1. `status`. Toggles on/off. Can be "on", "off", "true", or "false".
 2. `hue`. (RGBW only) This is the only way to control color with these bulbs. Should be in the range `[0, 359]`.
 3. `level`. (RGBW only) Controls brightness. Should be in the range `[0, 100]`.
-4. `temperature`. (CCT only) Controls white temperature. Should be in the range `[0, 10]`.
-5. `command`. Sends a command to the group. Can be one of:
+4. `temperature`. (CCT only) Controls white temperature. Should be in the range `[0, 100]`.
+5. `saturation`. (new RGB+CCT only) Controls saturation.
+6. `command`. Sends a command to the group. Can be one of:
    * `set_white`. (RGBW only) Turns off RGB and enters WW/CW mode.
    * `pair`. Emulates the pairing process. Send this command right as you connect an unpaired bulb and it will pair with the device ID being used.
    * `unpair`. Emulates the unpairing process. Send as you connect a paired bulb to have it disassociate with the device ID being used.
@@ -91,3 +96,5 @@ true%
 ## UDP Gateways
 
 You can add an arbitrary number of UDP gateways through the REST API or through the web UI. Each gateway server listens on a port and responds to the standard set of commands supported by the Milight protocol. This should allow you to use one of these with standard Milight integrations (SmartThings, Home Assistant, OpenHAB, etc.).
+
+You can select between versions 5 and 6 of the UDP protocol (documented [here](http://www.limitlessled.com/dev/)). Version 6 has support for the newer RGB+CCT bulbs and also includes response packets, which can theoretically improve reliability. Version 5 has much smaller packets and is probably lower latency.
