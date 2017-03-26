@@ -58,6 +58,22 @@ void RgbPacketFormatter::increaseBrightness() {
 void RgbPacketFormatter::decreaseBrightness() {
   command(RGB_BRIGHTNESS_DOWN, 0);
 }
+  
+void RgbPacketFormatter::modeSpeedDown() {
+  command(RGB_SPEED_DOWN, 0);
+}
+ 
+void RgbPacketFormatter::modeSpeedUp() {
+  command(RGB_SPEED_UP, 0);
+}
+
+void RgbPacketFormatter::nextMode() {
+  command(RGB_MODE_UP, 0);
+}
+
+void RgbPacketFormatter::previousMode() {
+  command(RGB_MODE_DOWN, 0);
+}
 
 void RgbPacketFormatter::format(uint8_t const* packet, char* buffer) {
   buffer += sprintf(buffer, "b0       : %02X\n", packet[0]);

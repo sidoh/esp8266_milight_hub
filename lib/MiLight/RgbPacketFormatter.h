@@ -35,6 +35,10 @@ public:
   virtual void format(uint8_t const* packet, char* buffer);
   virtual void pair();
   virtual void unpair();
+  virtual void modeSpeedDown();
+  virtual void modeSpeedUp();
+  virtual void nextMode();
+  virtual void previousMode();
   
   virtual void initializePacket(uint8_t* packet);
 };
