@@ -4,6 +4,7 @@
 #include <Settings.h>
 #include <MiLightHttpServer.h>
 #include <MiLightRadioConfig.h>
+#include <GithubDownloader.h>
 
 void MiLightHttpServer::begin() {
   applySettings(settings);
@@ -17,6 +18,7 @@ void MiLightHttpServer::begin() {
   server.onPattern("/gateways/:device_id/:type/:group_id", HTTP_PUT, [this](const UrlTokenBindings* b) { handleUpdateGroup(b); });
   server.onPattern("/gateways/:device_id/:type", HTTP_PUT, [this](const UrlTokenBindings* b) { handleUpdateGateway(b); });
   server.onPattern("/send_raw/:type", HTTP_PUT, [this](const UrlTokenBindings* b) { handleSendRaw(b); });
+  server.onPattern("/download_update/:component", HTTP_GET, [this](const UrlTokenBindings* b) { handleDownloadUpdate(b); });
   server.on("/web", HTTP_POST, [this]() { server.send(200, "text/plain", "success"); }, handleUpdateFile(WEB_INDEX_FILENAME));
   server.on("/about", HTTP_GET, [this]() { handleAbout(); });
   server.on("/firmware", HTTP_POST, 
@@ -53,6 +55,85 @@ void MiLightHttpServer::begin() {
 
 void MiLightHttpServer::handleClient() {
   server.handleClient();
+}
+
+void MiLightHttpServer::handleDownloadUpdate(const UrlTokenBindings* bindings) {
+  GithubDownloader* downloader = new GithubDownloader();
+  const String& component = bindings->get("component");
+  
+  if (component.equalsIgnoreCase("web")) {
+    Serial.println("Attempting to update web UI...");
+    
+    const bool result = downloader->downloadFile(
+      MILIGHT_GITHUB_USER,
+      MILIGHT_GITHUB_REPO,
+      MILIGHT_REPO_WEB_PATH,
+      WEB_INDEX_FILENAME
+    );
+    
+    Serial.println("Download complete!");
+    
+    if (result) {
+      server.sendHeader("Location", "/");
+      server.send(302);
+    } else {
+      server.send(500, "text/plain", "Failed to download update from Github. Check serial logs for more information.");
+    }
+  } else if (component.equalsIgnoreCase("firmware")) {
+    String firmwareFile = String("dist/firmware-") + FIRMWARE_VARIANT + ".bin";
+    Stream& stream = downloader->streamFile(
+      MILIGHT_GITHUB_USER,
+      MILIGHT_GITHUB_REPO,
+      firmwareFile
+    );
+    
+    if (stream.available()) {
+      WiFiUDP::stopAll();
+      uint32_t maxSketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
+      
+      if(!Update.begin(maxSketchSpace)){//start with max available size
+        Update.printError(Serial);
+        return;
+      }
+      
+      size_t read = 0;
+      
+      while (stream.available()) {
+        size_t l = stream.readBytes(downloader->buffer, GITHUB_DOWNLOADER_BUFFER_SIZE);
+        read += l;
+    
+        Serial.print("Read ");
+        Serial.print(l);
+        Serial.print(" bytes from Github (");
+        Serial.print(read);
+        Serial.println(" total)");
+        
+        if (Update.write(downloader->buffer, l) != l) {
+          Update.printError(Serial);
+          return;
+        }
+        
+        Serial.println("Write to flash");
+        
+        yield();
+      }
+      
+      Serial.println("Update complete");
+      
+      if (! Update.end(true)) {
+        server.send(200, "text/plain", String(FIRMWARE_VARIANT));
+      } else {
+        Serial.println("Error completing update");
+      }
+    } else {
+      server.send(500, "text/plain", "Couldn't open strem to firmware file on Github. Check serial logs.");
+    }
+  } else {
+    String body = String("Unknown component: ") + component;
+    server.send(400, "text/plain", body);
+  }
+  
+  delete downloader;
 }
 
 void MiLightHttpServer::applySettings(Settings& settings) {

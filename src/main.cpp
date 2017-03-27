@@ -3,6 +3,7 @@
 #include <ArduinoJson.h>
 #include <stdlib.h>
 #include <FS.h>
+#include <GithubDownloader.h>
 #include <IntParsing.h>
 #include <MiLightClient.h>
 #include <MiLightRadioConfig.h>
