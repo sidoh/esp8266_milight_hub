@@ -30,8 +30,8 @@ You'll need to flash the firmware and a SPIFFS image. It's really easy to do thi
 
 ```
 export ESP_BOARD=nodemcuv2
-platformio run -u $ESP_BOARD --target upload
-platformio run -u $ESP_BOARD --target uploadfs
+platformio run -e $ESP_BOARD --target upload
+platformio run -e $ESP_BOARD --target uploadfs
 ```
 
 Of course make sure to substitute `nodemcuv2` with the board that you're using.
