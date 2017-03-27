@@ -21,6 +21,19 @@ enum V2CommandIds {
   V2_KELVIN = 0x05
 };
 
+enum RgbCommandIds {
+  V2_RGB_COMMAND_PREFIX  = 0x02,
+  V2_RGB_COLOR_PREFIX    = 0x01,
+  V2_RGB_BRIGHTNESS_DOWN = 0x01,
+  V2_RGB_BRIGHTNESS_UP   = 0x02,
+  V2_RGB_SPEED_DOWN      = 0x03,
+  V2_RGB_SPEED_UP        = 0x04,
+  V2_RGB_MODE_DOWN       = 0x05,
+  V2_RGB_MODE_UP         = 0x06,
+  V2_RGB_ON              = 0x09,
+  V2_RGB_OFF             = 0x0A
+};
+
 struct V6Session {
   V6Session(IPAddress ipAddr, uint16_t port, uint16_t sessionId)
     : ipAddr(ipAddr),
@@ -81,7 +94,7 @@ protected:
     uint8_t checksum
   );
   
-  bool handleV1BulbCommand(
+  bool handleRgbBulbCommand(
     uint8_t group,
     uint32_t cmd,
     uint32_t cmdArg

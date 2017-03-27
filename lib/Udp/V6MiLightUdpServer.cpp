@@ -126,8 +126,49 @@ void V6MiLightUdpServer::sendResponse(uint16_t sessionId, uint8_t* responseBuffe
   socket.endPacket();
 }
 
-bool V6MiLightUdpServer::handleV1BulbCommand(uint8_t group, uint32_t _cmd, uint32_t _arg) {
-  // Makes more sense to use V5 protocol for now.
+bool V6MiLightUdpServer::handleRgbBulbCommand(uint8_t group, uint32_t _cmd, uint32_t _arg) {
+  const uint8_t cmd = _cmd & 0xFF;
+  const uint8_t arg = _arg >> 24;
+  
+  client->prepare(MilightRgbConfig, deviceId, 0);
+  
+  if (cmd == V2_RGB_COMMAND_PREFIX) {
+    switch (arg) {
+      case V2_RGB_ON:
+        client->updateStatus(ON);
+        break;
+        
+      case V2_RGB_OFF:
+        client->updateStatus(OFF);
+        break;
+        
+      case V2_RGB_BRIGHTNESS_DOWN:
+        client->decreaseBrightness();
+        break;
+        
+      case V2_RGB_BRIGHTNESS_UP:
+        client->increaseBrightness();
+        break;
+        
+      case V2_RGB_MODE_DOWN:
+        client->previousMode();
+        break;
+        
+      case V2_RGB_MODE_UP:
+        client->nextMode();
+        break;
+        
+      case V2_RGB_SPEED_DOWN:
+        client->modeSpeedDown();
+        break;
+        
+      case V2_RGB_SPEED_UP:
+        client->modeSpeedUp();
+        break;
+    }
+  } else if (cmd == V2_RGB_COLOR_PREFIX) {
+    client->updateColorRaw(arg);
+  }
 }
 
 bool V6MiLightUdpServer::handleV2BulbCommand(uint8_t group, uint32_t _cmd, uint32_t _arg) {
@@ -190,8 +231,8 @@ void V6MiLightUdpServer::handleCommand(
   
   if ((cmdHeader & 0x0800) == 0x0800) {
     handled = handleV2BulbCommand(group, cmdHeader, cmdArg);
-  } else if ((cmdHeader & 0x0700) == 0x0700) {
-    handled = handleV1BulbCommand(group, cmdHeader, cmdArg);
+  } else if ((cmdHeader & 0x0500) == 0x0500) {
+    handled = handleRgbBulbCommand(group, cmdHeader, cmdArg);
   }
   
   if (handled) {
