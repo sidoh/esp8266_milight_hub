@@ -197,7 +197,7 @@ ESP8266WebServer::THandlerFunction MiLightHttpServer::handleServeFile(
 bool MiLightHttpServer::serveFile(const char* file, const char* contentType) {
   if (SPIFFS.exists(file)) {
     File f = SPIFFS.open(file, "r");
-    server.send(200, contentType, f.readString());
+    server.streamFile(f, contentType);
     f.close();
     return true;
   }
