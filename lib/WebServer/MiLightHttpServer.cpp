@@ -18,6 +18,7 @@ void MiLightHttpServer::begin() {
   server.onPattern("/gateways/:device_id/:type", HTTP_PUT, [this](const UrlTokenBindings* b) { handleUpdateGateway(b); });
   server.onPattern("/send_raw/:type", HTTP_PUT, [this](const UrlTokenBindings* b) { handleSendRaw(b); });
   server.on("/web", HTTP_POST, [this]() { server.send(200, "text/plain", "success"); }, handleUpdateFile(WEB_INDEX_FILENAME));
+  server.on("/about", HTTP_GET, [this]() { handleAbout(); });
   server.on("/firmware", HTTP_POST, 
     [this](){
       server.sendHeader("Connection", "close");
@@ -66,6 +67,19 @@ void MiLightHttpServer::applySettings(Settings& settings) {
 
 void MiLightHttpServer::onSettingsSaved(SettingsSavedHandler handler) {
   this->settingsSavedHandler = handler;
+}
+  
+void MiLightHttpServer::handleAbout() {
+  DynamicJsonBuffer buffer;
+  JsonObject& response = buffer.createObject();
+  
+  response["version"] = MILIGHT_HUB_VERSION;
+  response["variant"] = FIRMWARE_VARIANT;
+  
+  String body;
+  response.printTo(body);
+  
+  server.send(200, "application", body); 
 }
   
 void MiLightHttpServer::handleGetRadioConfigs() {
