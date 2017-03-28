@@ -33,6 +33,10 @@ bool GithubDownloader::downloadFile(const String& path, Stream& dest) {
     Serial.println("Failed to open stream to Github");
     return false;
   }
+  
+  printf("Downloading...\n");
+  size_t bytes = 0;
+  size_t nextCheckpoint = 4096;
                
   while (client.available()) {
     size_t l = client.readBytes(buffer, GITHUB_DOWNLOADER_BUFFER_SIZE);
@@ -45,10 +49,18 @@ bool GithubDownloader::downloadFile(const String& path, Stream& dest) {
       return false;
     }
     
-    printf("Read %d bytes\n", w);
+    bytes += w;
+    printf(".");
+    
+    if (bytes >= nextCheckpoint) {
+      printf(" [%d KB]\n", bytes/1024);
+      nextCheckpoint += 4096;
+    }
     
     yield();
   }
+  
+  printf("\n");
   
   return true;
 }
@@ -78,9 +90,7 @@ bool GithubDownloader::downloadFile(const String& username, const String& repo, 
   SPIFFS.remove(fsPath);
   SPIFFS.rename(tmpFile, fsPath);
   
-  Serial.print("Finished downloading file: ");
-  Serial.println(fsPath);
-  Serial.println(f.size());
+  printf("Finished downloading file: %s\n", fsPath.c_str());
   
   return true;
 }
