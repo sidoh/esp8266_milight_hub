@@ -62,17 +62,26 @@ The HTTP endpoints (shown below) will be fully functional at this point. You sho
 
 #### Bulb commands
 
-Route (5) supports these commands:
+Route (5) supports these commands. Note that each bulb type has support for a different subset of these commands:
 
 1. `status`. Toggles on/off. Can be "on", "off", "true", or "false".
-2. `hue`. (RGBW only) This is the only way to control color with these bulbs. Should be in the range `[0, 359]`.
-3. `level`. (RGBW only) Controls brightness. Should be in the range `[0, 100]`.
-4. `temperature`. (CCT only) Controls white temperature. Should be in the range `[0, 100]`.
-5. `saturation`. (new RGB+CCT only) Controls saturation.
-6. `command`. Sends a command to the group. Can be one of:
-   * `set_white`. (RGBW only) Turns off RGB and enters WW/CW mode.
+1. `hue`. Sets color. Should be in the range `[0, 359]`.
+1. `level`. Controls brightness. Should be in the range `[0, 100]`.
+1. `temperature`. Controls white temperature. Should be in the range `[0, 100]`.
+1. `saturation`. Controls saturation.
+1. `mode`. Sets "disco mode" setting to the specified value. Note that not all bulbs that have modes support this command. Some will only allow you to cycle through next/previous modes using commands.
+1. `command`. Sends a command to the group. Can be one of:
+   * `set_white`. Turns off RGB and enters WW/CW mode.
    * `pair`. Emulates the pairing process. Send this command right as you connect an unpaired bulb and it will pair with the device ID being used.
    * `unpair`. Emulates the unpairing process. Send as you connect a paired bulb to have it disassociate with the device ID being used.
+   * `next_mode`. Cycles to the next "disco mode".
+   * `previous_mode`. Cycles to the previous disco mode.
+   * `mode_speed_up`. 
+   * `mode_speed_down`.
+   * `level_down`. Turns down the brightness. Not all dimmable bulbs support this command.
+   * `level_up`. Turns down the brightness. Not all dimmable bulbs support this command.
+   * `temperature_down`. Turns down the white temperature. Not all bulbs with adjustable white temperature support this command.
+   * `temperature_up`. Turns up the white temperature. Not all bulbs with adjustable white temperature support this command.
    
 Route (6) suports the `command`s `all_on` and `all_off`, which do as you'd expect.
 
