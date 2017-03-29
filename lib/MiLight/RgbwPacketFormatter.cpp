@@ -60,8 +60,8 @@ void RgbwPacketFormatter::updateHue(uint16_t value) {
 }
 
 void RgbwPacketFormatter::updateColorRaw(uint8_t value) {
-  currentPacket[RGBW_COLOR_INDEX] = value;
   command(RGBW_COLOR, 0);
+  currentPacket[RGBW_COLOR_INDEX] = value;
 }
 
 void RgbwPacketFormatter::updateColorWhite() {
