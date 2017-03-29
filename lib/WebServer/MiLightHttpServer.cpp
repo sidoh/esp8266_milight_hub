@@ -9,7 +9,7 @@
 void MiLightHttpServer::begin() {
   applySettings(settings);
   
-  server.on("/", HTTP_GET, handleServeFile(WEB_INDEX_FILENAME, "text/html"));
+  server.on("/", HTTP_GET, handleServeFile(WEB_INDEX_FILENAME, "text/html", DEFAULT_INDEX_PAGE));
   server.on("/settings", HTTP_GET, handleServeFile(SETTINGS_FILE, "application/json"));
   server.on("/settings", HTTP_PUT, [this]() { handleUpdateSettings(); });
   server.on("/settings", HTTP_POST, [this]() { server.send(200, "text/plain", "success"); }, handleUpdateFile(SETTINGS_FILE));

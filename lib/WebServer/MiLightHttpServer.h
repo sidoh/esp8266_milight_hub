@@ -9,6 +9,9 @@
 
 typedef std::function<void(void)> SettingsSavedHandler;
 
+const char DEFAULT_INDEX_PAGE[] PROGMEM
+  = "Web app not installed. Click <a href=\"/download_update/web\">here</a> to attempt to download it from GitHub.";
+
 class MiLightHttpServer {
 public:
   MiLightHttpServer(Settings& settings, MiLightClient*& milightClient)
