@@ -16,7 +16,6 @@ void MiLightHttpServer::begin() {
   server.on("/radio_configs", HTTP_GET, [this]() { handleGetRadioConfigs(); });
   server.onPattern("/gateway_traffic/:type", HTTP_GET, [this](const UrlTokenBindings* b) { handleListenGateway(b); });
   server.onPattern("/gateways/:device_id/:type/:group_id", HTTP_PUT, [this](const UrlTokenBindings* b) { handleUpdateGroup(b); });
-  server.onPattern("/gateways/:device_id/:type", HTTP_PUT, [this](const UrlTokenBindings* b) { handleUpdateGateway(b); });
   server.onPattern("/send_raw/:type", HTTP_PUT, [this](const UrlTokenBindings* b) { handleSendRaw(b); });
   server.onPattern("/download_update/:component", HTTP_GET, [this](const UrlTokenBindings* b) { handleDownloadUpdate(b); });
   server.on("/web", HTTP_POST, [this]() { server.send(200, "text/plain", "success"); }, handleUpdateFile(WEB_INDEX_FILENAME));
@@ -336,34 +335,6 @@ void MiLightHttpServer::handleUpdateGroup(const UrlTokenBindings* urlBindings) {
   }
   
   milightClient->setResendCount(settings.packetRepeats);
-  
-  server.send(200, "application/json", "true");
-}
-
-void MiLightHttpServer::handleUpdateGateway(const UrlTokenBindings* urlBindings) {
-  DynamicJsonBuffer buffer;
-  JsonObject& request = buffer.parse(server.arg("plain"));
-  
-  const uint16_t deviceId = parseInt<uint16_t>(urlBindings->get("device_id"));
-  MiLightRadioConfig* config = MiLightRadioConfig::fromString(urlBindings->get("type"));
-  
-  if (config == NULL) {
-    String body = "Unknown device type: ";
-    body += urlBindings->get("type");
-    
-    server.send(400, "text/plain", body);
-    return;
-  }
-  
-  milightClient->prepare(*config, deviceId, 0);
-  
-  if (request.containsKey("status")) {
-    if (request["status"] == "on") {
-      milightClient->updateStatus(ON);
-    } else if (request["status"] == "off") {
-      milightClient->updateStatus(OFF);
-    }
-  }
   
   server.send(200, "application/json", "true");
 }

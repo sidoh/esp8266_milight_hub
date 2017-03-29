@@ -42,7 +42,6 @@ protected:
   void handleListenGateway(const UrlTokenBindings* urlBindings);
   void handleSendRaw(const UrlTokenBindings* urlBindings);
   void handleUpdateGroup(const UrlTokenBindings* urlBindings);
-  void handleUpdateGateway(const UrlTokenBindings* urlBindings);
   void handleDownloadUpdate(const UrlTokenBindings* urlBindings);
   
   File updateFile;
