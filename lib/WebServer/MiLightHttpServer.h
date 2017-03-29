@@ -5,6 +5,8 @@
 #ifndef _MILIGHT_HTTP_SERVER
 #define _MILIGHT_HTTP_SERVER 
 
+#define MAX_DOWNLOAD_ATTEMPTS 3
+
 typedef std::function<void(void)> SettingsSavedHandler;
 
 class MiLightHttpServer {

@@ -64,12 +64,17 @@ void MiLightHttpServer::handleDownloadUpdate(const UrlTokenBindings* bindings) {
   if (component.equalsIgnoreCase("web")) {
     Serial.println("Attempting to update web UI...");
     
-    const bool result = downloader->downloadFile(
-      MILIGHT_GITHUB_USER,
-      MILIGHT_GITHUB_REPO,
-      MILIGHT_REPO_WEB_PATH,
-      WEB_INDEX_FILENAME
-    );
+    bool result = false;
+    size_t tries = 0;
+    
+    while (!result && tries++ <= MAX_DOWNLOAD_ATTEMPTS) {
+      result = downloader->downloadFile(
+        MILIGHT_GITHUB_USER,
+        MILIGHT_GITHUB_REPO,
+        MILIGHT_REPO_WEB_PATH,
+        WEB_INDEX_FILENAME
+      );
+    }
     
     Serial.println("Download complete!");
     
