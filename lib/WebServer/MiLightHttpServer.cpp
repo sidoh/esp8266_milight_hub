@@ -61,6 +61,8 @@ void MiLightHttpServer::handleSystemPost() {
   DynamicJsonBuffer buffer;
   JsonObject& request = buffer.parse(server.arg("plain"));
   
+  bool handled = false;
+  
   if (request.containsKey("command")) {
     if (request["command"] == "restart") {
       Serial.println("Restarting...");
@@ -70,6 +72,12 @@ void MiLightHttpServer::handleSystemPost() {
       
       ESP.restart();
     }
+  }
+  
+  if (handled) {
+    server.send(200, "text/plain", "true");
+  } else {
+    server.send(400, "text/plain", "{\"error\":\"Unhandled command\"}");
   }
 }
 
