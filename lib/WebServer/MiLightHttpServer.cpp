@@ -20,6 +20,7 @@ void MiLightHttpServer::begin() {
   server.onPattern("/download_update/:component", HTTP_GET, [this](const UrlTokenBindings* b) { handleDownloadUpdate(b); });
   server.on("/web", HTTP_POST, [this]() { server.send(200, "text/plain", "success"); }, handleUpdateFile(WEB_INDEX_FILENAME));
   server.on("/about", HTTP_GET, [this]() { handleAbout(); });
+  server.on("/system", HTTP_POST, [this]() { handleSystemPost(); });
   server.on("/firmware", HTTP_POST, 
     [this](){
       server.sendHeader("Connection", "close");
@@ -54,6 +55,18 @@ void MiLightHttpServer::begin() {
 
 void MiLightHttpServer::handleClient() {
   server.handleClient();
+}
+
+void MiLightHttpServer::handleSystemPost() {
+  DynamicJsonBuffer buffer;
+  JsonObject& request = buffer.parse(server.arg("plain"));
+  
+  if (request.containsKey("command")) {
+    if (request["command"] == "restart") {
+      Serial.println("Restarting...");
+      ESP.restart();
+    }
+  }
 }
 
 void MiLightHttpServer::handleDownloadUpdate(const UrlTokenBindings* bindings) {
