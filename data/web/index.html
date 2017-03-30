@@ -164,6 +164,20 @@
       1000
     );
     
+    var sendCommand = _.throttle(
+      function(params) {
+        $.ajax(
+          '/system',
+          {
+            method: 'POST',
+            data: JSON.stringify(params),
+            contentType: 'application/json'
+          }
+        );
+      },
+      1000
+    )
+    
     var sniffRequest;
     var sniffing = false;
     var getTraffic = function() {
@@ -353,6 +367,10 @@
       
       $('.command-btn').click(function() {
         updateGroup({command: $(this).data('command')});
+      });
+      
+      $('.system-btn').click(function() {
+        sendCommand({command: $(this).data('command')});
       });
       
       $('#sniff').click(function() {
@@ -748,6 +766,22 @@
         <div> &nbsp; </div>
         
         <pre id="sniffed-traffic"></pre>
+      </div>
+    </div>
+    
+    <div class="row header-row">
+      <div class="col-sm-12">
+        <h1>Admin</h1>
+      </div>
+    </div>
+    
+    <div>&nbsp;</div>
+    
+    <div class="row">
+      <div class="col-sm-12">
+        <button type="button" class="btn btn-danger system-btn" data-command="restart">
+          Restart
+        </button>
       </div>
     </div>
   </div>
