@@ -22,6 +22,8 @@
 #define MILIGHT_GITHUB_REPO "esp8266_milight_hub"
 #define MILIGHT_REPO_WEB_PATH "/data/web/index.html"
 
+#define MINIMUM_RESTART_PERIOD 30
+
 class GatewayConfig {
 public:
   GatewayConfig(uint16_t deviceId, uint16_t port, uint8_t protocolVersion) 
@@ -48,7 +50,8 @@ public:
     numDeviceIds(0),
     numGatewayConfigs(0),
     packetRepeats(10),
-    httpRepeatFactor(5)
+    httpRepeatFactor(5),
+    _autoRestartPeriod(0)
   { }
   
   ~Settings() {
@@ -59,6 +62,14 @@ public:
   
   bool hasAuthSettings() {
     return adminUsername.length() > 0 && adminPassword.length() > 0;
+  }
+  
+  bool isAutoRestartEnabled() {
+    return _autoRestartPeriod > 0;
+  }
+  
+  size_t getAutoRestartPeriod() {
+    return _autoRestartPeriod == 0 ? 0 : min(_autoRestartPeriod, MINIMUM_RESTART_PERIOD);
   }
 
   static void deserialize(Settings& settings, String json);
@@ -82,6 +93,9 @@ public:
   size_t numDeviceIds;
   size_t packetRepeats;
   size_t httpRepeatFactor;
+  
+protected:
+  size_t _autoRestartPeriod;
 };
 
 #endif 

@@ -35,6 +35,10 @@ void Settings::deserialize(Settings& settings, JsonObject& parsedSettings) {
       settings.httpRepeatFactor = parsedSettings["http_repeat_factor"];
     }
     
+    if (parsedSettings.containsKey("auto_restart_period")) {
+      settings.httpRepeatFactor = parsedSettings["auto_restart_period"];
+    }
+    
     JsonArray& arr = parsedSettings["device_ids"];
     settings.updateDeviceIds(arr);
     
@@ -97,6 +101,9 @@ void Settings::patch(JsonObject& parsedSettings) {
     if (parsedSettings.containsKey("http_repeat_factor")) {
       this->httpRepeatFactor = parsedSettings["http_repeat_factor"];
     }
+    if (parsedSettings.containsKey("auto_restart_period")) {
+      this->httpRepeatFactor = parsedSettings["auto_restart_period"];
+    }
     if (parsedSettings.containsKey("device_ids")) {
       JsonArray& arr = parsedSettings["device_ids"];
       updateDeviceIds(arr);
@@ -148,6 +155,7 @@ void Settings::serialize(Stream& stream, const bool prettyPrint) {
   root["csn_pin"] = this->csnPin;
   root["packet_repeats"] = this->packetRepeats;
   root["http_repeat_factor"] = this->httpRepeatFactor;
+  root["auto_restart_period"] = this->autoRestartPeriod;
   
   if (this->deviceIds) {
     JsonArray& arr = jsonBuffer.createArray();
