@@ -69,13 +69,14 @@ public:
   static uint8_t* writeInt(const T& value, uint8_t* packet);
     
 protected:
-  static uint8_t START_SESSION_COMMAND[];
-  static uint8_t START_SESSION_RESPONSE[];
-  static uint8_t COMMAND_HEADER[];
-  static uint8_t COMMAND_RESPONSE[];
-  static uint8_t SEARCH_COMMAND[];
-  static uint8_t LOCAL_SEARCH_COMMAND[];
-  static uint8_t HEARTBEAT_HEADER[];
+  static uint8_t START_SESSION_COMMAND[] PROGMEM;
+  static uint8_t START_SESSION_RESPONSE[] PROGMEM;
+  static uint8_t COMMAND_HEADER[] PROGMEM;
+  static uint8_t COMMAND_RESPONSE[] PROGMEM;
+  static uint8_t LOCAL_SEARCH_COMMAND[] PROGMEM;
+  static uint8_t HEARTBEAT_HEADER[] PROGMEM;
+  
+  static uint8_t SEARCH_COMMAND[] PROGMEM;
   
   V6Session* firstSession;
   size_t numSessions;
@@ -83,6 +84,8 @@ protected:
   
   uint16_t beginSession();
   void sendResponse(uint16_t sessionId, uint8_t* responseBuffer, size_t responseSize);
+  
+  bool matchesPacket(uint8_t* packet1, size_t packet1Len, uint8_t* packet2, size_t packet2Len);
   
   void handleStartSession();
   void handleHeartbeat(uint16_t sessionId);

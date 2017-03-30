@@ -1,6 +1,10 @@
 #include <V6MiLightUdpServer.h>
 #include <ESP8266WiFi.h>
 #include <Arduino.h>
+
+#define MATCHES_PACKET(packet1, packet2, packet2Len) ( \
+  matchesPacket(packet1, size(packet1), packet2, packet2Len) \
+)
   
 uint8_t V6MiLightUdpServer::START_SESSION_COMMAND[] = {
   0x20, 0x00, 0x00, 0x00, 0x16, 0x02, 0x62, 0x3A, 0xD5, 0xED, 0xA3, 0x01, 0xAE, 
@@ -25,6 +29,10 @@ uint8_t V6MiLightUdpServer::HEARTBEAT_HEADER[] = {
 
 uint8_t V6MiLightUdpServer::COMMAND_RESPONSE[] = {
   0x88, 0x00, 0x00, 0x00, 0x03, 0x00, 0xFF, 0x00
+};
+
+uint8_t V6MiLightUdpServer::SEARCH_COMMAND[] = {
+  0x10, 0x00, 0x00, 0x00, 0x24, 0x02, 0xAE, 0x65, 0x02, 0x39, 0x38, 0x35, 0x62
 };
 
 template<typename T, size_t sz>
@@ -262,18 +270,22 @@ void V6MiLightUdpServer::handleHeartbeat(uint16_t sessionId) {
   
   sendResponse(sessionId, responseBuffer, 12);
 }
+  
+bool V6MiLightUdpServer::matchesPacket(uint8_t* packet1, size_t packet1Len, uint8_t* packet2, size_t packet2Len) {
+  return packet2Len >= packet1Len && memcmp(packet1, packet2, packet1Len);
+}
 
 void V6MiLightUdpServer::handlePacket(uint8_t* packet, size_t packetSize) {
 #ifdef MILIGHT_UDP_DEBUG
   printf("Packet size: %d\n", packetSize);
 #endif
   
-  if (packetSize >= size(START_SESSION_COMMAND) && memcmp(START_SESSION_COMMAND, packet, size(START_SESSION_COMMAND)) == 0) {
+  if (MATCHES_PACKET(START_SESSION_COMMAND, packet, packetSize)) {
     handleStartSession();
-  } else if (packetSize >= size(HEARTBEAT_HEADER) && memcmp(HEARTBEAT_HEADER, packet, size(HEARTBEAT_HEADER)) == 0) {
+  } else if (MATCHES_PACKET(HEARTBEAT_HEADER, packet, packetSize)) {
     uint16_t sessionId = readInt<uint16_t>(packet+5);
     handleHeartbeat(sessionId);
-  } else if (packetSize == 22 && memcmp(COMMAND_HEADER, packet, size(COMMAND_HEADER)) == 0) {
+  } else if (packetSize == 22 && MATCHES_PACKET(COMMAND_HEADER, packet, packetSize)) {
     uint16_t sessionId = readInt<uint16_t>(packet+5);
     uint8_t sequenceNum = packet[8];
     uint8_t* cmd = packet+10;
