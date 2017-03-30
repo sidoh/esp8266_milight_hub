@@ -75,19 +75,25 @@ protected:
   static uint8_t COMMAND_RESPONSE[] PROGMEM;
   static uint8_t LOCAL_SEARCH_COMMAND[] PROGMEM;
   static uint8_t HEARTBEAT_HEADER[] PROGMEM;
+  static uint8_t HEARTBEAT_HEADER2[] PROGMEM;
   
   static uint8_t SEARCH_COMMAND[] PROGMEM;
+  static uint8_t SEARCH_RESPONSE[] PROGMEM;
+  
+  static uint8_t OPEN_COMMAND_RESPONSE[] PROGMEM;
   
   V6Session* firstSession;
   size_t numSessions;
   uint16_t sessionId;
   
   uint16_t beginSession();
-  void sendResponse(uint16_t sessionId, uint8_t* responseBuffer, size_t responseSize);
+  bool sendResponse(uint16_t sessionId, uint8_t* responseBuffer, size_t responseSize);
   
   bool matchesPacket(uint8_t* packet1, size_t packet1Len, uint8_t* packet2, size_t packet2Len);
   
+  void handleSearch();
   void handleStartSession();
+  bool handleOpenCommand(uint16_t sessionId);
   void handleHeartbeat(uint16_t sessionId);
   void handleCommand(
     uint16_t sessionId,
