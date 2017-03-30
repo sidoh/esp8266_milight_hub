@@ -22,7 +22,7 @@
 #define MILIGHT_GITHUB_REPO "esp8266_milight_hub"
 #define MILIGHT_REPO_WEB_PATH "/data/web/index.html"
 
-#define MINIMUM_RESTART_PERIOD 30
+#define MINIMUM_RESTART_PERIOD 1
 
 class GatewayConfig {
 public:
@@ -69,7 +69,11 @@ public:
   }
   
   size_t getAutoRestartPeriod() {
-    return _autoRestartPeriod == 0 ? 0 : min(_autoRestartPeriod, MINIMUM_RESTART_PERIOD);
+    if (_autoRestartPeriod == 0) {
+      return 0;
+    }
+    
+    return min(_autoRestartPeriod, MINIMUM_RESTART_PERIOD);
   }
 
   static void deserialize(Settings& settings, String json);
