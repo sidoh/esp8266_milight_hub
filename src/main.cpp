@@ -21,6 +21,8 @@ MiLightHttpServer *httpServer;
 int numUdpServers = 0;
 MiLightUdpServer** udpServers;
 
+uint64_t startTime;
+
 void initMilightUdpServers() {
   if (udpServers) {
     for (int i = 0; i < numUdpServers; i++) {
@@ -68,6 +70,14 @@ void applySettings() {
   initMilightUdpServers();
 }
 
+bool shouldRestart() {
+  if (! settings.isAutoRestartEnabled()) {
+    return false;
+  }
+  
+  return settings.getAutoRestartPeriod()*60*1000 < millis();
+}
+
 void setup() {
   Serial.begin(9600);
   wifiManager.autoConnect();
@@ -78,6 +88,8 @@ void setup() {
   httpServer = new MiLightHttpServer(settings, milightClient);
   httpServer->onSettingsSaved(applySettings);
   httpServer->begin();
+  
+  startTime = millis();
 }
 
 void loop() {
@@ -87,5 +99,10 @@ void loop() {
     for (size_t i = 0; i < settings.numGatewayConfigs; i++) {
       udpServers[i]->handleClient();
     }
+  }
+  
+  if (shouldRestart()) {
+    Serial.println("Auto-restart triggered. Restarting...");
+    ESP.restart();
   }
 }
