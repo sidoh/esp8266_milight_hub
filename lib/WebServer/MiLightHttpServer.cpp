@@ -64,6 +64,10 @@ void MiLightHttpServer::handleSystemPost() {
   if (request.containsKey("command")) {
     if (request["command"] == "restart") {
       Serial.println("Restarting...");
+      server.send(200, "text/plain", "true");
+      
+      delay(100);
+      
       ESP.restart();
     }
   }
