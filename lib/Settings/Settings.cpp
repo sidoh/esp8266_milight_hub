@@ -2,6 +2,23 @@
 #include <ArduinoJson.h>
 #include <FS.h>
 #include <IntParsing.h>
+#include <algorithm>
+  
+bool Settings::hasAuthSettings() {
+  return adminUsername.length() > 0 && adminPassword.length() > 0;
+}
+
+bool Settings::isAutoRestartEnabled() {
+  return _autoRestartPeriod > 0;
+}
+
+size_t Settings::getAutoRestartPeriod() {
+  if (_autoRestartPeriod == 0) {
+    return 0;
+  }
+  
+  return std::min(_autoRestartPeriod, static_cast<size_t>(MINIMUM_RESTART_PERIOD));
+}
 
 void Settings::deserialize(Settings& settings, String json) {
   DynamicJsonBuffer jsonBuffer;
@@ -36,7 +53,7 @@ void Settings::deserialize(Settings& settings, JsonObject& parsedSettings) {
     }
     
     if (parsedSettings.containsKey("auto_restart_period")) {
-      settings.httpRepeatFactor = parsedSettings["auto_restart_period"];
+      settings._autoRestartPeriod = parsedSettings["auto_restart_period"];
     }
     
     JsonArray& arr = parsedSettings["device_ids"];
@@ -102,7 +119,7 @@ void Settings::patch(JsonObject& parsedSettings) {
       this->httpRepeatFactor = parsedSettings["http_repeat_factor"];
     }
     if (parsedSettings.containsKey("auto_restart_period")) {
-      this->httpRepeatFactor = parsedSettings["auto_restart_period"];
+      this->_autoRestartPeriod = parsedSettings["auto_restart_period"];
     }
     if (parsedSettings.containsKey("device_ids")) {
       JsonArray& arr = parsedSettings["device_ids"];
@@ -155,7 +172,7 @@ void Settings::serialize(Stream& stream, const bool prettyPrint) {
   root["csn_pin"] = this->csnPin;
   root["packet_repeats"] = this->packetRepeats;
   root["http_repeat_factor"] = this->httpRepeatFactor;
-  root["auto_restart_period"] = this->autoRestartPeriod;
+  root["auto_restart_period"] = this->_autoRestartPeriod;
   
   if (this->deviceIds) {
     JsonArray& arr = jsonBuffer.createArray();

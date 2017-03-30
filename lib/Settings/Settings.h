@@ -60,21 +60,9 @@ public:
     }
   }
   
-  bool hasAuthSettings() {
-    return adminUsername.length() > 0 && adminPassword.length() > 0;
-  }
-  
-  bool isAutoRestartEnabled() {
-    return _autoRestartPeriod > 0;
-  }
-  
-  size_t getAutoRestartPeriod() {
-    if (_autoRestartPeriod == 0) {
-      return 0;
-    }
-    
-    return min(_autoRestartPeriod, MINIMUM_RESTART_PERIOD);
-  }
+  bool hasAuthSettings();
+  bool isAutoRestartEnabled();
+  size_t getAutoRestartPeriod();
 
   static void deserialize(Settings& settings, String json);
   static void deserialize(Settings& settings, JsonObject& json);
