@@ -105,10 +105,10 @@ void MiLightHttpServer::handleDownloadUpdate(const UrlTokenBindings* bindings) {
 }
 
 void MiLightHttpServer::applySettings(Settings& settings) {
-  if (server.authenticationRequired() && !settings.hasAuthSettings()) {
-    server.disableAuthentication();
-  } else {
+  if (settings.hasAuthSettings()) {
     server.requireAuthentication(settings.adminUsername, settings.adminPassword);
+  } else {
+    server.disableAuthentication();
   }
   
   milightClient->setResendCount(settings.packetRepeats);
