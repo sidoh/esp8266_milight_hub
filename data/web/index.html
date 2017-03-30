@@ -19,7 +19,6 @@
   
   <style>
     .header-row { border-bottom: 1px solid #ccc; }
-    label { display: block; }
     .radio-option { padding: 0 5px; cursor: pointer; }
     .command-buttons { list-style: none; margin: 0; padding: 0; }
     .command-buttons li { display: inline-block; margin-right: 1em; }
@@ -90,6 +89,11 @@
       float: left;
       display: block;
     }
+    .field-help {
+      display: inline-block;
+      font-size: 1.25em;
+      margin-left: 0.5em;
+    }
   </style>
 </head>
 
@@ -104,8 +108,17 @@
   <script lang="text/javascript">
     var FORM_SETTINGS = [
       "admin_username", "admin_password", "ce_pin", "csn_pin", "packet_repeats",
-      "http_repeat_factor"
+      "http_repeat_factor", "auto_restart_period"
     ];
+    
+    var FORM_SETTINGS_HELP = {
+      packet_repeats : "The number of times to repeat RF packets sent to bulbs",
+      http_repeat_factor : "Multiplicative factor on packet_repeats for " +
+        "requests initiated by the HTTP API. UDP API typically receives " +
+        "duplicate packets, so more repeats should be used for HTTP.",
+      auto_restart_period : "Automatically restart the device every number of " +
+        "minutes specified. Use 0 for disabled."
+    }
     
     var UDP_PROTOCOL_VERSIONS = [ 5, 6 ];
     var DEFAULT_UDP_PROTOCL_VERSION = 5;
@@ -395,8 +408,14 @@
       FORM_SETTINGS.forEach(function(k) {
         var elmt = '<div class="form-entry">';
         elmt += '<label for="' + k + '">' + k + '</label>';
+        
+        if (FORM_SETTINGS_HELP[k]) {
+          elmt += '<div class="field-help" data-help-text="' + FORM_SETTINGS_HELP[k] + '"></div>';
+        }
+        
         elmt += '<input type="text" class="form-control" name="' + k + '"/>';
         elmt += '</div>';
+        
         settings += elmt;
       });
         
@@ -433,6 +452,17 @@
         saveGatewayConfigs();
         e.preventDefault();
         return false;
+      });
+      
+      $('.field-help').each(function() {
+        var elmt = $('<i></i>')
+          .addClass('glyphicon glyphicon-question-sign')
+          .tooltip({
+            placement: 'top',
+            title: $(this).data('help-text'),
+            container: 'body'
+          });
+        $(this).append(elmt);
       });
       
       loadSettings();

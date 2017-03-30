@@ -17,7 +17,7 @@ size_t Settings::getAutoRestartPeriod() {
     return 0;
   }
   
-  return std::min(_autoRestartPeriod, static_cast<size_t>(MINIMUM_RESTART_PERIOD));
+  return std::max(_autoRestartPeriod, static_cast<size_t>(MINIMUM_RESTART_PERIOD));
 }
 
 void Settings::deserialize(Settings& settings, String json) {
