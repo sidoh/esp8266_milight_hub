@@ -51,13 +51,19 @@ The HTTP endpoints (shown below) will be fully functional at this point. You sho
 ## REST endpoints
 
 1. `GET /`. Opens web UI. You'll need to upload it first.
+1. `GET /about`. Return information about current firmware version.
+1. `POST /system`. Post commands in the form `{"comamnd": <command>}`. Currently supports the commands: `restart`.
+1. `POST /firmware`. OTA firmware update.
+1. `POST /web`. Update web UI.
 1. `GET /settings`. Gets current settings as JSON.
 1. `PUT /settings`. Patches settings (e.g., doesn't overwrite keys that aren't present). Accepts a JSON blob in the body.
 1. `GET /radio_configs`. Get a list of supported radio configs (aka `device_type`s).
 1. `GET /gateway_traffic/:device_type`. Starts an HTTP long poll. Returns any Milight traffic it hears. Useful if you need to know what your Milight gateway/remote ID is. Since protocols for RGBW/CCT are different, specify one of `rgbw`, `cct`, or `rgb_cct` as `:device_type. Accepts a JSON blob.
 1. `PUT /gateways/:device_id/:device_type/:group_id`. Controls or sends commands to `:group_id` from `:device_id`. 
-1. `POST /firmware`. OTA firmware update.
-1. `POST /web`. Update web UI.
+1. `POST /raw_commands/:device_type`. Sends a raw RF packet with radio configs associated with `:device_type`. Example body:
+    ```
+    {"packet": "01 02 03 04 05 06 07 08 09", "num_repeats": 10}
+    ```
 
 #### Bulb commands
 
