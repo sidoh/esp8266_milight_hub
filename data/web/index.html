@@ -133,7 +133,7 @@
   
     var activeUrl = function() {
       var deviceId = $('#deviceId option:selected').val()
-        , groupId = $('#groupId input:checked').data('value')
+        , groupId = $('#groupId .active input').data('value')
         , mode = getCurrentMode();
         
       if (deviceId == "") {
