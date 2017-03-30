@@ -56,7 +56,6 @@ The HTTP endpoints (shown below) will be fully functional at this point. You sho
 1. `GET /radio_configs`. Get a list of supported radio configs (aka `device_type`s).
 1. `GET /gateway_traffic/:device_type`. Starts an HTTP long poll. Returns any Milight traffic it hears. Useful if you need to know what your Milight gateway/remote ID is. Since protocols for RGBW/CCT are different, specify one of `rgbw`, `cct`, or `rgb_cct` as `:device_type. Accepts a JSON blob.
 1. `PUT /gateways/:device_id/:device_type/:group_id`. Controls or sends commands to `:group_id` from `:device_id`. 
-1. `PUT /gateways/:device_id/:device_type`. A few commands have support for being sent to all groups. You can send those here.
 1. `POST /firmware`. OTA firmware update.
 1. `POST /web`. Update web UI.
 
@@ -83,8 +82,7 @@ Route (5) supports these commands. Note that each bulb type has support for a di
    * `temperature_down`. Turns down the white temperature. Not all bulbs with adjustable white temperature support this command.
    * `temperature_up`. Turns up the white temperature. Not all bulbs with adjustable white temperature support this command.
    
-Route (6) suports the `command`s `all_on` and `all_off`, which do as you'd expect.
-
+If you'd like to control bulbs in all groups paired with a particular device ID, set `:group_id` to 0.
 
 #### Examples
 
