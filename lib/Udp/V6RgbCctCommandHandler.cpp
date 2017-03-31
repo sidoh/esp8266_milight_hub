@@ -39,6 +39,10 @@ bool V6RgbCctCommandHandler::handleCommand(
       client->updateSaturation(100 - arg);
       break;
       
+    case V2_MODE:
+      client->updateMode(arg-1);
+      break;
+      
     default:
       return false;
   }

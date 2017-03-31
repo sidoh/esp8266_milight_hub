@@ -8,7 +8,8 @@ enum V2CommandIds {
   V2_SATURATION = 0x02,
   V2_BRIGHTNESS = 0x03,
   V2_STATUS = 0x04,
-  V2_KELVIN = 0x05
+  V2_KELVIN = 0x05,
+  V2_MODE = 0x06
 };
 
 class V6RgbCctCommandHandler : public V6CommandHandler {
