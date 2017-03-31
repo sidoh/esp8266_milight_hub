@@ -28,7 +28,7 @@ bool V6RgbCctCommandHandler::handleCommand(
       break;
       
     case V2_KELVIN:
-      client->updateTemperature(arg);
+      client->updateTemperature(100 - arg);
       break;
       
     case V2_BRIGHTNESS:
