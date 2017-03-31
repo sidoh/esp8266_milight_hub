@@ -1,10 +1,17 @@
 #include <V6MiLightUdpServer.h>
 #include <ESP8266WiFi.h>
 #include <Arduino.h>
+#include <Size.h>
+#include <V6CommandHandler.h>
 
 #define MATCHES_PACKET(packet1) ( \
   matchesPacket(packet1, size(packet1), packet, packetSize) \
 )
+
+V6CommandDemuxer* V6MiLightUdpServer::COMMAND_DEMUXER = new V6CommandDemuxer(
+  V6CommandHandler::ALL_HANDLERS,
+  V6CommandHandler::NUM_HANDLERS
+);
   
 uint8_t V6MiLightUdpServer::START_SESSION_COMMAND[] = {
   0x20, 0x00, 0x00, 0x00, 0x16, 0x02, 0x62, 0x3A, 0xD5, 0xED, 0xA3, 0x01, 0xAE, 
@@ -51,7 +58,9 @@ uint8_t V6MiLightUdpServer::SEARCH_RESPONSE[] = {
   0x37, 0x65, 0x61, 0x33, 0x62, 0x31, 
   0x39, 0x64, 0x30, 0x64, 0x01, 0x00, 
   0x01, 
-  0x17, 0x63,  // port?
+  0x17, 0x63,  // this is 5987 in hex. specifying a different value seems to 
+               // cause client to connect on a different port for some commands
+  0x00, 0xFF,
   0x00, 0x00, 0x05, 0x00, 0x09, 0x78, 
   0x6C, 0x69, 0x6E, 0x6B, 0x5F, 0x64, 
   0x65, 0x76, 0x07, 0x5B, 0xCD, 0x15
@@ -64,11 +73,6 @@ uint8_t V6MiLightUdpServer::OPEN_COMMAND_RESPONSE[] = {
   0x00, 0x00 ,0x00 ,0x00, 0x00, 0x00, 
   0x00, 0x00, 0x34
 };
-
-template<typename T, size_t sz>
-size_t size(T(&)[sz]) {
-    return sz;
-}
 
 V6MiLightUdpServer::~V6MiLightUdpServer() {
   V6Session* cur = firstSession;
@@ -132,12 +136,6 @@ void V6MiLightUdpServer::handleSearch() {
   memcpy(response, SEARCH_RESPONSE, packetLen);
   WiFi.macAddress(response + 6);
   
-  printf("Sending search response - ");
-  for (size_t i = 0; i < packetLen; i++) {
-    printf("%02X ", response[i]);
-  }
-  printf("\n");
-  
   socket.beginPacket(socket.remoteIP(), socket.remotePort());
   socket.write(response, packetLen);
   socket.endPacket();
@@ -183,91 +181,6 @@ bool V6MiLightUdpServer::sendResponse(uint16_t sessionId, uint8_t* responseBuffe
   return true;
 }
 
-bool V6MiLightUdpServer::handleRgbBulbCommand(uint8_t group, uint32_t _cmd, uint32_t _arg) {
-  const uint8_t cmd = _cmd & 0xFF;
-  const uint8_t arg = _arg >> 24;
-  
-  client->prepare(MilightRgbConfig, deviceId, 0);
-  
-  if (cmd == V2_RGB_COMMAND_PREFIX) {
-    switch (arg) {
-      case V2_RGB_ON:
-        client->updateStatus(ON);
-        break;
-        
-      case V2_RGB_OFF:
-        client->updateStatus(OFF);
-        break;
-        
-      case V2_RGB_BRIGHTNESS_DOWN:
-        client->decreaseBrightness();
-        break;
-        
-      case V2_RGB_BRIGHTNESS_UP:
-        client->increaseBrightness();
-        break;
-        
-      case V2_RGB_MODE_DOWN:
-        client->previousMode();
-        break;
-        
-      case V2_RGB_MODE_UP:
-        client->nextMode();
-        break;
-        
-      case V2_RGB_SPEED_DOWN:
-        client->modeSpeedDown();
-        break;
-        
-      case V2_RGB_SPEED_UP:
-        client->modeSpeedUp();
-        break;
-    }
-  } else if (cmd == V2_RGB_COLOR_PREFIX) {
-    client->updateColorRaw(arg);
-  }
-}
-
-bool V6MiLightUdpServer::handleV2BulbCommand(uint8_t group, uint32_t _cmd, uint32_t _arg) {
-  const uint8_t cmd = _cmd & 0xFF;
-  const uint8_t arg = _arg >> 24;
-  
-  client->prepare(MilightRgbCctConfig, deviceId, group);
-  
-  switch (cmd) {
-    case V2_STATUS:
-      if (arg == 0x01) {
-        client->updateStatus(ON);
-      } else if (arg == 0x02) {
-        client->updateStatus(OFF);
-      } else if (arg == 0x05) {
-        client->updateBrightness(0);
-      }
-      break;
-      
-    case V2_COLOR:
-      client->updateColorRaw(arg);
-      break;
-      
-    case V2_KELVIN:
-      client->updateTemperature(arg);
-      break;
-      
-    case V2_BRIGHTNESS:
-      client->updateBrightness(arg);
-      break;
-      
-    case V2_SATURATION:
-      client->updateSaturation(100 - arg);
-      break;
-      
-    default:
-      return false;
-  }
-  
-  return true;
-}
-
 bool V6MiLightUdpServer::handleOpenCommand(uint16_t sessionId) {
   size_t len = size(OPEN_COMMAND_RESPONSE);
   uint8_t response[len];
@@ -297,11 +210,20 @@ void V6MiLightUdpServer::handleCommand(
   
   if (cmdHeader == 0) {
     handled = handleOpenCommand(sessionId);
-  } else if ((cmdHeader & 0x0800) == 0x0800) {
-    handled = handleV2BulbCommand(group, cmdHeader, cmdArg);
-  } else if ((cmdHeader & 0x0500) == 0x0500) {
-    handled = handleRgbBulbCommand(group, cmdHeader, cmdArg);
+  } else {
+    handled = COMMAND_DEMUXER->handleCommand(
+      client,
+      deviceId,
+      group,
+      cmdHeader,
+      cmdArg
+    );
   }
+  // else if ((cmdHeader & 0x0800) == 0x0800) {
+  //   handled = handleV2BulbCommand(group, cmdHeader, cmdArg);
+  // } else if ((cmdHeader & 0x0500) == 0x0500) {
+  //   handled = handleRgbBulbCommand(group, cmdHeader, cmdArg);
+  // }
   
   if (handled) {
     size_t len = size(COMMAND_RESPONSE);

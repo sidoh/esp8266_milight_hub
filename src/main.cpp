@@ -5,6 +5,7 @@
 #include <FS.h>
 #include <GithubDownloader.h>
 #include <IntParsing.h>
+#include <Size.h>
 #include <MiLightClient.h>
 #include <MiLightRadioConfig.h>
 #include <MiLightHttpServer.h>

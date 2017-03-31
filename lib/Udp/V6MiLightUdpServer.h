@@ -6,33 +6,13 @@
 #include <WiFiUdp.h>
 #include <MiLightUdpServer.h>
 #include <Vector.h>
+#include <V6CommandHandler.h>
 
 #define V6_COMMAND_LEN 8
 #define V6_MAX_SESSIONS 10
 
 #ifndef _V6_MILIGHT_UDP_SERVER
 #define _V6_MILIGHT_UDP_SERVER 
-
-enum V2CommandIds {
-  V2_COLOR = 0x01,
-  V2_SATURATION = 0x02,
-  V2_BRIGHTNESS = 0x03,
-  V2_STATUS = 0x04,
-  V2_KELVIN = 0x05
-};
-
-enum RgbCommandIds {
-  V2_RGB_COMMAND_PREFIX  = 0x02,
-  V2_RGB_COLOR_PREFIX    = 0x01,
-  V2_RGB_BRIGHTNESS_DOWN = 0x01,
-  V2_RGB_BRIGHTNESS_UP   = 0x02,
-  V2_RGB_SPEED_DOWN      = 0x03,
-  V2_RGB_SPEED_UP        = 0x04,
-  V2_RGB_MODE_DOWN       = 0x05,
-  V2_RGB_MODE_UP         = 0x06,
-  V2_RGB_ON              = 0x09,
-  V2_RGB_OFF             = 0x0A
-};
 
 struct V6Session {
   V6Session(IPAddress ipAddr, uint16_t port, uint16_t sessionId)
@@ -69,6 +49,8 @@ public:
   static uint8_t* writeInt(const T& value, uint8_t* packet);
     
 protected:
+  static V6CommandDemuxer* COMMAND_DEMUXER;
+  
   static uint8_t START_SESSION_COMMAND[] PROGMEM;
   static uint8_t START_SESSION_RESPONSE[] PROGMEM;
   static uint8_t COMMAND_HEADER[] PROGMEM;
@@ -101,18 +83,6 @@ protected:
     uint8_t* cmd,
     uint8_t group,
     uint8_t checksum
-  );
-  
-  bool handleRgbBulbCommand(
-    uint8_t group,
-    uint32_t cmd,
-    uint32_t cmdArg
-  );
-  
-  bool handleV2BulbCommand(
-    uint8_t group,
-    uint32_t cmd,
-    uint32_t cmdArg
   );
 };
 
