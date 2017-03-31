@@ -22,8 +22,6 @@ MiLightHttpServer *httpServer;
 int numUdpServers = 0;
 MiLightUdpServer** udpServers;
 
-uint64_t startTime;
-
 void initMilightUdpServers() {
   if (udpServers) {
     for (int i = 0; i < numUdpServers; i++) {
@@ -89,8 +87,6 @@ void setup() {
   httpServer = new MiLightHttpServer(settings, milightClient);
   httpServer->onSettingsSaved(applySettings);
   httpServer->begin();
-  
-  startTime = millis();
 }
 
 void loop() {
