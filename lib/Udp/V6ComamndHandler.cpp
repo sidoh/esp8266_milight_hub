@@ -1,13 +1,15 @@
 #include <V6CommandHandler.h>
 #include <V6RgbCctCommandHandler.h>
+#include <V6RgbwCommandHandler.h>
 #include <V6RgbCommandHandler.h>
 #include <V6CctCommandHandler.h>
 #include <Size.h>
 
 V6CommandHandler* V6CommandHandler::ALL_HANDLERS[] = {
   new V6RgbCctCommandHandler(0x0800),
+  new V6RgbwCommandHandler(0x0700),
   new V6RgbCommandHandler(0x0500),
-  new V6CctCommandHandler(0x0100)
+  new V6CctCommandHandler(0x0100),
 };
 
 const size_t V6CommandHandler::NUM_HANDLERS = size(ALL_HANDLERS);

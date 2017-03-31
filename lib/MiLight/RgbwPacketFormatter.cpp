@@ -30,6 +30,11 @@ void RgbwPacketFormatter::nextMode() {
   command(RGBW_DISCO_MODE, 0);
 }
 
+void RgbwPacketFormatter::updateMode(uint8_t mode) {
+  command(RGBW_DISCO_MODE, 0);
+  currentPacket[0] = RGBW | mode;
+}
+
 void RgbwPacketFormatter::updateStatus(MiLightStatus status, uint8_t groupId) {
   uint8_t button = RGBW_GROUP_1_ON + ((groupId - 1)*2) + status;
   command(button, 0);

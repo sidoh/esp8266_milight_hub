@@ -55,6 +55,7 @@ public:
   virtual void modeSpeedDown();
   virtual void modeSpeedUp();
   virtual void nextMode();
+  virtual void updateMode(uint8_t mode);
   
   virtual void initializePacket(uint8_t* packet);
 };
