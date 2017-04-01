@@ -215,15 +215,11 @@ void V6MiLightUdpServer::handleCommand(
       client,
       deviceId,
       group,
+      cmdType,
       cmdHeader,
       cmdArg
     );
   }
-  // else if ((cmdHeader & 0x0800) == 0x0800) {
-  //   handled = handleV2BulbCommand(group, cmdHeader, cmdArg);
-  // } else if ((cmdHeader & 0x0500) == 0x0500) {
-  //   handled = handleRgbBulbCommand(group, cmdHeader, cmdArg);
-  // }
   
   if (handled) {
     size_t len = size(COMMAND_RESPONSE);

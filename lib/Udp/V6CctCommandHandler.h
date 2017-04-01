@@ -17,8 +17,8 @@ enum CctCommandIds {
 
 class V6CctCommandHandler : public V6CommandHandler {
 public:
-  V6CctCommandHandler(uint16_t commandId)
-    : V6CommandHandler(commandId)
+  V6CctCommandHandler()
+    : V6CommandHandler(0x0100, MilightCctConfig)
   { }
   
   virtual bool handleCommand(
