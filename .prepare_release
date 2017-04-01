@@ -1,0 +1,14 @@
+#!/bin/bash
+
+set -eo pipefail
+
+VERSION=$(git describe)
+
+mkdir dist
+
+for file in $(ls .pioenvs/**/firmware.bin); do
+  env_dir=$(dirname "$file")
+  env=$(basename "$env_dir")
+
+  cp "$file" "dist/esp8266_milight_hub_${env}-${VERSION}.bin"
+done

@@ -10,6 +10,8 @@ install:
 - platformio lib install
 script:
 - platformio run
+before_deploy:
+  - ./.prepare_release
 deploy:
   provider: releases
   api_key:
