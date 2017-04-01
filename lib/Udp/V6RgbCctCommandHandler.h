@@ -34,6 +34,8 @@ public:
     uint32_t commandArg
   );
   
+  void handleUpdateColor(MiLightClient* client, uint32_t color);
+  
 };
 
 #endif

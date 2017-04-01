@@ -39,9 +39,8 @@ bool V6RgbCctCommandHandler::handleCommand(
   }
   
   switch (cmd) {
-      
     case V2_COLOR:
-      client->updateColorRaw(arg);
+      handleUpdateColor(client, commandArg);
       break;
       
     case V2_KELVIN:
@@ -65,4 +64,20 @@ bool V6RgbCctCommandHandler::handleCommand(
   }
   
   return true;
+}
+
+/* 
+ * Arguments are 32 bits. Most commands use the first byte, but color arguments
+ * can use all four. Triggered in app when quickly transitioning through colors.
+ */
+void V6RgbCctCommandHandler::handleUpdateColor(MiLightClient *client, uint32_t color) {
+  for (int i = 3; i >= 0; i--) {
+    const uint8_t argValue = (color >> (i*8)) & 0xFF;
+    
+    if (argValue == 0) {
+      return;
+    }
+    
+    client->updateColorRaw(argValue);
+  }
 }
