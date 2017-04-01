@@ -21,3 +21,4 @@ deploy:
   on:
     repo: sidoh/esp8266_milight_hub
     tags: true
+    prerelease: true
