@@ -12,16 +12,33 @@ bool V6RgbCctCommandHandler::handleCommand(
   
   client->prepare(MilightRgbCctConfig, deviceId, group);
   
-  switch (cmd) {
-    case V2_STATUS:
-      if (arg == 0x01) {
-        client->updateStatus(ON);
-      } else if (arg == 0x02) {
-        client->updateStatus(OFF);
-      } else if (arg == 0x05) {
+  if (cmd == V2_STATUS) {
+    switch (arg) {
+      case V2_RGB_CCT_ON:
+      case V2_RGB_CCT_OFF:
+        client->updateStatus(arg == V2_RGB_CCT_ON ? ON : OFF);
+        break;
+        
+      case V2_RGB_NIGHT_MODE:
         client->updateBrightness(0);
-      }
-      break;
+        break;
+        
+      case V2_RGB_CCT_SPEED_DOWN:
+        client->modeSpeedDown();
+        break;
+        
+      case V2_RGB_CCT_SPEED_UP:
+        client->modeSpeedUp();
+        break;
+        
+      default: 
+        return false;
+    }
+    
+    return true;
+  }
+  
+  switch (cmd) {
       
     case V2_COLOR:
       client->updateColorRaw(arg);

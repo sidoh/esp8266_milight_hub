@@ -12,6 +12,14 @@ enum V2CommandIds {
   V2_MODE = 0x06
 };
 
+enum V2CommandArgIds {
+  V2_RGB_CCT_ON = 0x01,
+  V2_RGB_CCT_OFF = 0x02,
+  V2_RGB_CCT_SPEED_UP = 0x03,
+  V2_RGB_CCT_SPEED_DOWN = 0x04,
+  V2_RGB_NIGHT_MODE = 0x05
+};
+
 class V6RgbCctCommandHandler : public V6CommandHandler {
 public:
   V6RgbCctCommandHandler(uint16_t commandId)
