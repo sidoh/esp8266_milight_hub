@@ -8,6 +8,7 @@
 #define MAX_DOWNLOAD_ATTEMPTS 3
 
 typedef std::function<void(void)> SettingsSavedHandler;
+typedef std::function<void(void)> LongPollLoopFn;
 
 const char DEFAULT_INDEX_PAGE[] PROGMEM
   = "Web app not installed. Click <a href=\"/download_update/web\">here</a> to attempt to download it from GitHub.";
@@ -25,6 +26,7 @@ public:
   void begin();
   void handleClient();
   void onSettingsSaved(SettingsSavedHandler handler);
+  void onLongPollLoop(LongPollLoopFn);
   
 protected:
   ESP8266WebServer::THandlerFunction handleServeFile(
@@ -51,6 +53,7 @@ protected:
   Settings& settings;
   MiLightClient*& milightClient;
   SettingsSavedHandler settingsSavedHandler;
+  LongPollLoopFn longPollLoopFn;
   
 };
 
