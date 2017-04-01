@@ -2,6 +2,11 @@
 
 set -eo pipefail
 
+if [ -z "$(git tag -l --points-at HEAD)" ]; then
+  echo "[$(basename $0)] Skipping non-tagged commit."
+  exit 0
+fi
+
 VERSION=$(git describe)
 
 mkdir dist
