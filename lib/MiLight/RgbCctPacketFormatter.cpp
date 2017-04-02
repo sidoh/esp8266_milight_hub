@@ -1,7 +1,7 @@
 #include <RgbCctPacketFormatter.h>
 
 #define V2_OFFSET(byte, key, jumpStart) ( \
-  V2_OFFSETS[byte-1][key%4] \
+  pgm_read_byte(&V2_OFFSETS[byte-1][key%4]) \
     + \
   ((jumpStart > 0 && key >= jumpStart && key <= jumpStart+0x80) ? 0x80 : 0) \
 )
@@ -149,9 +149,9 @@ void RgbCctPacketFormatter::encodeV2Packet(uint8_t *packet) {
 }
 
 void RgbCctPacketFormatter::format(uint8_t const* packet, char* buffer) {
-  buffer += sprintf(buffer, "Raw packet: ");
+  buffer += sprintf_P(buffer, PSTR("Raw packet: "));
   for (int i = 0; i < packetLength; i++) {
-    buffer += sprintf(buffer, "%02X ", packet[i]);
+    buffer += sprintf_P(buffer, PSTR("%02X "), packet[i]);
   }
   
   uint8_t decodedPacket[packetLength];
@@ -159,13 +159,13 @@ void RgbCctPacketFormatter::format(uint8_t const* packet, char* buffer) {
   
   decodeV2Packet(decodedPacket);
   
-  buffer += sprintf(buffer, "\n\nDecoded:\n");
-  buffer += sprintf(buffer, "Key      : %02X\n", decodedPacket[0]);
-  buffer += sprintf(buffer, "b1       : %02X\n", decodedPacket[1]);
-  buffer += sprintf(buffer, "ID       : %02X%02X\n", decodedPacket[2], decodedPacket[3]);
-  buffer += sprintf(buffer, "Command  : %02X\n", decodedPacket[4]);
-  buffer += sprintf(buffer, "Argument : %02X\n", decodedPacket[5]);
-  buffer += sprintf(buffer, "Sequence : %02X\n", decodedPacket[6]);
-  buffer += sprintf(buffer, "Group    : %02X\n", decodedPacket[7]);
-  buffer += sprintf(buffer, "Checksum : %02X", decodedPacket[8]);
+  buffer += sprintf_P(buffer, PSTR("\n\nDecoded:\n"));
+  buffer += sprintf_P(buffer, PSTR("Key      : %02X\n"), decodedPacket[0]);
+  buffer += sprintf_P(buffer, PSTR("b1       : %02X\n"), decodedPacket[1]);
+  buffer += sprintf_P(buffer, PSTR("ID       : %02X%02X\n"), decodedPacket[2], decodedPacket[3]);
+  buffer += sprintf_P(buffer, PSTR("Command  : %02X\n"), decodedPacket[4]);
+  buffer += sprintf_P(buffer, PSTR("Argument : %02X\n"), decodedPacket[5]);
+  buffer += sprintf_P(buffer, PSTR("Sequence : %02X\n"), decodedPacket[6]);
+  buffer += sprintf_P(buffer, PSTR("Group    : %02X\n"), decodedPacket[7]);
+  buffer += sprintf_P(buffer, PSTR("Checksum : %02X"), decodedPacket[8]);
 }

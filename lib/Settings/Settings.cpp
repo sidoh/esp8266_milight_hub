@@ -91,7 +91,7 @@ void Settings::updateGatewayConfigs(JsonArray& arr) {
       if (params.success() && params.size() == 3) {
         this->gatewayConfigs[i] = new GatewayConfig(parseInt<uint16_t>(params[0]), params[1], params[2]);
       } else {
-        Serial.print("Settings - skipped parsing gateway ports settings for element #");
+        Serial.print(F("Settings - skipped parsing gateway ports settings for element #"));
         Serial.println(i);
       }
     }
@@ -155,7 +155,7 @@ void Settings::save() {
   File f = SPIFFS.open(SETTINGS_FILE, "w");
   
   if (!f) {
-    Serial.println("Opening settings file failed");
+    Serial.println(F("Opening settings file failed"));
   } else {
     serialize(f);
     f.close();

@@ -8,7 +8,7 @@
   matchesPacket(packet1, size(packet1), packet, packetSize) \
 )
 
-V6CommandDemuxer* V6MiLightUdpServer::COMMAND_DEMUXER = new V6CommandDemuxer(
+V6CommandDemuxer V6MiLightUdpServer::COMMAND_DEMUXER = V6CommandDemuxer(
   V6CommandHandler::ALL_HANDLERS,
   V6CommandHandler::NUM_HANDLERS
 );
@@ -171,7 +171,7 @@ bool V6MiLightUdpServer::sendResponse(uint16_t sessionId, uint8_t* responseBuffe
   }
   
 #ifdef MILIGHT_UDP_DEBUG
-  printf("Sending response to %s:%d\n", session->ipAddr.toString().c_str(), session->port);
+  printf_P("Sending response to %s:%d\n", session->ipAddr.toString().c_str(), session->port);
 #endif
   
   socket.beginPacket(session->ipAddr, session->port);
@@ -203,7 +203,7 @@ void V6MiLightUdpServer::handleCommand(
   uint32_t cmdArg = readInt<uint32_t>(cmd+5);
   
 #ifdef MILIGHT_UDP_DEBUG
-  printf("Command cmdType: %02X, cmdHeader: %08X, cmdArg: %08X\n", cmdType, cmdHeader, cmdArg);
+  printf_P("Command cmdType: %02X, cmdHeader: %08X, cmdArg: %08X\n", cmdType, cmdHeader, cmdArg);
 #endif
   
   bool handled = false;
@@ -211,7 +211,7 @@ void V6MiLightUdpServer::handleCommand(
   if (cmdHeader == 0) {
     handled = handleOpenCommand(sessionId);
   } else {
-    handled = COMMAND_DEMUXER->handleCommand(
+    handled = COMMAND_DEMUXER.handleCommand(
       client,
       deviceId,
       group,
@@ -232,11 +232,11 @@ void V6MiLightUdpServer::handleCommand(
   }
   
 #ifdef MILIGHT_UDP_DEBUG
-  printf("V6MiLightUdpServer - Unhandled command: ");
+  printf_P("V6MiLightUdpServer - Unhandled command: ");
   for (size_t i = 0; i < V6_COMMAND_LEN; i++) {
-    printf("%02X ", cmd[i]);
+    printf_P("%02X ", cmd[i]);
   }
-  printf("\n");
+  printf_P("\n");
 #endif
 }
 
@@ -255,7 +255,7 @@ bool V6MiLightUdpServer::matchesPacket(uint8_t* packet1, size_t packet1Len, uint
 
 void V6MiLightUdpServer::handlePacket(uint8_t* packet, size_t packetSize) {
 #ifdef MILIGHT_UDP_DEBUG
-  printf("Packet size: %d\n", packetSize);
+  printf_P("Packet size: %d\n", packetSize);
 #endif
   
   if (MATCHES_PACKET(START_SESSION_COMMAND)) {
@@ -273,11 +273,11 @@ void V6MiLightUdpServer::handlePacket(uint8_t* packet, size_t packetSize) {
     uint8_t checksum = packet[21];
     
 #ifdef MILIGHT_UDP_DEBUG
-    printf("session: %04X, sequence: %d, group: %d, checksum: %d\n", sessionId, sequenceNum, group, checksum);
+    printf_P("session: %04X, sequence: %d, group: %d, checksum: %d\n", sessionId, sequenceNum, group, checksum);
 #endif
     
     handleCommand(sessionId, sequenceNum, cmd, group, checksum);
   } else {
-    Serial.println("Unhandled V6 packet");
+    Serial.println(F("Unhandled V6 packet"));
   }
 }

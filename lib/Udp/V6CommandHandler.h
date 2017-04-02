@@ -12,7 +12,7 @@ enum V6CommandTypes {
 
 class V6CommandHandler {
 public:
-  static V6CommandHandler* ALL_HANDLERS[];
+  static V6CommandHandler* ALL_HANDLERS[] PROGMEM;
   static const size_t NUM_HANDLERS;
   
   V6CommandHandler(uint16_t commandId, MiLightRadioConfig& radioConfig)

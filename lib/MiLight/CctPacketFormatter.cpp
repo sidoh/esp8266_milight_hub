@@ -91,8 +91,6 @@ uint8_t CctPacketFormatter::getCctStatusButton(uint8_t groupId, MiLightStatus st
     }
   }
   
-  printf("Group id = %d\n", groupId);
-  
   return button;
 }
 

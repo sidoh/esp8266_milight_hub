@@ -49,7 +49,7 @@ public:
   static uint8_t* writeInt(const T& value, uint8_t* packet);
     
 protected:
-  static V6CommandDemuxer* COMMAND_DEMUXER;
+  static V6CommandDemuxer COMMAND_DEMUXER PROGMEM;
   
   static uint8_t START_SESSION_COMMAND[] PROGMEM;
   static uint8_t START_SESSION_RESPONSE[] PROGMEM;

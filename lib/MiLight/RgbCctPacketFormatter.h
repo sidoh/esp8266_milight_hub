@@ -25,7 +25,7 @@ enum MiLightRgbCctArguments {
 
 class RgbCctPacketFormatter : public PacketFormatter {
 public:
-  static uint8_t const V2_OFFSETS[][4];
+  static uint8_t const V2_OFFSETS[][4] PROGMEM;
     
   RgbCctPacketFormatter()
     : PacketFormatter(9),

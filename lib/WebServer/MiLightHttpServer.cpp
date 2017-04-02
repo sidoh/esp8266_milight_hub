@@ -4,7 +4,7 @@
 #include <Settings.h>
 #include <MiLightHttpServer.h>
 #include <MiLightRadioConfig.h>
-#include <GithubDownloader.h>
+#include <GithubClient.h>
 
 void MiLightHttpServer::begin() {
   applySettings(settings);
@@ -65,7 +65,7 @@ void MiLightHttpServer::handleSystemPost() {
   
   if (request.containsKey("command")) {
     if (request["command"] == "restart") {
-      Serial.println("Restarting...");
+      Serial.println(F("Restarting..."));
       server.send(200, "text/plain", "true");
       
       delay(100);
@@ -77,43 +77,45 @@ void MiLightHttpServer::handleSystemPost() {
   if (handled) {
     server.send(200, "text/plain", "true");
   } else {
-    server.send(400, "text/plain", "{\"error\":\"Unhandled command\"}");
+    server.send(400, "text/plain", F("{\"error\":\"Unhandled command\"}"));
   }
 }
 
 void MiLightHttpServer::handleDownloadUpdate(const UrlTokenBindings* bindings) {
-  GithubDownloader* downloader = new GithubDownloader();
+  GithubClient downloader = GithubClient::rawDownloader();
   const String& component = bindings->get("component");
   
   if (component.equalsIgnoreCase("web")) {
-    Serial.println("Attempting to update web UI...");
+    Serial.println(F("Attempting to update web UI..."));
     
     bool result = false;
     size_t tries = 0;
     
     while (!result && tries++ <= MAX_DOWNLOAD_ATTEMPTS) {
-      result = downloader->downloadFile(
+      printf("building url\n");
+      String urlPath = GithubClient::buildRepoPath(
         MILIGHT_GITHUB_USER,
         MILIGHT_GITHUB_REPO,
-        MILIGHT_REPO_WEB_PATH,
-        WEB_INDEX_FILENAME
+        MILIGHT_REPO_WEB_PATH
       );
+      
+      printf("URL: %s\n", urlPath.c_str());
+      
+      result = downloader.download(urlPath, WEB_INDEX_FILENAME);
     }
     
-    Serial.println("Download complete!");
+    Serial.println(F("Download complete!"));
     
     if (result) {
       server.sendHeader("Location", "/");
       server.send(302);
     } else {
-      server.send(500, "text/plain", "Failed to download update from Github. Check serial logs for more information.");
+      server.send(500, "text/plain", F("Failed to download update from Github. Check serial logs for more information."));
     }
   } else {
     String body = String("Unknown component: ") + component;
     server.send(400, "text/plain", body);
   }
-  
-  delete downloader;
 }
 
 void MiLightHttpServer::applySettings(Settings& settings) {
@@ -248,15 +250,11 @@ void MiLightHttpServer::handleListenGateway(const UrlTokenBindings* bindings) {
   uint8_t packet[config->getPacketLength()];
   milightClient->read(packet);
   
-  String response = "Packet received (";
-  response += String(sizeof(packet)) + " bytes)";
-  response += ":\n";
+  char response[200];
+  char* responseBuffer = response;
   
-  char ppBuffer[200];
-  milightClient->formatPacket(packet, ppBuffer);
-  response += String(ppBuffer);
-  
-  response += "\n\n";
+  responseBuffer += sprintf(responseBuffer, "\nPacket received (%d bytes):\n", sizeof(packet));
+  milightClient->formatPacket(packet, responseBuffer);
   
   server.send(200, "text/plain", response);
 }
@@ -266,7 +264,7 @@ void MiLightHttpServer::handleUpdateGroup(const UrlTokenBindings* urlBindings) {
   JsonObject& request = buffer.parse(server.arg("plain"));
   
   if (!request.success()) {
-    server.send(400, "text/plain", "Invalid JSON");
+    server.send(400, "text/plain", F("Invalid JSON"));
     return;
   }
   
@@ -277,7 +275,6 @@ void MiLightHttpServer::handleUpdateGroup(const UrlTokenBindings* urlBindings) {
   if (config == NULL) {
     String body = "Unknown device type: ";
     body += urlBindings->get("type");
-    
     server.send(400, "text/plain", body);
     return;
   }

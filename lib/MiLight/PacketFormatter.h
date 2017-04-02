@@ -3,6 +3,8 @@
 #include <functional>
 #include <MiLightButtons.h>
 
+#define PACKET_FORMATTER_BUFFER_SIZE 48
+
 #ifndef _PACKET_FORMATTER_H
 #define _PACKET_FORMATTER_H 
 
@@ -21,10 +23,6 @@ struct PacketStream {
 class PacketFormatter {
 public:
   PacketFormatter(const size_t packetLength, const size_t maxPackets = 1);
-  
-  ~PacketFormatter() {
-    delete this->packetBuffer;
-  }
   
   typedef void (PacketFormatter::*StepFunction)();
   
@@ -75,7 +73,8 @@ public:
   size_t getPacketLength() const;
   
 protected:
-  uint8_t* packetBuffer;
+  static uint8_t* PACKET_BUFFER;
+  
   uint8_t* currentPacket;
   size_t packetLength;
   uint16_t deviceId;

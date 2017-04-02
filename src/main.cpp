@@ -3,7 +3,7 @@
 #include <ArduinoJson.h>
 #include <stdlib.h>
 #include <FS.h>
-#include <GithubDownloader.h>
+#include <GithubClient.h>
 #include <IntParsing.h>
 #include <Size.h>
 #include <MiLightClient.h>
@@ -46,7 +46,7 @@ void initMilightUdpServers() {
     );
     
     if (server == NULL) {
-      Serial.print("Error creating UDP server with protocol version: ");
+      Serial.print(F("Error creating UDP server with protocol version: "));
       Serial.println(config->protocolVersion);
     } else {
       udpServers[i] = server;
@@ -99,7 +99,7 @@ void loop() {
   }
   
   if (shouldRestart()) {
-    Serial.println("Auto-restart triggered. Restarting...");
+    Serial.println(F("Auto-restart triggered. Restarting..."));
     ESP.restart();
   }
 }

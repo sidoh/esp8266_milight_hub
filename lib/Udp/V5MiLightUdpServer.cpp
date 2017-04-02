@@ -4,7 +4,7 @@ void V5MiLightUdpServer::handlePacket(uint8_t* packet, size_t packetSize) {
   if (packetSize == 2 || packetSize == 3) {
     handleCommand(packet[0], packet[1]);
   } else {
-    Serial.print("V5MilightUdpServer: unexpected packet length. Should always be 2-3, was: ");
+    Serial.print(F("V5MilightUdpServer: unexpected packet length. Should always be 2-3, was: "));
     Serial.println(packetSize);  
   }
 }
@@ -91,7 +91,7 @@ void V5MiLightUdpServer::handleCommand(uint8_t command, uint8_t commandArg) {
         
       default:
         if (!handled) {
-          Serial.print("V5MiLightUdpServer - Unhandled command: ");
+          Serial.print(F("V5MiLightUdpServer - Unhandled command: "));
           Serial.println(command);
         }
     }

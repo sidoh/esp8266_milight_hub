@@ -1,5 +1,7 @@
 #include <PacketFormatter.h>
 
+uint8_t* PacketFormatter::PACKET_BUFFER = new uint8_t[PACKET_FORMATTER_BUFFER_SIZE];
+
 PacketStream::PacketStream()
     : packetStream(NULL),
       numPackets(0),
@@ -19,12 +21,11 @@ uint8_t* PacketStream::next() {
 
 PacketFormatter::PacketFormatter(const size_t packetLength, const size_t maxPackets)
   : packetLength(packetLength),
-    packetBuffer(new uint8_t[packetLength * maxPackets]),
     numPackets(0),
     currentPacket(NULL)
 { 
   packetStream.packetLength = packetLength;
-  packetStream.packetStream = packetBuffer;
+  packetStream.packetStream = PACKET_BUFFER;
 }
   
 void PacketFormatter::finalizePacket(uint8_t* packet) { }
@@ -101,37 +102,26 @@ void PacketFormatter::pushPacket() {
     finalizePacket(currentPacket);
   }
   
-  currentPacket = packetBuffer + (numPackets * packetLength);
+  currentPacket = PACKET_BUFFER + (numPackets * packetLength);
   numPackets++;
   initializePacket(currentPacket);
 }
 
 void PacketFormatter::format(uint8_t const* packet, char* buffer) {
   for (int i = 0; i < packetLength; i++) {
-    sprintf(buffer, "%02X ", packet[i]);
+    sprintf_P(buffer, "%02X ", packet[i]);
     buffer += 3;
   }
-  sprintf(buffer, "\n\n");
+  sprintf_P(buffer, "\n\n");
 }
 
 void PacketFormatter::formatV1Packet(uint8_t const* packet, char* buffer) {
-  String format = String("Request type  : %02X\n") 
-    + "Device ID     : %02X%02X\n"
-    + "b1            : %02X\n"
-    + "b2            : %02X\n"
-    + "b3            : %02X\n"
-    + "Sequence Num. : %02X";
-    
-  sprintf(
-    buffer,
-    format.c_str(),
-    packet[0],
-    packet[1], packet[2],
-    packet[3],
-    packet[4],
-    packet[5],
-    packet[6]
-  );
+  buffer += sprintf_P(buffer, "Request type  : %02X\n", packet[0]) ;
+  buffer += sprintf_P(buffer, "Device ID     : %02X%02X\n", packet[1], packet[2]);
+  buffer += sprintf_P(buffer, "b1            : %02X\n", packet[3]);
+  buffer += sprintf_P(buffer, "b2            : %02X\n", packet[4]);
+  buffer += sprintf_P(buffer, "b3            : %02X\n", packet[5]);
+  buffer += sprintf_P(buffer, "Sequence Num. : %02X", packet[6]);
 }
   
 size_t PacketFormatter::getPacketLength() const {

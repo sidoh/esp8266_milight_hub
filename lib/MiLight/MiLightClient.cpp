@@ -23,7 +23,7 @@ MiLightRadio* MiLightClient::switchRadio(const MiLightRadioType type) {
     formatter = stack->config.packetFormatter;
     return radio;
   } else {
-    Serial.print("MiLightClient - tried to get radio for unknown type: ");
+    Serial.print(F("MiLightClient - tried to get radio for unknown type: "));
     Serial.println(type);
   }
   
