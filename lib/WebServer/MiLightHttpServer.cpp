@@ -70,7 +70,11 @@ void MiLightHttpServer::handleGetLatestRelease() {
   // headers in the response from GitHub, which seems like more trouble than
   // it's worth.
   const String& fsPath = "/_cv.json";
-  client.download(path, fsPath);
+  size_t tries = 0;
+  
+  while (tries++ < MAX_DOWNLOAD_ATTEMPTS && !client.download(path, fsPath)) {
+    Serial.println(F("Failed download attempt."));
+  }
   
   File file = SPIFFS.open(fsPath, "r");
   server.streamFile(file, "application/json");

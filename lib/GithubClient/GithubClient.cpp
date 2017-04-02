@@ -4,10 +4,12 @@
 Stream& GithubClient::stream(const String& path) {
   if (!client.connect(domain.c_str(), 443)) {
     Serial.println(F("Failed to connect to github over HTTPS."));
+    return client;
   }
   
   if (!client.verify(sslFingerprint.c_str(), domain.c_str())) {
     Serial.println(F("Failed to verify github certificate"));
+    return client;
   }
   
   client.printf(
