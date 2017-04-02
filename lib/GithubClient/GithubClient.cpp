@@ -71,20 +71,17 @@ bool GithubClient::download(const String& path, const String& fsPath) {
   String tmpFile = fsPath + ".download_tmp";
   File f = SPIFFS.open(tmpFile.c_str(), "w");
   
-  printf("1.");
-  
   if (!f) {
     Serial.print(F("ERROR - could not open file for downloading: "));
     Serial.println(fsPath);
     return false;
   }
-  printf("2.");
+  printf(".");
   
   if (!download(path, f)) {
     f.close();
     return false;
   }
-  printf("3.");
   
   f.flush();
   f.close();
