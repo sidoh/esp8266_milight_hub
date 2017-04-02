@@ -2,7 +2,7 @@
 #include <FS.h>
 
 Stream& GithubClient::stream(const String& path) {
-  if (!client.connect(GITHUB_RAW_DOMAIN, 443)) {
+  if (!client.connect(domain.c_str(), 443)) {
     Serial.println(F("Failed to connect to github over HTTPS."));
   }
   
@@ -11,7 +11,7 @@ Stream& GithubClient::stream(const String& path) {
   }
   
   client.printf(
-    "GET %s HTTP/1.1\r\nHost: %s\r\nConnection: close\r\n\r\n",
+    "GET %s HTTP/1.1\r\nHost: %s\r\nUser-Agent: esp8266_milight_hub\r\nConnection: close\r\n\r\n",
     path.c_str(), 
     domain.c_str()
   );
@@ -97,6 +97,10 @@ bool GithubClient::download(const String& path, const String& fsPath) {
 String GithubClient::buildRepoPath(const String& username, const String& repo, const String& repoPath) {
   String path = String("/") + username + "/" + repo + "/master/" + repoPath;
   return path;
+}
+
+String GithubClient::buildApiRequest(const String &username, const String &repo, const String &path) {
+  return String("/repos/") + username + "/" + repo + path;
 }
   
 GithubClient GithubClient::rawDownloader() {

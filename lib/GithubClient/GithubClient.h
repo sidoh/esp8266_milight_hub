@@ -27,6 +27,7 @@ public:
   static GithubClient apiClient();
   
   static String buildRepoPath(const String& username, const String& repo, const String& path);
+  static String buildApiRequest(const String& username, const String& repo, const String& path);
   
   uint8_t buffer[GITHUB_CLIENT_BUFFER_SIZE];
   

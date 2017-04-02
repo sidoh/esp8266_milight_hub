@@ -39,6 +39,7 @@ protected:
   void handleUpdateSettings();
   void handleGetRadioConfigs();
   void handleAbout();
+  void handleGetLatestRelease();
   void handleSystemPost();
   void handleListenGateway(const UrlTokenBindings* urlBindings);
   void handleSendRaw(const UrlTokenBindings* urlBindings);

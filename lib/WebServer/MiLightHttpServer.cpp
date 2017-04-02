@@ -20,6 +20,7 @@ void MiLightHttpServer::begin() {
   server.onPattern("/download_update/:component", HTTP_GET, [this](const UrlTokenBindings* b) { handleDownloadUpdate(b); });
   server.on("/web", HTTP_POST, [this]() { server.send(200, "text/plain", "success"); }, handleUpdateFile(WEB_INDEX_FILENAME));
   server.on("/about", HTTP_GET, [this]() { handleAbout(); });
+  server.on("/latest_release", HTTP_GET, [this]() { handleGetLatestRelease(); });
   server.on("/system", HTTP_POST, [this]() { handleSystemPost(); });
   server.on("/firmware", HTTP_POST, 
     [this](){
@@ -51,6 +52,29 @@ void MiLightHttpServer::begin() {
   );
   
   server.begin();
+}
+
+void MiLightHttpServer::handleGetLatestRelease() {
+  GithubClient client = GithubClient::apiClient();
+  String path = GithubClient::buildApiRequest(
+    MILIGHT_GITHUB_USER,
+    MILIGHT_GITHUB_REPO,
+    "/releases/latest"
+  );
+  
+  Serial.println(path);
+  
+  // This is an ugly hack, but probably not worth optimizing. The nice way
+  // to do this would be to extract the content len from GitHub's response
+  // and stream the body to the server directly. But this would require parsing
+  // headers in the response from GitHub, which seems like more trouble than
+  // it's worth.
+  const String& fsPath = "/_cv.json";
+  client.download(path, fsPath);
+  
+  File file = SPIFFS.open(fsPath, "r");
+  server.streamFile(file, "application/json");
+  SPIFFS.remove(fsPath);
 }
 
 void MiLightHttpServer::handleClient() {
