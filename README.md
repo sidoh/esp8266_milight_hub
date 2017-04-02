@@ -36,6 +36,8 @@ platformio run -e $ESP_BOARD --target uploadfs
 
 Of course make sure to substitute `nodemcuv2` with the board that you're using.
 
+You can find pre-compiled firmware images on the [releases](https://github.com/sidoh/esp8266_milight_hub/releases).
+
 #### Configure WiFi
 
 This project uses [WiFiManager](https://github.com/tzapu/WiFiManager) to avoid the need to hardcode AP credentials in the firmware.
