@@ -77,7 +77,21 @@ bool shouldRestart() {
   return settings.getAutoRestartPeriod()*60*1000 < millis();
 }
 
-void handleLoop() {
+void setup() {
+  Serial.begin(9600);
+  wifiManager.autoConnect();
+  SPIFFS.begin();
+  Settings::load(settings);
+  applySettings();
+  
+  httpServer = new MiLightHttpServer(settings, milightClient);
+  httpServer->onSettingsSaved(applySettings);
+  httpServer->begin();
+}
+
+void loop() {
+  httpServer->handleClient();
+  
   if (udpServers) {
     for (size_t i = 0; i < settings.numGatewayConfigs; i++) {
       udpServers[i]->handleClient();
@@ -88,22 +102,4 @@ void handleLoop() {
     Serial.println("Auto-restart triggered. Restarting...");
     ESP.restart();
   }
-}
-
-void setup() {
-  Serial.begin(9600);
-  wifiManager.autoConnect();
-  SPIFFS.begin();
-  Settings::load(settings);
-  applySettings();
-  
-  httpServer = new MiLightHttpServer(settings, milightClient);
-  httpServer->onSettingsSaved(applySettings);
-  httpServer->onLongPollLoop(handleLoop);
-  httpServer->begin();
-}
-
-void loop() {
-  httpServer->handleClient();
-  handleLoop();
 }

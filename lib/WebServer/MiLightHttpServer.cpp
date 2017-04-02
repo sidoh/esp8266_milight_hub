@@ -129,10 +129,6 @@ void MiLightHttpServer::applySettings(Settings& settings) {
 void MiLightHttpServer::onSettingsSaved(SettingsSavedHandler handler) {
   this->settingsSavedHandler = handler;
 }
-
-void MiLightHttpServer::onLongPollLoop(LongPollLoopFn fn) {
-  this->longPollLoopFn = fn;
-}
   
 void MiLightHttpServer::handleAbout() {
   DynamicJsonBuffer buffer;
@@ -244,10 +240,6 @@ void MiLightHttpServer::handleListenGateway(const UrlTokenBindings* bindings) {
     
     if (milightClient->available()) {
       available = true;
-    }
-    
-    if (this->longPollLoopFn) {
-      longPollLoopFn();
     }
     
     yield();
