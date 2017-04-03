@@ -16,7 +16,7 @@
   <!--[if lt IE 9]>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv.js"></script>
   <![endif]-->
-  
+
   <style>
     .header-row { border-bottom: 1px solid #ccc; }
     label { display: block; }
@@ -31,8 +31,8 @@
     .error-info:before { content: '('; }
     .error-info:after { content: ')'; }
     .header-btn { margin: 20px; }
-    .btn-secondary { 
-      background-color: #fff; 
+    .btn-secondary {
+      background-color: #fff;
       border: 1px solid #ccc;
     }
     .inline { display: inline-block; }
@@ -46,41 +46,41 @@
       width: calc(100% - 3em);
       display: inline-block;
       cursor: pointer;
-      background: linear-gradient(to right, 
-        rgb(255, 0, 0) 0%, 
-        rgb(255, 255, 0) 16.6667%, 
-        rgb(0, 255, 0) 33.3333%, 
-        rgb(0, 255, 255) 50%, 
-        rgb(0, 0, 255) 66.6667%, 
-        rgb(255, 0, 255) 83.3333%, 
+      background: linear-gradient(to right,
+        rgb(255, 0, 0) 0%,
+        rgb(255, 255, 0) 16.6667%,
+        rgb(0, 255, 0) 33.3333%,
+        rgb(0, 255, 255) 50%,
+        rgb(0, 0, 255) 66.6667%,
+        rgb(255, 0, 255) 83.3333%,
         rgb(255, 0, 0) 100%
       );
     }
-    .hue-value-display { 
+    .hue-value-display {
       border: 1px solid #000;
       margin-left: 0.5em;
       width: 2em;
       height: 2em;
       display: inline-block;
     }
-    .plus-minus-group { 
+    .plus-minus-group {
       overflow: auto;
       width: 100%;
       clear: both;
       display: block;
     }
-    .plus-minus-group button:first-of-type { 
+    .plus-minus-group button:first-of-type {
       border-bottom-right-radius: 0;
       border-top-right-radius: 0;
       float: left;
       display: block;
     }
-    .plus-minus-group button:last-of-type { 
+    .plus-minus-group button:last-of-type {
       border-bottom-left-radius: 0;
       border-top-left-radius: 0;
       display: block;
     }
-    .plus-minus-group .title { 
+    .plus-minus-group .title {
       border-width: 1px 0;
       border-color: #ccc;
       border-style: solid;
@@ -100,12 +100,12 @@
       animation: spin 1s infinite linear;
       -webkit-animation: spin2 1s infinite linear;
     }
-    
+
     @keyframes spin {
       from { transform: scale(1) rotate(0deg); }
       to { transform: scale(1) rotate(360deg); }
     }
-    
+
     @-webkit-keyframes spin2 {
       from { -webkit-transform: rotate(0deg); }
       to { -webkit-transform: rotate(360deg); }
@@ -120,14 +120,15 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/9.7.0/bootstrap-slider.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.4/js/standalone/selectize.min.js"></script>
-  
+
   <script lang="text/javascript">
     var FORM_SETTINGS = [
-      "admin_username", "admin_password", "ce_pin", "csn_pin", "packet_repeats",
+      "admin_username", "admin_password", "ce_pin", "csn_pin", "reset_pin","packet_repeats",
       "http_repeat_factor", "auto_restart_period"
     ];
-    
+
     var FORM_SETTINGS_HELP = {
+      csn_pin_RxReady : "'csn' for 'nRF24' interface, and RxReady for 'PL1167_LT8900' interface",
       packet_repeats : "The number of times to repeat RF packets sent to bulbs",
       http_repeat_factor : "Multiplicative factor on packet_repeats for " +
         "requests initiated by the HTTP API. UDP API typically receives " +
@@ -135,37 +136,37 @@
       auto_restart_period : "Automatically restart the device every number of " +
         "minutes specified. Use 0 for disabled."
     }
-    
+
     var UDP_PROTOCOL_VERSIONS = [ 5, 6 ];
     var DEFAULT_UDP_PROTOCL_VERSION = 5;
-    
+
     var selectize;
-    
+
     var toHex = function(v) {
       return "0x" + (v).toString(16).toUpperCase();
     }
-  
+
     var activeUrl = function() {
       var deviceId = $('#deviceId option:selected').val()
         , groupId = $('#groupId .active input').data('value')
         , mode = getCurrentMode();
-        
+
       if (deviceId == "") {
         alert("Please enter a device ID.");
         throw "Must enter device ID";
       }
-      
+
       if (! $('#group-option').data('for').split(',').includes(mode)) {
         groupId = 0;
       }
-        
+
       return "/gateways/" + deviceId + "/" + mode + "/" + groupId;
     }
-    
+
     var getCurrentMode = function() {
       return $('input[name="mode"]:checked').data('value');
     };
-    
+
     var updateGroup = _.throttle(
       function(params) {
         $.ajax(
@@ -179,7 +180,7 @@
       },
       1000
     );
-    
+
     var sendCommand = _.throttle(
       function(params) {
         $.ajax(
@@ -193,18 +194,18 @@
       },
       1000
     )
-    
+
     var sniffRequest;
     var sniffing = false;
     var getTraffic = function() {
       var sniffType = $('#sniff-type input:checked').data('value');
-      
+
       sniffRequest = $.get('/gateway_traffic/' + sniffType, function(data) {
         $('#sniffed-traffic').html(data + $('#sniffed-traffic').html());
         getTraffic();
       });
     };
-    
+
     var gatewayServerRow = function(deviceId, port, version) {
       var elmt = '<tr>';
       elmt += '<td>';
@@ -215,17 +216,17 @@
       elmt += '</td>';
       elmt += '<td>';
       elmt += '<div class="btn-group" data-toggle="buttons">';
-      
+
       for (var i = 0; i < UDP_PROTOCOL_VERSIONS.length; i++) {
         var val = UDP_PROTOCOL_VERSIONS[i]
           , selected = (version == val || (val == DEFAULT_UDP_PROTOCL_VERSION && !UDP_PROTOCOL_VERSIONS.includes(version)));
-        
+
         elmt += '<label class="btn btn-secondary' + (selected ? ' active' : '') + '">';
-        elmt += '<input type="radio" name="versions[]" autocomplete="off" data-value="' + val + '" ' 
+        elmt += '<input type="radio" name="versions[]" autocomplete="off" data-value="' + val + '" '
           + (selected ? 'checked' : '') +'> ' + val;
         elmt += '</label>';
       }
-      
+
       elmt += '</div></td>';
       elmt += '<td>';
       elmt += '<button class="btn btn-danger remove-gateway-server">';
@@ -235,17 +236,17 @@
       elmt += '</tr>';
       return elmt;
     }
-    
+
     var loadSettings = function() {
       $.getJSON('/settings', function(val) {
         Object.keys(val).forEach(function(k) {
           var field = $('#settings input[name="' + k + '"]');
-          
+
           if (field.length > 0) {
             field.val(val[k]);
           }
         });
-        
+
         if (val.device_ids) {
           selectize.clearOptions();
           val.device_ids.forEach(function(v) {
@@ -253,7 +254,7 @@
           });
           selectize.refreshOptions();
         }
-        
+
         var gatewayForm = $('#gateway-server-configs').html('');
         if (val.gateway_configs) {
           val.gateway_configs.forEach(function(v) {
@@ -262,16 +263,16 @@
         }
       });
     };
-    
+
     var saveGatewayConfigs = function() {
       var form = $('#gateway-server-form')
         , errors = false;
-        
+
       $('input', form).removeClass('error');
-      
+
       var deviceIds = $('input[name="deviceIds[]"]', form).map(function(i, v) {
         var val = $(v).val();
-        
+
         if (isNaN(val)) {
           errors = true;
           $(v).addClass('error');
@@ -280,10 +281,10 @@
           return val;
         }
       });
-      
+
       var ports = $('input[name="ports[]"]', form).map(function(i, v) {
         var val = $(v).val();
-        
+
         if (isNaN(val)) {
           errors = true;
           $(v).addClass('error');
@@ -292,11 +293,11 @@
           return val;
         }
       });
-      
+
       var versions = $('.active input[name="versions[]"]', form).map(function(i, v) {
         return $(v).data('value');
       });
-        
+
       if (!errors) {
         var data = [];
         for (var i = 0; i < deviceIds.length; i++) {
@@ -312,7 +313,7 @@
         )
       }
     };
-    
+
     var deviceIdError = function(v) {
       if (!v) {
         $('#device-id-label').removeClass('error');
@@ -321,10 +322,10 @@
         $('#device-id-label .error-info').html(v);
       }
     };
-    
+
     var updateModeOptions = function() {
       var currentMode = getCurrentMode();
-      
+
       $('.mode-option').map(function() {
         if ($(this).data('for').split(',').includes(currentMode)) {
           $(this).show();
@@ -333,10 +334,10 @@
         }
       });
     };
-    
+
     var parseVersion = function(v) {
       var matches = v.match(/(\d+)\.(\d+)\.(\d+)(-(.*))?/);
-      
+
       return {
         major: matches[1],
         minor: matches[2],
@@ -345,28 +346,28 @@
         parts: [matches[1], matches[2], matches[3], matches[5]]
       };
     };
-    
+
     var isNewerVersion = function(a, b) {
       var va = parseVersion(a)
         , vb = parseVersion(b);
-        
+
       return va.parts > vb.parts;
     };
-    
+
     var handleCheckForUpdates = function() {
       var currentVersion = null
         , latestRelease = null;
-        
+
       var handleReceiveData = function() {
         if (currentVersion != null) {
           $('#current-version').html(currentVersion.version + " (" + currentVersion.variant + ")");
         }
-        
+
         if (latestRelease != null) {
           $('#latest-version .info-key').each(function() {
             var value = latestRelease[$(this).data('key')];
             var prop = $(this).data('prop');
-            
+
             if (prop) {
               $(this).prop(prop, value);
             } else {
@@ -374,11 +375,11 @@
             }
           });
         }
-        
+
         if (currentVersion != null && latestRelease != null) {
           $('#latest-version .status').html('');
           $('#latest-version-info').show();
-          
+
           var summary;
           if (isNewerVersion(latestRelease.tag_name, currentVersion.version)) {
             summary = "New version available!";
@@ -386,30 +387,30 @@
             summary = "You're on the most recent version.";
           }
           $('#version-summary').html(summary);
-          
+
           var releaseAsset = latestRelease.assets.filter(function(x) {
             return x.name.indexOf(currentVersion.variant) != -1;
           });
-          
+
           if (releaseAsset.length > 0) {
             console.log(releaseAsset[0].url);
             $('#firmware-link').prop('href', releaseAsset[0].browser_download_url);
           }
         }
-        
+
         console.log(latestRelease);
       }
-      
+
       var handleError = function(e, d) {
         console.log(e);
         console.log(d);
       }
-      
+
       $('#current-version,#latest-version .status').html('<i class="spinning glyphicon glyphicon-refresh"></i>');
       $('#version-summary').html('');
       $('#latest-version-info').hide();
       $('#updates-modal').modal();
-      
+
       $.ajax(
         '/about',
         {
@@ -420,7 +421,7 @@
           failure: handleError
         }
       );
-      
+
       $.ajax(
         '/latest_release',
         {
@@ -432,26 +433,26 @@
         }
       );
     };
-    
+
     $(function() {
       $('.radio-option').click(function() {
         $(this).prev().prop('checked', true);
       });
-      
+
       var hueDragging = false;
       var colorUpdated = function(e) {
         var x = e.pageX - $(this).offset().left
           , pct = x/(1.0*$(this).width())
           , hue = Math.round(360*pct)
           ;
-          
+
         $('.hue-value-display').css({
           backgroundColor: "hsl(" + hue + ",100%,50%)"
         });
-        
+
         updateGroup({hue: hue});
       };
-      
+
       $('.hue-picker-inner')
         .mousedown(function(e) {
           hueDragging = true;
@@ -468,26 +469,26 @@
             colorUpdated.call(this, e);
           }
         });
-        
+
       $('.slider').slider();
-      
+
       $('.raw-update').change(function() {
         var data = {}
           , val = $(this).attr('type') == 'checkbox' ? $(this).is(':checked') : $(this).val()
           ;
-          
+
         data[$(this).attr('name')] = val;
         updateGroup(data);
       });
-      
+
       $('.command-btn').click(function() {
         updateGroup({command: $(this).data('command')});
       });
-      
+
       $('.system-btn').click(function() {
         sendCommand({command: $(this).data('command')});
       });
-      
+
       $('#sniff').click(function() {
         if (sniffing) {
           sniffRequest.abort();
@@ -499,17 +500,17 @@
           $(this).html('Stop Sniffing');
         }
       });
-      
+
       $('#add-server-btn').click(function() {
         $('#gateway-server-configs').append(gatewayServerRow('', ''));
       });
-      
+
       $('#mode').change(updateModeOptions);
-      
+
       $('body').on('click', '.remove-gateway-server', function() {
         $(this).closest('tr').remove();
       });
-      
+
       selectize = $('#deviceId').selectize({
         create: true,
         sortField: 'text',
@@ -521,53 +522,71 @@
             deviceIdError("Must be an integer between 0x0000 and 0xFFFF");
             return false;
           }
-          
+
           var value = parseInt(v);
-          
+
           if (! (0 <= v && v <= 0xFFFF)) {
             deviceIdError("Must be an integer between 0x0000 and 0xFFFF");
             return false;
-          } 
-          
+          }
+
           deviceIdError(false);
-          
+
           return true;
         }
       });
       selectize = selectize[0].selectize;
-      
+
       var settings = "";
-      
+
       FORM_SETTINGS.forEach(function(k) {
         var elmt = '<div class="form-entry">';
         elmt += '<label for="' + k + '">' + k + '</label>';
-        
+
         if (FORM_SETTINGS_HELP[k]) {
           elmt += '<div class="field-help" data-help-text="' + FORM_SETTINGS_HELP[k] + '"></div>';
         }
-        
-        elmt += '<input type="text" class="form-control" name="' + k + '"/>';
-        elmt += '</div>';
-        
+
+        if (FORM_SETTINGS_HELP[k]) {
+          elmt += '<div class="field-help" data-help-text="' + FORM_SETTINGS_HELP[k] + '"></div>';
+        }
+
+        if(k === "radio_interface_type")
+        {
+          elmt += '<div class="btn-group" id="sniff-type" data-toggle="buttons">' +
+            '<label class="btn btn-secondary active">' +
+            '<input type="radio" name="options" autocomplete="off" data-value="nRF24" > nRF24' +
+            '</label>'+
+            '<label class="btn btn-secondary">' +
+              '<input type="radio" name="options" autocomplete="off" data-value="LT1167_PL8900"> LT1167_PL8900' +
+            '</label>' +
+          '</div>';
+        }
+        else
+        {
+          elmt += '<input type="text" class="form-control" name="' + k + '"/>';
+          elmt += '</div>';
+        }
+
         settings += elmt;
       });
-        
+
       $('#settings').prepend(settings);
       $('#settings').submit(function(e) {
         var obj = {};
-        
+
         FORM_SETTINGS.forEach(function(k) {
           obj[k] = $('#settings input[name="' + k + '"]').val();
         });
-        
+
         // pretty hacky. whatever.
         obj.device_ids = _.map(
           $('.selectize-control .option'),
-          function(x) { 
+          function(x) {
             return $(x).data('value')
           }
         );
-        
+
         $.ajax(
           "/settings",
           {
@@ -576,17 +595,17 @@
             data: JSON.stringify(obj)
           }
         );
-        
+
         e.preventDefault();
         return false;
       });
-      
+
       $('#gateway-server-form').submit(function(e) {
         saveGatewayConfigs();
         e.preventDefault();
         return false;
       });
-      
+
       $('.field-help').each(function() {
         var elmt = $('<i></i>')
           .addClass('glyphicon glyphicon-question-sign')
@@ -597,14 +616,14 @@
           });
         $(this).append(elmt);
       });
-      
+
       $('#updates-btn').click(handleCheckForUpdates);
-      
+
       loadSettings();
       updateModeOptions();
     });
   </script>
-  
+
   <div id="update-firmware-modal" class="modal fade" role="dialog">
     <div class="modal-dialog">
       <!-- Modal content-->
@@ -620,10 +639,10 @@
             <a href="https://github.com/sidoh/esp8266_milight_hub/releases">GitHub releases page</a>.
             Check for a new version by clicking on the "Check for Updates" button.
             </p>
-            
+
             <p>
               <b>Make sure the binary you're uploading was compiled for your board!</b>
-              Firmware with incompatible settings could prevent boots. If this happens, 
+              Firmware with incompatible settings could prevent boots. If this happens,
               reflash the board with USB.
             </p>
           </div>
@@ -637,10 +656,10 @@
           <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
         </div>
       </div>
-      
+
     </div>
   </div>
-  
+
   <div id="updates-modal" class="modal fade" role="dialog">
     <div class="modal-dialog">
       <!-- Modal content-->
@@ -651,29 +670,29 @@
         </div>
         <div class="modal-body">
           <div id="version-summary"></div>
-          
+
           <hr />
-          
+
           <h4>Current Version</h4>
           <div id="current-version"></div>
-          
+
           <div id="latest-version">
             <h4>Latest Version</h4>
             <div class="status"></div>
             <div id="latest-version-info">
               <label>Version</label>
               <div class="info-key" data-key="tag_name"></div>
-              
+
               <label>Release Date</label>
               <div class="info-key" data-key="published_at"></div>
-              
+
               <label>Release Notes</label>
               <pre class="info-key" data-key="body"></pre>
-              
+
               <div>
                 <a class="info-key" data-prop="href" data-key="html_url">View on GitHub</a>
               </div>
-              
+
               <div>
                 <a class="info-key" id="firmware-link">Download Firmware</a>
               </div>
@@ -685,10 +704,10 @@
           <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
         </div>
       </div>
-      
+
     </div>
   </div>
-  
+
   <div class="container">
     <div class="row header-row">
       <div class="col-sm-12">
@@ -697,9 +716,9 @@
         </h1>
       </div>
     </div>
-    
+
     <div>&nbsp;</div>
-    
+
     <div class="row">
       <div class="col-sm-4">
         <label for="deviceId" id="device-id-label">
@@ -709,11 +728,11 @@
         <select id="deviceId" placeholder="Enter hub ID">
 				</select>
       </div>
-      
+
       <div class="col-sm-3">
         <div class="mode-option" id="group-option" data-for="cct,rgbw,rgb_cct">
           <label for="groupId">Group</label>
-        
+
           <div class="btn-group" id="groupId" data-toggle="buttons">
             <label class="btn btn-secondary active">
               <input type="radio" name="options" autocomplete="off" data-value="1" checked> 1
@@ -733,10 +752,10 @@
           </div>
         </div>
       </div>
-      
+
       <div class="col-sm-4">
         <label for="groupId">Mode</label>
-        
+
         <div class="btn-group" id="mode" data-toggle="buttons">
           <label class="btn btn-secondary active">
             <input type="radio" name="mode" autocomplete="off" data-value="rgbw" checked> RGBW
@@ -753,7 +772,7 @@
         </div>
       </div>
     </div>
-    
+
     <div class="row"><div class="col-sm-12">
     <div class="mode-option" data-for="rgbw,rgb_cct,rgb">
       <div class="row">
@@ -761,7 +780,7 @@
           <h5>Hue</h5>
         </div>
       </div>
-      
+
       <div class="row">
         <div class="col-sm-6">
           <span class="hue-picker">
@@ -772,7 +791,7 @@
       </div>
     </div>
     </div></div>
-    
+
     <div class="mode-option" data-for="rgb_cct">
       <div class="row">
         <div class="col-sm-12">
@@ -789,7 +808,7 @@
         </div>
       </div>
     </div>
-          
+
     <div class="mode-option" data-for="cct,rgb_cct">
       <div class="row">
         <div class="col-sm-12">
@@ -806,13 +825,13 @@
         </div>
       </div>
     </div>
-    
+
     <div class="row">
       <div class="col-sm-12">
         <h5>Brightness</h5>
       </div>
     </div>
-      
+
     <div class="row">
       <div class="col-sm-12">
         <input class="slider raw-update" name="level"
@@ -822,13 +841,13 @@
         />
       </div>
     </div>
-    
+
     <div class="row">
       <div class="col-sm-12">
         <h5>Commands</h5>
       </div>
     </div>
-    
+
     <div class="row">
       <div class="col-sm-12">
         <ul class="command-buttons">
@@ -886,12 +905,12 @@
         </ul>
       </div>
     </div>
-    
+
     <div class="row header-row">
       <div class="col col-sm-10">
         <h1>Gateway Servers</h1>
       </div>
-      
+
       <div class="col col-sm-2">
         <button class="btn btn-success header-btn" id="add-server-btn">
           <i class="glyphicon glyphicon-plus"></i>
@@ -899,7 +918,7 @@
         </button>
       </div>
     </div>
-    
+
     <div class="row">
       <div class="col col-sm-12">
         <form id="gateway-server-form">
@@ -918,17 +937,17 @@
         </form>
       </div>
     </div>
-    
+
     <div>&nbsp;</div>
-    
+
     <div class="row header-row">
       <div class="col-sm-12">
         <h1>Settings</h1>
       </div>
     </div>
-    
+
     <div>&nbsp;</div>
-    
+
     <div class="row">
       <div class="col-sm-12">
         <form action="#" id="settings">
@@ -936,19 +955,19 @@
         </form>
       </div>
     </div>
-    
+
     <div class="row header-row">
       <div class="col-sm-12">
         <h1>Sniff Traffic</h1>
       </div>
     </div>
-    
+
     <div>&nbsp;</div>
-    
+
     <div class="row">
       <div class="col-sm-12">
         <button type="button" id="sniff" class="btn btn-primary">Start Sniffing</button>
-        
+
         <div class="btn-group" id="sniff-type" data-toggle="buttons">
           <label class="btn btn-secondary active">
             <input type="radio" name="options" autocomplete="off" data-value="rgbw" checked> RGBW
@@ -963,31 +982,31 @@
             <input type="radio" name="options" autocomplete="off" data-value="rgb"> RGB
           </label>
         </div>
-        
+
         <div> &nbsp; </div>
-        
+
         <pre id="sniffed-traffic"></pre>
       </div>
     </div>
-    
+
     <div class="row header-row">
       <div class="col-sm-12">
         <h1>Admin</h1>
       </div>
     </div>
-    
+
     <div>&nbsp;</div>
-    
+
     <div class="row">
       <div class="col-sm-12">
         <button type="button" class="btn btn-danger system-btn" data-command="restart">
           Restart
         </button>
-        
+
         <button type="button" id="updates-btn" class="btn btn-primary">
           Check for Updates
         </button>
-        
+
         <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#update-firmware-modal">
           Update Firmware
         </button>

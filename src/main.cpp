@@ -29,13 +29,13 @@ void initMilightUdpServers() {
         delete udpServers[i];
       }
     }
-    
+
     delete udpServers;
   }
-  
+
   udpServers = new MiLightUdpServer*[settings.numGatewayConfigs];
   numUdpServers = settings.numGatewayConfigs;
-  
+
   for (size_t i = 0; i < settings.numGatewayConfigs; i++) {
     GatewayConfig* config = settings.gatewayConfigs[i];
     MiLightUdpServer* server = MiLightUdpServer::fromVersion(
@@ -44,7 +44,7 @@ void initMilightUdpServers() {
       config->port,
       config->deviceId
     );
-    
+
     if (server == NULL) {
       Serial.print(F("Error creating UDP server with protocol version: "));
       Serial.println(config->protocolVersion);
@@ -55,17 +55,25 @@ void initMilightUdpServers() {
   }
 }
 
-void initMilightClient() {
+
+void applySettings() 
+{
   if (milightClient) {
     delete milightClient;
   }
-  
-  milightClient = new MiLightClient(settings.cePin, settings.csnPin);
-  milightClient->begin();
-}
 
-void applySettings() {
-  initMilightClient();
+  if(settings.radioInterfaceType == nRF24)
+  {
+      Serial.println("Starting using 'nRF24' interface...");
+      milightClient = new MiLightClient(settings.cePin, settings.resetPin, settings.csnPin, nRF24);
+      milightClient->begin();
+  }
+  else if(settings.radioInterfaceType == LT1167_PL8900)
+  {
+      Serial.println("Starting using 'PL1167_LT8900' interface...");
+      milightClient = new MiLightClient(settings.cePin, settings.resetPin, settings.csnPin, LT1167_PL8900);
+      milightClient->begin();
+  }
   initMilightUdpServers();
 }
 
@@ -73,7 +81,7 @@ bool shouldRestart() {
   if (! settings.isAutoRestartEnabled()) {
     return false;
   }
-  
+
   return settings.getAutoRestartPeriod()*60*1000 < millis();
 }
 
@@ -83,7 +91,7 @@ void setup() {
   SPIFFS.begin();
   Settings::load(settings);
   applySettings();
-  
+
   httpServer = new MiLightHttpServer(settings, milightClient);
   httpServer->onSettingsSaved(applySettings);
   httpServer->begin();
@@ -91,13 +99,13 @@ void setup() {
 
 void loop() {
   httpServer->handleClient();
-  
+
   if (udpServers) {
     for (size_t i = 0; i < settings.numGatewayConfigs; i++) {
       udpServers[i]->handleClient();
     }
   }
-  
+
   if (shouldRestart()) {
     Serial.println(F("Auto-restart triggered. Restarting..."));
     ESP.restart();
