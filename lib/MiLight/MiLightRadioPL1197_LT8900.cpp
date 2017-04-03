@@ -267,7 +267,9 @@ void MiLightRadioPL1167_LT8900::vStartListening(uint uiChannelToListenTo)
 {
   _dupes_received = 0;
   vSetSyncWord(config.syncword3, 0,0,config.syncword0);
-	vSetChannel(uiChannelToListenTo);
+	//vSetChannel(uiChannelToListenTo);
+
+  _channel = uiChannelToListenTo;
 
 	uiWriteRegister(R_CHANNEL, _channel & CHANNEL_MASK);   //turn off rx/tx
 	delay(3);
@@ -447,7 +449,6 @@ bool MiLightRadioPL1167_LT8900::available()
             else
             {
               byaFramesReceivedCount[byFrameCounter-1]++;
-              //Serial.print(".");
             }
           }
           else
@@ -468,25 +469,25 @@ bool MiLightRadioPL1167_LT8900::available()
         ulElapsedTime = millis();
         yield();
         ulElapsedTime = ulElapsedTime - ulTimeStamp;
-      }while (ulElapsedTime <1000 );
+      }while (ulElapsedTime < 1000 );
 
       Serial.print("ElapsedRX: ");
       Serial.println(iUpdateStamp - iStartTime);
 
       if (byFrameCounter != 0)
       {
-      Serial.println("");
-      Serial.print(F("Packets received: "));
-      Serial.print(byFrameCounter);
-
-      for (byte byCounterFrame = 0; byCounterFrame < byFrameCounter; byCounterFrame++)
-      {
-        _dupes_received = byaFramesReceivedCount[byCounterFrame];
         Serial.println("");
-        Serial.print(F("Packet read OK, rec: "));
-        Serial.print(byaFramesReceivedCount[byCounterFrame]);
-        Serial.println(F(" Frame: "));
-        //dump the packet.
+        Serial.print(F("Packets received: "));
+        Serial.print(byFrameCounter);
+
+        for (byte byCounterFrame = 0; byCounterFrame < byFrameCounter; byCounterFrame++)
+        {
+          _dupes_received = byaFramesReceivedCount[byCounterFrame];
+          Serial.println("");
+          Serial.print(F("Packet read OK, rec: "));
+          Serial.print(byaFramesReceivedCount[byCounterFrame]);
+          Serial.println(F(" Frame: "));
+          //dump the packet.
 
           _packet[0]=byaFramesSizes[byCounterFrame];
           for (int iByteCounter = 0; iByteCounter < byaFramesSizes[byCounterFrame]; iByteCounter++)
@@ -503,7 +504,6 @@ bool MiLightRadioPL1167_LT8900::available()
             }
             stringToWrite += stringOne;
             stringToWrite += " ";
-
 
             Serial.print(stringToWrite);
           }

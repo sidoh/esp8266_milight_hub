@@ -17,15 +17,7 @@
 #include <MiLightButtons.h>
 #include <MiLightRadioInterface.h>
 
-/*
-#define MODE_RGB			0
-#define MODE_DUAL_WHITE		1
-#define MODE_DUAL_WHITE_RGB 2
 
-#define MILIGHT_SYNCWORD_RGB 0x258B00000000147A
-#define MILIGHT_SYNCWORD_DUAL_WHITE 0x55AA00000000050A
-#define MILIGHT_SYNCWORD_DUALWHITE_RGB 0x1809000000007236
-*/
 // Register defines
 #define REGISTER_READ       0b10000000  //bin
 #define REGISTER_WRITE      0b00000000  //bin
@@ -50,7 +42,7 @@
 #define R_SYNCWORD4         39
 
 #define DEFAULT_TIME_BETWEEN_RETRANSMISSIONS_uS	350
-// #define DEBUG_PRINTF
+
 
 #ifndef MILIGHTRADIOPL1167_LT8900_H_
 #define MILIGHTRADIOPL1167_LT8900_H_
@@ -71,7 +63,6 @@ class MiLightRadioPL1167_LT8900 : public MiLightRadioInterface{
 
 
         void vInitRadioModule(MiLightRadioType type);
-        //void vSetSyncWord(uint64_t syncWord);
         void vSetSyncWord(uint16_t syncWord3, uint16_t syncWord2, uint16_t syncWord1, uint16_t syncWord0);
         uint16_t uiReadRegister(uint8_t reg);
         void regWrite16(byte ADDR, byte V1, byte V2, byte WAIT);
@@ -91,7 +82,7 @@ class MiLightRadioPL1167_LT8900 : public MiLightRadioInterface{
       	byte _csPin;
 
     const MiLightRadioConfig& config;
-    uint32_t _prev_packet_id;
+    //uint32_t _prev_packet_id;
     uint8_t _channel = 0;
     uint8_t _packet[10];
     uint8_t _out_packet[10];
