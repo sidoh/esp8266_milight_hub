@@ -68,10 +68,10 @@ void applySettings()
       milightClient = new MiLightClient(settings.cePin, settings.resetPin, settings.csnPin, nRF24);
       milightClient->begin();
   }
-  else if(settings.radioInterfaceType == LT1167_PL8900)
+  else if(settings.radioInterfaceType == PL1167_LT8900)
   {
       Serial.println("Starting using 'PL1167_LT8900' interface...");
-      milightClient = new MiLightClient(settings.cePin, settings.resetPin, settings.csnPin, LT1167_PL8900);
+      milightClient = new MiLightClient(settings.cePin, settings.resetPin, settings.csnPin, PL1167_LT8900);
       milightClient->begin();
   }
   initMilightUdpServers();

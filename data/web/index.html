@@ -128,7 +128,7 @@
     ];
 
     var FORM_SETTINGS_HELP = {
-      csn_pin_RxReady : "'csn' for 'nRF24' interface, and RxReady for 'PL1167_LT8900' interface",
+      csn_pin : "'csn' for 'nRF24' interface, and 'PKT' for 'PL1167_LT8900' interface",
       packet_repeats : "The number of times to repeat RF packets sent to bulbs",
       http_repeat_factor : "Multiplicative factor on packet_repeats for " +
         "requests initiated by the HTTP API. UDP API typically receives " +
@@ -547,18 +547,14 @@
           elmt += '<div class="field-help" data-help-text="' + FORM_SETTINGS_HELP[k] + '"></div>';
         }
 
-        if (FORM_SETTINGS_HELP[k]) {
-          elmt += '<div class="field-help" data-help-text="' + FORM_SETTINGS_HELP[k] + '"></div>';
-        }
-
         if(k === "radio_interface_type")
         {
-          elmt += '<div class="btn-group" id="sniff-type" data-toggle="buttons">' +
+          elmt += '<div class="btn-group" id="radiointerface" data-toggle="buttons">' +
             '<label class="btn btn-secondary active">' +
-            '<input type="radio" name="options" autocomplete="off" data-value="nRF24" > nRF24' +
+            '<input type="radio" name="radiointerface_nRF" autocomplete="off" data-value="nRF24" > nRF24' +
             '</label>'+
             '<label class="btn btn-secondary">' +
-              '<input type="radio" name="options" autocomplete="off" data-value="LT1167_PL8900"> LT1167_PL8900' +
+              '<input type="radio" name="radiointerface_PL1167" autocomplete="off" data-value="PL1167/LT8900/8910/8920" > PL1167/LT8900/8910/8920' +
             '</label>' +
           '</div>';
         }
@@ -576,7 +572,10 @@
         var obj = {};
 
         FORM_SETTINGS.forEach(function(k) {
-          obj[k] = $('#settings input[name="' + k + '"]').val();
+          
+            obj[k] = $('#settings input[name="' + k + '"]').val();
+          
+
         });
 
         // pretty hacky. whatever.
@@ -595,6 +594,8 @@
             data: JSON.stringify(obj)
           }
         );
+        //console.log(obj);
+        //console.log(JSON.stringify(obj));
 
         e.preventDefault();
         return false;

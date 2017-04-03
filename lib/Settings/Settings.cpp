@@ -55,9 +55,9 @@ void Settings::deserialize(Settings& settings, JsonObject& parsedSettings) {
       {
         settings.radioInterfaceType =  nRF24;
       }
-      else if(InterfaceType == "nRF24")
+      else if(InterfaceType == "PL1167/LT8900/8910/8920")
       {
-        settings.radioInterfaceType =  LT1167_PL8900;
+        settings.radioInterfaceType =  PL1167_LT8900;
       }
     }
 
@@ -141,9 +141,9 @@ void Settings::patch(JsonObject& parsedSettings) {
       {
         this->radioInterfaceType =  nRF24;
       }
-      else if(InterfaceType == "LT1167_PL8900")
+      else if(InterfaceType == "PL1167/LT8900/8910/8920")
       {
-        this->radioInterfaceType =  LT1167_PL8900;
+        this->radioInterfaceType =  PL1167_LT8900;
       }
     }
 
@@ -211,9 +211,9 @@ void Settings::serialize(Stream& stream, const bool prettyPrint) {
   {
     root["radio_interface_type"] = "nRF24";
   }
-  else if(this->radioInterfaceType == LT1167_PL8900)
+  else if(this->radioInterfaceType == PL1167_LT8900)
   {
-    root["radio_interface_type"] = "LT1167_PL8900";
+    root["radio_interface_type"] = "PL1167/LT8900/8910/8920";
   }
 
   root["packet_repeats"] = this->packetRepeats;

@@ -27,7 +27,7 @@
 enum eRadioInterfaceType
 {
   nRF24 = 0,
-  LT1167_PL8900 =1,
+  PL1167_LT8900 =1,
 };
 
 class GatewayConfig {
@@ -52,7 +52,7 @@ public:
     cePin(D0),
     csnPin(D8),
     resetPin(0),
-    radioInterfaceType(LT1167_PL8900),
+    radioInterfaceType(PL1167_LT8900),
     deviceIds(NULL),
     gatewayConfigs(NULL),
     numDeviceIds(0),

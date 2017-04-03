@@ -19,7 +19,7 @@ public:
   }
 
   RadioStack(byte byCSPin, byte byResetPin, byte byPktFlag, const MiLightRadioConfig& config)
-      : config(config),UsedInterfaceType(LT1167_PL8900)
+      : config(config),UsedInterfaceType(PL1167_LT8900)
     {
       radioPL1167_LT8900 = new MiLightRadioPL1167_LT8900(byCSPin, byResetPin, byPktFlag, config);
     }
@@ -37,7 +37,7 @@ public:
     {
       return this->radio;
     }
-    else if(UsedInterfaceType == LT1167_PL8900)
+    else if(UsedInterfaceType == PL1167_LT8900)
     {
       return this->radioPL1167_LT8900;
     }

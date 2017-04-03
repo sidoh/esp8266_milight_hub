@@ -27,7 +27,7 @@ class MiLightClient {
 
     for (size_t i = 0; i < numRadios; i++)
     {
-      if(InterfaceType == LT1167_PL8900)
+      if(InterfaceType == PL1167_LT8900)
       {
         radios[i] = new RadioStack(byCSPin, byResetPin, byPktFlag, *MiLightRadioConfig::ALL_CONFIGS[i]);
       }
