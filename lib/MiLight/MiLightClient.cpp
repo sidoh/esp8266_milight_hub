@@ -23,7 +23,7 @@ MiLightRadio* MiLightClient::switchRadio(const MiLightRadioType type) {
     formatter = stack->config.packetFormatter;
     return radio;
   } else {
-    Serial.print("MiLightClient - tried to get radio for unknown type: ");
+    Serial.print(F("MiLightClient - tried to get radio for unknown type: "));
     Serial.println(type);
   }
   
@@ -92,6 +92,30 @@ void MiLightClient::updateHue(const uint16_t hue) {
 
 void MiLightClient::updateBrightness(const uint8_t brightness) {
   formatter->updateBrightness(brightness);
+  flushPacket();
+}
+    
+void MiLightClient::updateMode(uint8_t mode) {
+  formatter->updateMode(mode);
+  flushPacket();
+}
+
+void MiLightClient::nextMode() {
+  formatter->nextMode();
+  flushPacket();
+}
+
+void MiLightClient::previousMode() {
+  formatter->previousMode();
+  flushPacket();
+}
+
+void MiLightClient::modeSpeedDown() {
+  formatter->modeSpeedDown();
+  flushPacket();
+}
+void MiLightClient::modeSpeedUp() {
+  formatter->modeSpeedUp();
   flushPacket();
 }
     

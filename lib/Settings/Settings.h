@@ -5,10 +5,24 @@
 #ifndef _SETTINGS_H_INCLUDED
 #define _SETTINGS_H_INCLUDED
 
+#ifndef FIRMWARE_VARIANT
+#define FIRMWARE_VARIANT "unknown"
+#endif
+
+#ifndef MILIGHT_HUB_VERSION
+#define MILIGHT_HUB_VERSION "unknown"
+#endif
+
 #define SETTINGS_FILE  "/config.json"
 #define SETTINGS_TERMINATOR '\0'
 
 #define WEB_INDEX_FILENAME "/web/index.html"
+
+#define MILIGHT_GITHUB_USER "sidoh"
+#define MILIGHT_GITHUB_REPO "esp8266_milight_hub"
+#define MILIGHT_REPO_WEB_PATH "/data/web/index.html"
+
+#define MINIMUM_RESTART_PERIOD 1
 
 class GatewayConfig {
 public:
@@ -36,7 +50,8 @@ public:
     numDeviceIds(0),
     numGatewayConfigs(0),
     packetRepeats(10),
-    httpRepeatFactor(5)
+    httpRepeatFactor(5),
+    _autoRestartPeriod(0)
   { }
   
   ~Settings() {
@@ -45,9 +60,9 @@ public:
     }
   }
   
-  bool hasAuthSettings() {
-    return adminUsername.length() > 0 && adminPassword.length() > 0;
-  }
+  bool hasAuthSettings();
+  bool isAutoRestartEnabled();
+  size_t getAutoRestartPeriod();
 
   static void deserialize(Settings& settings, String json);
   static void deserialize(Settings& settings, JsonObject& json);
@@ -70,6 +85,9 @@ public:
   size_t numDeviceIds;
   size_t packetRepeats;
   size_t httpRepeatFactor;
+  
+protected:
+  size_t _autoRestartPeriod;
 };
 
 #endif 

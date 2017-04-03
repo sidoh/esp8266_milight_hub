@@ -25,6 +25,7 @@
     .command-buttons li { display: inline-block; margin-right: 1em; }
     .form-entry { margin: 0 0 20px 0; }
     .form-entry .form-control { width: 20em; }
+    .form-entry label { display: inline-block; }
     label:not(.error) .error-info { display: none; }
     .error-info { color: #f00; font-size: 0.7em; }
     .error-info:before { content: '('; }
@@ -62,6 +63,53 @@
       height: 2em;
       display: inline-block;
     }
+    .plus-minus-group { 
+      overflow: auto;
+      width: 100%;
+      clear: both;
+      display: block;
+    }
+    .plus-minus-group button:first-of-type { 
+      border-bottom-right-radius: 0;
+      border-top-right-radius: 0;
+      float: left;
+      display: block;
+    }
+    .plus-minus-group button:last-of-type { 
+      border-bottom-left-radius: 0;
+      border-top-left-radius: 0;
+      display: block;
+    }
+    .plus-minus-group .title { 
+      border-width: 1px 0;
+      border-color: #ccc;
+      border-style: solid;
+      padding: 5px 5px 5px 7px;
+      margin: 0;
+      height: 34px;
+      line-height: 1.49;
+      float: left;
+      display: block;
+    }
+    .field-help {
+      display: inline-block;
+      font-size: 1.25em;
+      margin-left: 0.5em;
+    }
+    .glyphicon.spinning {
+      animation: spin 1s infinite linear;
+      -webkit-animation: spin2 1s infinite linear;
+    }
+    
+    @keyframes spin {
+      from { transform: scale(1) rotate(0deg); }
+      to { transform: scale(1) rotate(360deg); }
+    }
+    
+    @-webkit-keyframes spin2 {
+      from { -webkit-transform: rotate(0deg); }
+      to { -webkit-transform: rotate(360deg); }
+    }
   </style>
 </head>
 
@@ -76,8 +124,17 @@
   <script lang="text/javascript">
     var FORM_SETTINGS = [
       "admin_username", "admin_password", "ce_pin", "csn_pin", "packet_repeats",
-      "http_repeat_factor"
+      "http_repeat_factor", "auto_restart_period"
     ];
+    
+    var FORM_SETTINGS_HELP = {
+      packet_repeats : "The number of times to repeat RF packets sent to bulbs",
+      http_repeat_factor : "Multiplicative factor on packet_repeats for " +
+        "requests initiated by the HTTP API. UDP API typically receives " +
+        "duplicate packets, so more repeats should be used for HTTP.",
+      auto_restart_period : "Automatically restart the device every number of " +
+        "minutes specified. Use 0 for disabled."
+    }
     
     var UDP_PROTOCOL_VERSIONS = [ 5, 6 ];
     var DEFAULT_UDP_PROTOCL_VERSION = 5;
@@ -90,7 +147,7 @@
   
     var activeUrl = function() {
       var deviceId = $('#deviceId option:selected').val()
-        , groupId = $('#groupId input:checked').data('value')
+        , groupId = $('#groupId .active input').data('value')
         , mode = getCurrentMode();
         
       if (deviceId == "") {
@@ -122,6 +179,20 @@
       },
       1000
     );
+    
+    var sendCommand = _.throttle(
+      function(params) {
+        $.ajax(
+          '/system',
+          {
+            method: 'POST',
+            data: JSON.stringify(params),
+            contentType: 'application/json'
+          }
+        );
+      },
+      1000
+    )
     
     var sniffRequest;
     var sniffing = false;
@@ -263,6 +334,105 @@
       });
     };
     
+    var parseVersion = function(v) {
+      var matches = v.match(/(\d+)\.(\d+)\.(\d+)(-(.*))?/);
+      
+      return {
+        major: matches[1],
+        minor: matches[2],
+        patch: matches[3],
+        revision: matches[5],
+        parts: [matches[1], matches[2], matches[3], matches[5]]
+      };
+    };
+    
+    var isNewerVersion = function(a, b) {
+      var va = parseVersion(a)
+        , vb = parseVersion(b);
+        
+      return va.parts > vb.parts;
+    };
+    
+    var handleCheckForUpdates = function() {
+      var currentVersion = null
+        , latestRelease = null;
+        
+      var handleReceiveData = function() {
+        if (currentVersion != null) {
+          $('#current-version').html(currentVersion.version + " (" + currentVersion.variant + ")");
+        }
+        
+        if (latestRelease != null) {
+          $('#latest-version .info-key').each(function() {
+            var value = latestRelease[$(this).data('key')];
+            var prop = $(this).data('prop');
+            
+            if (prop) {
+              $(this).prop(prop, value);
+            } else {
+              $(this).html(value);
+            }
+          });
+        }
+        
+        if (currentVersion != null && latestRelease != null) {
+          $('#latest-version .status').html('');
+          $('#latest-version-info').show();
+          
+          var summary;
+          if (isNewerVersion(latestRelease.tag_name, currentVersion.version)) {
+            summary = "New version available!";
+          } else {
+            summary = "You're on the most recent version.";
+          }
+          $('#version-summary').html(summary);
+          
+          var releaseAsset = latestRelease.assets.filter(function(x) {
+            return x.name.indexOf(currentVersion.variant) != -1;
+          });
+          
+          if (releaseAsset.length > 0) {
+            console.log(releaseAsset[0].url);
+            $('#firmware-link').prop('href', releaseAsset[0].browser_download_url);
+          }
+        }
+        
+        console.log(latestRelease);
+      }
+      
+      var handleError = function(e, d) {
+        console.log(e);
+        console.log(d);
+      }
+      
+      $('#current-version,#latest-version .status').html('<i class="spinning glyphicon glyphicon-refresh"></i>');
+      $('#version-summary').html('');
+      $('#latest-version-info').hide();
+      $('#updates-modal').modal();
+      
+      $.ajax(
+        '/about',
+        {
+          success: function(data) {
+            currentVersion = JSON.parse(data);
+            handleReceiveData();
+          },
+          failure: handleError
+        }
+      );
+      
+      $.ajax(
+        '/latest_release',
+        {
+          success: function(data) {
+            latestRelease = data;
+            handleReceiveData();
+          },
+          failure: handleError
+        }
+      );
+    };
+    
     $(function() {
       $('.radio-option').click(function() {
         $(this).prev().prop('checked', true);
@@ -312,6 +482,10 @@
       
       $('.command-btn').click(function() {
         updateGroup({command: $(this).data('command')});
+      });
+      
+      $('.system-btn').click(function() {
+        sendCommand({command: $(this).data('command')});
       });
       
       $('#sniff').click(function() {
@@ -367,8 +541,14 @@
       FORM_SETTINGS.forEach(function(k) {
         var elmt = '<div class="form-entry">';
         elmt += '<label for="' + k + '">' + k + '</label>';
+        
+        if (FORM_SETTINGS_HELP[k]) {
+          elmt += '<div class="field-help" data-help-text="' + FORM_SETTINGS_HELP[k] + '"></div>';
+        }
+        
         elmt += '<input type="text" class="form-control" name="' + k + '"/>';
         elmt += '</div>';
+        
         settings += elmt;
       });
         
@@ -407,10 +587,107 @@
         return false;
       });
       
+      $('.field-help').each(function() {
+        var elmt = $('<i></i>')
+          .addClass('glyphicon glyphicon-question-sign')
+          .tooltip({
+            placement: 'top',
+            title: $(this).data('help-text'),
+            container: 'body'
+          });
+        $(this).append(elmt);
+      });
+      
+      $('#updates-btn').click(handleCheckForUpdates);
+      
       loadSettings();
       updateModeOptions();
     });
   </script>
+  
+  <div id="update-firmware-modal" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+      <!-- Modal content-->
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal">&times;</button>
+          <h2 class="modal-title">Update Firmware</h2>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-warning">
+            <p>
+            Download firmware binaries from the
+            <a href="https://github.com/sidoh/esp8266_milight_hub/releases">GitHub releases page</a>.
+            Check for a new version by clicking on the "Check for Updates" button.
+            </p>
+            
+            <p>
+              <b>Make sure the binary you're uploading was compiled for your board!</b>
+              Firmware with incompatible settings could prevent boots. If this happens, 
+              reflash the board with USB.
+            </p>
+          </div>
+          <form action="/firmware" method="post" enctype="multipart/form-data">
+            <input type="file" name="file"/>
+            <p>&nbsp;</p>
+            <input type="submit" name="submit" class="btn btn-success"/>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+        </div>
+      </div>
+      
+    </div>
+  </div>
+  
+  <div id="updates-modal" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+      <!-- Modal content-->
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal">&times;</button>
+          <h2 class="modal-title">Update</h2>
+        </div>
+        <div class="modal-body">
+          <div id="version-summary"></div>
+          
+          <hr />
+          
+          <h4>Current Version</h4>
+          <div id="current-version"></div>
+          
+          <div id="latest-version">
+            <h4>Latest Version</h4>
+            <div class="status"></div>
+            <div id="latest-version-info">
+              <label>Version</label>
+              <div class="info-key" data-key="tag_name"></div>
+              
+              <label>Release Date</label>
+              <div class="info-key" data-key="published_at"></div>
+              
+              <label>Release Notes</label>
+              <pre class="info-key" data-key="body"></pre>
+              
+              <div>
+                <a class="info-key" data-prop="href" data-key="html_url">View on GitHub</a>
+              </div>
+              
+              <div>
+                <a class="info-key" id="firmware-link">Download Firmware</a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <a href="/download_update/web" class="btn btn-primary">Update Web UI</a>
+          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+        </div>
+      </div>
+      
+    </div>
+  </div>
   
   <div class="container">
     <div class="row header-row">
@@ -576,6 +853,37 @@
             </button>
           </li>
         </ul>
+        <p></p>
+        <ul class="command-buttons">
+          <div class="mode-option inline" data-for="rgb,rgbw,rgb_cct">
+            <li>
+              <div class="plus-minus-group">
+                <button type="button" class="btn btn-default btn-number command-btn" data-command="previous_mode">
+                  <span class="glyphicon glyphicon-minus"></span>
+                </button>
+                <span class="title">Mode</span>
+                <button type="button" class="btn btn-default btn-number command-btn clearfix" data-command="next_mode">
+                  <span class="glyphicon glyphicon-plus"></span>
+                </button>
+                <div class="clearfix"></div>
+              </div>
+            </li>
+          </div>
+          <div class="mode-option inline" data-for="rgb,rgbw,rgb_cct">
+            <li>
+              <div class="plus-minus-group">
+                <button type="button" class="btn btn-default btn-number command-btn" data-command="mode_speed_down">
+                  <span class="glyphicon glyphicon-minus"></span>
+                </button>
+                <span class="title">Speed</span>
+                <button type="button" class="btn btn-default btn-number command-btn" data-command="mode_speed_up">
+                  <span class="glyphicon glyphicon-plus"></span>
+                </button>
+                <div class="clearfix"></div>
+              </div>
+            </li>
+          </div>
+        </ul>
       </div>
     </div>
     
@@ -659,6 +967,30 @@
         <div> &nbsp; </div>
         
         <pre id="sniffed-traffic"></pre>
+      </div>
+    </div>
+    
+    <div class="row header-row">
+      <div class="col-sm-12">
+        <h1>Admin</h1>
+      </div>
+    </div>
+    
+    <div>&nbsp;</div>
+    
+    <div class="row">
+      <div class="col-sm-12">
+        <button type="button" class="btn btn-danger system-btn" data-command="restart">
+          Restart
+        </button>
+        
+        <button type="button" id="updates-btn" class="btn btn-primary">
+          Check for Updates
+        </button>
+        
+        <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#update-firmware-modal">
+          Update Firmware
+        </button>
       </div>
     </div>
   </div>

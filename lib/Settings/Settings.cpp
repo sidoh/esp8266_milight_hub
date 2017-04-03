@@ -2,6 +2,23 @@
 #include <ArduinoJson.h>
 #include <FS.h>
 #include <IntParsing.h>
+#include <algorithm>
+  
+bool Settings::hasAuthSettings() {
+  return adminUsername.length() > 0 && adminPassword.length() > 0;
+}
+
+bool Settings::isAutoRestartEnabled() {
+  return _autoRestartPeriod > 0;
+}
+
+size_t Settings::getAutoRestartPeriod() {
+  if (_autoRestartPeriod == 0) {
+    return 0;
+  }
+  
+  return std::max(_autoRestartPeriod, static_cast<size_t>(MINIMUM_RESTART_PERIOD));
+}
 
 void Settings::deserialize(Settings& settings, String json) {
   DynamicJsonBuffer jsonBuffer;
@@ -33,6 +50,10 @@ void Settings::deserialize(Settings& settings, JsonObject& parsedSettings) {
     
     if (parsedSettings.containsKey("http_repeat_factor")) {
       settings.httpRepeatFactor = parsedSettings["http_repeat_factor"];
+    }
+    
+    if (parsedSettings.containsKey("auto_restart_period")) {
+      settings._autoRestartPeriod = parsedSettings["auto_restart_period"];
     }
     
     JsonArray& arr = parsedSettings["device_ids"];
@@ -70,7 +91,7 @@ void Settings::updateGatewayConfigs(JsonArray& arr) {
       if (params.success() && params.size() == 3) {
         this->gatewayConfigs[i] = new GatewayConfig(parseInt<uint16_t>(params[0]), params[1], params[2]);
       } else {
-        Serial.print("Settings - skipped parsing gateway ports settings for element #");
+        Serial.print(F("Settings - skipped parsing gateway ports settings for element #"));
         Serial.println(i);
       }
     }
@@ -96,6 +117,9 @@ void Settings::patch(JsonObject& parsedSettings) {
     }
     if (parsedSettings.containsKey("http_repeat_factor")) {
       this->httpRepeatFactor = parsedSettings["http_repeat_factor"];
+    }
+    if (parsedSettings.containsKey("auto_restart_period")) {
+      this->_autoRestartPeriod = parsedSettings["auto_restart_period"];
     }
     if (parsedSettings.containsKey("device_ids")) {
       JsonArray& arr = parsedSettings["device_ids"];
@@ -131,7 +155,7 @@ void Settings::save() {
   File f = SPIFFS.open(SETTINGS_FILE, "w");
   
   if (!f) {
-    Serial.println("Opening settings file failed");
+    Serial.println(F("Opening settings file failed"));
   } else {
     serialize(f);
     f.close();
@@ -148,6 +172,7 @@ void Settings::serialize(Stream& stream, const bool prettyPrint) {
   root["csn_pin"] = this->csnPin;
   root["packet_repeats"] = this->packetRepeats;
   root["http_repeat_factor"] = this->httpRepeatFactor;
+  root["auto_restart_period"] = this->_autoRestartPeriod;
   
   if (this->deviceIds) {
     JsonArray& arr = jsonBuffer.createArray();

@@ -52,6 +52,11 @@ class MiLightClient {
     void pair();
     void unpair();
     void command(uint8_t command, uint8_t arg);
+    void updateMode(uint8_t mode);
+    void nextMode();
+    void previousMode();
+    void modeSpeedDown();
+    void modeSpeedUp();
     
     // RGBW methods
     void updateHue(const uint16_t hue);

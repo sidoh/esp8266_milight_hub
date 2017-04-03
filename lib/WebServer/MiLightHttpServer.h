@@ -5,7 +5,12 @@
 #ifndef _MILIGHT_HTTP_SERVER
 #define _MILIGHT_HTTP_SERVER 
 
+#define MAX_DOWNLOAD_ATTEMPTS 3
+
 typedef std::function<void(void)> SettingsSavedHandler;
+
+const char DEFAULT_INDEX_PAGE[] PROGMEM
+  = "Web app not installed. Click <a href=\"/download_update/web\">here</a> to attempt to download it from GitHub.";
 
 class MiLightHttpServer {
 public:
@@ -33,10 +38,13 @@ protected:
   
   void handleUpdateSettings();
   void handleGetRadioConfigs();
+  void handleAbout();
+  void handleGetLatestRelease();
+  void handleSystemPost();
   void handleListenGateway(const UrlTokenBindings* urlBindings);
   void handleSendRaw(const UrlTokenBindings* urlBindings);
   void handleUpdateGroup(const UrlTokenBindings* urlBindings);
-  void handleUpdateGateway(const UrlTokenBindings* urlBindings);
+  void handleDownloadUpdate(const UrlTokenBindings* urlBindings);
   
   File updateFile;
   

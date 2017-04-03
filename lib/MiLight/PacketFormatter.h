@@ -3,6 +3,8 @@
 #include <functional>
 #include <MiLightButtons.h>
 
+#define PACKET_FORMATTER_BUFFER_SIZE 48
+
 #ifndef _PACKET_FORMATTER_H
 #define _PACKET_FORMATTER_H 
 
@@ -22,36 +24,37 @@ class PacketFormatter {
 public:
   PacketFormatter(const size_t packetLength, const size_t maxPackets = 1);
   
-  ~PacketFormatter() {
-    delete this->packetBuffer;
-  }
-  
   typedef void (PacketFormatter::*StepFunction)();
   
-  // all
   void updateStatus(MiLightStatus status);
   virtual void updateStatus(MiLightStatus status, uint8_t groupId);
-  virtual void updateBrightness(uint8_t value);
   virtual void command(uint8_t command, uint8_t arg);
+  
+  // Mode
   virtual void updateMode(uint8_t value);
   virtual void modeSpeedDown();
   virtual void modeSpeedUp();
+  virtual void nextMode();
+  virtual void previousMode();
+  
   virtual void pair();
   virtual void unpair();
   
-  // rgbw, rgb+cct
+  // Color
   virtual void updateHue(uint16_t value);
   virtual void updateColorRaw(uint8_t value);
   virtual void updateColorWhite();
   
-  // cct 
+  // White temperature
   virtual void increaseTemperature();
   virtual void decreaseTemperature();
+  virtual void updateTemperature(uint8_t value);
+  
+  // Brightness
+  virtual void updateBrightness(uint8_t value);
   virtual void increaseBrightness();
   virtual void decreaseBrightness();
   
-  // rgb+cct
-  virtual void updateTemperature(uint8_t value);
   virtual void updateSaturation(uint8_t value);
   
   virtual void reset();
@@ -70,7 +73,8 @@ public:
   size_t getPacketLength() const;
   
 protected:
-  uint8_t* packetBuffer;
+  static uint8_t* PACKET_BUFFER;
+  
   uint8_t* currentPacket;
   size_t packetLength;
   uint16_t deviceId;

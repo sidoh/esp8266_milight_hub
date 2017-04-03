@@ -38,8 +38,8 @@ void RgbPacketFormatter::updateHue(uint16_t value) {
 }
 
 void RgbPacketFormatter::updateColorRaw(uint8_t value) {
-  currentPacket[RGB_COLOR_INDEX] = value;
   command(0, 0);
+  currentPacket[RGB_COLOR_INDEX] = value;
 }
 
 void RgbPacketFormatter::updateBrightness(uint8_t value) {
@@ -58,11 +58,27 @@ void RgbPacketFormatter::increaseBrightness() {
 void RgbPacketFormatter::decreaseBrightness() {
   command(RGB_BRIGHTNESS_DOWN, 0);
 }
+  
+void RgbPacketFormatter::modeSpeedDown() {
+  command(RGB_SPEED_DOWN, 0);
+}
+ 
+void RgbPacketFormatter::modeSpeedUp() {
+  command(RGB_SPEED_UP, 0);
+}
+
+void RgbPacketFormatter::nextMode() {
+  command(RGB_MODE_UP, 0);
+}
+
+void RgbPacketFormatter::previousMode() {
+  command(RGB_MODE_DOWN, 0);
+}
 
 void RgbPacketFormatter::format(uint8_t const* packet, char* buffer) {
-  buffer += sprintf(buffer, "b0       : %02X\n", packet[0]);
-  buffer += sprintf(buffer, "ID       : %02X%02X\n", packet[1], packet[2]);
-  buffer += sprintf(buffer, "Color    : %02X\n", packet[3]);
-  buffer += sprintf(buffer, "Command  : %02X\n", packet[4]);
-  buffer += sprintf(buffer, "Sequence : %02X\n", packet[5]);
+  buffer += sprintf_P(buffer, "b0       : %02X\n", packet[0]);
+  buffer += sprintf_P(buffer, "ID       : %02X%02X\n", packet[1], packet[2]);
+  buffer += sprintf_P(buffer, "Color    : %02X\n", packet[3]);
+  buffer += sprintf_P(buffer, "Command  : %02X\n", packet[4]);
+  buffer += sprintf_P(buffer, "Sequence : %02X\n", packet[5]);
 }

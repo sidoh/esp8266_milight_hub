@@ -3,7 +3,9 @@
 #include <ArduinoJson.h>
 #include <stdlib.h>
 #include <FS.h>
+#include <GithubClient.h>
 #include <IntParsing.h>
+#include <Size.h>
 #include <MiLightClient.h>
 #include <MiLightRadioConfig.h>
 #include <MiLightHttpServer.h>
@@ -44,7 +46,7 @@ void initMilightUdpServers() {
     );
     
     if (server == NULL) {
-      Serial.print("Error creating UDP server with protocol version: ");
+      Serial.print(F("Error creating UDP server with protocol version: "));
       Serial.println(config->protocolVersion);
     } else {
       udpServers[i] = server;
@@ -67,6 +69,14 @@ void applySettings() {
   initMilightUdpServers();
 }
 
+bool shouldRestart() {
+  if (! settings.isAutoRestartEnabled()) {
+    return false;
+  }
+  
+  return settings.getAutoRestartPeriod()*60*1000 < millis();
+}
+
 void setup() {
   Serial.begin(9600);
   wifiManager.autoConnect();
@@ -86,5 +96,10 @@ void loop() {
     for (size_t i = 0; i < settings.numGatewayConfigs; i++) {
       udpServers[i]->handleClient();
     }
+  }
+  
+  if (shouldRestart()) {
+    Serial.println(F("Auto-restart triggered. Restarting..."));
+    ESP.restart();
   }
 }

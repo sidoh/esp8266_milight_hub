@@ -29,7 +29,7 @@ void MiLightUdpServer::handleClient() {
     socket.read(packetBuffer, packetSize);
     
 #ifdef MILIGHT_UDP_DEBUG
-    printf("Handling packet: ");
+    printf("[MiLightUdpServer port %d] - Handling packet: ", port);
     for (size_t i = 0; i < packetSize; i++) {
       printf("%02X ", packetBuffer[i]);
     }

@@ -36,6 +36,8 @@ platformio run -e $ESP_BOARD --target uploadfs
 
 Of course make sure to substitute `nodemcuv2` with the board that you're using.
 
+You can find pre-compiled firmware images on the [releases](https://github.com/sidoh/esp8266_milight_hub/releases).
+
 #### Configure WiFi
 
 This project uses [WiFiManager](https://github.com/tzapu/WiFiManager) to avoid the need to hardcode AP credentials in the firmware.
@@ -51,31 +53,44 @@ The HTTP endpoints (shown below) will be fully functional at this point. You sho
 ## REST endpoints
 
 1. `GET /`. Opens web UI. You'll need to upload it first.
+1. `GET /about`. Return information about current firmware version.
+1. `POST /system`. Post commands in the form `{"comamnd": <command>}`. Currently supports the commands: `restart`.
+1. `POST /firmware`. OTA firmware update.
+1. `POST /web`. Update web UI.
 1. `GET /settings`. Gets current settings as JSON.
 1. `PUT /settings`. Patches settings (e.g., doesn't overwrite keys that aren't present). Accepts a JSON blob in the body.
 1. `GET /radio_configs`. Get a list of supported radio configs (aka `device_type`s).
 1. `GET /gateway_traffic/:device_type`. Starts an HTTP long poll. Returns any Milight traffic it hears. Useful if you need to know what your Milight gateway/remote ID is. Since protocols for RGBW/CCT are different, specify one of `rgbw`, `cct`, or `rgb_cct` as `:device_type. Accepts a JSON blob.
 1. `PUT /gateways/:device_id/:device_type/:group_id`. Controls or sends commands to `:group_id` from `:device_id`. 
-1. `PUT /gateways/:device_id/:device_type`. A few commands have support for being sent to all groups. You can send those here.
-1. `POST /firmware`. OTA firmware update.
-1. `POST /web`. Update web UI.
+1. `POST /raw_commands/:device_type`. Sends a raw RF packet with radio configs associated with `:device_type`. Example body:
+    ```
+    {"packet": "01 02 03 04 05 06 07 08 09", "num_repeats": 10}
+    ```
 
 #### Bulb commands
 
-Route (5) supports these commands:
+Route (5) supports these commands. Note that each bulb type has support for a different subset of these commands:
 
 1. `status`. Toggles on/off. Can be "on", "off", "true", or "false".
-2. `hue`. (RGBW only) This is the only way to control color with these bulbs. Should be in the range `[0, 359]`.
-3. `level`. (RGBW only) Controls brightness. Should be in the range `[0, 100]`.
-4. `temperature`. (CCT only) Controls white temperature. Should be in the range `[0, 100]`.
-5. `saturation`. (new RGB+CCT only) Controls saturation.
-6. `command`. Sends a command to the group. Can be one of:
-   * `set_white`. (RGBW only) Turns off RGB and enters WW/CW mode.
+1. `hue`. Sets color. Should be in the range `[0, 359]`.
+1. `level`. Controls brightness. Should be in the range `[0, 100]`.
+1. `temperature`. Controls white temperature. Should be in the range `[0, 100]`.
+1. `saturation`. Controls saturation.
+1. `mode`. Sets "disco mode" setting to the specified value. Note that not all bulbs that have modes support this command. Some will only allow you to cycle through next/previous modes using commands.
+1. `command`. Sends a command to the group. Can be one of:
+   * `set_white`. Turns off RGB and enters WW/CW mode.
    * `pair`. Emulates the pairing process. Send this command right as you connect an unpaired bulb and it will pair with the device ID being used.
    * `unpair`. Emulates the unpairing process. Send as you connect a paired bulb to have it disassociate with the device ID being used.
+   * `next_mode`. Cycles to the next "disco mode".
+   * `previous_mode`. Cycles to the previous disco mode.
+   * `mode_speed_up`. 
+   * `mode_speed_down`.
+   * `level_down`. Turns down the brightness. Not all dimmable bulbs support this command.
+   * `level_up`. Turns down the brightness. Not all dimmable bulbs support this command.
+   * `temperature_down`. Turns down the white temperature. Not all bulbs with adjustable white temperature support this command.
+   * `temperature_up`. Turns up the white temperature. Not all bulbs with adjustable white temperature support this command.
    
-Route (6) suports the `command`s `all_on` and `all_off`, which do as you'd expect.
-
+If you'd like to control bulbs in all groups paired with a particular device ID, set `:group_id` to 0.
 
 #### Examples
 

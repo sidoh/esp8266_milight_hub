@@ -2,17 +2,34 @@
 
 #define RGB_CCT_COMMAND_INDEX 4
 #define RGB_CCT_ARGUMENT_INDEX 5
+#define RGB_CCT_NUM_MODES 9
 #define V2_OFFSET_JUMP_START 0x54
 
 #ifndef _RGB_CCT_PACKET_FORMATTER_H
 #define _RGB_CCT_PACKET_FORMATTER_H 
 
+enum MiLightRgbCctCommand {
+  RGB_CCT_ON = 0x01,
+  RGB_CCT_OFF = 0x01,
+  RGB_CCT_COLOR = 0x02,
+  RGB_CCT_KELVIN = 0x03,
+  RGB_CCT_BRIGHTNESS = 0x04,
+  RGB_CCT_SATURATION = 0x04,
+  RGB_CCT_MODE = 0x05
+};
+
+enum MiLightRgbCctArguments {
+  RGB_CCT_MODE_SPEED_UP   = 0x0A,
+  RGB_CCT_MODE_SPEED_DOWN = 0x0B
+};
+
 class RgbCctPacketFormatter : public PacketFormatter {
 public:
-  static uint8_t const V2_OFFSETS[][4];
+  static uint8_t const V2_OFFSETS[][4] PROGMEM;
     
   RgbCctPacketFormatter()
-    : PacketFormatter(9)
+    : PacketFormatter(9),
+      lastMode(0)
   { }
   
   virtual void initializePacket(uint8_t* packet);
@@ -28,6 +45,12 @@ public:
   virtual void format(uint8_t const* packet, char* buffer);
   virtual void unpair();
   
+  virtual void modeSpeedDown();
+  virtual void modeSpeedUp();
+  virtual void updateMode(uint8_t mode);
+  virtual void nextMode();
+  virtual void previousMode();
+  
   virtual void finalizePacket(uint8_t* packet);
     
   static void encodeV2Packet(uint8_t* packet);
@@ -35,6 +58,10 @@ public:
   static uint8_t xorKey(uint8_t key);
   static uint8_t encodeByte(uint8_t byte, uint8_t s1, uint8_t xorKey, uint8_t s2);
   static uint8_t decodeByte(uint8_t byte, uint8_t s1, uint8_t xorKey, uint8_t s2);
+
+protected:
+  
+  uint8_t lastMode;
 };
 
 #endif

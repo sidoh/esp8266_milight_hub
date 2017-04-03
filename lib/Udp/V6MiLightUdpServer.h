@@ -6,20 +6,13 @@
 #include <WiFiUdp.h>
 #include <MiLightUdpServer.h>
 #include <Vector.h>
+#include <V6CommandHandler.h>
 
 #define V6_COMMAND_LEN 8
 #define V6_MAX_SESSIONS 10
 
 #ifndef _V6_MILIGHT_UDP_SERVER
 #define _V6_MILIGHT_UDP_SERVER 
-
-enum V2CommandIds {
-  V2_COLOR = 0x01,
-  V2_SATURATION = 0x02,
-  V2_BRIGHTNESS = 0x03,
-  V2_STATUS = 0x04,
-  V2_KELVIN = 0x05
-};
 
 struct V6Session {
   V6Session(IPAddress ipAddr, uint16_t port, uint16_t sessionId)
@@ -56,22 +49,33 @@ public:
   static uint8_t* writeInt(const T& value, uint8_t* packet);
     
 protected:
-  static uint8_t START_SESSION_COMMAND[];
-  static uint8_t START_SESSION_RESPONSE[];
-  static uint8_t COMMAND_HEADER[];
-  static uint8_t COMMAND_RESPONSE[];
-  static uint8_t SEARCH_COMMAND[];
-  static uint8_t LOCAL_SEARCH_COMMAND[];
-  static uint8_t HEARTBEAT_HEADER[];
+  static V6CommandDemuxer COMMAND_DEMUXER PROGMEM;
+  
+  static uint8_t START_SESSION_COMMAND[] PROGMEM;
+  static uint8_t START_SESSION_RESPONSE[] PROGMEM;
+  static uint8_t COMMAND_HEADER[] PROGMEM;
+  static uint8_t COMMAND_RESPONSE[] PROGMEM;
+  static uint8_t LOCAL_SEARCH_COMMAND[] PROGMEM;
+  static uint8_t HEARTBEAT_HEADER[] PROGMEM;
+  static uint8_t HEARTBEAT_HEADER2[] PROGMEM;
+  
+  static uint8_t SEARCH_COMMAND[] PROGMEM;
+  static uint8_t SEARCH_RESPONSE[] PROGMEM;
+  
+  static uint8_t OPEN_COMMAND_RESPONSE[] PROGMEM;
   
   V6Session* firstSession;
   size_t numSessions;
   uint16_t sessionId;
   
   uint16_t beginSession();
-  void sendResponse(uint16_t sessionId, uint8_t* responseBuffer, size_t responseSize);
+  bool sendResponse(uint16_t sessionId, uint8_t* responseBuffer, size_t responseSize);
   
+  bool matchesPacket(uint8_t* packet1, size_t packet1Len, uint8_t* packet2, size_t packet2Len);
+  
+  void handleSearch();
   void handleStartSession();
+  bool handleOpenCommand(uint16_t sessionId);
   void handleHeartbeat(uint16_t sessionId);
   void handleCommand(
     uint16_t sessionId,
@@ -79,18 +83,6 @@ protected:
     uint8_t* cmd,
     uint8_t group,
     uint8_t checksum
-  );
-  
-  bool handleV1BulbCommand(
-    uint8_t group,
-    uint32_t cmd,
-    uint32_t cmdArg
-  );
-  
-  bool handleV2BulbCommand(
-    uint8_t group,
-    uint32_t cmd,
-    uint32_t cmdArg
   );
 };
 
