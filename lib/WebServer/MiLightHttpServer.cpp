@@ -26,7 +26,21 @@ void MiLightHttpServer::begin() {
     [this](){
       server.sendHeader("Connection", "close");
       server.sendHeader("Access-Control-Allow-Origin", "*");
-      server.send(200, "text/plain", (Update.hasError())?"FAIL":"OK");
+      
+      if (Update.hasError()) {
+        server.send_P(
+          500,
+          "text/plain",
+          PSTR("Failed updating firmware. Check serial logs for more information. You may need to re-flash the device.")
+        );
+      } else {
+        server.send_P(
+          200,
+          "text/plain",
+          PSTR("Success. Device will now reboot.")
+        );
+      }
+      
       ESP.restart();
     },
     [this](){
@@ -74,6 +88,11 @@ void MiLightHttpServer::handleGetLatestRelease() {
   
   while (tries++ < MAX_DOWNLOAD_ATTEMPTS && !client.download(path, fsPath)) {
     Serial.println(F("Failed download attempt."));
+  }
+  
+  if (!SPIFFS.exists(fsPath)) {
+    server.send_P(500, "text/plain", PSTR("Failed to stream API request from GitHub. Check Serial logs for more information."));
+    return;
   }
   
   File file = SPIFFS.open(fsPath, "r");
@@ -223,7 +242,7 @@ ESP8266WebServer::THandlerFunction MiLightHttpServer::handleUpdateFile(const cha
       updateFile = SPIFFS.open(filename, "w");
     } else if(upload.status == UPLOAD_FILE_WRITE){
       if (updateFile.write(upload.buf, upload.currentSize) != upload.currentSize) {
-        Serial.println("Error updating web file");
+        Serial.println(F("Error updating web file"));
       }
     } else if (upload.status == UPLOAD_FILE_END) {
       updateFile.close();
