@@ -242,8 +242,13 @@
         Object.keys(val).forEach(function(k) {
           var field = $('#settings input[name="' + k + '"]');
 
-          if (field.length > 0 && field.attr('type') === 'text') {
-            field.val(val[k]);
+          if (field.length > 0) {
+            if (field.attr('type') === 'radio') {
+              console.log(field.filter('[value="' + val + '"]'));
+              field.filter('[value="' + val + '"]').attr('checked', 'checked');
+            } else {
+              field.val(val[k]);
+            }
           }
         });
 
@@ -572,7 +577,7 @@
           var elmt = $('#settings input[name="' + k + '"]');
 
           if (elmt.attr('type') === 'radio') {
-            obj[k] = elmt.filter(function() { return $(this).is(':checked'); }).val();
+            obj[k] = elmt.filter(':checked').val();
           } else {
             obj[k] = elmt.val();
           }
