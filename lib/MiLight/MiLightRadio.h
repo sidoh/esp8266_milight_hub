@@ -15,16 +15,17 @@
 
 #include "AbstractPL1167.h"
 #include <MiLightRadioConfig.h>
+#include <MiLightRadioInterface.h>
 
 // #define DEBUG_PRINTF
 
 #ifndef MILIGHTRADIO_H_
 #define MILIGHTRADIO_H_
 
-class MiLightRadio {
+class MiLightRadio : public MiLightRadioInterface{
   public:
     MiLightRadio(AbstractPL1167 &pl1167, const MiLightRadioConfig& config);
-    
+
     int begin();
     bool available();
     int read(uint8_t frame[], size_t &frame_length);
@@ -32,7 +33,7 @@ class MiLightRadio {
     int write(uint8_t frame[], size_t frame_length);
     int resend();
     int configure();
-    
+
   private:
     AbstractPL1167 &_pl1167;
     const MiLightRadioConfig& config;
