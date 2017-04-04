@@ -5,12 +5,14 @@
 #ifndef _SETTINGS_H_INCLUDED
 #define _SETTINGS_H_INCLUDED
 
+#define QUOTE(x) #x
+
 #ifndef FIRMWARE_VARIANT
-#define FIRMWARE_VARIANT "unknown"
+#define FIRMWARE_VARIANT unknown
 #endif
 
 #ifndef MILIGHT_HUB_VERSION
-#define MILIGHT_HUB_VERSION "unknown"
+#define MILIGHT_HUB_VERSION unknown
 #endif
 
 #define SETTINGS_FILE  "/config.json"
@@ -26,12 +28,12 @@
 
 class GatewayConfig {
 public:
-  GatewayConfig(uint16_t deviceId, uint16_t port, uint8_t protocolVersion) 
+  GatewayConfig(uint16_t deviceId, uint16_t port, uint8_t protocolVersion)
     : deviceId(deviceId),
       port(port),
       protocolVersion(protocolVersion)
     { }
-  
+
   const uint16_t deviceId;
   const uint16_t port;
   const uint8_t protocolVersion;
@@ -53,13 +55,13 @@ public:
     httpRepeatFactor(5),
     _autoRestartPeriod(0)
   { }
-  
+
   ~Settings() {
     if (deviceIds) {
       delete deviceIds;
     }
   }
-  
+
   bool hasAuthSettings();
   bool isAutoRestartEnabled();
   size_t getAutoRestartPeriod();
@@ -67,14 +69,14 @@ public:
   static void deserialize(Settings& settings, String json);
   static void deserialize(Settings& settings, JsonObject& json);
   static void load(Settings& settings);
-  
+
   void save();
   String toJson(const bool prettyPrint = true);
   void serialize(Stream& stream, const bool prettyPrint = false);
   void updateDeviceIds(JsonArray& arr);
   void updateGatewayConfigs(JsonArray& arr);
   void patch(JsonObject& obj);
-  
+
   String adminUsername;
   String adminPassword;
   uint8_t cePin;
@@ -85,9 +87,9 @@ public:
   size_t numDeviceIds;
   size_t packetRepeats;
   size_t httpRepeatFactor;
-  
+
 protected:
   size_t _autoRestartPeriod;
 };
 
-#endif 
+#endif

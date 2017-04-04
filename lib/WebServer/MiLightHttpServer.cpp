@@ -8,7 +8,7 @@
 
 void MiLightHttpServer::begin() {
   applySettings(settings);
-  
+
   server.on("/", HTTP_GET, handleServeFile(WEB_INDEX_FILENAME, "text/html", DEFAULT_INDEX_PAGE));
   server.on("/settings", HTTP_GET, handleServeFile(SETTINGS_FILE, "application/json"));
   server.on("/settings", HTTP_PUT, [this]() { handleUpdateSettings(); });
@@ -22,11 +22,11 @@ void MiLightHttpServer::begin() {
   server.on("/about", HTTP_GET, [this]() { handleAbout(); });
   server.on("/latest_release", HTTP_GET, [this]() { handleGetLatestRelease(); });
   server.on("/system", HTTP_POST, [this]() { handleSystemPost(); });
-  server.on("/firmware", HTTP_POST, 
+  server.on("/firmware", HTTP_POST,
     [this](){
       server.sendHeader("Connection", "close");
       server.sendHeader("Access-Control-Allow-Origin", "*");
-      
+
       if (Update.hasError()) {
         server.send_P(
           500,
@@ -40,7 +40,7 @@ void MiLightHttpServer::begin() {
           PSTR("Success. Device will now reboot.")
         );
       }
-      
+
       ESP.restart();
     },
     [this](){
@@ -64,7 +64,7 @@ void MiLightHttpServer::begin() {
       yield();
     }
   );
-  
+
   server.begin();
 }
 
@@ -75,9 +75,9 @@ void MiLightHttpServer::handleGetLatestRelease() {
     MILIGHT_GITHUB_REPO,
     "/releases/latest"
   );
-  
+
   Serial.println(path);
-  
+
   // This is an ugly hack, but probably not worth optimizing. The nice way
   // to do this would be to extract the content len from GitHub's response
   // and stream the body to the server directly. But this would require parsing
@@ -85,16 +85,16 @@ void MiLightHttpServer::handleGetLatestRelease() {
   // it's worth.
   const String& fsPath = "/_cv.json";
   size_t tries = 0;
-  
+
   while (tries++ < MAX_DOWNLOAD_ATTEMPTS && !client.download(path, fsPath)) {
     Serial.println(F("Failed download attempt."));
   }
-  
+
   if (!SPIFFS.exists(fsPath)) {
     server.send_P(500, "text/plain", PSTR("Failed to stream API request from GitHub. Check Serial logs for more information."));
     return;
   }
-  
+
   File file = SPIFFS.open(fsPath, "r");
   server.streamFile(file, "application/json");
   SPIFFS.remove(fsPath);
@@ -107,20 +107,20 @@ void MiLightHttpServer::handleClient() {
 void MiLightHttpServer::handleSystemPost() {
   DynamicJsonBuffer buffer;
   JsonObject& request = buffer.parse(server.arg("plain"));
-  
+
   bool handled = false;
-  
+
   if (request.containsKey("command")) {
     if (request["command"] == "restart") {
       Serial.println(F("Restarting..."));
       server.send(200, "text/plain", "true");
-      
+
       delay(100);
-      
+
       ESP.restart();
     }
   }
-  
+
   if (handled) {
     server.send(200, "text/plain", "true");
   } else {
@@ -131,13 +131,13 @@ void MiLightHttpServer::handleSystemPost() {
 void MiLightHttpServer::handleDownloadUpdate(const UrlTokenBindings* bindings) {
   GithubClient downloader = GithubClient::rawDownloader();
   const String& component = bindings->get("component");
-  
+
   if (component.equalsIgnoreCase("web")) {
     Serial.println(F("Attempting to update web UI..."));
-    
+
     bool result = false;
     size_t tries = 0;
-    
+
     while (!result && tries++ <= MAX_DOWNLOAD_ATTEMPTS) {
       printf("building url\n");
       String urlPath = GithubClient::buildRepoPath(
@@ -145,14 +145,14 @@ void MiLightHttpServer::handleDownloadUpdate(const UrlTokenBindings* bindings) {
         MILIGHT_GITHUB_REPO,
         MILIGHT_REPO_WEB_PATH
       );
-      
+
       printf("URL: %s\n", urlPath.c_str());
-      
+
       result = downloader.download(urlPath, WEB_INDEX_FILENAME);
     }
-    
+
     Serial.println(F("Download complete!"));
-    
+
     if (result) {
       server.sendHeader("Location", "/");
       server.send(302);
@@ -171,47 +171,47 @@ void MiLightHttpServer::applySettings(Settings& settings) {
   } else {
     server.disableAuthentication();
   }
-  
+
   milightClient->setResendCount(settings.packetRepeats);
 }
 
 void MiLightHttpServer::onSettingsSaved(SettingsSavedHandler handler) {
   this->settingsSavedHandler = handler;
 }
-  
+
 void MiLightHttpServer::handleAbout() {
   DynamicJsonBuffer buffer;
   JsonObject& response = buffer.createObject();
-  
-  response["version"] = MILIGHT_HUB_VERSION;
-  response["variant"] = FIRMWARE_VARIANT;
-  
+
+  response["version"] = QUOTE(MILIGHT_HUB_VERSION);
+  response["variant"] = QUOTE(FIRMWARE_VARIANT);
+
   String body;
   response.printTo(body);
-  
-  server.send(200, "application", body); 
+
+  server.send(200, "application", body);
 }
-  
+
 void MiLightHttpServer::handleGetRadioConfigs() {
   DynamicJsonBuffer buffer;
   JsonArray& arr = buffer.createArray();
-  
+
   for (size_t i = 0; i < MiLightRadioConfig::NUM_CONFIGS; i++) {
     const MiLightRadioConfig* config = MiLightRadioConfig::ALL_CONFIGS[i];
     arr.add(config->name);
   }
-  
+
   String body;
   arr.printTo(body);
-  
+
   server.send(200, "application/json", body);
 }
-  
+
 ESP8266WebServer::THandlerFunction MiLightHttpServer::handleServeFile(
-  const char* filename, 
-  const char* contentType, 
+  const char* filename,
+  const char* contentType,
   const char* defaultText) {
-    
+
   return [this, filename, contentType, defaultText]() {
     if (!serveFile(filename)) {
       if (defaultText) {
@@ -230,14 +230,14 @@ bool MiLightHttpServer::serveFile(const char* file, const char* contentType) {
     f.close();
     return true;
   }
-  
+
   return false;
 }
 
 ESP8266WebServer::THandlerFunction MiLightHttpServer::handleUpdateFile(const char* filename) {
   return [this, filename]() {
     HTTPUpload& upload = server.upload();
-    
+
     if (upload.status == UPLOAD_FILE_START) {
       updateFile = SPIFFS.open(filename, "w");
     } else if(upload.status == UPLOAD_FILE_WRITE){
@@ -254,14 +254,14 @@ void MiLightHttpServer::handleUpdateSettings() {
   DynamicJsonBuffer buffer;
   const String& rawSettings = server.arg("plain");
   JsonObject& parsedSettings = buffer.parse(rawSettings);
-  
+
   if (parsedSettings.success()) {
     settings.patch(parsedSettings);
     settings.save();
-    
+
     this->applySettings(settings);
     this->settingsSavedHandler();
-    
+
     server.send(200, "application/json", "true");
   } else {
     server.send(400, "application/json", "\"Invalid JSON\"");
@@ -271,140 +271,140 @@ void MiLightHttpServer::handleUpdateSettings() {
 void MiLightHttpServer::handleListenGateway(const UrlTokenBindings* bindings) {
   bool available = false;
   MiLightRadioConfig* config = MiLightRadioConfig::fromString(bindings->get("type"));
-  
+
   if (config == NULL) {
     String body = "Unknown device type: ";
     body += bindings->get("type");
-    
+
     server.send(400, "text/plain", body);
     return;
   }
-  
+
   milightClient->prepare(*config, 0, 0);
-  
+
   while (!available) {
     if (!server.clientConnected()) {
       return;
     }
-    
+
     if (milightClient->available()) {
       available = true;
     }
-    
+
     yield();
   }
-  
+
   uint8_t packet[config->getPacketLength()];
   milightClient->read(packet);
-  
+
   char response[200];
   char* responseBuffer = response;
-  
+
   responseBuffer += sprintf(responseBuffer, "\nPacket received (%d bytes):\n", sizeof(packet));
   milightClient->formatPacket(packet, responseBuffer);
-  
+
   server.send(200, "text/plain", response);
 }
 
 void MiLightHttpServer::handleUpdateGroup(const UrlTokenBindings* urlBindings) {
   DynamicJsonBuffer buffer;
   JsonObject& request = buffer.parse(server.arg("plain"));
-  
+
   if (!request.success()) {
     server.send(400, "text/plain", F("Invalid JSON"));
     return;
   }
-  
+
   const uint16_t deviceId = parseInt<uint16_t>(urlBindings->get("device_id"));
   const uint8_t groupId = urlBindings->get("group_id").toInt();
   MiLightRadioConfig* config = MiLightRadioConfig::fromString(urlBindings->get("type"));
-  
+
   if (config == NULL) {
     String body = "Unknown device type: ";
     body += urlBindings->get("type");
     server.send(400, "text/plain", body);
     return;
   }
-  
+
   milightClient->setResendCount(
     settings.httpRepeatFactor * settings.packetRepeats
   );
   milightClient->prepare(*config, deviceId, groupId);
-  
+
   if (request.containsKey("status")) {
     const String& statusStr = request.get<String>("status");
     MiLightStatus status = (statusStr == "on" || statusStr == "true") ? ON : OFF;
     milightClient->updateStatus(status);
   }
-      
+
   if (request.containsKey("command")) {
     if (request["command"] == "unpair") {
       milightClient->unpair();
     }
-    
+
     if (request["command"] == "pair") {
       milightClient->pair();
     }
-    
+
     if (request["command"] == "set_white") {
       milightClient->updateColorWhite();
     }
-    
+
     if (request["command"] == "level_up") {
       milightClient->increaseBrightness();
     }
-    
+
     if (request["command"] == "level_down") {
       milightClient->decreaseBrightness();
     }
-    
+
     if (request["command"] == "temperature_up") {
       milightClient->increaseTemperature();
     }
-    
+
     if (request["command"] == "temperature_down") {
       milightClient->decreaseTemperature();
     }
-    
+
     if (request["command"] == "next_mode") {
       milightClient->nextMode();
     }
-    
+
     if (request["command"] == "previous_mode") {
       milightClient->previousMode();
     }
-    
+
     if (request["command"] == "mode_speed_down") {
       milightClient->modeSpeedDown();
     }
-    
+
     if (request["command"] == "mode_speed_up") {
       milightClient->modeSpeedUp();
     }
   }
-  
+
   if (request.containsKey("hue")) {
     milightClient->updateHue(request["hue"]);
   }
-    
+
   if (request.containsKey("level")) {
     milightClient->updateBrightness(request["level"]);
   }
-    
+
   if (request.containsKey("temperature")) {
     milightClient->updateTemperature(request["temperature"]);
   }
-  
+
   if (request.containsKey("saturation")) {
     milightClient->updateSaturation(request["saturation"]);
   }
-  
+
   if (request.containsKey("mode")) {
     milightClient->updateMode(request["mode"]);
   }
-  
+
   milightClient->setResendCount(settings.packetRepeats);
-  
+
   server.send(200, "application/json", "true");
 }
 
@@ -412,29 +412,29 @@ void MiLightHttpServer::handleSendRaw(const UrlTokenBindings* bindings) {
   DynamicJsonBuffer buffer;
   JsonObject& request = buffer.parse(server.arg("plain"));
   MiLightRadioConfig* config = MiLightRadioConfig::fromString(bindings->get("type"));
-  
+
   if (config == NULL) {
     String body = "Unknown device type: ";
     body += bindings->get("type");
-    
+
     server.send(400, "text/plain", body);
     return;
   }
-  
+
   uint8_t packet[config->getPacketLength()];
   const String& hexPacket = request["packet"];
   hexStrToBytes<uint8_t>(hexPacket.c_str(), hexPacket.length(), packet, config->getPacketLength());
-  
+
   size_t numRepeats = MILIGHT_DEFAULT_RESEND_COUNT;
   if (request.containsKey("num_repeats")) {
     numRepeats = request["num_repeats"];
   }
-  
+
   milightClient->prepare(*config, 0, 0);
-  
+
   for (size_t i = 0; i < numRepeats; i++) {
     milightClient->write(packet);
   }
-  
+
   server.send(200, "text/plain", "true");
 }
