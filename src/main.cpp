@@ -17,6 +17,7 @@ WiFiManager wifiManager;
 Settings settings;
 
 MiLightClient* milightClient;
+MiLightRadioFactory* radioFactory;
 MiLightHttpServer *httpServer;
 
 int numUdpServers = 0;
@@ -56,24 +57,23 @@ void initMilightUdpServers() {
 }
 
 
-void applySettings() 
-{
+void applySettings() {
   if (milightClient) {
     delete milightClient;
   }
+  if (radioFactory) {
+    delete radioFactory;
+  }
 
-  if(settings.radioInterfaceType == nRF24)
-  {
-      Serial.println("Starting using 'nRF24' interface...");
-      milightClient = new MiLightClient(settings.cePin, settings.resetPin, settings.csnPin, nRF24);
-      milightClient->begin();
+  radioFactory = MiLightRadioFactory::fromSettings(settings);
+
+  if (radioFactory == NULL) {
+    Serial.println(F("ERROR: unable to construct radio factory"));
   }
-  else if(settings.radioInterfaceType == PL1167_LT8900)
-  {
-      Serial.println("Starting using 'PL1167_LT8900' interface...");
-      milightClient = new MiLightClient(settings.cePin, settings.resetPin, settings.csnPin, PL1167_LT8900);
-      milightClient->begin();
-  }
+
+  milightClient = new MiLightClient(radioFactory);
+  milightClient->begin();
+
   initMilightUdpServers();
 }
 

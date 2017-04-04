@@ -15,8 +15,7 @@
 
 #include <MiLightRadioConfig.h>
 #include <MiLightButtons.h>
-#include <MiLightRadioInterface.h>
-
+#include <MiLightRadio.h>
 
 // Register defines
 #define REGISTER_READ       0b10000000  //bin
@@ -43,13 +42,12 @@
 
 #define DEFAULT_TIME_BETWEEN_RETRANSMISSIONS_uS	350
 
-
 #ifndef MILIGHTRADIOPL1167_LT8900_H_
 #define MILIGHTRADIOPL1167_LT8900_H_
 
-class MiLightRadioPL1167_LT8900 : public MiLightRadioInterface{
+class LT8900MiLightRadio : public MiLightRadio {
   public:
-    MiLightRadioPL1167_LT8900(byte byCSPin, byte byResetPin, byte byPktFlag, const MiLightRadioConfig& config);
+    LT8900MiLightRadio(byte byCSPin, byte byResetPin, byte byPktFlag, const MiLightRadioConfig& config);
 
     virtual int begin();
     virtual bool available();
@@ -58,32 +56,32 @@ class MiLightRadioPL1167_LT8900 : public MiLightRadioInterface{
     virtual int write(uint8_t frame[], size_t frame_length);
     virtual int resend();
     virtual int configure();
+    virtual const MiLightRadioConfig& config();
 
   private:
 
+    void vInitRadioModule(MiLightRadioType type);
+    void vSetSyncWord(uint16_t syncWord3, uint16_t syncWord2, uint16_t syncWord1, uint16_t syncWord0);
+    uint16_t uiReadRegister(uint8_t reg);
+    void regWrite16(byte ADDR, byte V1, byte V2, byte WAIT);
+    uint8_t uiWriteRegister(uint8_t reg, uint16_t data);
 
-        void vInitRadioModule(MiLightRadioType type);
-        void vSetSyncWord(uint16_t syncWord3, uint16_t syncWord2, uint16_t syncWord1, uint16_t syncWord0);
-        uint16_t uiReadRegister(uint8_t reg);
-        void regWrite16(byte ADDR, byte V1, byte V2, byte WAIT);
-        uint8_t uiWriteRegister(uint8_t reg, uint16_t data);
+    bool bAvailablePin(void);
+    bool bAvailableRegister(void);
+    void vStartListening(uint uiChannelToListenTo);
+    void vResumeRX(void);
+    int iReadRXBuffer(uint8_t *buffer, size_t maxBuffer);
+    void vSetChannel(uint8_t channel);
+    void vGenericSendPacket(int iMode, int iLength, byte *pbyFrame, byte byChannel );
+    bool bCheckRadioConnection(void);
+    bool sendPacket(uint8_t *data, size_t packetSize,byte byChannel);
 
-        bool bAvailablePin(void);
-        bool bAvailableRegister(void);
-        void vStartListening(uint uiChannelToListenTo);
-        void vResumeRX(void);
-        int iReadRXBuffer(uint8_t *buffer, size_t maxBuffer);
-        void vSetChannel(uint8_t channel);
-        void vGenericSendPacket(int iMode, int iLength, byte *pbyFrame, byte byChannel );
-        bool bCheckRadioConnection(void);
-        bool sendPacket(uint8_t *data, size_t packetSize,byte byChannel);
+    byte _pin_pktflag;
+    byte _csPin;
 
-        byte _pin_pktflag;
-      	byte _csPin;
-
-    const MiLightRadioConfig& config;
+    const MiLightRadioConfig& _config;
     //uint32_t _prev_packet_id;
-    uint8_t _channel = 0;
+    uint8_t _channel;
     uint8_t _packet[10];
     uint8_t _out_packet[10];
     bool _waiting;
@@ -92,4 +90,4 @@ class MiLightRadioPL1167_LT8900 : public MiLightRadioInterface{
 
 
 
-#endif /* MILIGHTRADIO_H_ */
+#endif
