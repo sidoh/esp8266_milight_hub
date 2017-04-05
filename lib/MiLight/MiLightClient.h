@@ -7,7 +7,7 @@
 #ifndef _MILIGHTCLIENT_H
 #define _MILIGHTCLIENT_H
 
-// #define DEBUG_PRINTF
+//#define DEBUG_PRINTF
 
 #define MILIGHT_DEFAULT_RESEND_COUNT 10
 
