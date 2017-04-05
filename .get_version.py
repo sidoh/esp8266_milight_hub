@@ -1,5 +1,5 @@
 from subprocess import check_output
-import os
+import sys
 import os
 import platform
 import subprocess
@@ -29,4 +29,4 @@ if is_tool("git"):
         pass
 
 
-print("-DMILIGHT_HUB_VERSION=%s" % version)
+sys.stdout.write("-DMILIGHT_HUB_VERSION=%s" % version)
