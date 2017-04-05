@@ -71,14 +71,14 @@ bool LT8900MiLightRadio::bCheckRadioConnection(void)
 	if ((value_0 == 0x6fe0) && (value_1 == 0x5681))
 	{
     #ifdef DEBUG_PRINTF
-		  Serial.println("Radio module running correctly...");
+		  Serial.println(F("Radio module running correctly..."));
     #endif
 		iRetValue = 1;
 	}
 	else
 	{
     #ifdef DEBUG_PRINTF
-		  Serial.println("Failed initializing the radio module...");
+		  Serial.println(F("Failed initializing the radio module..."));
     #endif
 	}
 
@@ -454,11 +454,11 @@ bool LT8900MiLightRadio::available()
           {
             if (packetSize < 0)
             {
-              Serial.println(F("Packet less than zero, buffer to small"));
+              Serial.println(F("LT8900: Packet less than zero, buffer to small"));
             }
             else
             {
-              Serial.println(F("Packet read fail"));
+              Serial.println(F("LT8900: Packet read fail"));
             }
           }
 
@@ -470,22 +470,23 @@ bool LT8900MiLightRadio::available()
         ulElapsedTime = ulElapsedTime - ulTimeStamp;
       }while (ulElapsedTime < 1000 );
 
-      Serial.print("ElapsedRX: ");
-      Serial.println(iUpdateStamp - iStartTime);
+      #ifdef DEBUG_PRINTF
+      printf_P(PSTR("ElapsedRX: %d\n"), iUpdateStamp - iStartTime);
+      #endif
 
       if (byFrameCounter != 0)
       {
-        Serial.println("");
-        Serial.print(F("Packets received: "));
-        Serial.print(byFrameCounter);
+        #ifdef DEBUG_PRINTF
+        printf_P(PSTR("Packets received: %d\n"), byFrameCounter);
+        #endif
 
         for (byte byCounterFrame = 0; byCounterFrame < byFrameCounter; byCounterFrame++)
         {
           _dupes_received = byaFramesReceivedCount[byCounterFrame];
-          Serial.println("");
-          Serial.print(F("Packet read OK, rec: "));
-          Serial.print(byaFramesReceivedCount[byCounterFrame]);
-          Serial.println(F(" Frame: "));
+
+          #ifdef DEBUG_PRINTF
+          printf_P(PSTR("Packet read OK, rec: %d Frame:\n"), byaFramesReceivedCount[byCounterFrame]);
+          #endif
           //dump the packet.
 
           _packet[0]=byaFramesSizes[byCounterFrame];
@@ -494,22 +495,17 @@ bool LT8900MiLightRadio::available()
             byte byReceivedvalue = byaFramesReceived[byCounterFrame][iByteCounter];
             _packet[iByteCounter+1] = byReceivedvalue;
 
-            String stringOne = String(byReceivedvalue, HEX);
-            String stringToWrite = "0x";
-
-            if (byReceivedvalue < 0x10)
-            {
-              stringToWrite += "0";
-            }
-            stringToWrite += stringOne;
-            stringToWrite += " ";
-
-            Serial.print(stringToWrite);
+            #ifdef DEBUG_PRINTF
+            printf_P(PSTR("%02X "), byReceivedvalue);
+            #endif
           }
 
           _waiting = true;
         }
-        Serial.println("");
+
+        #ifdef DEBUG_PRINTF
+        Serial.println();
+        #endif
       }
     }
     yield();
