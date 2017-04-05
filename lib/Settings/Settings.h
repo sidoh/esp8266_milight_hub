@@ -5,7 +5,8 @@
 #ifndef _SETTINGS_H_INCLUDED
 #define _SETTINGS_H_INCLUDED
 
-#define QUOTE(x) #x
+#define XQUOTE(x) #x
+#define QUOTE(x) XQUOTE(x)
 
 #ifndef FIRMWARE_VARIANT
 #define FIRMWARE_VARIANT unknown
