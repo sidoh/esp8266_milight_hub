@@ -5,12 +5,15 @@
 #ifndef _SETTINGS_H_INCLUDED
 #define _SETTINGS_H_INCLUDED
 
+#define XQUOTE(x) #x
+#define QUOTE(x) XQUOTE(x)
+
 #ifndef FIRMWARE_VARIANT
-#define FIRMWARE_VARIANT "unknown"
+#define FIRMWARE_VARIANT unknown
 #endif
 
 #ifndef MILIGHT_HUB_VERSION
-#define MILIGHT_HUB_VERSION "unknown"
+#define MILIGHT_HUB_VERSION unknown
 #endif
 
 #define SETTINGS_FILE  "/config.json"
