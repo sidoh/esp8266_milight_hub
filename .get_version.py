@@ -28,5 +28,4 @@ if is_tool("git"):
             pass
         pass
 
-
-sys.stdout.write("-DMILIGHT_HUB_VERSION=%s" % version)
+sys.stdout.write("-DMILIGHT_HUB_VERSION=%s %s" % (version, ' '.join(sys.argv[1:])))
