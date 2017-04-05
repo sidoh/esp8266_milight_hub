@@ -1,10 +1,3 @@
-/*
- * MiLightRadio.h
- *
- *  Created on: 29 May 2015
- *      Author: henryk
- */
-
 #ifdef ARDUINO
 #include "Arduino.h"
 #else
@@ -16,6 +9,8 @@
 #include <MiLightRadioConfig.h>
 #include <MiLightButtons.h>
 #include <MiLightRadio.h>
+
+//#define DEBUG_PRINTF
 
 // Register defines
 #define REGISTER_READ       0b10000000  //bin
@@ -40,7 +35,8 @@
 #define R_SYNCWORD3         38
 #define R_SYNCWORD4         39
 
-#define DEFAULT_TIME_BETWEEN_RETRANSMISSIONS_uS	350
+//#define DEFAULT_TIME_BETWEEN_RETRANSMISSIONS_uS	350
+#define DEFAULT_TIME_BETWEEN_RETRANSMISSIONS_uS	0
 
 #ifndef MILIGHTRADIOPL1167_LT8900_H_
 #define MILIGHTRADIOPL1167_LT8900_H_
@@ -78,9 +74,10 @@ class LT8900MiLightRadio : public MiLightRadio {
 
     byte _pin_pktflag;
     byte _csPin;
+    bool _bConnected;
 
     const MiLightRadioConfig& _config;
-    //uint32_t _prev_packet_id;
+
     uint8_t _channel;
     uint8_t _packet[10];
     uint8_t _out_packet[10];
