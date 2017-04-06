@@ -27,6 +27,11 @@
 
 #define MINIMUM_RESTART_PERIOD 1
 
+enum RadioInterfaceType {
+  nRF24 = 0,
+  LT8900 = 1,
+};
+
 class GatewayConfig {
 public:
   GatewayConfig(uint16_t deviceId, uint16_t port, uint8_t protocolVersion)
@@ -48,6 +53,8 @@ public:
     // CE and CSN pins from nrf24l01
     cePin(D0),
     csnPin(D8),
+    resetPin(0),
+    radioInterfaceType(nRF24),
     deviceIds(NULL),
     gatewayConfigs(NULL),
     numDeviceIds(0),
@@ -71,6 +78,9 @@ public:
   static void deserialize(Settings& settings, JsonObject& json);
   static void load(Settings& settings);
 
+  static RadioInterfaceType typeFromString(const String& s);
+  static String typeToString(RadioInterfaceType type);
+
   void save();
   String toJson(const bool prettyPrint = true);
   void serialize(Stream& stream, const bool prettyPrint = false);
@@ -82,6 +92,8 @@ public:
   String adminPassword;
   uint8_t cePin;
   uint8_t csnPin;
+  uint8_t resetPin;
+  RadioInterfaceType radioInterfaceType;
   uint16_t *deviceIds;
   GatewayConfig **gatewayConfigs;
   size_t numGatewayConfigs;

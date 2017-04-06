@@ -3,7 +3,7 @@
 #include <FS.h>
 #include <IntParsing.h>
 #include <algorithm>
-  
+
 bool Settings::hasAuthSettings() {
   return adminUsername.length() > 0 && adminPassword.length() > 0;
 }
@@ -16,7 +16,7 @@ size_t Settings::getAutoRestartPeriod() {
   if (_autoRestartPeriod == 0) {
     return 0;
   }
-  
+
   return std::max(_autoRestartPeriod, static_cast<size_t>(MINIMUM_RESTART_PERIOD));
 }
 
@@ -31,34 +31,42 @@ void Settings::deserialize(Settings& settings, JsonObject& parsedSettings) {
     if (parsedSettings.containsKey("admin_username")) {
       settings.adminUsername = parsedSettings.get<String>("admin_username");
     }
-    
+
     if (parsedSettings.containsKey("admin_password")) {
       settings.adminPassword = parsedSettings.get<String>("admin_password");
     }
-    
+
     if (parsedSettings.containsKey("ce_pin")) {
       settings.cePin = parsedSettings["ce_pin"];
     }
-    
+
     if (parsedSettings.containsKey("csn_pin")) {
       settings.csnPin = parsedSettings["csn_pin"];
     }
-    
+
+    if (parsedSettings.containsKey("reset_pin")) {
+      settings.resetPin = parsedSettings["reset_pin"];
+    }
+
+    if (parsedSettings.containsKey("radio_interface_type")) {
+      settings.radioInterfaceType = typeFromString(parsedSettings["radio_interface_type"]);
+    }
+
     if (parsedSettings.containsKey("packet_repeats")) {
       settings.packetRepeats = parsedSettings["packet_repeats"];
     }
-    
+
     if (parsedSettings.containsKey("http_repeat_factor")) {
       settings.httpRepeatFactor = parsedSettings["http_repeat_factor"];
     }
-    
+
     if (parsedSettings.containsKey("auto_restart_period")) {
       settings._autoRestartPeriod = parsedSettings["auto_restart_period"];
     }
-    
+
     JsonArray& arr = parsedSettings["device_ids"];
     settings.updateDeviceIds(arr);
-    
+
     JsonArray& gatewayArr = parsedSettings["gateway_configs"];
     settings.updateGatewayConfigs(gatewayArr);
   }
@@ -69,7 +77,7 @@ void Settings::updateDeviceIds(JsonArray& arr) {
     if (this->deviceIds) {
       delete this->deviceIds;
     }
-    
+
     this->deviceIds = new uint16_t[arr.size()];
     this->numDeviceIds = arr.size();
     arr.copyTo(this->deviceIds, arr.size());
@@ -81,13 +89,13 @@ void Settings::updateGatewayConfigs(JsonArray& arr) {
     if (this->gatewayConfigs) {
       delete[] this->gatewayConfigs;
     }
-    
+
     this->gatewayConfigs = new GatewayConfig*[arr.size()];
     this->numGatewayConfigs = arr.size();
-    
+
     for (size_t i = 0; i < arr.size(); i++) {
       JsonArray& params = arr[i];
-      
+
       if (params.success() && params.size() == 3) {
         this->gatewayConfigs[i] = new GatewayConfig(parseInt<uint16_t>(params[0]), params[1], params[2]);
       } else {
@@ -111,6 +119,12 @@ void Settings::patch(JsonObject& parsedSettings) {
     }
     if (parsedSettings.containsKey("csn_pin")) {
       this->csnPin = parsedSettings["csn_pin"];
+    }
+    if (parsedSettings.containsKey("reset_pin")) {
+      this->resetPin = parsedSettings["reset_pin"];
+    }
+    if (parsedSettings.containsKey("radio_interface_type")) {
+      this->radioInterfaceType = typeFromString(parsedSettings["radio_interface_type"]);
     }
     if (parsedSettings.containsKey("packet_repeats")) {
       this->packetRepeats = parsedSettings["packet_repeats"];
@@ -137,7 +151,7 @@ void Settings::load(Settings& settings) {
     File f = SPIFFS.open(SETTINGS_FILE, "r");
     String settingsContents = f.readStringUntil(SETTINGS_TERMINATOR);
     f.close();
-    
+
     deserialize(settings, settingsContents);
   } else {
     settings.save();
@@ -153,7 +167,7 @@ String Settings::toJson(const bool prettyPrint) {
 
 void Settings::save() {
   File f = SPIFFS.open(SETTINGS_FILE, "w");
-  
+
   if (!f) {
     Serial.println(F("Opening settings file failed"));
   } else {
@@ -165,21 +179,23 @@ void Settings::save() {
 void Settings::serialize(Stream& stream, const bool prettyPrint) {
   DynamicJsonBuffer jsonBuffer;
   JsonObject& root = jsonBuffer.createObject();
-  
+
   root["admin_username"] = this->adminUsername;
   root["admin_password"] = this->adminPassword;
   root["ce_pin"] = this->cePin;
   root["csn_pin"] = this->csnPin;
+  root["reset_pin"] = this->resetPin;
+  root["radio_interface_type"] = typeToString(this->radioInterfaceType);
   root["packet_repeats"] = this->packetRepeats;
   root["http_repeat_factor"] = this->httpRepeatFactor;
   root["auto_restart_period"] = this->_autoRestartPeriod;
-  
+
   if (this->deviceIds) {
     JsonArray& arr = jsonBuffer.createArray();
     arr.copyFrom(this->deviceIds, this->numDeviceIds);
     root["device_ids"] = arr;
   }
-  
+
   if (this->gatewayConfigs) {
     JsonArray& arr = jsonBuffer.createArray();
     for (size_t i = 0; i < this->numGatewayConfigs; i++) {
@@ -189,13 +205,32 @@ void Settings::serialize(Stream& stream, const bool prettyPrint) {
       elmt.add(this->gatewayConfigs[i]->protocolVersion);
       arr.add(elmt);
     }
-    
+
     root["gateway_configs"] = arr;
   }
-  
+
   if (prettyPrint) {
     root.prettyPrintTo(stream);
   } else {
     root.printTo(stream);
+  }
+}
+
+RadioInterfaceType Settings::typeFromString(const String& s) {
+  if (s.equalsIgnoreCase("lt8900")) {
+    return LT8900;
+  } else {
+    return nRF24;
+  }
+}
+
+String Settings::typeToString(RadioInterfaceType type) {
+  switch (type) {
+    case LT8900:
+      return "LT8900";
+
+    case nRF24:
+    default:
+      return "nRF24";
   }
 }

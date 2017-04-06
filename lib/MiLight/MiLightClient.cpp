@@ -2,40 +2,61 @@
 #include <MiLightRadioConfig.h>
 #include <Arduino.h>
 
+MiLightClient::MiLightClient(MiLightRadioFactory* radioFactory)
+  : resendCount(MILIGHT_DEFAULT_RESEND_COUNT),
+    currentRadio(NULL),
+    numRadios(MiLightRadioConfig::NUM_CONFIGS)
+{
+  radios = new MiLightRadio*[numRadios];
+
+  for (size_t i = 0; i < numRadios; i++) {
+    radios[i] = radioFactory->create(*MiLightRadioConfig::ALL_CONFIGS[i]);
+  }
+
+  this->currentRadio = radios[0];
+  this->currentRadio->configure();
+}
+
+void MiLightClient::begin() {
+  for (size_t i = 0; i < numRadios; i++) {
+    radios[i]->begin();
+  }
+}
+
 MiLightRadio* MiLightClient::switchRadio(const MiLightRadioType type) {
-  RadioStack* stack = NULL;
-  
+  MiLightRadio* radio = NULL;
+
   for (int i = 0; i < numRadios; i++) {
-    if (radios[i]->config.type == type) {
-      stack = radios[i];
+    if (this->radios[i]->config().type == type) {
+      radio = radios[i];
       break;
     }
   }
-  
-  if (stack != NULL) {
-    MiLightRadio *radio = stack->getRadio();
-    
-    if (currentRadio->config.type != stack->config.type) {
+
+  if (radio != NULL) {
+    if (currentRadio != radio) {
       radio->configure();
     }
-    
-    currentRadio = stack;
-    formatter = stack->config.packetFormatter;
+
+    this->currentRadio = radio;
+    this->formatter = radio->config().packetFormatter;
+
     return radio;
   } else {
     Serial.print(F("MiLightClient - tried to get radio for unknown type: "));
     Serial.println(type);
   }
-  
+
   return NULL;
 }
 
-void MiLightClient::prepare(MiLightRadioConfig& config, 
-  const uint16_t deviceId, 
+
+void MiLightClient::prepare(MiLightRadioConfig& config,
+  const uint16_t deviceId,
   const uint8_t groupId) {
-  
+
   switchRadio(config.type);
-  
+
   if (deviceId >= 0 && groupId >= 0) {
     formatter->prepare(deviceId, groupId);
   }
@@ -45,41 +66,49 @@ void MiLightClient::setResendCount(const unsigned int resendCount) {
   this->resendCount = resendCount;
 }
 
+
 bool MiLightClient::available() {
   if (currentRadio == NULL) {
     return false;
   }
-  
-  return currentRadio->getRadio()->available();
-}
 
+  return currentRadio->available();
+}
 void MiLightClient::read(uint8_t packet[]) {
   if (currentRadio == NULL) {
     return;
   }
-  
-  size_t length;
-  currentRadio->getRadio()->read(packet, length);
+
+  size_t length = currentRadio->config().getPacketLength();
+
+  currentRadio->read(packet, length);
 }
 
 void MiLightClient::write(uint8_t packet[]) {
   if (currentRadio == NULL) {
     return;
   }
-  
+
 #ifdef DEBUG_PRINTF
   printf("Sending packet: ");
-  for (int i = 0; i < currentRadio->config.getPacketLength(); i++) {
+  for (int i = 0; i < currentRadio->config().getPacketLength(); i++) {
     printf("%02X", packet[i]);
   }
   printf("\n");
+  int iStart = millis();
 #endif
-  
+
   for (int i = 0; i < this->resendCount; i++) {
-    currentRadio->getRadio()->write(packet, currentRadio->config.getPacketLength());
+    currentRadio->write(packet, currentRadio->config().getPacketLength());
   }
+
+#ifdef DEBUG_PRINTF
+  int iElapsed = millis() - iStart;
+  Serial.print("Elapsed: ");
+  Serial.println(iElapsed);
+#endif
 }
-    
+
 void MiLightClient::updateColorRaw(const uint8_t color) {
   formatter->updateColorRaw(color);
   flushPacket();
@@ -94,7 +123,7 @@ void MiLightClient::updateBrightness(const uint8_t brightness) {
   formatter->updateBrightness(brightness);
   flushPacket();
 }
-    
+
 void MiLightClient::updateMode(uint8_t mode) {
   formatter->updateMode(mode);
   flushPacket();
@@ -118,7 +147,7 @@ void MiLightClient::modeSpeedUp() {
   formatter->modeSpeedUp();
   flushPacket();
 }
-    
+
 void MiLightClient::updateStatus(MiLightStatus status, uint8_t groupId) {
   formatter->updateStatus(status, groupId);
   flushPacket();
@@ -148,7 +177,7 @@ void MiLightClient::unpair() {
   formatter->unpair();
   flushPacket();
 }
-    
+
 void MiLightClient::increaseBrightness() {
   formatter->increaseBrightness();
   flushPacket();
@@ -182,24 +211,24 @@ void MiLightClient::command(uint8_t command, uint8_t arg) {
 void MiLightClient::formatPacket(uint8_t* packet, char* buffer) {
   formatter->format(packet, buffer);
 }
-    
+
 void MiLightClient::flushPacket() {
   PacketStream& stream = formatter->buildPackets();
   const size_t prevNumRepeats = this->resendCount;
-  
+
   // When sending multiple packets, normalize the number of repeats
   if (stream.numPackets > 1) {
     setResendCount(MILIGHT_DEFAULT_RESEND_COUNT);
   }
-  
+
   while (stream.hasNext()) {
     write(stream.next());
-    
+
     if (stream.hasNext()) {
       delay(10);
     }
   }
-  
+
   setResendCount(prevNumRepeats);
   formatter->reset();
 }
