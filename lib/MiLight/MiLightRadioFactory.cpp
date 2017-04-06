@@ -6,7 +6,7 @@ MiLightRadioFactory* MiLightRadioFactory::fromSettings(const Settings& settings)
       return new NRF24Factory(settings.csnPin, settings.cePin);
 
     case LT8900:
-      return new LT8900Factory(settings.cePin, settings.resetPin, settings.csnPin);
+      return new LT8900Factory(settings.csnPin, settings.resetPin, settings.cePin);
 
     default:
       return NULL;
