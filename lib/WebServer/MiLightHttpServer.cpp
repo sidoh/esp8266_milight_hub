@@ -5,6 +5,8 @@
 #include <MiLightHttpServer.h>
 #include <MiLightRadioConfig.h>
 #include <GithubClient.h>
+#include <string.h>
+#include <TokenIterator.h>
 
 void MiLightHttpServer::begin() {
   applySettings(settings);
@@ -315,22 +317,54 @@ void MiLightHttpServer::handleUpdateGroup(const UrlTokenBindings* urlBindings) {
     return;
   }
 
-  const uint16_t deviceId = parseInt<uint16_t>(urlBindings->get("device_id"));
-  const uint8_t groupId = urlBindings->get("group_id").toInt();
-  MiLightRadioConfig* config = MiLightRadioConfig::fromString(urlBindings->get("type"));
-
-  if (config == NULL) {
-    String body = "Unknown device type: ";
-    body += urlBindings->get("type");
-    server.send(400, "text/plain", body);
-    return;
-  }
-
   milightClient->setResendCount(
     settings.httpRepeatFactor * settings.packetRepeats
   );
-  milightClient->prepare(*config, deviceId, groupId);
 
+  String _deviceIds = urlBindings->get("device_id");
+  String _groupIds = urlBindings->get("group_id");
+  String _radioTypes = urlBindings->get("type");
+  char deviceIds[_deviceIds.length()];
+  char groupIds[_groupIds.length()];
+  char radioTypes[_radioTypes.length()];
+  strcpy(radioTypes, _radioTypes.c_str());
+  strcpy(groupIds, _groupIds.c_str());
+  strcpy(deviceIds, _deviceIds.c_str());
+
+  TokenIterator deviceIdItr(deviceIds, _deviceIds.length());
+  TokenIterator groupIdItr(groupIds, _groupIds.length());
+  TokenIterator radioTypesItr(radioTypes, _radioTypes.length());
+
+  while (radioTypesItr.hasNext()) {
+    const char* _radioType = radioTypesItr.nextToken();
+    MiLightRadioConfig* config = MiLightRadioConfig::fromString(_radioType);
+
+    if (config == NULL) {
+      String body = "Unknown device type: ";
+      body += String(_radioType);
+      server.send(400, "text/plain", body);
+      return;
+    }
+
+    deviceIdItr.reset();
+    while (deviceIdItr.hasNext()) {
+      const uint16_t deviceId = parseInt<uint16_t>(deviceIdItr.nextToken());
+
+      groupIdItr.reset();
+      while (groupIdItr.hasNext()) {
+        const uint8_t groupId = atoi(groupIdItr.nextToken());
+        printf("%d,%d,%d\n",config->type,deviceId,groupId);
+
+        milightClient->prepare(*config, deviceId, groupId);
+        handleRequest(request);
+      }
+    }
+  }
+
+  server.send(200, "application/json", "true");
+}
+
+void MiLightHttpServer::handleRequest(const JsonObject& request) {
   if (request.containsKey("status")) {
     const String& statusStr = request.get<String>("status");
     MiLightStatus status = (statusStr == "on" || statusStr == "true") ? ON : OFF;
@@ -404,8 +438,6 @@ void MiLightHttpServer::handleUpdateGroup(const UrlTokenBindings* urlBindings) {
   }
 
   milightClient->setResendCount(settings.packetRepeats);
-
-  server.send(200, "application/json", "true");
 }
 
 void MiLightHttpServer::handleSendRaw(const UrlTokenBindings* bindings) {

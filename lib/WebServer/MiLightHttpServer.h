@@ -3,7 +3,7 @@
 #include <Settings.h>
 
 #ifndef _MILIGHT_HTTP_SERVER
-#define _MILIGHT_HTTP_SERVER 
+#define _MILIGHT_HTTP_SERVER
 
 #define MAX_DOWNLOAD_ATTEMPTS 3
 
@@ -18,24 +18,24 @@ public:
     : server(WebServer(80)),
       milightClient(milightClient),
       settings(settings)
-  { 
+  {
     this->applySettings(settings);
   }
-  
+
   void begin();
   void handleClient();
   void onSettingsSaved(SettingsSavedHandler handler);
-  
+
 protected:
   ESP8266WebServer::THandlerFunction handleServeFile(
-    const char* filename, 
-    const char* contentType, 
-    const char* defaultText = NULL); 
-    
+    const char* filename,
+    const char* contentType,
+    const char* defaultText = NULL);
+
   bool serveFile(const char* file, const char* contentType = "text/html");
   ESP8266WebServer::THandlerFunction handleUpdateFile(const char* filename);
   void applySettings(Settings& settings);
-  
+
   void handleUpdateSettings();
   void handleGetRadioConfigs();
   void handleAbout();
@@ -45,14 +45,16 @@ protected:
   void handleSendRaw(const UrlTokenBindings* urlBindings);
   void handleUpdateGroup(const UrlTokenBindings* urlBindings);
   void handleDownloadUpdate(const UrlTokenBindings* urlBindings);
-  
+
+  void handleRequest(const JsonObject& request);
+
   File updateFile;
-  
+
   WebServer server;
   Settings& settings;
   MiLightClient*& milightClient;
   SettingsSavedHandler settingsSavedHandler;
-  
+
 };
 
 #endif
