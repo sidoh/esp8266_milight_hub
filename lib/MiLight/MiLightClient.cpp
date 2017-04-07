@@ -2,29 +2,52 @@
 #include <MiLightRadioConfig.h>
 #include <Arduino.h>
 
+MiLightClient::MiLightClient(MiLightRadioFactory* radioFactory)
+  : resendCount(MILIGHT_DEFAULT_RESEND_COUNT),
+    currentRadio(NULL),
+    numRadios(MiLightRadioConfig::NUM_CONFIGS)
+{
+  radios = new MiLightRadio*[numRadios];
 
-MiLightRadioInterface* MiLightClient::switchRadio(const MiLightRadioType type) {
-  RadioStack* stack = NULL;
+  for (size_t i = 0; i < numRadios; i++) {
+    radios[i] = radioFactory->create(*MiLightRadioConfig::ALL_CONFIGS[i]);
+  }
+
+  this->currentRadio = radios[0];
+  this->currentRadio->configure();
+}
+
+void MiLightClient::begin() {
+  for (size_t i = 0; i < numRadios; i++) {
+    radios[i]->begin();
+  }
+}
+
+void MiLightClient::setHeld(bool held) {
+  formatter->setHeld(held);
+}
+
+MiLightRadio* MiLightClient::switchRadio(const MiLightRadioType type) {
+  MiLightRadio* radio = NULL;
 
   for (int i = 0; i < numRadios; i++) {
-    if (radios[i]->config.type == type) {
-      stack = radios[i];
+    if (this->radios[i]->config().type == type) {
+      radio = radios[i];
       break;
     }
   }
 
-  if (stack != NULL) {
-    MiLightRadioInterface *radio = stack->getRadioInterface();
-
-    if (currentRadio->config.type != stack->config.type) {
+  if (radio != NULL) {
+    if (currentRadio != radio) {
       radio->configure();
     }
 
-    currentRadio = stack;
-    formatter = stack->config.packetFormatter;
+    this->currentRadio = radio;
+    this->formatter = radio->config().packetFormatter;
+
     return radio;
   } else {
-    Serial.print("MiLightClient - tried to get radio for unknown type: ");
+    Serial.print(F("MiLightClient - tried to get radio for unknown type: "));
     Serial.println(type);
   }
 
@@ -53,16 +76,16 @@ bool MiLightClient::available() {
     return false;
   }
 
-  return currentRadio->getRadioInterface()->available();
+  return currentRadio->available();
 }
 void MiLightClient::read(uint8_t packet[]) {
   if (currentRadio == NULL) {
     return;
   }
 
-  size_t length = currentRadio->config.getPacketLength();
+  size_t length = currentRadio->config().getPacketLength();
 
-  currentRadio->getRadioInterface()->read(packet, length);
+  currentRadio->read(packet, length);
 }
 
 void MiLightClient::write(uint8_t packet[]) {
@@ -72,18 +95,22 @@ void MiLightClient::write(uint8_t packet[]) {
 
 #ifdef DEBUG_PRINTF
   printf("Sending packet: ");
-  for (int i = 0; i < currentRadio->config.getPacketLength(); i++) {
+  for (int i = 0; i < currentRadio->config().getPacketLength(); i++) {
     printf("%02X", packet[i]);
   }
   printf("\n");
-#endif
   int iStart = millis();
+#endif
+
   for (int i = 0; i < this->resendCount; i++) {
-        currentRadio->getRadioInterface()->write(packet, currentRadio->config.getPacketLength());
+    currentRadio->write(packet, currentRadio->config().getPacketLength());
   }
+
+#ifdef DEBUG_PRINTF
   int iElapsed = millis() - iStart;
   Serial.print("Elapsed: ");
   Serial.println(iElapsed);
+#endif
 }
 
 void MiLightClient::updateColorRaw(const uint8_t color) {

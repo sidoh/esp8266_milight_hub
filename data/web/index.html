@@ -124,17 +124,19 @@
   <script lang="text/javascript">
     var FORM_SETTINGS = [
       "admin_username", "admin_password", "ce_pin", "csn_pin", "reset_pin","packet_repeats",
-      "http_repeat_factor", "auto_restart_period","radio_interface_type"
+      "http_repeat_factor", "auto_restart_period", "radio_interface_type"
     ];
 
     var FORM_SETTINGS_HELP = {
-      csn_pin : "'csn' for 'nRF24' interface, and 'PKT' for 'PL1167_LT8900' interface",
+      ce_pin : "'CE' for NRF24L01 interface, and 'PKT' for 'PL1167/LT8900' interface",
       packet_repeats : "The number of times to repeat RF packets sent to bulbs",
       http_repeat_factor : "Multiplicative factor on packet_repeats for " +
         "requests initiated by the HTTP API. UDP API typically receives " +
         "duplicate packets, so more repeats should be used for HTTP.",
       auto_restart_period : "Automatically restart the device every number of " +
-        "minutes specified. Use 0 for disabled."
+        "minutes specified. Use 0 for disabled.",
+      radio_interface_type : "2.4 GHz radio model. Only change this if you know " +
+        "You're not using an NRF24L01!"
     }
 
     var UDP_PROTOCOL_VERSIONS = [ 5, 6 ];
@@ -243,7 +245,11 @@
           var field = $('#settings input[name="' + k + '"]');
 
           if (field.length > 0) {
-            field.val(val[k]);
+            if (field.attr('type') === 'radio') {
+              field.filter('[value="' + val[k] + '"]').click();
+            } else {
+              field.val(val[k]);
+            }
           }
         });
 
@@ -541,25 +547,25 @@
 
       FORM_SETTINGS.forEach(function(k) {
         var elmt = '<div class="form-entry">';
+        elmt += '<div>';
         elmt += '<label for="' + k + '">' + k + '</label>';
 
         if (FORM_SETTINGS_HELP[k]) {
           elmt += '<div class="field-help" data-help-text="' + FORM_SETTINGS_HELP[k] + '"></div>';
         }
 
-        if(k === "radio_interface_type")
-        {
-          elmt += '<div class="btn-group" id="radiointerface" data-toggle="buttons">' +
+        elmt += '</div>';
+
+        if(k === "radio_interface_type") {
+          elmt += '<div class="btn-group" id="radio_interface_type" data-toggle="buttons">' +
             '<label class="btn btn-secondary active">' +
-            '<input type="radio" name="radiointerface_nRF" autocomplete="off" data-value="nRF24" > nRF24' +
+              '<input type="radio" id="nrf24" name="radio_interface_type" autocomplete="off" value="nRF24" /> nRF24' +
             '</label>'+
             '<label class="btn btn-secondary">' +
-              '<input type="radio" name="radiointerface_PL1167" autocomplete="off" data-value="PL1167/LT8900/8910/8920" > PL1167/LT8900/8910/8920' +
+              '<input type="radio" id="lt8900" name="radio_interface_type" autocomplete="off" value="LT8900" /> PL1167/LT8900' +
             '</label>' +
           '</div>';
-        }
-        else
-        {
+        } else {
           elmt += '<input type="text" class="form-control" name="' + k + '"/>';
           elmt += '</div>';
         }
@@ -572,10 +578,13 @@
         var obj = {};
 
         FORM_SETTINGS.forEach(function(k) {
-          
-            obj[k] = $('#settings input[name="' + k + '"]').val();
-          
+          var elmt = $('#settings input[name="' + k + '"]');
 
+          if (elmt.attr('type') === 'radio') {
+            obj[k] = elmt.filter(':checked').val();
+          } else {
+            obj[k] = elmt.val();
+          }
         });
 
         // pretty hacky. whatever.
@@ -594,8 +603,6 @@
             data: JSON.stringify(obj)
           }
         );
-        //console.log(obj);
-        //console.log(JSON.stringify(obj));
 
         e.preventDefault();
         return false;

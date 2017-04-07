@@ -15,14 +15,24 @@ This is a replacement for a Milight/LimitlessLED remote/gateway hosted on an ESP
 ## What you'll need
 
 1. An ESP8266. I used a NodeMCU.
-2. A NRF24L01+ module (~$3 on ebay).
+2. A NRF24L01+ module (~$3 on ebay). Alternatively, you can use a LT8900.
 3. Some way to connect the two (7 female/female dupont cables is probably easiest).
 
 ## Installing
 
-#### Connect the NRF24L01+
+#### Connect the NRF24L01+ / LT8900
 
-This module is an SPI device. [This guide](https://www.mysensors.org/build/esp8266_gateway) details how to connect it. I used GPIO 16 for CE and GPIO 15 for CSN. These can be configured later.
+This project is compatible with both NRF24L01 and LT8900 radios. LT8900 is the same model used in the official MiLight devices. NRF24s are a very common 2.4 GHz radio device, but require software emulation of the LT8900's packet structure. As such, the LT8900 is more performant.
+
+Both modules are SPI devices and should be connected to the standard SPI pins on the ESP8266.
+
+##### NRF24L01+
+
+[This guide](https://www.mysensors.org/build/esp8266_gateway) details how to connect an NRF24 to an ESP8266. I used GPIO 16 for CE and GPIO 15 for CSN. These can be configured later.
+
+##### LT8900
+
+Connect SPI pins (CS, SCK, MOSI, MISO) to appropriate SPI pins on the ESP8266. With default settings, connect RST to GPIO 0, and PKT to GPIO 16.
 
 #### Setting up the ESP
 
@@ -61,7 +71,7 @@ The HTTP endpoints (shown below) will be fully functional at this point. You sho
 1. `PUT /settings`. Patches settings (e.g., doesn't overwrite keys that aren't present). Accepts a JSON blob in the body.
 1. `GET /radio_configs`. Get a list of supported radio configs (aka `device_type`s).
 1. `GET /gateway_traffic/:device_type`. Starts an HTTP long poll. Returns any Milight traffic it hears. Useful if you need to know what your Milight gateway/remote ID is. Since protocols for RGBW/CCT are different, specify one of `rgbw`, `cct`, or `rgb_cct` as `:device_type. Accepts a JSON blob.
-1. `PUT /gateways/:device_id/:device_type/:group_id`. Controls or sends commands to `:group_id` from `:device_id`. 
+1. `PUT /gateways/:device_id/:device_type/:group_id`. Controls or sends commands to `:group_id` from `:device_id`.
 1. `POST /raw_commands/:device_type`. Sends a raw RF packet with radio configs associated with `:device_type`. Example body:
     ```
     {"packet": "01 02 03 04 05 06 07 08 09", "num_repeats": 10}
@@ -83,13 +93,13 @@ Route (5) supports these commands. Note that each bulb type has support for a di
    * `unpair`. Emulates the unpairing process. Send as you connect a paired bulb to have it disassociate with the device ID being used.
    * `next_mode`. Cycles to the next "disco mode".
    * `previous_mode`. Cycles to the previous disco mode.
-   * `mode_speed_up`. 
+   * `mode_speed_up`.
    * `mode_speed_down`.
    * `level_down`. Turns down the brightness. Not all dimmable bulbs support this command.
    * `level_up`. Turns down the brightness. Not all dimmable bulbs support this command.
    * `temperature_down`. Turns down the white temperature. Not all bulbs with adjustable white temperature support this command.
    * `temperature_up`. Turns up the white temperature. Not all bulbs with adjustable white temperature support this command.
-   
+
 If you'd like to control bulbs in all groups paired with a particular device ID, set `:group_id` to 0.
 
 #### Examples
@@ -113,3 +123,7 @@ true%
 You can add an arbitrary number of UDP gateways through the REST API or through the web UI. Each gateway server listens on a port and responds to the standard set of commands supported by the Milight protocol. This should allow you to use one of these with standard Milight integrations (SmartThings, Home Assistant, OpenHAB, etc.).
 
 You can select between versions 5 and 6 of the UDP protocol (documented [here](http://www.limitlessled.com/dev/)). Version 6 has support for the newer RGB+CCT bulbs and also includes response packets, which can theoretically improve reliability. Version 5 has much smaller packets and is probably lower latency.
+
+## Acknowledgements
+
+* @WoodsterDK added support for LT8900 radios.

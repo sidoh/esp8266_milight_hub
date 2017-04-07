@@ -48,17 +48,8 @@ void Settings::deserialize(Settings& settings, JsonObject& parsedSettings) {
       settings.resetPin = parsedSettings["reset_pin"];
     }
 
-    if (parsedSettings.containsKey("radio_interface_type"))
-    {
-      String InterfaceType = parsedSettings["radio_interface_type"];
-      if(InterfaceType == "nRF24")
-      {
-        settings.radioInterfaceType =  nRF24;
-      }
-      else if(InterfaceType == "PL1167/LT8900/8910/8920")
-      {
-        settings.radioInterfaceType =  PL1167_LT8900;
-      }
+    if (parsedSettings.containsKey("radio_interface_type")) {
+      settings.radioInterfaceType = typeFromString(parsedSettings["radio_interface_type"]);
     }
 
     if (parsedSettings.containsKey("packet_repeats")) {
@@ -129,24 +120,12 @@ void Settings::patch(JsonObject& parsedSettings) {
     if (parsedSettings.containsKey("csn_pin")) {
       this->csnPin = parsedSettings["csn_pin"];
     }
-
     if (parsedSettings.containsKey("reset_pin")) {
       this->resetPin = parsedSettings["reset_pin"];
     }
-
-    if (parsedSettings.containsKey("radio_interface_type"))
-    {
-      String InterfaceType = parsedSettings["radio_interface_type"];
-      if(InterfaceType == "nRF24")
-      {
-        this->radioInterfaceType =  nRF24;
-      }
-      else if(InterfaceType == "PL1167/LT8900/8910/8920")
-      {
-        this->radioInterfaceType =  PL1167_LT8900;
-      }
+    if (parsedSettings.containsKey("radio_interface_type")) {
+      this->radioInterfaceType = typeFromString(parsedSettings["radio_interface_type"]);
     }
-
     if (parsedSettings.containsKey("packet_repeats")) {
       this->packetRepeats = parsedSettings["packet_repeats"];
     }
@@ -206,16 +185,7 @@ void Settings::serialize(Stream& stream, const bool prettyPrint) {
   root["ce_pin"] = this->cePin;
   root["csn_pin"] = this->csnPin;
   root["reset_pin"] = this->resetPin;
-
-  if(this->radioInterfaceType == nRF24)
-  {
-    root["radio_interface_type"] = "nRF24";
-  }
-  else if(this->radioInterfaceType == PL1167_LT8900)
-  {
-    root["radio_interface_type"] = "PL1167/LT8900/8910/8920";
-  }
-
+  root["radio_interface_type"] = typeToString(this->radioInterfaceType);
   root["packet_repeats"] = this->packetRepeats;
   root["http_repeat_factor"] = this->httpRepeatFactor;
   root["auto_restart_period"] = this->_autoRestartPeriod;
@@ -243,5 +213,24 @@ void Settings::serialize(Stream& stream, const bool prettyPrint) {
     root.prettyPrintTo(stream);
   } else {
     root.printTo(stream);
+  }
+}
+
+RadioInterfaceType Settings::typeFromString(const String& s) {
+  if (s.equalsIgnoreCase("lt8900")) {
+    return LT8900;
+  } else {
+    return nRF24;
+  }
+}
+
+String Settings::typeToString(RadioInterfaceType type) {
+  switch (type) {
+    case LT8900:
+      return "LT8900";
+
+    case nRF24:
+    default:
+      return "nRF24";
   }
 }
