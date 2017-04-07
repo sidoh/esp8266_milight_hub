@@ -3,7 +3,7 @@
 
 void CctPacketFormatter::initializePacket(uint8_t* packet) {
   size_t packetPtr = 0;
-  
+
   packet[packetPtr++] = CCT;
   packet[packetPtr++] = deviceId >> 8;
   packet[packetPtr++] = deviceId & 0xFF;
@@ -30,16 +30,19 @@ void CctPacketFormatter::updateTemperature(uint8_t value) {
     value / CCT_INTERVALS
   );
 }
-  
+
 void CctPacketFormatter::command(uint8_t command, uint8_t arg) {
   pushPacket();
+  if (held) {
+    command |= 0x80;
+  }
   currentPacket[CCT_COMMAND_INDEX] = command;
 }
 
 void CctPacketFormatter::updateStatus(MiLightStatus status, uint8_t groupId) {
   command(getCctStatusButton(groupId, status), 0);
 }
-  
+
 void CctPacketFormatter::increaseTemperature() {
   command(CCT_TEMPERATURE_UP, 0);
 }
@@ -58,7 +61,7 @@ void CctPacketFormatter::decreaseBrightness() {
 
 uint8_t CctPacketFormatter::getCctStatusButton(uint8_t groupId, MiLightStatus status) {
   uint8_t button = 0;
-  
+
   if (status == ON) {
     switch(groupId) {
       case 1:
@@ -90,7 +93,7 @@ uint8_t CctPacketFormatter::getCctStatusButton(uint8_t groupId, MiLightStatus st
         break;
     }
   }
-  
+
   return button;
 }
 

@@ -2,7 +2,7 @@
 
 void RgbPacketFormatter::initializePacket(uint8_t *packet) {
   size_t packetPtr = 0;
-  
+
   packet[packetPtr++] = RGB;
   packet[packetPtr++] = deviceId >> 8;
   packet[packetPtr++] = deviceId & 0xFF;
@@ -11,13 +11,13 @@ void RgbPacketFormatter::initializePacket(uint8_t *packet) {
   packet[packetPtr++] = sequenceNum++;
 }
 
-void RgbPacketFormatter::pair() { 
+void RgbPacketFormatter::pair() {
   for (size_t i = 0; i < 5; i++) {
     command(RGB_SPEED_UP, 0);
   }
 }
 
-void RgbPacketFormatter::unpair() { 
+void RgbPacketFormatter::unpair() {
   for (size_t i = 0; i < 5; i++) {
     command(RGB_SPEED_UP | 0x10, 0);
   }
@@ -29,9 +29,12 @@ void RgbPacketFormatter::updateStatus(MiLightStatus status, uint8_t groupId) {
 
 void RgbPacketFormatter::command(uint8_t command, uint8_t arg) {
   pushPacket();
+  if (held) {
+    command |= 0x80;
+  }
   currentPacket[RGB_COMMAND_INDEX] = command;
 }
-  
+
 void RgbPacketFormatter::updateHue(uint16_t value) {
   const int16_t remappedColor = (value + 40) % 360;
   updateColorRaw(rescale(remappedColor, 255, 360));
@@ -58,11 +61,11 @@ void RgbPacketFormatter::increaseBrightness() {
 void RgbPacketFormatter::decreaseBrightness() {
   command(RGB_BRIGHTNESS_DOWN, 0);
 }
-  
+
 void RgbPacketFormatter::modeSpeedDown() {
   command(RGB_SPEED_DOWN, 0);
 }
- 
+
 void RgbPacketFormatter::modeSpeedUp() {
   command(RGB_SPEED_UP, 0);
 }

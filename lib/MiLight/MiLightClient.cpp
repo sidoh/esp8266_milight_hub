@@ -23,6 +23,10 @@ void MiLightClient::begin() {
   }
 }
 
+void MiLightClient::setHeld(bool held) {
+  formatter->setHeld(held);
+}
+
 MiLightRadio* MiLightClient::switchRadio(const MiLightRadioType type) {
   MiLightRadio* radio = NULL;
 

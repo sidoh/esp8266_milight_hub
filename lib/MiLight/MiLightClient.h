@@ -27,6 +27,8 @@ public:
   void read(uint8_t packet[]);
   void write(uint8_t packet[]);
 
+  void setHeld(bool held);
+
   // Common methods
   void updateStatus(MiLightStatus status);
   void updateStatus(MiLightStatus status, uint8_t groupId);
