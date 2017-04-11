@@ -60,7 +60,7 @@ uint8_t V6MiLightUdpServer::SEARCH_RESPONSE[] = {
   0x01,
   0x17, 0x63,  // this is 5987 in hex. specifying a different value seems to
                // cause client to connect on a different port for some commands
-  0x00, 0x00, 0x05, 0x00, 0x09, 0x78, 
+  0x00, 0x00, 0x05, 0x00, 0x09, 0x78,
   0x6C, 0x69, 0x6E, 0x6B, 0x5F, 0x64,
   0x65, 0x76, 0x07, 0x5B, 0xCD, 0x15
 };
@@ -133,7 +133,7 @@ void V6MiLightUdpServer::handleSearch() {
   const size_t packetLen = size(SEARCH_RESPONSE);
   uint8_t response[packetLen];
   memcpy(response, SEARCH_RESPONSE, packetLen);
-  WiFi.macAddress(response + 6);
+  writeMacAddr(response + 6);
 
   socket.beginPacket(socket.remoteIP(), socket.remotePort());
   socket.write(response, packetLen);
@@ -146,7 +146,8 @@ void V6MiLightUdpServer::handleStartSession() {
   uint16_t sessionId = beginSession();
 
   memcpy(response, START_SESSION_RESPONSE, len);
-  WiFi.macAddress(response + 7);
+  writeMacAddr(response + 7);
+
   response[19] = sessionId >> 8;
   response[20] = sessionId & 0xFF;
 
@@ -184,7 +185,7 @@ bool V6MiLightUdpServer::handleOpenCommand(uint16_t sessionId) {
   size_t len = size(OPEN_COMMAND_RESPONSE);
   uint8_t response[len];
   memcpy(response, OPEN_COMMAND_RESPONSE, len);
-  WiFi.macAddress(response + 5);
+  writeMacAddr(response + 5);
 
   return sendResponse(sessionId, response, len);
 }
@@ -242,7 +243,8 @@ void V6MiLightUdpServer::handleCommand(
 void V6MiLightUdpServer::handleHeartbeat(uint16_t sessionId) {
   char header[] = { 0xD8, 0x00, 0x00, 0x00, 0x07 };
   memcpy(responseBuffer, header, size(header));
-  WiFi.macAddress(responseBuffer+5);
+  writeMacAddr(responseBuffer + 5);
+  
   responseBuffer[11] = 0;
 
   sendResponse(sessionId, responseBuffer, 12);
@@ -279,4 +281,10 @@ void V6MiLightUdpServer::handlePacket(uint8_t* packet, size_t packetSize) {
   } else {
     Serial.println(F("Unhandled V6 packet"));
   }
+}
+
+void V6MiLightUdpServer::writeMacAddr(uint8_t* packet) {
+  memset(packet, 0, 6);
+  packet[4] = deviceId >> 8;
+  packet[5] = deviceId;
 }
