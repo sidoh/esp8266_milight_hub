@@ -341,9 +341,14 @@ int LT8900MiLightRadio::iReadRXBuffer(uint8_t *buffer, size_t maxBuffer) {
     _currentPacketPos += 2;
   }
 
-  #ifdef DEBUG_PRINTF
-  printf_P(PSTR("Read %d/%d bytes in RX, read %d bytes into buffer\n"), _currentPacketPos, _currentPacketLen, bufferIx);
-  #endif
+#ifdef DEBUG_PRINTF
+  printf_P(
+    PSTR("Read %d/%d bytes in RX, read %d bytes into buffer\n"),
+    _currentPacketPos,
+    _currentPacketLen,
+    bufferIx
+  );
+#endif
 
   if (_currentPacketPos >= _currentPacketLen) {
     _currentPacketPos = 0;
