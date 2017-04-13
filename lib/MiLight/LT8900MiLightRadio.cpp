@@ -303,7 +303,9 @@ bool LT8900MiLightRadio::bAvailableRegister() {
 	uint16_t value = uiReadRegister(R_STATUS);
 
   if (bitRead(value, STATUS_CRC_BIT) != 0) {
+#ifdef DEBUG_PRINTF
     Serial.println(F("LT8900: CRC failed"));
+#endif
     vResumeRX();
     return false;
   }
@@ -339,7 +341,9 @@ int LT8900MiLightRadio::iReadRXBuffer(uint8_t *buffer, size_t maxBuffer) {
     _currentPacketPos += 2;
   }
 
-  printf("Read %d/%d bytes in RX, read %d bytes into buffer\n", _currentPacketPos, _currentPacketLen, bufferIx);
+  #ifdef DEBUG_PRINTF
+  printf_P(PSTR("Read %d/%d bytes in RX, read %d bytes into buffer\n"), _currentPacketPos, _currentPacketLen, bufferIx);
+  #endif
 
   if (_currentPacketPos >= _currentPacketLen) {
     _currentPacketPos = 0;
