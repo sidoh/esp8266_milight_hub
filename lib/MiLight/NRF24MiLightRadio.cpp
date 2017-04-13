@@ -94,12 +94,6 @@ bool NRF24MiLightRadio::available() {
   return _waiting;
 }
 
-int NRF24MiLightRadio::dupesReceived()
-{
-  return _dupes_received;
-}
-
-
 int NRF24MiLightRadio::read(uint8_t frame[], size_t &frame_length)
 {
   if (!_waiting) {

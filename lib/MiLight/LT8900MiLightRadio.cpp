@@ -17,7 +17,9 @@
 /**************************************************************************/
 LT8900MiLightRadio::LT8900MiLightRadio(byte byCSPin, byte byResetPin, byte byPktFlag, const MiLightRadioConfig& config)
   : _config(config),
-    _channel(0)
+    _channel(0),
+    _currentPacketLen(0),
+    _currentPacketPos(0)
 {
   _csPin = byCSPin;
 	_pin_pktflag = byPktFlag;
@@ -270,10 +272,7 @@ void LT8900MiLightRadio::vStartListening(uint uiChannelToListenTo)
 
   _channel = uiChannelToListenTo;
 
-	uiWriteRegister(R_CHANNEL, _channel & CHANNEL_MASK);   //turn off rx/tx
-	delay(3);
-	uiWriteRegister(R_FIFO_CONTROL, 0x0080);  //flush rx
-	uiWriteRegister(R_CHANNEL, (_channel & CHANNEL_MASK) | _BV(CHANNEL_RX_BIT));   //enable RX
+  vResumeRX();
 	delay(5);
 }
 
@@ -292,65 +291,62 @@ void LT8900MiLightRadio::vResumeRX(void)
 /**************************************************************************/
 // Check if data is available using the hardware pin PKT_FLAG
 /**************************************************************************/
-bool LT8900MiLightRadio::bAvailablePin()
-{
-	//read the PKT_FLAG pin.
-	if (digitalRead(_pin_pktflag) != 0)
-	{
-		return true;
-	}
-
-	return false;
+bool LT8900MiLightRadio::bAvailablePin() {
+  return digitalRead(_pin_pktflag) > 0;
 }
 
 /**************************************************************************/
 // Check if data is available using the PKT_FLAG state in the status register
 /**************************************************************************/
-bool LT8900MiLightRadio::bAvailableRegister()
-{
+bool LT8900MiLightRadio::bAvailableRegister() {
 	//read the PKT_FLAG state; this can also be done with a hard wire.
 	uint16_t value = uiReadRegister(R_STATUS);
 
-	if (value & STATUS_PKT_BIT_MASK != 0)
-	{
-		return true;
-	}
+  if (bitRead(value, STATUS_CRC_BIT) != 0) {
+    Serial.println(F("LT8900: CRC failed"));
+    vResumeRX();
+    return false;
+  }
 
-	return false;
+  return (value & STATUS_PKT_BIT_MASK) > 0;
 }
 
 /**************************************************************************/
 // Read the RX buffer
 /**************************************************************************/
-int LT8900MiLightRadio::iReadRXBuffer(uint8_t *buffer, size_t maxBuffer)
-{
-	uint16_t value = uiReadRegister(R_STATUS);
-	if (bitRead(value, STATUS_CRC_BIT) == 0)
-	{
-		uint16_t data = uiReadRegister(R_FIFO);
-		uint8_t packetSize = data >> 8;
-		if (maxBuffer < packetSize + 1)
-		{
-			//BUFFER TOO SMALL
-			return -2;
-		}
+int LT8900MiLightRadio::iReadRXBuffer(uint8_t *buffer, size_t maxBuffer) {
+  size_t bufferIx = 0;
+  uint16_t data;
 
-		uint8_t pos = 0;;
-		buffer[pos++] = (data & 0xFF);
-		while (pos < packetSize)
-		{
-			data = uiReadRegister(R_FIFO);
-			buffer[pos++] = data >> 8;
-			buffer[pos++] = data & 0xFF;
-		}
+  if (_currentPacketLen == 0) {
+    if (! available()) {
+      return -1;
+    }
 
-		return packetSize;
-	}
-	else
-	{
-		//CRC error
-		return -1;
-	}
+    data = uiReadRegister(R_FIFO);
+
+    _currentPacketLen = (data >> 8);
+    _currentPacketPos = 1;
+
+    buffer[bufferIx++] = (data & 0xFF);
+  }
+
+  while (_currentPacketPos < _currentPacketLen && (bufferIx+1) < maxBuffer) {
+    data = uiReadRegister(R_FIFO);
+    buffer[bufferIx++] = data >> 8;
+    buffer[bufferIx++] = data & 0xFF;
+
+    _currentPacketPos += 2;
+  }
+
+  printf("Read %d/%d bytes in RX, read %d bytes into buffer\n", _currentPacketPos, _currentPacketLen, bufferIx);
+
+  if (_currentPacketPos >= _currentPacketLen) {
+    _currentPacketPos = 0;
+    _currentPacketLen = 0;
+  }
+
+  return bufferIx;
 }
 
 
@@ -390,133 +386,11 @@ int LT8900MiLightRadio::configure()
 /**************************************************************************/
 bool LT8900MiLightRadio::available()
 {
-  _waiting = false;
-
-  if(bAvailablePin())
-  {
-    int iStartTime = millis();
-    int iUpdateStamp = 0;
-    static byte byLastReceived[32];
-
-    byte byaFramesSizes[20];
-    byte byaFramesReceivedCount[20];
-    byte byaFramesReceived[20][32];
-    byte byFrameCounter = 0;
-
-    bool bDifference = false;
-
-    bool bRetVal = false;
-
-    if (bAvailablePin())
-    {
-      unsigned long ulTimeStamp = millis();
-      unsigned long ulElapsedTime = 0;
-
-      do
-      {
-        if (bAvailablePin())
-        {
-          iUpdateStamp = millis();
-          uint8_t buf[32];
-
-          int packetSize = iReadRXBuffer(buf, 32);
-          if (packetSize > 0)
-          {
-            bRetVal = true;
-            bDifference = false;
-
-            for (int iCounter = 0; iCounter < packetSize && bDifference == false; iCounter++)
-            {
-              if (buf[iCounter] != byLastReceived[iCounter])
-              {
-                bDifference = true;
-              }
-            }
-
-            if (bDifference == true)
-            {
-              for (int i = 0; i < packetSize; i++)
-              {
-                byaFramesReceived[byFrameCounter][i] = buf[i];
-                byLastReceived[i] = buf[i];
-                byaFramesSizes[i] = packetSize;
-              }
-
-              byaFramesReceivedCount[byFrameCounter] = 1;
-              byFrameCounter++;
-            }
-            else
-            {
-              byaFramesReceivedCount[byFrameCounter-1]++;
-            }
-          }
-          else
-          {
-            if (packetSize < 0)
-            {
-              Serial.println(F("LT8900: Packet less than zero, buffer to small"));
-            }
-            else
-            {
-              Serial.println(F("LT8900: Packet read fail"));
-            }
-          }
-
-          vResumeRX();
-        }
-
-        ulElapsedTime = millis();
-        yield();
-        ulElapsedTime = ulElapsedTime - ulTimeStamp;
-      }while (ulElapsedTime < 1000 );
-
-      #ifdef DEBUG_PRINTF
-      printf_P(PSTR("ElapsedRX: %d\n"), iUpdateStamp - iStartTime);
-      #endif
-
-      if (byFrameCounter != 0)
-      {
-        #ifdef DEBUG_PRINTF
-        printf_P(PSTR("Packets received: %d\n"), byFrameCounter);
-        #endif
-
-        for (byte byCounterFrame = 0; byCounterFrame < byFrameCounter; byCounterFrame++)
-        {
-          _dupes_received = byaFramesReceivedCount[byCounterFrame];
-
-          #ifdef DEBUG_PRINTF
-          printf_P(PSTR("Packet read OK, rec: %d Frame:\n"), byaFramesReceivedCount[byCounterFrame]);
-          #endif
-          //dump the packet.
-
-          _packet[0]=byaFramesSizes[byCounterFrame];
-          for (int iByteCounter = 0; iByteCounter < byaFramesSizes[byCounterFrame]; iByteCounter++)
-          {
-            byte byReceivedvalue = byaFramesReceived[byCounterFrame][iByteCounter];
-            _packet[iByteCounter+1] = byReceivedvalue;
-
-            #ifdef DEBUG_PRINTF
-            printf_P(PSTR("%02X "), byReceivedvalue);
-            #endif
-          }
-
-          _waiting = true;
-        }
-
-        #ifdef DEBUG_PRINTF
-        Serial.println();
-        #endif
-      }
-    }
-    yield();
+  if (_currentPacketPos < _currentPacketLen) {
+    return true;
   }
 
-  return _waiting;
-}
-
-int LT8900MiLightRadio::dupesReceived()
-{
-  return _dupes_received;
+  return bAvailablePin() && bAvailableRegister();
 }
 
 /**************************************************************************/
@@ -524,29 +398,26 @@ int LT8900MiLightRadio::dupesReceived()
 /**************************************************************************/
 int LT8900MiLightRadio::read(uint8_t frame[], size_t &frame_length)
 {
-  if (!_waiting)
-  {
+  if (!available()) {
     frame_length = 0;
     return -1;
   }
 
-  if (frame_length > sizeof(_packet) - 1)
-  {
-    frame_length = sizeof(_packet) - 1;
+  #ifdef DEBUG_PRINTF
+  Serial.println(F("LT8900: Radio was available, reading packet..."));
+  #endif
+
+  uint8_t buf[_config.getPacketLength()];
+  int packetSize = iReadRXBuffer(buf, _config.getPacketLength());
+
+  if (packetSize > 0) {
+    frame_length = packetSize;
+    memcpy(frame, buf, packetSize);
   }
 
-  if (frame_length > _packet[0])
-  {
-    frame_length = _packet[0];
-  }
-
-  memcpy(frame, _packet +1 , frame_length);
-  _waiting = false;
-
-  // Start RX mode again
   vResumeRX();
 
-  return _packet[0];
+  return packetSize;
 }
 
 /**************************************************************************/
