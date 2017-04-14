@@ -353,7 +353,6 @@ void MiLightHttpServer::handleUpdateGroup(const UrlTokenBindings* urlBindings) {
       groupIdItr.reset();
       while (groupIdItr.hasNext()) {
         const uint8_t groupId = atoi(groupIdItr.nextToken());
-        printf("%d,%d,%d\n",config->type,deviceId,groupId);
 
         milightClient->prepare(*config, deviceId, groupId);
         handleRequest(request);
