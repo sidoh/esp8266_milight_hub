@@ -16,7 +16,7 @@ void WebServer::disableAuthentication() {
 }
 
 void WebServer::_handleRequest() {
-  if (this->authEnabled 
+  if (this->authEnabled
     && !this->authenticate(this->username.c_str(), this->password.c_str())) {
     this->requestAuthentication();
   } else {

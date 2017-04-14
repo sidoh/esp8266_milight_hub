@@ -3,7 +3,7 @@
 
 void RgbwPacketFormatter::initializePacket(uint8_t* packet) {
   size_t packetPtr = 0;
-  
+
   packet[packetPtr++] = RGBW;
   packet[packetPtr++] = deviceId >> 8;
   packet[packetPtr++] = deviceId & 0xFF;
@@ -13,11 +13,11 @@ void RgbwPacketFormatter::initializePacket(uint8_t* packet) {
   packet[packetPtr++] = sequenceNum++;
 }
 
-void RgbwPacketFormatter::unpair() { 
+void RgbwPacketFormatter::unpair() {
   PacketFormatter::updateStatus(ON);
   updateColorWhite();
 }
-  
+
 void RgbwPacketFormatter::modeSpeedDown() {
   command(RGBW_SPEED_DOWN, 0);
 }
@@ -39,7 +39,7 @@ void RgbwPacketFormatter::updateStatus(MiLightStatus status, uint8_t groupId) {
   uint8_t button = RGBW_GROUP_1_ON + ((groupId - 1)*2) + status;
   command(button, 0);
 }
-  
+
 void RgbwPacketFormatter::updateBrightness(uint8_t value) {
   // Expect an input value in [0, 100]. Map it down to [0, 25].
   const uint8_t adjustedBrightness = rescale(value, 25, 100);
@@ -49,16 +49,19 @@ void RgbwPacketFormatter::updateBrightness(uint8_t value) {
   const uint8_t packetBrightnessValue = (
     ((31 - adjustedBrightness) + 17) % 32
   );
-  
+
   command(RGBW_BRIGHTNESS, 0);
   currentPacket[RGBW_BRIGHTNESS_GROUP_INDEX] |= (packetBrightnessValue << 3);
 }
 
 void RgbwPacketFormatter::command(uint8_t command, uint8_t arg) {
   pushPacket();
+  if (held) {
+    command |= 0x80;
+  }
   currentPacket[RGBW_COMMAND_INDEX] = command;
 }
-  
+
 void RgbwPacketFormatter::updateHue(uint16_t value) {
   const int16_t remappedColor = (value + 40) % 360;
   updateColorRaw(rescale(remappedColor, 255, 360));
