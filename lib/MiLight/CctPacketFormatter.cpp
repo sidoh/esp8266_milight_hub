@@ -59,6 +59,10 @@ void CctPacketFormatter::decreaseBrightness() {
   command(CCT_BRIGHTNESS_DOWN, 0);
 }
 
+void CctPacketFormatter::enableNightMode() {
+  command(getCctStatusButton(groupId, OFF) | 0x10, 0);
+}
+
 uint8_t CctPacketFormatter::getCctStatusButton(uint8_t groupId, MiLightStatus status) {
   uint8_t button = 0;
 

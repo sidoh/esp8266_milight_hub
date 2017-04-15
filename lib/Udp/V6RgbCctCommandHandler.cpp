@@ -44,7 +44,7 @@ bool V6RgbCctCommandHandler::handleCommand(
         break;
 
       case V2_RGB_NIGHT_MODE:
-        client->updateBrightness(0);
+        client->enableNightMode();
         break;
 
       case V2_RGB_CCT_SPEED_DOWN:

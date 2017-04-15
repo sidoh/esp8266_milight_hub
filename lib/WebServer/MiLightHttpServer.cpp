@@ -383,6 +383,10 @@ void MiLightHttpServer::handleRequest(const JsonObject& request) {
       milightClient->updateColorWhite();
     }
 
+    if (request["command"] == "night_mode") {
+      milightClient->enableNightMode();
+    }
+
     if (request["command"] == "level_up") {
       milightClient->increaseBrightness();
     }

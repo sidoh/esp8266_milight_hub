@@ -44,6 +44,10 @@ bool V6CctCommandHandler::handleCommand(
         client->increaseTemperature();
         break;
 
+      case V2_CCT_NIGHT_LIGHT:
+        client->enableNightMode();
+        break;
+
       default:
         return false;
     }

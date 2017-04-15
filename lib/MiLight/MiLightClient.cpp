@@ -172,6 +172,11 @@ void MiLightClient::updateColorWhite() {
   flushPacket();
 }
 
+void MiLightClient::enableNightMode() {
+  formatter->enableNightMode();
+  flushPacket();
+}
+
 void MiLightClient::pair() {
   formatter->pair();
   flushPacket();
@@ -222,7 +227,7 @@ void MiLightClient::flushPacket() {
 
   // When sending multiple packets, normalize the number of repeats
   if (stream.numPackets > 1) {
-    setResendCount(MILIGHT_DEFAULT_RESEND_COUNT);
+    // setResendCount(MILIGHT_DEFAULT_RESEND_COUNT);
   }
 
   while (stream.hasNext()) {
@@ -233,6 +238,6 @@ void MiLightClient::flushPacket() {
     }
   }
 
-  setResendCount(prevNumRepeats);
+  // setResendCount(prevNumRepeats);
   formatter->reset();
 }

@@ -1,6 +1,8 @@
 #include <RgbwPacketFormatter.h>
 #include <MiLightButtons.h>
 
+#define STATUS_COMMAND(status, groupId) ( RGBW_GROUP_1_ON + ((groupId - 1)*2) + status )
+
 void RgbwPacketFormatter::initializePacket(uint8_t* packet) {
   size_t packetPtr = 0;
 
@@ -36,8 +38,7 @@ void RgbwPacketFormatter::updateMode(uint8_t mode) {
 }
 
 void RgbwPacketFormatter::updateStatus(MiLightStatus status, uint8_t groupId) {
-  uint8_t button = RGBW_GROUP_1_ON + ((groupId - 1)*2) + status;
-  command(button, 0);
+  command(STATUS_COMMAND(status, groupId), 0);
 }
 
 void RgbwPacketFormatter::updateBrightness(uint8_t value) {
@@ -75,6 +76,13 @@ void RgbwPacketFormatter::updateColorRaw(uint8_t value) {
 void RgbwPacketFormatter::updateColorWhite() {
   uint8_t button = RGBW_GROUP_1_MAX_LEVEL + ((groupId - 1)*2);
   command(button, 0);
+}
+
+void RgbwPacketFormatter::enableNightMode() {
+  uint8_t button = STATUS_COMMAND(ON, groupId);
+
+  command(button, 0);
+  command(button | 0x10, 0);
 }
 
 void RgbwPacketFormatter::format(uint8_t const* packet, char* buffer) {

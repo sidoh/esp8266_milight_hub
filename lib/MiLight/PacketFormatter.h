@@ -56,6 +56,7 @@ public:
   virtual void updateBrightness(uint8_t value);
   virtual void increaseBrightness();
   virtual void decreaseBrightness();
+  virtual void enableNightMode();
 
   virtual void updateSaturation(uint8_t value);
 

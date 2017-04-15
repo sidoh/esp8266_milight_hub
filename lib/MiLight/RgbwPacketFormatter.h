@@ -1,7 +1,7 @@
 #include <PacketFormatter.h>
 
 #ifndef _RGBW_PACKET_FORMATTER_H
-#define _RGBW_PACKET_FORMATTER_H 
+#define _RGBW_PACKET_FORMATTER_H
 
 enum MiLightRgbwButton {
   RGBW_ALL_ON            = 0x01,
@@ -14,14 +14,14 @@ enum MiLightRgbwButton {
   RGBW_GROUP_3_OFF       = 0x08,
   RGBW_GROUP_4_ON        = 0x09,
   RGBW_GROUP_4_OFF       = 0x0A,
-  RGBW_SPEED_UP          = 0x0B, 
-  RGBW_SPEED_DOWN        = 0x0C, 
+  RGBW_SPEED_UP          = 0x0B,
+  RGBW_SPEED_DOWN        = 0x0C,
   RGBW_DISCO_MODE        = 0x0D,
   RGBW_BRIGHTNESS        = 0x0E,
   RGBW_COLOR             = 0x0F,
   RGBW_ALL_MAX_LEVEL     = 0x11,
   RGBW_ALL_MIN_LEVEL     = 0x12,
-  
+
   // These are the only mechanism (that I know of) to disable RGB and set the
   // color to white.
   RGBW_GROUP_1_MAX_LEVEL = 0x13,
@@ -43,7 +43,7 @@ public:
   RgbwPacketFormatter()
     : PacketFormatter(7)
   { }
-  
+
   virtual void updateStatus(MiLightStatus status, uint8_t groupId);
   virtual void updateBrightness(uint8_t value);
   virtual void command(uint8_t command, uint8_t arg);
@@ -56,7 +56,8 @@ public:
   virtual void modeSpeedUp();
   virtual void nextMode();
   virtual void updateMode(uint8_t mode);
-  
+  virtual void enableNightMode();
+
   virtual void initializePacket(uint8_t* packet);
 };
 

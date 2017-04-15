@@ -43,8 +43,7 @@ bool V6RgbwCommandHandler::handleCommand(
         break;
 
       case V2_RGBW_NIGHT_LIGHT:
-        client->updateColorWhite();
-        client->updateBrightness(0);
+        client->enableNightMode();
         break;
 
       case V2_RGBW_SPEED_DOWN:

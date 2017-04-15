@@ -46,6 +46,7 @@ public:
   void updateBrightness(const uint8_t brightness);
   void updateColorWhite();
   void updateColorRaw(const uint8_t color);
+  void enableNightMode();
 
   // CCT methods
   void updateTemperature(const uint8_t colorTemperature);

@@ -6,6 +6,8 @@
   ((jumpStart > 0 && key >= jumpStart && key <= jumpStart+0x80) ? 0x80 : 0) \
 )
 
+#define GROUP_COMMAND_ARG(status, groupId) ( groupId + (status == OFF ? 5 : 0) )
+
 uint8_t const RgbCctPacketFormatter::V2_OFFSETS[][4] = {
   { 0x45, 0x1F, 0x14, 0x5C }, // request type
   { 0x2B, 0xC9, 0xE3, 0x11 }, // id 1
@@ -49,7 +51,7 @@ void RgbCctPacketFormatter::command(uint8_t command, uint8_t arg) {
 }
 
 void RgbCctPacketFormatter::updateStatus(MiLightStatus status, uint8_t groupId) {
-  command(RGB_CCT_ON, groupId + (status == OFF ? 5 : 0));
+  command(RGB_CCT_ON, GROUP_COMMAND_ARG(status, groupId));
 }
 
 void RgbCctPacketFormatter::modeSpeedDown() {
@@ -97,6 +99,11 @@ void RgbCctPacketFormatter::updateSaturation(uint8_t value) {
 
 void RgbCctPacketFormatter::updateColorWhite() {
   updateTemperature(0);
+}
+
+void RgbCctPacketFormatter::enableNightMode() {
+  uint8_t arg = GROUP_COMMAND_ARG(OFF, groupId);
+  command(RGB_CCT_ON | 0x80, arg);
 }
 
 void RgbCctPacketFormatter::finalizePacket(uint8_t* packet) {
