@@ -5,7 +5,6 @@
 #include <MiLightClient.h>
 #include <WiFiUdp.h>
 #include <MiLightUdpServer.h>
-#include <Vector.h>
 #include <V6CommandHandler.h>
 
 #define V6_COMMAND_LEN 8
