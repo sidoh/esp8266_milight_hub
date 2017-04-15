@@ -3,7 +3,6 @@
 
 #include <Arduino.h>
 #include <ESP8266WebServer.h>
-#include <Vector.h>
 #include <functional>
 #include <TokenIterator.h>
 
