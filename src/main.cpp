@@ -11,6 +11,8 @@
 #include <MiLightHttpServer.h>
 #include <Settings.h>
 #include <MiLightUdpServer.h>
+#include <ESP8266mDNS.h>
+#include <ESP8266SSDP.h>
 
 WiFiManager wifiManager;
 
@@ -92,8 +94,23 @@ void setup() {
   Settings::load(settings);
   applySettings();
 
+  if (! MDNS.begin("milight-hub")) {
+    Serial.println(F("Error setting up MDNS responder"));
+  }
+
+  MDNS.addService("http", "tcp", 80);
+
+  SSDP.setSchemaURL("description.xml");
+  SSDP.setHTTPPort(80);
+  SSDP.setName("ESP8266 MiLight Gateway");
+  SSDP.setSerialNumber(ESP.getChipId());
+  SSDP.setURL("/");
+  SSDP.setDeviceType("upnp:rootdevice");
+  SSDP.begin();
+
   httpServer = new MiLightHttpServer(settings, milightClient);
   httpServer->onSettingsSaved(applySettings);
+  httpServer->on("/description.xml", HTTP_GET, []() { SSDP.schema(httpServer->client()); });
   httpServer->begin();
 }
 

@@ -54,6 +54,14 @@ This project uses [WiFiManager](https://github.com/tzapu/WiFiManager) to avoid t
 
 When the ESP powers on, you should be able to see a network named "ESPXXXXX", with XXXXX being an identifier for your ESP. Connect to this AP and a window should pop up prompting you to enter WiFi credentials.
 
+#### Get IP Address
+
+Both mDNS and SSDP are supported.
+
+* OS X - you should be able to navigate to http://milight-hub.local.
+* Windows - you should see a device called "ESP8266 MiLight Gateway" show up in your network explorer.
+* Linux users can install [avahi](http://www.avahi.org/) (`sudo apt-get install avahi-daemon` on Ubuntu), and should then be able to navigate to http://milight-hub.local.
+
 #### Use it!
 
 The HTTP endpoints (shown below) will be fully functional at this point. You should also be able to navigate to `http://<ip_of_esp>`. The UI should look like this:
