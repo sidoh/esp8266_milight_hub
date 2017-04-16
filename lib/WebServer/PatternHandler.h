@@ -10,8 +10,8 @@ class UrlTokenBindings {
 public:
   UrlTokenBindings(TokenIterator& patternTokens, TokenIterator& requestTokens);
 
-  bool hasBinding(const String& key) const;
-  const char* get(const String& key) const;
+  bool hasBinding(const char* key) const;
+  const char* get(const char* key) const;
 
 private:
   TokenIterator& patternTokens;

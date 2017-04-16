@@ -5,9 +5,7 @@ UrlTokenBindings::UrlTokenBindings(TokenIterator& patternTokens, TokenIterator& 
     requestTokens(requestTokens)
 { }
 
-bool UrlTokenBindings::hasBinding(const String &key) const {
-  const char* searchToken = key.c_str();
-
+bool UrlTokenBindings::hasBinding(const char* searchToken) const {
   patternTokens.reset();
   while (patternTokens.hasNext()) {
     const char* token = patternTokens.nextToken();
@@ -20,9 +18,7 @@ bool UrlTokenBindings::hasBinding(const String &key) const {
   return false;
 }
 
-const char* UrlTokenBindings::get(const String &key) const {
-  const char* searchToken = key.c_str();
-
+const char* UrlTokenBindings::get(const char* searchToken) const {
   patternTokens.reset();
   requestTokens.reset();
 
