@@ -25,6 +25,8 @@ public:
   void begin();
   void handleClient();
   void onSettingsSaved(SettingsSavedHandler handler);
+  void on(const char* path, HTTPMethod method, ESP8266WebServer::THandlerFunction handler);
+  WiFiClient client();
 
 protected:
   ESP8266WebServer::THandlerFunction handleServeFile(

@@ -7,6 +7,7 @@
 #include <GithubClient.h>
 #include <string.h>
 #include <TokenIterator.h>
+#include <ESP8266SSDP.h>
 
 void MiLightHttpServer::begin() {
   applySettings(settings);
@@ -24,6 +25,7 @@ void MiLightHttpServer::begin() {
   server.on("/about", HTTP_GET, [this]() { handleAbout(); });
   server.on("/latest_release", HTTP_GET, [this]() { handleGetLatestRelease(); });
   server.on("/system", HTTP_POST, [this]() { handleSystemPost(); });
+  server.on("/description.xml", HTTP_GET, [this]() { SSDP.schema(server.client()); });
   server.on("/firmware", HTTP_POST,
     [this](){
       server.sendHeader("Connection", "close");
@@ -104,6 +106,14 @@ void MiLightHttpServer::handleGetLatestRelease() {
 
 void MiLightHttpServer::handleClient() {
   server.handleClient();
+}
+
+void MiLightHttpServer::on(const char* path, HTTPMethod method, ESP8266WebServer::THandlerFunction handler) {
+  server.on(path, method, handler);
+}
+
+WiFiClient MiLightHttpServer::client() {
+  return server.client();
 }
 
 void MiLightHttpServer::handleSystemPost() {
