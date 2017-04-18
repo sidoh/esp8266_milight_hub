@@ -13,6 +13,7 @@
 #include <MiLightUdpServer.h>
 #include <ESP8266mDNS.h>
 #include <ESP8266SSDP.h>
+#include <MqttClient.h>
 
 WiFiManager wifiManager;
 
@@ -21,6 +22,7 @@ Settings settings;
 MiLightClient* milightClient;
 MiLightRadioFactory* radioFactory;
 MiLightHttpServer *httpServer;
+MqttClient* mqttClient;
 
 int numUdpServers = 0;
 MiLightUdpServer** udpServers;
@@ -66,6 +68,9 @@ void applySettings() {
   if (radioFactory) {
     delete radioFactory;
   }
+  if (mqttClient) {
+    delete mqttClient;
+  }
 
   radioFactory = MiLightRadioFactory::fromSettings(settings);
 
@@ -75,6 +80,11 @@ void applySettings() {
 
   milightClient = new MiLightClient(radioFactory);
   milightClient->begin();
+
+  if (settings.mqttServer().length() > 0) {
+    mqttClient = new MqttClient(settings, milightClient);
+    mqttClient->begin();
+  }
 
   initMilightUdpServers();
 }
@@ -116,6 +126,10 @@ void setup() {
 
 void loop() {
   httpServer->handleClient();
+
+  if (mqttClient) {
+    mqttClient->handleClient();
+  }
 
   if (udpServers) {
     for (size_t i = 0; i < settings.numGatewayConfigs; i++) {

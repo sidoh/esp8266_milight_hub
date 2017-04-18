@@ -1,0 +1,108 @@
+#include <MqttClient.h>
+#include <TokenIterator.h>
+#include <UrlTokenBindings.h>
+#include <IntParsing.h>
+#include <ArduinoJson.h>
+#include <WiFiClient.h>
+
+MqttClient::MqttClient(Settings& settings, MiLightClient*& milightClient)
+  : milightClient(milightClient),
+    settings(settings)
+{
+  String strDomain = settings.mqttServer();
+  this->domain = new char[strDomain.length() + 1];
+  strcpy(this->domain, strDomain.c_str());
+
+  this->mqttClient = new PubSubClient(tcpClient);
+}
+
+MqttClient::~MqttClient() {
+  mqttClient->disconnect();
+  delete this->domain;
+}
+
+void MqttClient::begin() {
+#ifdef MQTT_DEBUG
+  printf_P(
+    PSTR("MqttClient - Connecting to: %s\nparsed:%s:%u\n"),
+    settings._mqttServer.c_str(),
+    settings.mqttServer().c_str(),
+    settings.mqttPort()
+  );
+#endif
+
+  mqttClient->setServer(this->domain, settings.mqttPort());
+  mqttClient->setCallback(
+    [this](char* topic, byte* payload, int length) {
+      this->publishCallback(topic, payload, length);
+    }
+  );
+  reconnect();
+}
+
+void MqttClient::reconnect() {
+  if (! mqttClient->connected()) {
+#ifdef MQTT_DEBUG
+    Serial.println("MqttClient - econnecting");
+#endif
+    char nameBuffer[30];
+    sprintf_P(nameBuffer, PSTR("milight-hub-%u"), ESP.getChipId());
+
+    if (mqttClient->connect(nameBuffer)) {
+      subscribe();
+    } else {
+      Serial.println(F("ERROR: Failed to connect to MQTT server"));
+    }
+  }
+}
+
+void MqttClient::handleClient() {
+  reconnect();
+  mqttClient->loop();
+}
+
+void MqttClient::subscribe() {
+  String topic = settings.mqttTopicPattern;
+
+  topic.replace(":device_id", "+");
+  topic.replace(":group_id", "+");
+  topic.replace(":device_type", "+");
+
+  mqttClient->subscribe(topic.c_str());
+}
+
+void MqttClient::publishCallback(char* topic, byte* payload, int length) {
+  uint16_t deviceId = 0;
+  uint8_t groupId = 0;
+  MiLightRadioConfig* config = &MilightRgbCctConfig;
+  const char* strPayload = reinterpret_cast<const char*>(payload);
+
+#ifdef MQTT_DEBUG
+  printf_P(PSTR("MqttClient - Got message on topic: %s\n%s\n"), topic, strPayload);
+#endif
+
+  char topicPattern[settings.mqttTopicPattern.length()];
+  strcpy(topicPattern, settings.mqttTopicPattern.c_str());
+
+  TokenIterator patternIterator(topicPattern, settings.mqttTopicPattern.length());
+  TokenIterator topicIterator(topic, strlen(topic));
+  UrlTokenBindings tokenBindings(patternIterator, topicIterator);
+
+  if (tokenBindings.hasBinding(":device_id")) {
+    deviceId = parseInt<uint16_t>(tokenBindings.get(":device_id"));
+  }
+
+  if (tokenBindings.hasBinding(":group_id")) {
+    groupId = parseInt<uint16_t>(tokenBindings.get(":group_id"));
+  }
+
+  if (tokenBindings.hasBinding(":device_type")) {
+    config = MiLightRadioConfig::fromString(tokenBindings.get(":device_type"));
+  }
+
+  StaticJsonBuffer<400> buffer;
+  JsonObject& obj = buffer.parseObject(strPayload);
+
+  milightClient->prepare(*config, deviceId, groupId);
+  milightClient->update(obj);
+}

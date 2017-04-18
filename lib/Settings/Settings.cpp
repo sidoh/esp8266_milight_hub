@@ -4,6 +4,8 @@
 #include <IntParsing.h>
 #include <algorithm>
 
+#define PORT_POSITION(s) ( s.indexOf(':') )
+
 bool Settings::hasAuthSettings() {
   return adminUsername.length() > 0 && adminPassword.length() > 0;
 }
@@ -23,53 +25,7 @@ size_t Settings::getAutoRestartPeriod() {
 void Settings::deserialize(Settings& settings, String json) {
   DynamicJsonBuffer jsonBuffer;
   JsonObject& parsedSettings = jsonBuffer.parseObject(json);
-  deserialize(settings, parsedSettings);
-}
-
-void Settings::deserialize(Settings& settings, JsonObject& parsedSettings) {
-  if (parsedSettings.success()) {
-    if (parsedSettings.containsKey("admin_username")) {
-      settings.adminUsername = parsedSettings.get<String>("admin_username");
-    }
-
-    if (parsedSettings.containsKey("admin_password")) {
-      settings.adminPassword = parsedSettings.get<String>("admin_password");
-    }
-
-    if (parsedSettings.containsKey("ce_pin")) {
-      settings.cePin = parsedSettings["ce_pin"];
-    }
-
-    if (parsedSettings.containsKey("csn_pin")) {
-      settings.csnPin = parsedSettings["csn_pin"];
-    }
-
-    if (parsedSettings.containsKey("reset_pin")) {
-      settings.resetPin = parsedSettings["reset_pin"];
-    }
-
-    if (parsedSettings.containsKey("radio_interface_type")) {
-      settings.radioInterfaceType = typeFromString(parsedSettings["radio_interface_type"]);
-    }
-
-    if (parsedSettings.containsKey("packet_repeats")) {
-      settings.packetRepeats = parsedSettings["packet_repeats"];
-    }
-
-    if (parsedSettings.containsKey("http_repeat_factor")) {
-      settings.httpRepeatFactor = parsedSettings["http_repeat_factor"];
-    }
-
-    if (parsedSettings.containsKey("auto_restart_period")) {
-      settings._autoRestartPeriod = parsedSettings["auto_restart_period"];
-    }
-
-    JsonArray& arr = parsedSettings["device_ids"];
-    settings.updateDeviceIds(arr);
-
-    JsonArray& gatewayArr = parsedSettings["gateway_configs"];
-    settings.updateGatewayConfigs(gatewayArr);
-  }
+  settings.patch(parsedSettings);
 }
 
 void Settings::updateDeviceIds(JsonArray& arr) {
@@ -108,33 +64,23 @@ void Settings::updateGatewayConfigs(JsonArray& arr) {
 
 void Settings::patch(JsonObject& parsedSettings) {
   if (parsedSettings.success()) {
-    if (parsedSettings.containsKey("admin_username")) {
-      this->adminUsername = parsedSettings.get<String>("admin_username");
-    }
-    if (parsedSettings.containsKey("admin_password")) {
-      this->adminPassword = parsedSettings.get<String>("admin_password");
-    }
-    if (parsedSettings.containsKey("ce_pin")) {
-      this->cePin = parsedSettings["ce_pin"];
-    }
-    if (parsedSettings.containsKey("csn_pin")) {
-      this->csnPin = parsedSettings["csn_pin"];
-    }
-    if (parsedSettings.containsKey("reset_pin")) {
-      this->resetPin = parsedSettings["reset_pin"];
-    }
+    this->setIfPresent<String>(parsedSettings, "admin_username", adminUsername);
+    this->setIfPresent(parsedSettings, "admin_password", adminPassword);
+    this->setIfPresent(parsedSettings, "ce_pin", cePin);
+    this->setIfPresent(parsedSettings, "csn_pin", csnPin);
+    this->setIfPresent(parsedSettings, "reset_pin", resetPin);
+    this->setIfPresent(parsedSettings, "packet_repeats", packetRepeats);
+    this->setIfPresent(parsedSettings, "http_repeat_factor", httpRepeatFactor);
+    this->setIfPresent(parsedSettings, "auto_restart_period", _autoRestartPeriod);
+    this->setIfPresent(parsedSettings, "mqtt_server", _mqttServer);
+    this->setIfPresent(parsedSettings, "mqtt_username", mqttUsername);
+    this->setIfPresent(parsedSettings, "mqtt_password", mqttPassword);
+    this->setIfPresent(parsedSettings, "mqtt_topic_pattern", mqttTopicPattern);
+
     if (parsedSettings.containsKey("radio_interface_type")) {
-      this->radioInterfaceType = typeFromString(parsedSettings["radio_interface_type"]);
+      this->radioInterfaceType = Settings::typeFromString(parsedSettings["radio_interface_type"]);
     }
-    if (parsedSettings.containsKey("packet_repeats")) {
-      this->packetRepeats = parsedSettings["packet_repeats"];
-    }
-    if (parsedSettings.containsKey("http_repeat_factor")) {
-      this->httpRepeatFactor = parsedSettings["http_repeat_factor"];
-    }
-    if (parsedSettings.containsKey("auto_restart_period")) {
-      this->_autoRestartPeriod = parsedSettings["auto_restart_period"];
-    }
+
     if (parsedSettings.containsKey("device_ids")) {
       JsonArray& arr = parsedSettings["device_ids"];
       updateDeviceIds(arr);
@@ -189,6 +135,10 @@ void Settings::serialize(Stream& stream, const bool prettyPrint) {
   root["packet_repeats"] = this->packetRepeats;
   root["http_repeat_factor"] = this->httpRepeatFactor;
   root["auto_restart_period"] = this->_autoRestartPeriod;
+  root["mqtt_server"] = this->_mqttServer;
+  root["mqtt_username"] = this->mqttUsername;
+  root["mqtt_password"] = this->mqttPassword;
+  root["mqtt_topic_pattern"] = this->mqttTopicPattern;
 
   if (this->deviceIds) {
     JsonArray& arr = jsonBuffer.createArray();
@@ -213,6 +163,26 @@ void Settings::serialize(Stream& stream, const bool prettyPrint) {
     root.prettyPrintTo(stream);
   } else {
     root.printTo(stream);
+  }
+}
+
+String Settings::mqttServer() {
+  int pos = PORT_POSITION(_mqttServer);
+
+  if (pos == -1) {
+    return _mqttServer;
+  } else {
+    return _mqttServer.substring(0, pos);
+  }
+}
+
+uint16_t Settings::mqttPort() {
+  int pos = PORT_POSITION(_mqttServer);
+
+  if (pos == -1) {
+    return DEFAULT_MQTT_PORT;
+  } else {
+    return atoi(_mqttServer.c_str() + pos + 1);
   }
 }
 

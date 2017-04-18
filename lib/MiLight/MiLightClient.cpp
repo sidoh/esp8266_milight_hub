@@ -217,6 +217,84 @@ void MiLightClient::command(uint8_t command, uint8_t arg) {
   flushPacket();
 }
 
+void MiLightClient::update(const JsonObject& request) {
+  if (request.containsKey("status")) {
+    const String& statusStr = request.get<String>("status");
+    MiLightStatus status = (statusStr == "on" || statusStr == "true") ? ON : OFF;
+    this->updateStatus(status);
+  }
+
+  if (request.containsKey("command")) {
+    if (request["command"] == "unpair") {
+      this->unpair();
+    }
+
+    if (request["command"] == "pair") {
+      this->pair();
+    }
+
+    if (request["command"] == "set_white") {
+      this->updateColorWhite();
+    }
+
+    if (request["command"] == "night_mode") {
+      this->enableNightMode();
+    }
+
+    if (request["command"] == "level_up") {
+      this->increaseBrightness();
+    }
+
+    if (request["command"] == "level_down") {
+      this->decreaseBrightness();
+    }
+
+    if (request["command"] == "temperature_up") {
+      this->increaseTemperature();
+    }
+
+    if (request["command"] == "temperature_down") {
+      this->decreaseTemperature();
+    }
+
+    if (request["command"] == "next_mode") {
+      this->nextMode();
+    }
+
+    if (request["command"] == "previous_mode") {
+      this->previousMode();
+    }
+
+    if (request["command"] == "mode_speed_down") {
+      this->modeSpeedDown();
+    }
+
+    if (request["command"] == "mode_speed_up") {
+      this->modeSpeedUp();
+    }
+  }
+
+  if (request.containsKey("hue")) {
+    this->updateHue(request["hue"]);
+  }
+
+  if (request.containsKey("level")) {
+    this->updateBrightness(request["level"]);
+  }
+
+  if (request.containsKey("temperature")) {
+    this->updateTemperature(request["temperature"]);
+  }
+
+  if (request.containsKey("saturation")) {
+    this->updateSaturation(request["saturation"]);
+  }
+
+  if (request.containsKey("mode")) {
+    this->updateMode(request["mode"]);
+  }
+}
+
 void MiLightClient::formatPacket(uint8_t* packet, char* buffer) {
   formatter->format(packet, buffer);
 }

@@ -5,18 +5,7 @@
 #include <ESP8266WebServer.h>
 #include <functional>
 #include <TokenIterator.h>
-
-class UrlTokenBindings {
-public:
-  UrlTokenBindings(TokenIterator& patternTokens, TokenIterator& requestTokens);
-
-  bool hasBinding(const char* key) const;
-  const char* get(const char* key) const;
-
-private:
-  TokenIterator& patternTokens;
-  TokenIterator& requestTokens;
-};
+#include <UrlTokenBindings.h>
 
 class PatternHandler : public RequestHandler {
 public:

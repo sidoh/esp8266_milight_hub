@@ -1,7 +1,8 @@
 #include <Arduino.h>
 
 #ifndef _TOKEN_ITERATOR_H
-#define _TOKEN_ITERATOR_H value
+#define _TOKEN_ITERATOR_H
+
 class TokenIterator {
 public:
   TokenIterator(char* data, size_t length, char sep = ',');
