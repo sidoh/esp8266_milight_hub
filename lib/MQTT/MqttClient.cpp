@@ -88,16 +88,16 @@ void MqttClient::publishCallback(char* topic, byte* payload, int length) {
   TokenIterator topicIterator(topic, strlen(topic));
   UrlTokenBindings tokenBindings(patternIterator, topicIterator);
 
-  if (tokenBindings.hasBinding(":device_id")) {
-    deviceId = parseInt<uint16_t>(tokenBindings.get(":device_id"));
+  if (tokenBindings.hasBinding("device_id")) {
+    deviceId = parseInt<uint16_t>(tokenBindings.get("device_id"));
   }
 
-  if (tokenBindings.hasBinding(":group_id")) {
-    groupId = parseInt<uint16_t>(tokenBindings.get(":group_id"));
+  if (tokenBindings.hasBinding("group_id")) {
+    groupId = parseInt<uint16_t>(tokenBindings.get("group_id"));
   }
 
-  if (tokenBindings.hasBinding(":device_type")) {
-    config = MiLightRadioConfig::fromString(tokenBindings.get(":device_type"));
+  if (tokenBindings.hasBinding("device_type")) {
+    config = MiLightRadioConfig::fromString(tokenBindings.get("device_type"));
   }
 
   StaticJsonBuffer<400> buffer;
