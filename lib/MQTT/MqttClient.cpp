@@ -43,7 +43,7 @@ void MqttClient::begin() {
 void MqttClient::reconnect() {
   if (! mqttClient->connected()) {
 #ifdef MQTT_DEBUG
-    Serial.println("MqttClient - econnecting");
+    Serial.println(F("MqttClient - connecting"));
 #endif
     char nameBuffer[30];
     sprintf_P(nameBuffer, PSTR("milight-hub-%u"), ESP.getChipId());
