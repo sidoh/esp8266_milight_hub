@@ -10,7 +10,7 @@ bool UrlTokenBindings::hasBinding(const char* searchToken) const {
   while (patternTokens.hasNext()) {
     const char* token = patternTokens.nextToken();
 
-    if (strcmp(token, searchToken) == 0) {
+    if (token[0] == ':' && strcmp(token+1, searchToken) == 0) {
       return true;
     }
   }

@@ -75,17 +75,19 @@ void MqttClient::publishCallback(char* topic, byte* payload, int length) {
   uint16_t deviceId = 0;
   uint8_t groupId = 0;
   MiLightRadioConfig* config = &MilightRgbCctConfig;
-  const char* strPayload = reinterpret_cast<const char*>(payload);
+  char cstrPayload[length + 1];
+  cstrPayload[length] = 0;
+  memcpy(cstrPayload, payload, sizeof(byte)*length);
 
 #ifdef MQTT_DEBUG
-  printf_P(PSTR("MqttClient - Got message on topic: %s\n%s\n"), topic, strPayload);
+  printf_P(PSTR("MqttClient - Got message on topic: %s\n%s\n"), topic, cstrPayload);
 #endif
 
   char topicPattern[settings.mqttTopicPattern.length()];
   strcpy(topicPattern, settings.mqttTopicPattern.c_str());
 
-  TokenIterator patternIterator(topicPattern, settings.mqttTopicPattern.length());
-  TokenIterator topicIterator(topic, strlen(topic));
+  TokenIterator patternIterator(topicPattern, settings.mqttTopicPattern.length(), '/');
+  TokenIterator topicIterator(topic, strlen(topic), '/');
   UrlTokenBindings tokenBindings(patternIterator, topicIterator);
 
   if (tokenBindings.hasBinding("device_id")) {
@@ -101,7 +103,11 @@ void MqttClient::publishCallback(char* topic, byte* payload, int length) {
   }
 
   StaticJsonBuffer<400> buffer;
-  JsonObject& obj = buffer.parseObject(strPayload);
+  JsonObject& obj = buffer.parseObject(cstrPayload);
+
+#ifdef MQTT_DEBUG
+  printf_P(PSTR("MqttClient - device %04X, group %u\n"), deviceId, groupId);
+#endif
 
   milightClient->prepare(*config, deviceId, groupId);
   milightClient->update(obj);
