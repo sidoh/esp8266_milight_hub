@@ -22,6 +22,7 @@ private:
   Settings& settings;
   char* domain;
 
+  bool connect();
   void subscribe();
   void publishCallback(char* topic, byte* payload, int length);
 };

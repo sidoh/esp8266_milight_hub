@@ -40,15 +40,28 @@ void MqttClient::begin() {
   reconnect();
 }
 
-void MqttClient::reconnect() {
-  if (! mqttClient->connected()) {
+bool MqttClient::connect() {
+  char nameBuffer[30];
+  sprintf_P(nameBuffer, PSTR("milight-hub-%u"), ESP.getChipId());
+
 #ifdef MQTT_DEBUG
     Serial.println(F("MqttClient - connecting"));
 #endif
-    char nameBuffer[30];
-    sprintf_P(nameBuffer, PSTR("milight-hub-%u"), ESP.getChipId());
 
-    if (mqttClient->connect(nameBuffer)) {
+  if (settings.mqttUsername.length() > 0) {
+    return mqttClient->connect(
+      nameBuffer,
+      settings.mqttUsername.c_str(),
+      settings.mqttPassword.c_str()
+    );
+  } else {
+    return mqttClient->connect(nameBuffer);
+  }
+}
+
+void MqttClient::reconnect() {
+  if (! mqttClient->connected()) {
+    if (connect()) {
       subscribe();
     } else {
       Serial.println(F("ERROR: Failed to connect to MQTT server"));
