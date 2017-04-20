@@ -317,7 +317,6 @@ void MiLightClient::update(const JsonObject& request) {
   // HomeAssistant
   if (request.containsKey("brightness")) {
     uint8_t scaledBrightness = round(request.get<uint8_t>("brightness") * (100/255.0));
-    printf("brightness -> %u\n", scaledBrightness);
     this->updateBrightness(scaledBrightness);
   }
 
