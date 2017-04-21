@@ -132,13 +132,28 @@ true%
 To configure your ESP to integrate with MQTT, fill out the following settings:
 
 1. `mqtt_server`- IP or hostname should work. Specify a port with standard syntax (e.g., "mymqttbroker.com:1884").
-1. `mqtt_topic_pattern` - you can control arbitrary configurations of device ID, device type, and group ID with this. More detail is provided below
+1. `mqtt_topic_pattern` - you can control arbitrary configurations of device ID, device type, and group ID with this. A good default choice is something like `milight/:device_id/:device_type/:group_id`. More detail is provided below.
 1. (optionally) `mqtt_username`
 1. (optionally) `mqtt_password`
+
+#### More detail on `mqtt_topic_pattern`
 
 `mqtt_topic_pattern` leverages single-level wildcards (documented [here](https://mosquitto.org/man/mqtt-7.html)). For example, specifying `milight/:device_id/:device_type/:group_id` will cause the ESP to subscribe to the topic `milight/+/+/+`. It will then interpret the second, third, and fourth tokens in topics it receives messages on as `:device_id`, `:device_type`, and `:group_id`, respectively.
 
 Messages should be JSON objects using exactly the same schema that the REST gateway uses for the `/gateways/:device_id/:device_type/:group_id` endpoint. Documented above in the _Bulb commands_ section.
+
+##### Example:
+
+If `mqtt_topic_pattern` is set to `milight/:device_id/:device_type/:group_id`, you could send the following message to it (the below example uses a ruby MQTT client):
+
+```ruby
+irb(main):001:0> require 'mqtt'
+irb(main):002:0> client = MQTT::Client.new('10.133.8.11',1883)
+irb(main):003:0> client.connect
+irb(main):004:0> client.publish('milight/0x118D/rgb_cct/1', '{"status":"ON","color":{"r":255,"g":200,"b":255},"brightness":100}')
+```
+
+This will instruct the ESP to send messages to RGB+CCT bulbs with device ID `0x118D` in group 1 to turn on, set color to RGB(255,200,255), and brightness to 100.
 
 ## UDP Gateways
 

@@ -14,6 +14,7 @@
 #include <ESP8266mDNS.h>
 #include <ESP8266SSDP.h>
 #include <MqttClient.h>
+#include <RGBConverter.h>
 
 WiFiManager wifiManager;
 
