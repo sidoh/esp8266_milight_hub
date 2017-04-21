@@ -1,6 +1,10 @@
 #include <MiLightClient.h>
 #include <MiLightRadioConfig.h>
 #include <Arduino.h>
+#include <RGBConverter.h>
+
+#define COLOR_TEMP_MAX_MIREDS 370
+#define COLOR_TEMP_MIN_MIREDS 153
 
 MiLightClient::MiLightClient(MiLightRadioFactory* radioFactory)
   : resendCount(MILIGHT_DEFAULT_RESEND_COUNT),
@@ -215,6 +219,131 @@ void MiLightClient::updateTemperature(const uint8_t temperature) {
 void MiLightClient::command(uint8_t command, uint8_t arg) {
   formatter->command(command, arg);
   flushPacket();
+}
+
+void MiLightClient::update(const JsonObject& request) {
+  if (request.containsKey("status") || request.containsKey("state")) {
+    String strStatus;
+
+    if (request.containsKey("status")) {
+      strStatus = request.get<char*>("status");
+    } else {
+      strStatus = request.get<char*>("state");
+    }
+
+    MiLightStatus status = (strStatus.equalsIgnoreCase("on") || strStatus.equalsIgnoreCase("true")) ? ON : OFF;
+    this->updateStatus(status);
+  }
+
+  if (request.containsKey("command")) {
+    if (request["command"] == "unpair") {
+      this->unpair();
+    }
+
+    if (request["command"] == "pair") {
+      this->pair();
+    }
+
+    if (request["command"] == "set_white") {
+      this->updateColorWhite();
+    }
+
+    if (request["command"] == "night_mode") {
+      this->enableNightMode();
+    }
+
+    if (request["command"] == "level_up") {
+      this->increaseBrightness();
+    }
+
+    if (request["command"] == "level_down") {
+      this->decreaseBrightness();
+    }
+
+    if (request["command"] == "temperature_up") {
+      this->increaseTemperature();
+    }
+
+    if (request["command"] == "temperature_down") {
+      this->decreaseTemperature();
+    }
+
+    if (request["command"] == "next_mode") {
+      this->nextMode();
+    }
+
+    if (request["command"] == "previous_mode") {
+      this->previousMode();
+    }
+
+    if (request["command"] == "mode_speed_down") {
+      this->modeSpeedDown();
+    }
+
+    if (request["command"] == "mode_speed_up") {
+      this->modeSpeedUp();
+    }
+  }
+
+  if (request.containsKey("hue")) {
+    this->updateHue(request["hue"]);
+  }
+  if (request.containsKey("saturation")) {
+    this->updateSaturation(request["saturation"]);
+  }
+
+  // Convert RGB to HSV
+  if (request.containsKey("color")) {
+    JsonObject& color = request["color"];
+
+    uint8_t r = color["r"];
+    uint8_t g = color["g"];
+    uint8_t b = color["b"];
+
+    double hsv[3];
+    RGBConverter converter;
+    converter.rgbToHsv(r, g, b, hsv);
+
+    uint16_t hue = round(hsv[0]*360);
+    uint8_t saturation = round(hsv[1]*100);
+
+    this->updateHue(hue);
+    this->updateSaturation(saturation);
+  }
+
+  if (request.containsKey("level")) {
+    this->updateBrightness(request["level"]);
+  }
+  // HomeAssistant
+  if (request.containsKey("brightness")) {
+    uint8_t scaledBrightness = round(request.get<uint8_t>("brightness") * (100/255.0));
+    this->updateBrightness(scaledBrightness);
+  }
+
+  if (request.containsKey("temperature")) {
+    this->updateTemperature(request["temperature"]);
+  }
+  // HomeAssistant
+  if (request.containsKey("color_temp")) {
+    // MiLight CCT bulbs range from 2700K-6500K, or ~370.3-153.8 mireds. Note
+    // that mireds are inversely correlated with color temperature.
+    uint32_t tempMireds = request["color_temp"];
+    tempMireds = tempMireds > COLOR_TEMP_MAX_MIREDS ? COLOR_TEMP_MAX_MIREDS : tempMireds;
+    tempMireds = tempMireds < COLOR_TEMP_MIN_MIREDS ? COLOR_TEMP_MIN_MIREDS : tempMireds;
+
+    uint8_t scaledTemp = round(
+      100*
+      (tempMireds - COLOR_TEMP_MIN_MIREDS)
+        /
+      static_cast<double>(COLOR_TEMP_MAX_MIREDS - COLOR_TEMP_MIN_MIREDS)
+    );
+
+    this->updateTemperature(100 - scaledTemp);
+  }
+
+  if (request.containsKey("mode")) {
+    this->updateMode(request["mode"]);
+  }
 }
 
 void MiLightClient::formatPacket(uint8_t* packet, char* buffer) {

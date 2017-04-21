@@ -26,6 +26,7 @@
 #define MILIGHT_REPO_WEB_PATH "/data/web/index.html"
 
 #define MINIMUM_RESTART_PERIOD 1
+#define DEFAULT_MQTT_PORT 1883
 
 enum RadioInterfaceType {
   nRF24 = 0,
@@ -75,7 +76,6 @@ public:
   size_t getAutoRestartPeriod();
 
   static void deserialize(Settings& settings, String json);
-  static void deserialize(Settings& settings, JsonObject& json);
   static void load(Settings& settings);
 
   static RadioInterfaceType typeFromString(const String& s);
@@ -87,6 +87,8 @@ public:
   void updateDeviceIds(JsonArray& arr);
   void updateGatewayConfigs(JsonArray& arr);
   void patch(JsonObject& obj);
+  String mqttServer();
+  uint16_t mqttPort();
 
   String adminUsername;
   String adminPassword;
@@ -100,9 +102,20 @@ public:
   size_t numDeviceIds;
   size_t packetRepeats;
   size_t httpRepeatFactor;
+  String _mqttServer;
+  String mqttUsername;
+  String mqttPassword;
+  String mqttTopicPattern;
 
 protected:
   size_t _autoRestartPeriod;
+
+  template <typename T>
+  void setIfPresent(JsonObject& obj, const char* key, T& var) {
+    if (obj.containsKey(key)) {
+      var = obj.get<T>(key);
+    }
+  }
 };
 
 #endif

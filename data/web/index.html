@@ -124,7 +124,8 @@
   <script lang="text/javascript">
     var FORM_SETTINGS = [
       "admin_username", "admin_password", "ce_pin", "csn_pin", "reset_pin","packet_repeats",
-      "http_repeat_factor", "auto_restart_period", "radio_interface_type"
+      "http_repeat_factor", "auto_restart_period", "mqtt_server", "mqtt_topic_pattern",
+      "mqtt_username", "mqtt_password", "radio_interface_type"
     ];
 
     var FORM_SETTINGS_HELP = {
@@ -136,7 +137,11 @@
       auto_restart_period : "Automatically restart the device every number of " +
         "minutes specified. Use 0 for disabled.",
       radio_interface_type : "2.4 GHz radio model. Only change this if you know " +
-        "You're not using an NRF24L01!"
+        "You're not using an NRF24L01!",
+      mqtt_server : "Domain or IP address of MQTT broker. Optionally specify a port " +
+        "with (example) mymqqtbroker.com:1884.",
+      mqtt_topic_pattern : "Pattern for MQTT topics to listen on. Example: " +
+        "lights/:device_id/:type/:group. See README for further details."
     }
 
     var UDP_PROTOCOL_VERSIONS = [ 5, 6 ];
