@@ -110,7 +110,7 @@ Route (5) supports these commands. Note that each bulb type has support for a di
    * `night_mode`. Enable "night mode", which is minimum brightness and bulbs only responding to on/off commands.
 1. `commands`. An array containing any number of the above commands (including repeats).
 
-The following redundant commands are supported for the sake of compatibility with HomeAssistant's `mqtt_json` platform:
+The following redundant commands are supported for the sake of compatibility with HomeAssistant's [`mqtt_json`](https://home-assistant.io/components/light.mqtt_json/) light platform:
 
 1. `color`. Hash containing RGB color. All keys for r, g, and b should be present. For example, `{"r":255,"g":200,"b":255}`.
 1. `color_temp`. Controls white temperature. Value is in [mireds](https://en.wikipedia.org/wiki/Mired). Milight bulbs are in the range 153-370 mireds (2700K-6500K).
