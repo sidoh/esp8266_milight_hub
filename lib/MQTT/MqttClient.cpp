@@ -64,10 +64,14 @@ void MqttClient::reconnect() {
   if (lastConnectAttempt > 0 && (millis() - lastConnectAttempt) < MQTT_CONNECTION_ATTEMPT_FREQUENCY) {
     return;
   }
-  
+
   if (! mqttClient->connected()) {
     if (connect()) {
       subscribe();
+
+#ifdef MQTT_DEBUG
+      Serial.println(F("MqttClient - Successfully connected to MQTT server"));
+#endif
     } else {
       Serial.println(F("ERROR: Failed to connect to MQTT server"));
     }
@@ -87,6 +91,10 @@ void MqttClient::subscribe() {
   topic.replace(":device_id", "+");
   topic.replace(":group_id", "+");
   topic.replace(":device_type", "+");
+
+#ifdef MQTT_DEBUG
+  printf_P(PSTR("MqttClient - subscribing to topic: %s\n"), topic.c_str());
+#endif
 
   mqttClient->subscribe(topic.c_str());
 }
