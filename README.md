@@ -91,9 +91,9 @@ Route (5) supports these commands. Note that each bulb type has support for a di
 
 1. `status`. Toggles on/off. Can be "on", "off", "true", or "false".
 1. `hue`. Sets color. Should be in the range `[0, 359]`.
+1. `saturation`. Controls saturation.
 1. `level`. Controls brightness. Should be in the range `[0, 100]`.
 1. `temperature`. Controls white temperature. Should be in the range `[0, 100]`.
-1. `saturation`. Controls saturation.
 1. `mode`. Sets "disco mode" setting to the specified value. Note that not all bulbs that have modes support this command. Some will only allow you to cycle through next/previous modes using commands.
 1. `command`. Sends a command to the group. Can be one of:
    * `set_white`. Turns off RGB and enters WW/CW mode.
@@ -109,6 +109,13 @@ Route (5) supports these commands. Note that each bulb type has support for a di
    * `temperature_up`. Turns up the white temperature. Not all bulbs with adjustable white temperature support this command.
    * `night_mode`. Enable "night mode", which is minimum brightness and bulbs only responding to on/off commands.
 1. `commands`. An array containing any number of the above commands (including repeats).
+
+The following redundant commands are supported for the sake of compatibility with HomeAssistant's `mqtt_json` platform:
+
+1. `color`. Hash containing RGB color. All keys for r, g, and b should be present. For example, `{"r":255,"g":200,"b":255}`.
+1. `color_temp`. Controls white temperature. Value is in [mireds](https://en.wikipedia.org/wiki/Mired). Milight bulbs are in the range 153-370 mireds (2700K-6500K).
+1. `brightness`. Same as `level` with a range of `[0,255]`.
+1. `state`. Same as `status`.
 
 If you'd like to control bulbs in all groups paired with a particular device ID, set `:group_id` to 0.
 
