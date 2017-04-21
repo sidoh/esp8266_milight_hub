@@ -14,7 +14,7 @@ This is a replacement for a Milight/LimitlessLED remote/gateway hosted on an ESP
 
 ## Supported bulbs
 
-Support has been added for the following bulb types:
+Support has been added for the following [bulb types](http://futlight.com/productlist.aspx?typeid=101):
 
 1. RGBW bulbs: FUT014, FUT016, FUT103
 1. Dual-White (CCT) bulbs: FUT019
