@@ -236,52 +236,16 @@ void MiLightClient::update(const JsonObject& request) {
   }
 
   if (request.containsKey("command")) {
-    if (request["command"] == "unpair") {
-      this->unpair();
-    }
+    this->handleCommand(request["command"]);
+  }
 
-    if (request["command"] == "pair") {
-      this->pair();
-    }
+  if (request.containsKey("commands")) {
+    JsonArray& commands = request["commands"];
 
-    if (request["command"] == "set_white") {
-      this->updateColorWhite();
-    }
-
-    if (request["command"] == "night_mode") {
-      this->enableNightMode();
-    }
-
-    if (request["command"] == "level_up") {
-      this->increaseBrightness();
-    }
-
-    if (request["command"] == "level_down") {
-      this->decreaseBrightness();
-    }
-
-    if (request["command"] == "temperature_up") {
-      this->increaseTemperature();
-    }
-
-    if (request["command"] == "temperature_down") {
-      this->decreaseTemperature();
-    }
-
-    if (request["command"] == "next_mode") {
-      this->nextMode();
-    }
-
-    if (request["command"] == "previous_mode") {
-      this->previousMode();
-    }
-
-    if (request["command"] == "mode_speed_down") {
-      this->modeSpeedDown();
-    }
-
-    if (request["command"] == "mode_speed_up") {
-      this->modeSpeedUp();
+    if (commands.success()) {
+      for (size_t i = 0; i < commands.size(); i++) {
+        this->handleCommand(commands.get<String>(i));
+      }
     }
   }
 
@@ -343,6 +307,34 @@ void MiLightClient::update(const JsonObject& request) {
 
   if (request.containsKey("mode")) {
     this->updateMode(request["mode"]);
+  }
+}
+
+void MiLightClient::handleCommand(const String& command) {
+  if (command == "unpair") {
+    this->unpair();
+  } else if (command == "pair") {
+    this->pair();
+  } else if (command == "set_white") {
+    this->updateColorWhite();
+  } else if (command == "night_mode") {
+    this->enableNightMode();
+  } else if (command == "level_up") {
+    this->increaseBrightness();
+  } else if (command == "level_down") {
+    this->decreaseBrightness();
+  } else if (command == "temperature_up") {
+    this->increaseTemperature();
+  } else if (command == "temperature_down") {
+    this->decreaseTemperature();
+  } else if (command == "next_mode") {
+    this->nextMode();
+  } else if (command == "previous_mode") {
+    this->previousMode();
+  } else if (command == "mode_speed_down") {
+    this->modeSpeedDown();
+  } else if (command == "mode_speed_up") {
+    this->modeSpeedUp();
   }
 }
 

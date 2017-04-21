@@ -60,7 +60,7 @@ public:
   void formatPacket(uint8_t* packet, char* buffer);
 
   void update(const JsonObject& object);
-
+  void handleCommand(const String& command);
 
 protected:
 
