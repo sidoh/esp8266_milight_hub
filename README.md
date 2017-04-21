@@ -108,6 +108,7 @@ Route (5) supports these commands. Note that each bulb type has support for a di
    * `temperature_down`. Turns down the white temperature. Not all bulbs with adjustable white temperature support this command.
    * `temperature_up`. Turns up the white temperature. Not all bulbs with adjustable white temperature support this command.
    * `night_mode`. Enable "night mode", which is minimum brightness and bulbs only responding to on/off commands.
+1. `commands`. An array containing any number of the above commands (including repeats).
 
 If you'd like to control bulbs in all groups paired with a particular device ID, set `:group_id` to 0.
 
