@@ -3,6 +3,10 @@
 #include <PubSubClient.h>
 #include <WiFiClient.h>
 
+#ifndef MQTT_CONNECTION_ATTEMPT_FREQUENCY
+#define MQTT_CONNECTION_ATTEMPT_FREQUENCY 5000
+#endif
+
 #ifndef _MQTT_CLIENT_H
 #define _MQTT_CLIENT_H
 
@@ -21,6 +25,7 @@ private:
   MiLightClient*& milightClient;
   Settings& settings;
   char* domain;
+  unsigned long lastConnectAttempt;
 
   bool connect();
   void subscribe();

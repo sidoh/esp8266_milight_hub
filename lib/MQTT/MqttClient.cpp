@@ -7,7 +7,8 @@
 
 MqttClient::MqttClient(Settings& settings, MiLightClient*& milightClient)
   : milightClient(milightClient),
-    settings(settings)
+    settings(settings),
+    lastConnectAttempt(0)
 {
   String strDomain = settings.mqttServer();
   this->domain = new char[strDomain.length() + 1];
@@ -60,6 +61,10 @@ bool MqttClient::connect() {
 }
 
 void MqttClient::reconnect() {
+  if (lastConnectAttempt > 0 && (millis() - lastConnectAttempt) < MQTT_CONNECTION_ATTEMPT_FREQUENCY) {
+    return;
+  }
+  
   if (! mqttClient->connected()) {
     if (connect()) {
       subscribe();
@@ -67,6 +72,8 @@ void MqttClient::reconnect() {
       Serial.println(F("ERROR: Failed to connect to MQTT server"));
     }
   }
+
+  lastConnectAttempt = millis();
 }
 
 void MqttClient::handleClient() {
