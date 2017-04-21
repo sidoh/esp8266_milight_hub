@@ -12,6 +12,17 @@ This is a replacement for a Milight/LimitlessLED remote/gateway hosted on an ESP
 3. You can secure the ESP8266 with a username/password, which is more than you can say for the Milight gateway! (The 2.4 GHz protocol is still totally insecure, so this doesn't accomplish much :).
 4. Official hubs connect to remote servers to enable WAN access, and this behavior is not disableable.
 
+## Supported bulbs
+
+Support has been added for the following bulb types:
+
+1. RGBW bulbs: FUT014, FUT016, FUT103
+1. Dual-White (CCT) bulbs: FUT019
+1. RGB LED strips: FUT025
+1. RGB + Dual White (RGB+CCT) bulbs: FUT015
+
+Other bulb types might work, but have not been tested. It is also relatively easy to add support for new bulb types.
+
 ## What you'll need
 
 1. An ESP8266. I used a NodeMCU.
