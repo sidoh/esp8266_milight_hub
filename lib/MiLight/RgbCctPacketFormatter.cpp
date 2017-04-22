@@ -6,6 +6,8 @@
   ((jumpStart > 0 && key >= jumpStart && key <= jumpStart+0x80) ? 0x80 : 0) \
 )
 
+#define GROUP_COMMAND_ARG(status, groupId) ( groupId + (status == OFF ? 5 : 0) )
+
 uint8_t const RgbCctPacketFormatter::V2_OFFSETS[][4] = {
   { 0x45, 0x1F, 0x14, 0x5C }, // request type
   { 0x2B, 0xC9, 0xE3, 0x11 }, // id 1
@@ -19,10 +21,10 @@ uint8_t const RgbCctPacketFormatter::V2_OFFSETS[][4] = {
 
 void RgbCctPacketFormatter::initializePacket(uint8_t* packet) {
   size_t packetPtr = 0;
-  
+
   // Always encode with 0x00 key. No utility in varying it.
   packet[packetPtr++] = 0x00;
-  
+
   packet[packetPtr++] = 0x20;
   packet[packetPtr++] = deviceId >> 8;
   packet[packetPtr++] = deviceId & 0xFF;
@@ -33,22 +35,25 @@ void RgbCctPacketFormatter::initializePacket(uint8_t* packet) {
   packet[packetPtr++] = 0;
 }
 
-void RgbCctPacketFormatter::unpair() { 
+void RgbCctPacketFormatter::unpair() {
   for (size_t i = 0; i < 5; i++) {
     updateStatus(ON, 0);
   }
 }
-  
+
 void RgbCctPacketFormatter::command(uint8_t command, uint8_t arg) {
   pushPacket();
+  if (held) {
+    command |= 0x80;
+  }
   currentPacket[RGB_CCT_COMMAND_INDEX] = command;
   currentPacket[RGB_CCT_ARGUMENT_INDEX] = arg;
 }
 
 void RgbCctPacketFormatter::updateStatus(MiLightStatus status, uint8_t groupId) {
-  command(RGB_CCT_ON, groupId + (status == OFF ? 5 : 0));
+  command(RGB_CCT_ON, GROUP_COMMAND_ARG(status, groupId));
 }
-  
+
 void RgbCctPacketFormatter::modeSpeedDown() {
   command(RGB_CCT_ON, RGB_CCT_MODE_SPEED_DOWN);
 }
@@ -73,7 +78,7 @@ void RgbCctPacketFormatter::previousMode() {
 void RgbCctPacketFormatter::updateBrightness(uint8_t brightness) {
   command(RGB_CCT_BRIGHTNESS, 0x8F + brightness);
 }
-  
+
 void RgbCctPacketFormatter::updateHue(uint16_t value) {
   uint8_t remapped = rescale(value, 255, 360);
   updateColorRaw(remapped);
@@ -82,7 +87,7 @@ void RgbCctPacketFormatter::updateHue(uint16_t value) {
 void RgbCctPacketFormatter::updateColorRaw(uint8_t value) {
   command(RGB_CCT_COLOR, 0x5F + value);
 }
-  
+
 void RgbCctPacketFormatter::updateTemperature(uint8_t value) {
   command(RGB_CCT_KELVIN, 0x94 - (value*2));
 }
@@ -91,11 +96,16 @@ void RgbCctPacketFormatter::updateSaturation(uint8_t value) {
   uint8_t remapped = value + 0xD;
   command(RGB_CCT_SATURATION, remapped);
 }
-  
+
 void RgbCctPacketFormatter::updateColorWhite() {
   updateTemperature(0);
 }
-  
+
+void RgbCctPacketFormatter::enableNightMode() {
+  uint8_t arg = GROUP_COMMAND_ARG(OFF, groupId);
+  command(RGB_CCT_ON | 0x80, arg);
+}
+
 void RgbCctPacketFormatter::finalizePacket(uint8_t* packet) {
   encodeV2Packet(packet);
 }
@@ -116,7 +126,7 @@ uint8_t RgbCctPacketFormatter::decodeByte(uint8_t byte, uint8_t s1, uint8_t xorK
   uint8_t value = byte - s2;
   value = value ^ xorKey;
   value = value - s1;
-  
+
   return value;
 }
 
@@ -124,13 +134,13 @@ uint8_t RgbCctPacketFormatter::encodeByte(uint8_t byte, uint8_t s1, uint8_t xorK
   uint8_t value = byte + s1;
   value = value ^ xorKey;
   value = value + s2;
-  
+
   return value;
 }
 
 void RgbCctPacketFormatter::decodeV2Packet(uint8_t *packet) {
   uint8_t key = xorKey(packet[0]);
-  
+
   for (size_t i = 1; i <= 8; i++) {
     packet[i] = decodeByte(packet[i], 0, key, V2_OFFSET(i, packet[0], V2_OFFSET_JUMP_START));
   }
@@ -139,12 +149,12 @@ void RgbCctPacketFormatter::decodeV2Packet(uint8_t *packet) {
 void RgbCctPacketFormatter::encodeV2Packet(uint8_t *packet) {
   uint8_t key = xorKey(packet[0]);
   uint8_t sum = key;
-  
+
   for (size_t i = 1; i <= 7; i++) {
     sum += packet[i];
     packet[i] = encodeByte(packet[i], 0, key, V2_OFFSET(i, packet[0], V2_OFFSET_JUMP_START));
   }
-  
+
   packet[8] = encodeByte(sum, 2, key, V2_OFFSET(8, packet[0], 0));
 }
 
@@ -153,12 +163,12 @@ void RgbCctPacketFormatter::format(uint8_t const* packet, char* buffer) {
   for (int i = 0; i < packetLength; i++) {
     buffer += sprintf_P(buffer, PSTR("%02X "), packet[i]);
   }
-  
+
   uint8_t decodedPacket[packetLength];
   memcpy(decodedPacket, packet, packetLength);
-  
+
   decodeV2Packet(decodedPacket);
-  
+
   buffer += sprintf_P(buffer, PSTR("\n\nDecoded:\n"));
   buffer += sprintf_P(buffer, PSTR("Key      : %02X\n"), decodedPacket[0]);
   buffer += sprintf_P(buffer, PSTR("b1       : %02X\n"), decodedPacket[1]);

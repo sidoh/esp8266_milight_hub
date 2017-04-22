@@ -1,49 +1,30 @@
-/*
- * MiLightRadio.h
- *
- *  Created on: 29 May 2015
- *      Author: henryk
- */
 
 #ifdef ARDUINO
 #include "Arduino.h"
 #else
 #include <stdint.h>
 #include <stdlib.h>
-#include <string.h>
 #endif
 
-#include "AbstractPL1167.h"
 #include <MiLightRadioConfig.h>
 
-// #define DEBUG_PRINTF
-
-#ifndef MILIGHTRADIO_H_
-#define MILIGHTRADIO_H_
+#ifndef _MILIGHT_RADIO_H_
+#define _MILIGHT_RADIO_H_
 
 class MiLightRadio {
   public:
-    MiLightRadio(AbstractPL1167 &pl1167, const MiLightRadioConfig& config);
-    
-    int begin();
-    bool available();
-    int read(uint8_t frame[], size_t &frame_length);
-    int dupesReceived();
-    int write(uint8_t frame[], size_t frame_length);
-    int resend();
-    int configure();
-    
-  private:
-    AbstractPL1167 &_pl1167;
-    const MiLightRadioConfig& config;
-    uint32_t _prev_packet_id;
 
-    uint8_t _packet[10];
-    uint8_t _out_packet[10];
-    bool _waiting;
-    int _dupes_received;
+    virtual int begin();
+    virtual bool available();
+    virtual int read(uint8_t frame[], size_t &frame_length);
+    virtual int write(uint8_t frame[], size_t frame_length);
+    virtual int resend();
+    virtual int configure();
+    virtual const MiLightRadioConfig& config();
+
 };
 
 
 
-#endif /* MILIGHTRADIO_H_ */
+
+#endif

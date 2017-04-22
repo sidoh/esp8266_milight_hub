@@ -5,14 +5,13 @@
 #include <MiLightClient.h>
 #include <WiFiUdp.h>
 #include <MiLightUdpServer.h>
-#include <Vector.h>
 #include <V6CommandHandler.h>
 
 #define V6_COMMAND_LEN 8
 #define V6_MAX_SESSIONS 10
 
 #ifndef _V6_MILIGHT_UDP_SERVER
-#define _V6_MILIGHT_UDP_SERVER 
+#define _V6_MILIGHT_UDP_SERVER
 
 struct V6Session {
   V6Session(IPAddress ipAddr, uint16_t port, uint16_t sessionId)
@@ -21,7 +20,7 @@ struct V6Session {
       sessionId(sessionId),
       next(NULL)
   { }
-  
+
   IPAddress ipAddr;
   uint16_t port;
   uint16_t sessionId;
@@ -36,21 +35,21 @@ public:
       numSessions(0),
       firstSession(NULL)
   { }
-  
+
   ~V6MiLightUdpServer();
-  
+
   // Should return size of the response packet
   virtual void handlePacket(uint8_t* packet, size_t packetSize);
-  
+
   template <typename T>
   static T readInt(uint8_t* packet);
-  
+
   template <typename T>
   static uint8_t* writeInt(const T& value, uint8_t* packet);
-    
+
 protected:
   static V6CommandDemuxer COMMAND_DEMUXER PROGMEM;
-  
+
   static uint8_t START_SESSION_COMMAND[] PROGMEM;
   static uint8_t START_SESSION_RESPONSE[] PROGMEM;
   static uint8_t COMMAND_HEADER[] PROGMEM;
@@ -58,21 +57,21 @@ protected:
   static uint8_t LOCAL_SEARCH_COMMAND[] PROGMEM;
   static uint8_t HEARTBEAT_HEADER[] PROGMEM;
   static uint8_t HEARTBEAT_HEADER2[] PROGMEM;
-  
+
   static uint8_t SEARCH_COMMAND[] PROGMEM;
   static uint8_t SEARCH_RESPONSE[] PROGMEM;
-  
+
   static uint8_t OPEN_COMMAND_RESPONSE[] PROGMEM;
-  
+
   V6Session* firstSession;
   size_t numSessions;
   uint16_t sessionId;
-  
+
   uint16_t beginSession();
   bool sendResponse(uint16_t sessionId, uint8_t* responseBuffer, size_t responseSize);
-  
   bool matchesPacket(uint8_t* packet1, size_t packet1Len, uint8_t* packet2, size_t packet2Len);
-  
+  void writeMacAddr(uint8_t* packet);
+
   void handleSearch();
   void handleStartSession();
   bool handleOpenCommand(uint16_t sessionId);

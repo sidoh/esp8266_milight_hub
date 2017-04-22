@@ -26,6 +26,12 @@
 #define MILIGHT_REPO_WEB_PATH "/data/web/index.html"
 
 #define MINIMUM_RESTART_PERIOD 1
+#define DEFAULT_MQTT_PORT 1883
+
+enum RadioInterfaceType {
+  nRF24 = 0,
+  LT8900 = 1,
+};
 
 class GatewayConfig {
 public:
@@ -48,6 +54,8 @@ public:
     // CE and CSN pins from nrf24l01
     cePin(D0),
     csnPin(D8),
+    resetPin(0),
+    radioInterfaceType(nRF24),
     deviceIds(NULL),
     gatewayConfigs(NULL),
     numDeviceIds(0),
@@ -68,8 +76,10 @@ public:
   size_t getAutoRestartPeriod();
 
   static void deserialize(Settings& settings, String json);
-  static void deserialize(Settings& settings, JsonObject& json);
   static void load(Settings& settings);
+
+  static RadioInterfaceType typeFromString(const String& s);
+  static String typeToString(RadioInterfaceType type);
 
   void save();
   String toJson(const bool prettyPrint = true);
@@ -77,20 +87,35 @@ public:
   void updateDeviceIds(JsonArray& arr);
   void updateGatewayConfigs(JsonArray& arr);
   void patch(JsonObject& obj);
+  String mqttServer();
+  uint16_t mqttPort();
 
   String adminUsername;
   String adminPassword;
   uint8_t cePin;
   uint8_t csnPin;
+  uint8_t resetPin;
+  RadioInterfaceType radioInterfaceType;
   uint16_t *deviceIds;
   GatewayConfig **gatewayConfigs;
   size_t numGatewayConfigs;
   size_t numDeviceIds;
   size_t packetRepeats;
   size_t httpRepeatFactor;
+  String _mqttServer;
+  String mqttUsername;
+  String mqttPassword;
+  String mqttTopicPattern;
 
 protected:
   size_t _autoRestartPeriod;
+
+  template <typename T>
+  void setIfPresent(JsonObject& obj, const char* key, T& var) {
+    if (obj.containsKey(key)) {
+      var = obj.get<T>(key);
+    }
+  }
 };
 
 #endif

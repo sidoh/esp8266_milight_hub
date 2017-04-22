@@ -1,7 +1,7 @@
 #include <PacketFormatter.h>
 
 #ifndef _RGB_PACKET_FORMATTER_H
-#define _RGB_PACKET_FORMATTER_H 
+#define _RGB_PACKET_FORMATTER_H
 
 #define RGB_COMMAND_INDEX 4
 #define RGB_COLOR_INDEX 3
@@ -24,7 +24,7 @@ public:
   RgbPacketFormatter()
     : PacketFormatter(6, 20)
   { }
-  
+
   virtual void updateStatus(MiLightStatus status, uint8_t groupId);
   virtual void updateBrightness(uint8_t value);
   virtual void increaseBrightness();
@@ -39,7 +39,7 @@ public:
   virtual void modeSpeedUp();
   virtual void nextMode();
   virtual void previousMode();
-  
+
   virtual void initializePacket(uint8_t* packet);
 };
 

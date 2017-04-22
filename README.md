@@ -12,17 +12,38 @@ This is a replacement for a Milight/LimitlessLED remote/gateway hosted on an ESP
 3. You can secure the ESP8266 with a username/password, which is more than you can say for the Milight gateway! (The 2.4 GHz protocol is still totally insecure, so this doesn't accomplish much :).
 4. Official hubs connect to remote servers to enable WAN access, and this behavior is not disableable.
 
+## Supported bulbs
+
+Support has been added for the following [bulb types](http://futlight.com/productlist.aspx?typeid=101):
+
+1. RGBW bulbs: FUT014, FUT016, FUT103
+1. Dual-White (CCT) bulbs: FUT019
+1. RGB LED strips: FUT025
+1. RGB + Dual White (RGB+CCT) bulbs: FUT015
+
+Other bulb types might work, but have not been tested. It is also relatively easy to add support for new bulb types.
+
 ## What you'll need
 
 1. An ESP8266. I used a NodeMCU.
-2. A NRF24L01+ module (~$3 on ebay).
+2. A NRF24L01+ module (~$3 on ebay). Alternatively, you can use a LT8900.
 3. Some way to connect the two (7 female/female dupont cables is probably easiest).
 
 ## Installing
 
-#### Connect the NRF24L01+
+#### Connect the NRF24L01+ / LT8900
 
-This module is an SPI device. [This guide](https://www.mysensors.org/build/esp8266_gateway) details how to connect it. I used GPIO 16 for CE and GPIO 15 for CSN. These can be configured later.
+This project is compatible with both NRF24L01 and LT8900 radios. LT8900 is the same model used in the official MiLight devices. NRF24s are a very common 2.4 GHz radio device, but require software emulation of the LT8900's packet structure. As such, the LT8900 is more performant.
+
+Both modules are SPI devices and should be connected to the standard SPI pins on the ESP8266.
+
+##### NRF24L01+
+
+[This guide](https://www.mysensors.org/build/esp8266_gateway) details how to connect an NRF24 to an ESP8266. I used GPIO 16 for CE and GPIO 15 for CSN. These can be configured later.
+
+##### LT8900
+
+Connect SPI pins (CS, SCK, MOSI, MISO) to appropriate SPI pins on the ESP8266. With default settings, connect RST to GPIO 0, and PKT to GPIO 16.
 
 #### Setting up the ESP
 
@@ -44,6 +65,14 @@ This project uses [WiFiManager](https://github.com/tzapu/WiFiManager) to avoid t
 
 When the ESP powers on, you should be able to see a network named "ESPXXXXX", with XXXXX being an identifier for your ESP. Connect to this AP and a window should pop up prompting you to enter WiFi credentials.
 
+#### Get IP Address
+
+Both mDNS and SSDP are supported.
+
+* OS X - you should be able to navigate to http://milight-hub.local.
+* Windows - you should see a device called "ESP8266 MiLight Gateway" show up in your network explorer.
+* Linux users can install [avahi](http://www.avahi.org/) (`sudo apt-get install avahi-daemon` on Ubuntu), and should then be able to navigate to http://milight-hub.local.
+
 #### Use it!
 
 The HTTP endpoints (shown below) will be fully functional at this point. You should also be able to navigate to `http://<ip_of_esp>`. The UI should look like this:
@@ -60,8 +89,8 @@ The HTTP endpoints (shown below) will be fully functional at this point. You sho
 1. `GET /settings`. Gets current settings as JSON.
 1. `PUT /settings`. Patches settings (e.g., doesn't overwrite keys that aren't present). Accepts a JSON blob in the body.
 1. `GET /radio_configs`. Get a list of supported radio configs (aka `device_type`s).
-1. `GET /gateway_traffic/:device_type`. Starts an HTTP long poll. Returns any Milight traffic it hears. Useful if you need to know what your Milight gateway/remote ID is. Since protocols for RGBW/CCT are different, specify one of `rgbw`, `cct`, or `rgb_cct` as `:device_type. Accepts a JSON blob.
-1. `PUT /gateways/:device_id/:device_type/:group_id`. Controls or sends commands to `:group_id` from `:device_id`. 
+1. `GET /gateway_traffic/:device_type`. Starts an HTTP long poll. Returns any Milight traffic it hears. Useful if you need to know what your Milight gateway/remote ID is. Since protocols for RGBW/CCT are different, specify one of `rgbw`, `cct`, or `rgb_cct` as `:device_type.
+1. `PUT /gateways/:device_id/:device_type/:group_id`. Controls or sends commands to `:group_id` from `:device_id`. Accepts a JSON blob. The schema is documented below in the _Bulb commands_ section.
 1. `POST /raw_commands/:device_type`. Sends a raw RF packet with radio configs associated with `:device_type`. Example body:
     ```
     {"packet": "01 02 03 04 05 06 07 08 09", "num_repeats": 10}
@@ -73,9 +102,9 @@ Route (5) supports these commands. Note that each bulb type has support for a di
 
 1. `status`. Toggles on/off. Can be "on", "off", "true", or "false".
 1. `hue`. Sets color. Should be in the range `[0, 359]`.
+1. `saturation`. Controls saturation.
 1. `level`. Controls brightness. Should be in the range `[0, 100]`.
 1. `temperature`. Controls white temperature. Should be in the range `[0, 100]`.
-1. `saturation`. Controls saturation.
 1. `mode`. Sets "disco mode" setting to the specified value. Note that not all bulbs that have modes support this command. Some will only allow you to cycle through next/previous modes using commands.
 1. `command`. Sends a command to the group. Can be one of:
    * `set_white`. Turns off RGB and enters WW/CW mode.
@@ -83,13 +112,22 @@ Route (5) supports these commands. Note that each bulb type has support for a di
    * `unpair`. Emulates the unpairing process. Send as you connect a paired bulb to have it disassociate with the device ID being used.
    * `next_mode`. Cycles to the next "disco mode".
    * `previous_mode`. Cycles to the previous disco mode.
-   * `mode_speed_up`. 
+   * `mode_speed_up`.
    * `mode_speed_down`.
    * `level_down`. Turns down the brightness. Not all dimmable bulbs support this command.
    * `level_up`. Turns down the brightness. Not all dimmable bulbs support this command.
    * `temperature_down`. Turns down the white temperature. Not all bulbs with adjustable white temperature support this command.
    * `temperature_up`. Turns up the white temperature. Not all bulbs with adjustable white temperature support this command.
-   
+   * `night_mode`. Enable "night mode", which is minimum brightness and bulbs only responding to on/off commands.
+1. `commands`. An array containing any number of the above commands (including repeats).
+
+The following redundant commands are supported for the sake of compatibility with HomeAssistant's [`mqtt_json`](https://home-assistant.io/components/light.mqtt_json/) light platform:
+
+1. `color`. Hash containing RGB color. All keys for r, g, and b should be present. For example, `{"r":255,"g":200,"b":255}`.
+1. `color_temp`. Controls white temperature. Value is in [mireds](https://en.wikipedia.org/wiki/Mired). Milight bulbs are in the range 153-370 mireds (2700K-6500K).
+1. `brightness`. Same as `level` with a range of `[0,255]`.
+1. `state`. Same as `status`.
+
 If you'd like to control bulbs in all groups paired with a particular device ID, set `:group_id` to 0.
 
 #### Examples
@@ -108,8 +146,40 @@ $ curl --data-binary '{"command":"set_white"}' -X PUT http://esp8266/gateways/0x
 true%
 ```
 
+## MQTT
+
+To configure your ESP to integrate with MQTT, fill out the following settings:
+
+1. `mqtt_server`- IP or hostname should work. Specify a port with standard syntax (e.g., "mymqttbroker.com:1884").
+1. `mqtt_topic_pattern` - you can control arbitrary configurations of device ID, device type, and group ID with this. A good default choice is something like `milight/:device_id/:device_type/:group_id`. More detail is provided below.
+1. (optionally) `mqtt_username`
+1. (optionally) `mqtt_password`
+
+#### More detail on `mqtt_topic_pattern`
+
+`mqtt_topic_pattern` leverages single-level wildcards (documented [here](https://mosquitto.org/man/mqtt-7.html)). For example, specifying `milight/:device_id/:device_type/:group_id` will cause the ESP to subscribe to the topic `milight/+/+/+`. It will then interpret the second, third, and fourth tokens in topics it receives messages on as `:device_id`, `:device_type`, and `:group_id`, respectively.
+
+Messages should be JSON objects using exactly the same schema that the REST gateway uses for the `/gateways/:device_id/:device_type/:group_id` endpoint. Documented above in the _Bulb commands_ section.
+
+##### Example:
+
+If `mqtt_topic_pattern` is set to `milight/:device_id/:device_type/:group_id`, you could send the following message to it (the below example uses a ruby MQTT client):
+
+```ruby
+irb(main):001:0> require 'mqtt'
+irb(main):002:0> client = MQTT::Client.new('10.133.8.11',1883)
+irb(main):003:0> client.connect
+irb(main):004:0> client.publish('milight/0x118D/rgb_cct/1', '{"status":"ON","color":{"r":255,"g":200,"b":255},"brightness":100}')
+```
+
+This will instruct the ESP to send messages to RGB+CCT bulbs with device ID `0x118D` in group 1 to turn on, set color to RGB(255,200,255), and brightness to 100.
+
 ## UDP Gateways
 
 You can add an arbitrary number of UDP gateways through the REST API or through the web UI. Each gateway server listens on a port and responds to the standard set of commands supported by the Milight protocol. This should allow you to use one of these with standard Milight integrations (SmartThings, Home Assistant, OpenHAB, etc.).
 
 You can select between versions 5 and 6 of the UDP protocol (documented [here](http://www.limitlessled.com/dev/)). Version 6 has support for the newer RGB+CCT bulbs and also includes response packets, which can theoretically improve reliability. Version 5 has much smaller packets and is probably lower latency.
+
+## Acknowledgements
+
+* @WoodsterDK added support for LT8900 radios.

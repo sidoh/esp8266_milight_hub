@@ -12,7 +12,8 @@ static uint8_t reverse_bits(uint8_t data);
 static void demangle_packet(uint8_t *in, uint8_t *out) ;
 
 PL1167_nRF24::PL1167_nRF24(RF24 &radio)
-  : _radio(radio) { }
+  : _radio(radio)
+{ }
 
 static const uint8_t pipe[] = {0xd1, 0x28, 0x5e, 0x55, 0x55};
 
@@ -266,7 +267,7 @@ int PL1167_nRF24::transmit(uint8_t channel)
       buffer_fill -= 8;
     }
   }
-  
+
   yield();
 
   _radio.write(tmp, outp);
@@ -374,14 +375,14 @@ int PL1167_nRF24::internal_receive()
   }
 
   memcpy(_packet, tmp, outp);
-  
+
   _packet_length = outp;
   _received = true;
-  
+
 #ifdef DEBUG_PRINTF
   printf("Successfully parsed packet of length %d\n", _packet_length);
 #endif
-  
+
   return outp;
 }
 

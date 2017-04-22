@@ -1,41 +1,70 @@
 #include <MiLightClient.h>
 #include <MiLightRadioConfig.h>
 #include <Arduino.h>
+#include <RGBConverter.h>
+
+#define COLOR_TEMP_MAX_MIREDS 370
+#define COLOR_TEMP_MIN_MIREDS 153
+
+MiLightClient::MiLightClient(MiLightRadioFactory* radioFactory)
+  : resendCount(MILIGHT_DEFAULT_RESEND_COUNT),
+    currentRadio(NULL),
+    numRadios(MiLightRadioConfig::NUM_CONFIGS)
+{
+  radios = new MiLightRadio*[numRadios];
+
+  for (size_t i = 0; i < numRadios; i++) {
+    radios[i] = radioFactory->create(*MiLightRadioConfig::ALL_CONFIGS[i]);
+  }
+
+  this->currentRadio = radios[0];
+  this->currentRadio->configure();
+}
+
+void MiLightClient::begin() {
+  for (size_t i = 0; i < numRadios; i++) {
+    radios[i]->begin();
+  }
+}
+
+void MiLightClient::setHeld(bool held) {
+  formatter->setHeld(held);
+}
 
 MiLightRadio* MiLightClient::switchRadio(const MiLightRadioType type) {
-  RadioStack* stack = NULL;
-  
+  MiLightRadio* radio = NULL;
+
   for (int i = 0; i < numRadios; i++) {
-    if (radios[i]->config.type == type) {
-      stack = radios[i];
+    if (this->radios[i]->config().type == type) {
+      radio = radios[i];
       break;
     }
   }
-  
-  if (stack != NULL) {
-    MiLightRadio *radio = stack->getRadio();
-    
-    if (currentRadio->config.type != stack->config.type) {
+
+  if (radio != NULL) {
+    if (currentRadio != radio) {
       radio->configure();
     }
-    
-    currentRadio = stack;
-    formatter = stack->config.packetFormatter;
+
+    this->currentRadio = radio;
+    this->formatter = radio->config().packetFormatter;
+
     return radio;
   } else {
     Serial.print(F("MiLightClient - tried to get radio for unknown type: "));
     Serial.println(type);
   }
-  
+
   return NULL;
 }
 
-void MiLightClient::prepare(MiLightRadioConfig& config, 
-  const uint16_t deviceId, 
+
+void MiLightClient::prepare(MiLightRadioConfig& config,
+  const uint16_t deviceId,
   const uint8_t groupId) {
-  
+
   switchRadio(config.type);
-  
+
   if (deviceId >= 0 && groupId >= 0) {
     formatter->prepare(deviceId, groupId);
   }
@@ -45,41 +74,49 @@ void MiLightClient::setResendCount(const unsigned int resendCount) {
   this->resendCount = resendCount;
 }
 
+
 bool MiLightClient::available() {
   if (currentRadio == NULL) {
     return false;
   }
-  
-  return currentRadio->getRadio()->available();
-}
 
+  return currentRadio->available();
+}
 void MiLightClient::read(uint8_t packet[]) {
   if (currentRadio == NULL) {
     return;
   }
-  
-  size_t length;
-  currentRadio->getRadio()->read(packet, length);
+
+  size_t length = currentRadio->config().getPacketLength();
+
+  currentRadio->read(packet, length);
 }
 
 void MiLightClient::write(uint8_t packet[]) {
   if (currentRadio == NULL) {
     return;
   }
-  
+
 #ifdef DEBUG_PRINTF
   printf("Sending packet: ");
-  for (int i = 0; i < currentRadio->config.getPacketLength(); i++) {
+  for (int i = 0; i < currentRadio->config().getPacketLength(); i++) {
     printf("%02X", packet[i]);
   }
   printf("\n");
+  int iStart = millis();
 #endif
-  
+
   for (int i = 0; i < this->resendCount; i++) {
-    currentRadio->getRadio()->write(packet, currentRadio->config.getPacketLength());
+    currentRadio->write(packet, currentRadio->config().getPacketLength());
   }
+
+#ifdef DEBUG_PRINTF
+  int iElapsed = millis() - iStart;
+  Serial.print("Elapsed: ");
+  Serial.println(iElapsed);
+#endif
 }
-    
+
 void MiLightClient::updateColorRaw(const uint8_t color) {
   formatter->updateColorRaw(color);
   flushPacket();
@@ -94,7 +131,7 @@ void MiLightClient::updateBrightness(const uint8_t brightness) {
   formatter->updateBrightness(brightness);
   flushPacket();
 }
-    
+
 void MiLightClient::updateMode(uint8_t mode) {
   formatter->updateMode(mode);
   flushPacket();
@@ -118,7 +155,7 @@ void MiLightClient::modeSpeedUp() {
   formatter->modeSpeedUp();
   flushPacket();
 }
-    
+
 void MiLightClient::updateStatus(MiLightStatus status, uint8_t groupId) {
   formatter->updateStatus(status, groupId);
   flushPacket();
@@ -139,6 +176,11 @@ void MiLightClient::updateColorWhite() {
   flushPacket();
 }
 
+void MiLightClient::enableNightMode() {
+  formatter->enableNightMode();
+  flushPacket();
+}
+
 void MiLightClient::pair() {
   formatter->pair();
   flushPacket();
@@ -148,7 +190,7 @@ void MiLightClient::unpair() {
   formatter->unpair();
   flushPacket();
 }
-    
+
 void MiLightClient::increaseBrightness() {
   formatter->increaseBrightness();
   flushPacket();
@@ -179,27 +221,144 @@ void MiLightClient::command(uint8_t command, uint8_t arg) {
   flushPacket();
 }
 
+void MiLightClient::update(const JsonObject& request) {
+  if (request.containsKey("status") || request.containsKey("state")) {
+    String strStatus;
+
+    if (request.containsKey("status")) {
+      strStatus = request.get<char*>("status");
+    } else {
+      strStatus = request.get<char*>("state");
+    }
+
+    MiLightStatus status = (strStatus.equalsIgnoreCase("on") || strStatus.equalsIgnoreCase("true")) ? ON : OFF;
+    this->updateStatus(status);
+  }
+
+  if (request.containsKey("command")) {
+    this->handleCommand(request["command"]);
+  }
+
+  if (request.containsKey("commands")) {
+    JsonArray& commands = request["commands"];
+
+    if (commands.success()) {
+      for (size_t i = 0; i < commands.size(); i++) {
+        this->handleCommand(commands.get<String>(i));
+      }
+    }
+  }
+
+  if (request.containsKey("hue")) {
+    this->updateHue(request["hue"]);
+  }
+  if (request.containsKey("saturation")) {
+    this->updateSaturation(request["saturation"]);
+  }
+
+  // Convert RGB to HSV
+  if (request.containsKey("color")) {
+    JsonObject& color = request["color"];
+
+    uint8_t r = color["r"];
+    uint8_t g = color["g"];
+    uint8_t b = color["b"];
+
+    double hsv[3];
+    RGBConverter converter;
+    converter.rgbToHsv(r, g, b, hsv);
+
+    uint16_t hue = round(hsv[0]*360);
+    uint8_t saturation = round(hsv[1]*100);
+
+    this->updateHue(hue);
+    this->updateSaturation(saturation);
+  }
+
+  if (request.containsKey("level")) {
+    this->updateBrightness(request["level"]);
+  }
+  // HomeAssistant
+  if (request.containsKey("brightness")) {
+    uint8_t scaledBrightness = round(request.get<uint8_t>("brightness") * (100/255.0));
+    this->updateBrightness(scaledBrightness);
+  }
+
+  if (request.containsKey("temperature")) {
+    this->updateTemperature(request["temperature"]);
+  }
+  // HomeAssistant
+  if (request.containsKey("color_temp")) {
+    // MiLight CCT bulbs range from 2700K-6500K, or ~370.3-153.8 mireds. Note
+    // that mireds are inversely correlated with color temperature.
+    uint32_t tempMireds = request["color_temp"];
+    tempMireds = tempMireds > COLOR_TEMP_MAX_MIREDS ? COLOR_TEMP_MAX_MIREDS : tempMireds;
+    tempMireds = tempMireds < COLOR_TEMP_MIN_MIREDS ? COLOR_TEMP_MIN_MIREDS : tempMireds;
+
+    uint8_t scaledTemp = round(
+      100*
+      (tempMireds - COLOR_TEMP_MIN_MIREDS)
+        /
+      static_cast<double>(COLOR_TEMP_MAX_MIREDS - COLOR_TEMP_MIN_MIREDS)
+    );
+
+    this->updateTemperature(100 - scaledTemp);
+  }
+
+  if (request.containsKey("mode")) {
+    this->updateMode(request["mode"]);
+  }
+}
+
+void MiLightClient::handleCommand(const String& command) {
+  if (command == "unpair") {
+    this->unpair();
+  } else if (command == "pair") {
+    this->pair();
+  } else if (command == "set_white") {
+    this->updateColorWhite();
+  } else if (command == "night_mode") {
+    this->enableNightMode();
+  } else if (command == "level_up") {
+    this->increaseBrightness();
+  } else if (command == "level_down") {
+    this->decreaseBrightness();
+  } else if (command == "temperature_up") {
+    this->increaseTemperature();
+  } else if (command == "temperature_down") {
+    this->decreaseTemperature();
+  } else if (command == "next_mode") {
+    this->nextMode();
+  } else if (command == "previous_mode") {
+    this->previousMode();
+  } else if (command == "mode_speed_down") {
+    this->modeSpeedDown();
+  } else if (command == "mode_speed_up") {
+    this->modeSpeedUp();
+  }
+}
+
 void MiLightClient::formatPacket(uint8_t* packet, char* buffer) {
   formatter->format(packet, buffer);
 }
-    
+
 void MiLightClient::flushPacket() {
   PacketStream& stream = formatter->buildPackets();
   const size_t prevNumRepeats = this->resendCount;
-  
+
   // When sending multiple packets, normalize the number of repeats
   if (stream.numPackets > 1) {
     setResendCount(MILIGHT_DEFAULT_RESEND_COUNT);
   }
-  
+
   while (stream.hasNext()) {
     write(stream.next());
-    
+
     if (stream.hasNext()) {
       delay(10);
     }
   }
-  
+
   setResendCount(prevNumRepeats);
   formatter->reset();
 }

@@ -1,26 +1,22 @@
-/*
- * MiLightRadio.cpp
- *
- *  Created on: 29 May 2015
- *      Author: henryk
- */
+// Adapated from code from henryk
 
-#include "MiLightRadio.h"
+#include <PL1167_nRF24.h>
+#include <NRF24MiLightRadio.h>
 
 #define PACKET_ID(packet, packet_length) ( (packet[1] << 8) | packet[packet_length - 1] )
 
-MiLightRadio::MiLightRadio(AbstractPL1167 &pl1167, const MiLightRadioConfig& config)
-  : _pl1167(pl1167), config(config) {
-  _waiting = false;
-}
+NRF24MiLightRadio::NRF24MiLightRadio(RF24& rf24, const MiLightRadioConfig& config)
+  : _pl1167(PL1167_nRF24(rf24)),
+    _waiting(false),
+    _config(config)
+{ }
 
-int MiLightRadio::begin()
-{
+int NRF24MiLightRadio::begin() {
   int retval = _pl1167.open();
   if (retval < 0) {
     return retval;
   }
-  
+
   retval = configure();
   if (retval < 0) {
     return retval;
@@ -31,7 +27,7 @@ int MiLightRadio::begin()
   return 0;
 }
 
-int MiLightRadio::configure() {
+int NRF24MiLightRadio::configure() {
   int retval = _pl1167.setCRC(true);
   if (retval < 0) {
     return retval;
@@ -47,38 +43,38 @@ int MiLightRadio::configure() {
     return retval;
   }
 
-  retval = _pl1167.setSyncword(config.syncword0, config.syncword3);
+  retval = _pl1167.setSyncword(_config.syncword0, _config.syncword3);
   if (retval < 0) {
     return retval;
   }
 
-  // +1 to be able to buffer the length 
-  retval = _pl1167.setMaxPacketLength(config.getPacketLength() + 1);
+  // +1 to be able to buffer the length
+  retval = _pl1167.setMaxPacketLength(_config.getPacketLength() + 1);
   if (retval < 0) {
     return retval;
   }
-  
+
   return 0;
 }
 
-bool MiLightRadio::available() {
+bool NRF24MiLightRadio::available() {
   if (_waiting) {
 #ifdef DEBUG_PRINTF
   printf("_waiting\n");
 #endif
     return true;
   }
-  
-  if (_pl1167.receive(config.channels[0]) > 0) {
+
+  if (_pl1167.receive(_config.channels[0]) > 0) {
 #ifdef DEBUG_PRINTF
-  printf("MiLightRadio - received packet!\n");
+  printf("NRF24MiLightRadio - received packet!\n");
 #endif
     size_t packet_length = sizeof(_packet);
     if (_pl1167.readFIFO(_packet, packet_length) < 0) {
       return false;
     }
 #ifdef DEBUG_PRINTF
-  printf("MiLightRadio - Checking packet length (expecting %d, is %d)\n", _packet[0] + 1U, packet_length);
+  printf("NRF24MiLightRadio - Checking packet length (expecting %d, is %d)\n", _packet[0] + 1U, packet_length);
 #endif
     if (packet_length == 0 || packet_length != _packet[0] + 1U) {
       return false;
@@ -98,13 +94,7 @@ bool MiLightRadio::available() {
   return _waiting;
 }
 
-int MiLightRadio::dupesReceived()
-{
-  return _dupes_received;
-}
-
-
-int MiLightRadio::read(uint8_t frame[], size_t &frame_length)
+int NRF24MiLightRadio::read(uint8_t frame[], size_t &frame_length)
 {
   if (!_waiting) {
     frame_length = 0;
@@ -125,8 +115,7 @@ int MiLightRadio::read(uint8_t frame[], size_t &frame_length)
   return _packet[0];
 }
 
-int MiLightRadio::write(uint8_t frame[], size_t frame_length)
-{
+int NRF24MiLightRadio::write(uint8_t frame[], size_t frame_length) {
   if (frame_length > sizeof(_out_packet) - 1) {
     return -1;
   }
@@ -141,11 +130,14 @@ int MiLightRadio::write(uint8_t frame[], size_t frame_length)
   return frame_length;
 }
 
-int MiLightRadio::resend()
-{
+int NRF24MiLightRadio::resend() {
   for (size_t i = 0; i < MiLightRadioConfig::NUM_CHANNELS; i++) {
     _pl1167.writeFIFO(_out_packet, _out_packet[0] + 1);
-    _pl1167.transmit(config.channels[i]);
+    _pl1167.transmit(_config.channels[i]);
   }
   return 0;
+}
+
+const MiLightRadioConfig& NRF24MiLightRadio::config() {
+  return _config;
 }
