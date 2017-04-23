@@ -37,11 +37,13 @@ enum MiLightRgbwButton {
 #define RGBW_COMMAND_INDEX 5
 #define RGBW_BRIGHTNESS_GROUP_INDEX 4
 #define RGBW_COLOR_INDEX 3
+#define RGBW_NUM_MODES 9
 
 class RgbwPacketFormatter : public PacketFormatter {
 public:
   RgbwPacketFormatter()
-    : PacketFormatter(7)
+    : PacketFormatter(7),
+      lastMode(0)
   { }
 
   virtual void updateStatus(MiLightStatus status, uint8_t groupId);
@@ -55,10 +57,14 @@ public:
   virtual void modeSpeedDown();
   virtual void modeSpeedUp();
   virtual void nextMode();
+  virtual void previousMode();
   virtual void updateMode(uint8_t mode);
   virtual void enableNightMode();
 
   virtual void initializePacket(uint8_t* packet);
+
+protected:
+  uint8_t lastMode;
 };
 
 #endif

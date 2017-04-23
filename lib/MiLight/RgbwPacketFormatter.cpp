@@ -29,7 +29,13 @@ void RgbwPacketFormatter::modeSpeedUp() {
 }
 
 void RgbwPacketFormatter::nextMode() {
-  command(RGBW_DISCO_MODE, 0);
+  lastMode = (lastMode + 1) % RGBW_NUM_MODES;
+  updateMode(lastMode);
+}
+
+void RgbwPacketFormatter::previousMode() {
+  lastMode = (lastMode - 1) % RGBW_NUM_MODES;
+  updateMode(lastMode);
 }
 
 void RgbwPacketFormatter::updateMode(uint8_t mode) {
