@@ -23,8 +23,8 @@ enum MiLightUdpCommands {
   UDP_CCT_BRIGHTNESS_DOWN    = 0x34,
   UDP_CCT_BRIGHTNESS_UP      = 0x3C,
   
-  UDP_RGBW_ALL_ON            = 0x41,
-  UDP_RGBW_ALL_OFF           = 0x42,
+  UDP_RGBW_ALL_OFF           = 0x41,
+  UDP_RGBW_ALL_ON            = 0x42,
   UDP_RGBW_SPEED_UP          = 0x43, 
   UDP_RGBW_SPEED_DOWN        = 0x44, 
   UDP_RGBW_GROUP_1_ON        = 0x45,
