@@ -10,6 +10,7 @@ void V5MiLightUdpServer::handlePacket(uint8_t* packet, size_t packetSize) {
 }
 
 void V5MiLightUdpServer::handleCommand(uint8_t command, uint8_t commandArg) {
+  // On/off for RGBW
   if (command >= UDP_RGBW_GROUP_1_ON && command <= UDP_RGBW_GROUP_4_OFF) {
     const MiLightStatus status = (command % 2) == 1 ? ON : OFF;
     const uint8_t groupId = (command - UDP_RGBW_GROUP_1_ON + 2)/2;
@@ -18,17 +19,19 @@ void V5MiLightUdpServer::handleCommand(uint8_t command, uint8_t commandArg) {
     client->updateStatus(status);
 
     this->lastGroup = groupId;
+  // Command set_white for RGBW
   } else if (command >= UDP_RGBW_GROUP_ALL_WHITE && command <= UDP_RGBW_GROUP_4_WHITE) {
     const uint8_t groupId = (command - UDP_RGBW_GROUP_ALL_WHITE)/2;
     client->prepare(MilightRgbwConfig, deviceId, groupId);
     client->updateColorWhite();
     this->lastGroup = groupId;
-  } else if (uint8_t cctGroup = cctCommandIdToGroup(command)) {
+  // On/off for CCT
+  } else if (cctCommandIdToGroup(command) != 255) {
+    uint8_t cctGroup = cctCommandIdToGroup(command);
     client->prepare(MilightCctConfig, deviceId, cctGroup);
     client->updateStatus(cctCommandToStatus(command));
     this->lastGroup = cctGroup;
-  }
-  else {
+  } else {
     client->prepare(MilightRgbwConfig, deviceId, lastGroup);
     bool handled = true;
 
@@ -120,9 +123,12 @@ uint8_t V5MiLightUdpServer::cctCommandIdToGroup(uint8_t command) {
     case UDP_CCT_GROUP_4_ON:
     case UDP_CCT_GROUP_4_OFF:
       return 4;
+    case UDP_CCT_ALL_ON:
+    case UDP_CCT_ALL_OFF:
+      return 0;
   }
 
-  return 0;
+  return 255;
 }
 
 MiLightStatus V5MiLightUdpServer::cctCommandToStatus(uint8_t command) {
@@ -131,11 +137,13 @@ MiLightStatus V5MiLightUdpServer::cctCommandToStatus(uint8_t command) {
     case UDP_CCT_GROUP_2_ON:
     case UDP_CCT_GROUP_3_ON:
     case UDP_CCT_GROUP_4_ON:
+    case UDP_CCT_ALL_ON:
       return ON;
     case UDP_CCT_GROUP_1_OFF:
     case UDP_CCT_GROUP_2_OFF:
     case UDP_CCT_GROUP_3_OFF:
     case UDP_CCT_GROUP_4_OFF:
+    case UDP_CCT_ALL_OFF:
       return OFF;
   }
 }
