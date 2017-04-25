@@ -68,6 +68,9 @@ uint8_t CctPacketFormatter::getCctStatusButton(uint8_t groupId, MiLightStatus st
 
   if (status == ON) {
     switch(groupId) {
+      case 0:
+        button = CCT_ALL_ON;
+        break;
       case 1:
         button = CCT_GROUP_1_ON;
         break;
@@ -83,6 +86,9 @@ uint8_t CctPacketFormatter::getCctStatusButton(uint8_t groupId, MiLightStatus st
     }
   } else {
     switch(groupId) {
+      case 0:
+        button = CCT_ALL_OFF;
+        break;
       case 1:
         button = CCT_GROUP_1_OFF;
         break;

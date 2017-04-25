@@ -7,9 +7,11 @@
 #include <MiLightUdpServer.h>
 
 #ifndef _V5_MILIGHT_UDP_SERVER
-#define _V5_MILIGHT_UDP_SERVER 
+#define _V5_MILIGHT_UDP_SERVER
 
 enum MiLightUdpCommands {
+  UDP_CCT_ALL_ON             = 0x35,
+  UDP_CCT_ALL_OFF            = 0x39,
   UDP_CCT_GROUP_1_ON         = 0x38,
   UDP_CCT_GROUP_1_OFF        = 0x3B,
   UDP_CCT_GROUP_2_ON         = 0x3D,
@@ -22,11 +24,12 @@ enum MiLightUdpCommands {
   UDP_CCT_TEMPERATURE_UP     = 0x3E,
   UDP_CCT_BRIGHTNESS_DOWN    = 0x34,
   UDP_CCT_BRIGHTNESS_UP      = 0x3C,
-  
-  UDP_RGBW_ALL_OFF           = 0x41,
-  UDP_RGBW_ALL_ON            = 0x42,
-  UDP_RGBW_SPEED_UP          = 0x43, 
-  UDP_RGBW_SPEED_DOWN        = 0x44, 
+  UDP_CCT_NIGHT_MODE         = 0xB9,
+
+  UDP_RGBW_ALL_ON            = 0x41,
+  UDP_RGBW_ALL_OFF           = 0x42,
+  UDP_RGBW_SPEED_UP          = 0x43,
+  UDP_RGBW_SPEED_DOWN        = 0x44,
   UDP_RGBW_GROUP_1_ON        = 0x45,
   UDP_RGBW_GROUP_1_OFF       = 0x46,
   UDP_RGBW_GROUP_2_ON        = 0x47,
@@ -50,10 +53,10 @@ public:
   V5MiLightUdpServer(MiLightClient*& client, uint16_t port, uint16_t deviceId)
     : MiLightUdpServer(client, port, deviceId)
   { }
-  
+
   // Should return size of the response packet
   virtual void handlePacket(uint8_t* packet, size_t packetSize);
-    
+
 protected:
   void handleCommand(uint8_t command, uint8_t commandArg);
   void pressButton(uint8_t button);
