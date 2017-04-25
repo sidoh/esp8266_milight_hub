@@ -96,6 +96,10 @@ void V5MiLightUdpServer::handleCommand(uint8_t command, uint8_t commandArg) {
         client->increaseTemperature();
         break;
 
+      case UDP_CCT_NIGHT_MODE:
+        client->enableNightMode();
+        break;
+
       default:
         if (!handled) {
           Serial.print(F("V5MiLightUdpServer - Unhandled command: "));
