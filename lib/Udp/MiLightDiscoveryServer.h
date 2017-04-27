@@ -1,4 +1,4 @@
-#include <WiFiUDP.h>
+#include <WiFiUdp.h>
 #include <Settings.h>
 
 #ifndef MILIGHT_DISCOVERY_SERVER_H
