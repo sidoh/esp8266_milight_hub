@@ -62,7 +62,8 @@ public:
     numGatewayConfigs(0),
     packetRepeats(10),
     httpRepeatFactor(5),
-    _autoRestartPeriod(0)
+    _autoRestartPeriod(0),
+    discoveryPort(48899)
   { }
 
   ~Settings() {
@@ -106,6 +107,7 @@ public:
   String mqttUsername;
   String mqttPassword;
   String mqttTopicPattern;
+  uint16_t discoveryPort;
 
 protected:
   size_t _autoRestartPeriod;

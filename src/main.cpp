@@ -15,15 +15,17 @@
 #include <ESP8266SSDP.h>
 #include <MqttClient.h>
 #include <RGBConverter.h>
+#include <MiLightDiscoveryServer.h>
 
 WiFiManager wifiManager;
 
 Settings settings;
 
-MiLightClient* milightClient;
-MiLightRadioFactory* radioFactory;
-MiLightHttpServer *httpServer;
-MqttClient* mqttClient;
+MiLightClient* milightClient = NULL;
+MiLightRadioFactory* radioFactory = NULL;
+MiLightHttpServer *httpServer = NULL;
+MqttClient* mqttClient = NULL;
+MiLightDiscoveryServer* discoveryServer = NULL;
 
 int numUdpServers = 0;
 MiLightUdpServer** udpServers;
@@ -88,6 +90,15 @@ void applySettings() {
   }
 
   initMilightUdpServers();
+
+  if (discoveryServer) {
+    delete discoveryServer;
+    discoveryServer = NULL;
+  }
+  if (settings.discoveryPort != 0) {
+    discoveryServer = new MiLightDiscoveryServer(settings);
+    discoveryServer->begin();
+  }
 }
 
 bool shouldRestart() {
@@ -136,6 +147,10 @@ void loop() {
     for (size_t i = 0; i < settings.numGatewayConfigs; i++) {
       udpServers[i]->handleClient();
     }
+  }
+
+  if (discoveryServer) {
+    discoveryServer->handleClient();
   }
 
   if (shouldRestart()) {

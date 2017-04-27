@@ -124,8 +124,8 @@
   <script lang="text/javascript">
     var FORM_SETTINGS = [
       "admin_username", "admin_password", "ce_pin", "csn_pin", "reset_pin","packet_repeats",
-      "http_repeat_factor", "auto_restart_period", "mqtt_server", "mqtt_topic_pattern",
-      "mqtt_username", "mqtt_password", "radio_interface_type"
+      "http_repeat_factor", "auto_restart_period", "discovery_port", "mqtt_server", 
+      "mqtt_topic_pattern", "mqtt_username", "mqtt_password", "radio_interface_type"
     ];
 
     var FORM_SETTINGS_HELP = {
@@ -141,7 +141,9 @@
       mqtt_server : "Domain or IP address of MQTT broker. Optionally specify a port " +
         "with (example) mymqqtbroker.com:1884.",
       mqtt_topic_pattern : "Pattern for MQTT topics to listen on. Example: " +
-        "lights/:device_id/:type/:group. See README for further details."
+        "lights/:device_id/:type/:group. See README for further details.",
+      discovery_port : "UDP port to listen for discovery packets on. Defaults to " +
+        "the same port used by MiLight devices, 48899. Use 0 to disable."
     }
 
     var UDP_PROTOCOL_VERSIONS = [ 5, 6 ];
