@@ -57,7 +57,7 @@ void V5MiLightUdpServer::handleCommand(uint8_t command, uint8_t commandArg) {
         break;
 
       case UDP_RGBW_DISCO_MODE:
-        pressButton(RGBW_DISCO_MODE);
+        client->nextMode();
         break;
 
       case UDP_RGBW_SPEED_DOWN:
