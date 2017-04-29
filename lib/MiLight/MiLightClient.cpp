@@ -16,15 +16,15 @@ MiLightClient::MiLightClient(MiLightRadioFactory* radioFactory)
   for (size_t i = 0; i < numRadios; i++) {
     radios[i] = radioFactory->create(*MiLightRadioConfig::ALL_CONFIGS[i]);
   }
-
-  this->currentRadio = radios[0];
-  this->currentRadio->configure();
 }
 
 void MiLightClient::begin() {
   for (size_t i = 0; i < numRadios; i++) {
     radios[i]->begin();
   }
+
+  this->currentRadio = radios[0];
+  this->currentRadio->configure();
 }
 
 void MiLightClient::setHeld(bool held) {
