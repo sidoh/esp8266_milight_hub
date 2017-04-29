@@ -29,8 +29,14 @@ void V5MiLightUdpServer::handleCommand(uint8_t command, uint8_t commandArg) {
   } else if (cctCommandIdToGroup(command) != 255) {
     uint8_t cctGroup = cctCommandIdToGroup(command);
     client->prepare(MilightCctConfig, deviceId, cctGroup);
-    client->updateStatus(cctCommandToStatus(command));
     this->lastGroup = cctGroup;
+
+    // Night mode commands are same as off commands with MSB set
+    if (command & 0x80 == 0x80) {
+      client->enableNightMode();
+    } else {
+      client->updateStatus(cctCommandToStatus(command));
+    }
   } else {
     client->prepare(MilightRgbwConfig, deviceId, lastGroup);
     bool handled = true;
@@ -114,7 +120,7 @@ void V5MiLightUdpServer::pressButton(uint8_t button) {
 }
 
 uint8_t V5MiLightUdpServer::cctCommandIdToGroup(uint8_t command) {
-  switch (command) {
+  switch (command & 0x7F) {
     case UDP_CCT_GROUP_1_ON:
     case UDP_CCT_GROUP_1_OFF:
       return 1;
@@ -136,7 +142,7 @@ uint8_t V5MiLightUdpServer::cctCommandIdToGroup(uint8_t command) {
 }
 
 MiLightStatus V5MiLightUdpServer::cctCommandToStatus(uint8_t command) {
-  switch (command) {
+  switch (command & 0x7F) {
     case UDP_CCT_GROUP_1_ON:
     case UDP_CCT_GROUP_2_ON:
     case UDP_CCT_GROUP_3_ON:
