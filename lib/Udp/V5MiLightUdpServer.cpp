@@ -32,7 +32,7 @@ void V5MiLightUdpServer::handleCommand(uint8_t command, uint8_t commandArg) {
     this->lastGroup = cctGroup;
 
     // Night mode commands are same as off commands with MSB set
-    if (command & 0x80 == 0x80) {
+    if ((command & 0x80) == 0x80) {
       client->enableNightMode();
     } else {
       client->updateStatus(cctCommandToStatus(command));
