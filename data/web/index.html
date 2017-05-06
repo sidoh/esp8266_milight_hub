@@ -721,6 +721,29 @@
     </div>
   </div>
 
+  <div id="restore-settings-modal" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+      <!-- Modal content-->
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal">&times;</button>
+          <h2 class="modal-title">Restore Settings</h2>
+        </div>
+        <div class="modal-body">
+          <form action="/settings" method="post" enctype="multipart/form-data">
+            <input type="file" name="file"/>
+            <p>&nbsp;</p>
+            <input type="submit" name="submit" class="btn btn-success"/>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
   <div class="container">
     <div class="row header-row">
       <div class="col-sm-12">
@@ -1022,6 +1045,12 @@
 
         <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#update-firmware-modal">
           Update Firmware
+        </button>
+
+        <a href="/settings" download="settings.json" class="btn btn-primary">Backup Settings</a>
+
+        <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#restore-settings-modal">
+          Restore Settings
         </button>
       </div>
     </div>
