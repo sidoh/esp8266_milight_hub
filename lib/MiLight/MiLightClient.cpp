@@ -222,17 +222,11 @@ void MiLightClient::command(uint8_t command, uint8_t arg) {
 }
 
 void MiLightClient::update(const JsonObject& request) {
-  if (request.containsKey("status") || request.containsKey("state")) {
-    String strStatus;
+  const uint8_t parsedStatus = this->parseStatus(request);
 
-    if (request.containsKey("status")) {
-      strStatus = request.get<char*>("status");
-    } else {
-      strStatus = request.get<char*>("state");
-    }
-
-    MiLightStatus status = (strStatus.equalsIgnoreCase("on") || strStatus.equalsIgnoreCase("true")) ? ON : OFF;
-    this->updateStatus(status);
+  // Always turn on first
+  if (parsedStatus == ON) {
+    this->updateStatus(ON);
   }
 
   if (request.containsKey("command")) {
@@ -308,6 +302,11 @@ void MiLightClient::update(const JsonObject& request) {
   if (request.containsKey("mode")) {
     this->updateMode(request["mode"]);
   }
+
+  // Always turn off last
+  if (parsedStatus == OFF) {
+    this->updateStatus(OFF);
+  }
 }
 
 void MiLightClient::handleCommand(const String& command) {
@@ -336,6 +335,20 @@ void MiLightClient::handleCommand(const String& command) {
   } else if (command == "mode_speed_up") {
     this->modeSpeedUp();
   }
+}
+
+uint8_t MiLightClient::parseStatus(const JsonObject& object) {
+  String strStatus;
+
+  if (object.containsKey("status")) {
+    strStatus = object.get<char*>("status");
+  } else if (object.containsKey("state")) {
+    strStatus = object.get<char*>("state");
+  } else {
+    return 255;
+  }
+
+  return (strStatus.equalsIgnoreCase("on") || strStatus.equalsIgnoreCase("true")) ? ON : OFF;
 }
 
 void MiLightClient::formatPacket(uint8_t* packet, char* buffer) {

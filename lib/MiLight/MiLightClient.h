@@ -72,6 +72,7 @@ protected:
   unsigned int resendCount;
 
   MiLightRadio* switchRadio(const MiLightRadioType type);
+  uint8_t parseStatus(const JsonObject& object);
 
   void flushPacket();
 };
