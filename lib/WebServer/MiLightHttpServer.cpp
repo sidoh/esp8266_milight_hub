@@ -128,7 +128,19 @@ void MiLightHttpServer::handleSystemPost() {
       delay(100);
 
       ESP.restart();
-    }
+
+      handled = true;
+    } else if (request["command"] == "clear_wifi_config") {
+        Serial.println(F("Resetting Wifi and then Restarting..."));
+        server.send(200, TEXT_PLAIN, "true");
+
+        delay(100);
+        ESP.eraseConfig();
+        delay(100);
+        ESP.restart();
+
+        handled = true;
+      }
   }
 
   if (handled) {
