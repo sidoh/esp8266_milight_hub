@@ -76,6 +76,7 @@ void Settings::patch(JsonObject& parsedSettings) {
     this->setIfPresent(parsedSettings, "mqtt_username", mqttUsername);
     this->setIfPresent(parsedSettings, "mqtt_password", mqttPassword);
     this->setIfPresent(parsedSettings, "mqtt_topic_pattern", mqttTopicPattern);
+    this->setIfPresent(parsedSettings, "discovery_port", discoveryPort);
 
     if (parsedSettings.containsKey("radio_interface_type")) {
       this->radioInterfaceType = Settings::typeFromString(parsedSettings["radio_interface_type"]);
@@ -139,6 +140,7 @@ void Settings::serialize(Stream& stream, const bool prettyPrint) {
   root["mqtt_username"] = this->mqttUsername;
   root["mqtt_password"] = this->mqttPassword;
   root["mqtt_topic_pattern"] = this->mqttTopicPattern;
+  root["discovery_port"] = this->discoveryPort;
 
   if (this->deviceIds) {
     JsonArray& arr = jsonBuffer.createArray();

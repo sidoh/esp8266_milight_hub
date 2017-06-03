@@ -12,7 +12,7 @@
   <link href="https://gitcdn.github.io/bootstrap-toggle/2.2.2/css/bootstrap-toggle.min.css" rel="stylesheet"/>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/9.7.0/css/bootstrap-slider.min.css" rel="stylesheet"/>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.4/css/selectize.bootstrap3.min.css" rel="stylesheet"/>
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <!--[if lt IE 9]>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv.js"></script>
   <![endif]-->
@@ -124,8 +124,8 @@
   <script lang="text/javascript">
     var FORM_SETTINGS = [
       "admin_username", "admin_password", "ce_pin", "csn_pin", "reset_pin","packet_repeats",
-      "http_repeat_factor", "auto_restart_period", "mqtt_server", "mqtt_topic_pattern",
-      "mqtt_username", "mqtt_password", "radio_interface_type"
+      "http_repeat_factor", "auto_restart_period", "discovery_port", "mqtt_server", 
+      "mqtt_topic_pattern", "mqtt_username", "mqtt_password", "radio_interface_type"
     ];
 
     var FORM_SETTINGS_HELP = {
@@ -141,7 +141,9 @@
       mqtt_server : "Domain or IP address of MQTT broker. Optionally specify a port " +
         "with (example) mymqqtbroker.com:1884.",
       mqtt_topic_pattern : "Pattern for MQTT topics to listen on. Example: " +
-        "lights/:device_id/:type/:group. See README for further details."
+        "lights/:device_id/:type/:group. See README for further details.",
+      discovery_port : "UDP port to listen for discovery packets on. Defaults to " +
+        "the same port used by MiLight devices, 48899. Use 0 to disable."
     }
 
     var UDP_PROTOCOL_VERSIONS = [ 5, 6 ];
@@ -721,6 +723,29 @@
     </div>
   </div>
 
+  <div id="restore-settings-modal" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+      <!-- Modal content-->
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal">&times;</button>
+          <h2 class="modal-title">Restore Settings</h2>
+        </div>
+        <div class="modal-body">
+          <form action="/settings" method="post" enctype="multipart/form-data">
+            <input type="file" name="file"/>
+            <p>&nbsp;</p>
+            <input type="submit" name="submit" class="btn btn-success"/>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
   <div class="container">
     <div class="row header-row">
       <div class="col-sm-12">
@@ -1016,12 +1041,22 @@
           Restart
         </button>
 
+        <button type="button" class="btn btn-danger system-btn" data-command="clear_wifi_config">
+          Clear Wifi Config
+        </button>
+
         <button type="button" id="updates-btn" class="btn btn-primary">
           Check for Updates
         </button>
 
         <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#update-firmware-modal">
           Update Firmware
+        </button>
+
+        <a href="/settings" download="settings.json" class="btn btn-primary">Backup Settings</a>
+
+        <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#restore-settings-modal">
+          Restore Settings
         </button>
       </div>
     </div>

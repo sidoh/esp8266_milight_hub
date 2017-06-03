@@ -4,7 +4,7 @@
 #include <ESP8266WiFi.h>
 
 MiLightUdpServer::MiLightUdpServer(MiLightClient*& client, uint16_t port, uint16_t deviceId)
-  : client(client), 
+  : client(client),
     port(port),
     deviceId(deviceId),
     lastGroup(0)
@@ -24,10 +24,10 @@ void MiLightUdpServer::stop() {
 
 void MiLightUdpServer::handleClient() {
   const size_t packetSize = socket.parsePacket();
-  
+
   if (packetSize) {
     socket.read(packetBuffer, packetSize);
-    
+
 #ifdef MILIGHT_UDP_DEBUG
     printf("[MiLightUdpServer port %d] - Handling packet: ", port);
     for (size_t i = 0; i < packetSize; i++) {
@@ -35,7 +35,7 @@ void MiLightUdpServer::handleClient() {
     }
     printf("\n");
 #endif
-    
+
     handlePacket(packetBuffer, packetSize);
   }
 }
@@ -46,6 +46,6 @@ MiLightUdpServer* MiLightUdpServer::fromVersion(uint8_t version, MiLightClient*&
   } else if (version == 6) {
     return new V6MiLightUdpServer(client, port, deviceId);
   }
-  
+
   return NULL;
 }
