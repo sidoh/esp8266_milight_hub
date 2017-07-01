@@ -110,6 +110,27 @@ void RgbCctPacketFormatter::finalizePacket(uint8_t* packet) {
   encodeV2Packet(packet);
 }
 
+void RgbCctPacketFormatter::parsePacket(const uint8_t *packet, JsonObject& result) {
+  uint8_t packetCopy[RGB_CCT_PACKET_LEN];
+  memcpy(packetCopy, packet, RGB_CCT_PACKET_LEN);
+  decodeV2Packet(packetCopy);
+
+  result["device_id"] = (packetCopy[2] << 8) | packetCopy[3];
+  result["group_id"] = packetCopy[7];
+  result["device_type"] = "rgb_cct";
+
+  uint8_t command = packetCopy[RGB_CCT_COMMAND_INDEX];
+  uint8_t arg = packetCopy[RGB_CCT_ARGUMENT_INDEX];
+
+  if (command == RGB_CCT_ON) {
+    if (arg < 5) {
+      result["status"] = "on";
+    } else {
+      result["status"] = "off";
+    }
+  }
+}
+
 uint8_t RgbCctPacketFormatter::xorKey(uint8_t key) {
   // Generate most significant nibble
   const uint8_t shift = (key & 0x0F) < 0x04 ? 0 : 1;

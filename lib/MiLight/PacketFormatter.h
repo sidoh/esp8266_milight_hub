@@ -2,6 +2,7 @@
 #include <inttypes.h>
 #include <functional>
 #include <MiLightButtons.h>
+#include <ArduinoJson.h>
 
 #define PACKET_FORMATTER_BUFFER_SIZE 48
 
@@ -65,6 +66,8 @@ public:
   virtual PacketStream& buildPackets();
   virtual void prepare(uint16_t deviceId, uint8_t groupId);
   virtual void format(uint8_t const* packet, char* buffer);
+
+  virtual void parsePacket(const uint8_t* packet, JsonObject& result);
 
   static void formatV1Packet(uint8_t const* packet, char* buffer);
 

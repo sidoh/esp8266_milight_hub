@@ -1,6 +1,6 @@
 #include <MiLightRadioConfig.h>
-  
-const MiLightRadioConfig* MiLightRadioConfig::ALL_CONFIGS[] = {
+
+MiLightRadioConfig* MiLightRadioConfig::ALL_CONFIGS[] = {
   &MilightRgbwConfig,
   &MilightCctConfig,
   &MilightRgbCctConfig,
@@ -8,16 +8,22 @@ const MiLightRadioConfig* MiLightRadioConfig::ALL_CONFIGS[] = {
 };
 
 MiLightRadioConfig* MiLightRadioConfig::fromString(const String& s) {
-  if (s.equalsIgnoreCase("rgbw")) {
-    return &MilightRgbwConfig;
-  } else if (s.equalsIgnoreCase("cct")) {
-    return &MilightCctConfig;
-  } else if (s.equalsIgnoreCase("rgb_cct")) {
-    return &MilightRgbCctConfig;
-  } else if (s.equalsIgnoreCase("rgb")) {
-    return &MilightRgbConfig;
+  for (size_t i = 0; i < MiLightRadioConfig::NUM_CONFIGS; i++) {
+    MiLightRadioConfig* config = MiLightRadioConfig::ALL_CONFIGS[i];
+    if (s.equalsIgnoreCase(config->name)) {
+      return config;
+    }
   }
-  
+  return NULL;
+}
+
+MiLightRadioConfig* MiLightRadioConfig::fromType(MiLightRadioType type) {
+  for (size_t i = 0; i < MiLightRadioConfig::NUM_CONFIGS; i++) {
+    MiLightRadioConfig* config = MiLightRadioConfig::ALL_CONFIGS[i];
+    if (config->type == type) {
+      return config;
+    }
+  }
   return NULL;
 }
 
