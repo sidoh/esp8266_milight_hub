@@ -122,11 +122,13 @@ void RgbCctPacketFormatter::parsePacket(const uint8_t *packet, JsonObject& resul
   uint8_t command = packetCopy[RGB_CCT_COMMAND_INDEX];
   uint8_t arg = packetCopy[RGB_CCT_ARGUMENT_INDEX];
 
-  if (command == RGB_CCT_ON) {
+  if ((command & 0x7F) == RGB_CCT_ON) {
     if (arg < 5) {
       result["status"] = "on";
+      result["group_id"] = arg;
     } else {
       result["status"] = "off";
+      result["group_id"] = arg-5;
     }
   }
 }
