@@ -107,6 +107,58 @@ uint8_t CctPacketFormatter::getCctStatusButton(uint8_t groupId, MiLightStatus st
   return button;
 }
 
+uint8_t CctPacketFormatter::cctCommandIdToGroup(uint8_t command) {
+  switch (command & 0xF) {
+    case CCT_GROUP_1_ON:
+    case CCT_GROUP_1_OFF:
+      return 1;
+    case CCT_GROUP_2_ON:
+    case CCT_GROUP_2_OFF:
+      return 2;
+    case CCT_GROUP_3_ON:
+    case CCT_GROUP_3_OFF:
+      return 3;
+    case CCT_GROUP_4_ON:
+    case CCT_GROUP_4_OFF:
+      return 4;
+    case CCT_ALL_ON:
+    case CCT_ALL_OFF:
+      return 0;
+  }
+
+  return 255;
+}
+
+MiLightStatus CctPacketFormatter::cctCommandToStatus(uint8_t command) {
+  switch (command & 0xF) {
+    case CCT_GROUP_1_ON:
+    case CCT_GROUP_2_ON:
+    case CCT_GROUP_3_ON:
+    case CCT_GROUP_4_ON:
+    case CCT_ALL_ON:
+      return ON;
+    case CCT_GROUP_1_OFF:
+    case CCT_GROUP_2_OFF:
+    case CCT_GROUP_3_OFF:
+    case CCT_GROUP_4_OFF:
+    case CCT_ALL_OFF:
+      return OFF;
+  }
+}
+
+void CctPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& result) {
+  uint8_t command = packet[CCT_COMMAND_INDEX] & 0x7F;
+
+  result["device_id"] = (packet[1] << 8) | packet[2];
+  result["device_type"] = "cct";
+  result["group_id"] = packet[3];
+
+  uint8_t onOffGroupId = cctCommandIdToGroup(command);
+  if (onOffGroupId < 255) {
+    result["status"] = cctCommandToStatus(command) == ON ? "on" : "off";
+  }
+}
+
 void CctPacketFormatter::format(uint8_t const* packet, char* buffer) {
   PacketFormatter::formatV1Packet(packet, buffer);
 }
