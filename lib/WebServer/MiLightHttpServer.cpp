@@ -16,7 +16,10 @@ void MiLightHttpServer::begin() {
   server.on("/settings", HTTP_PUT, [this]() { handleUpdateSettings(); });
   server.on("/settings", HTTP_POST, [this]() { server.send_P(200, TEXT_PLAIN, PSTR("success. rebooting")); ESP.restart(); }, handleUpdateFile(SETTINGS_FILE));
   server.on("/radio_configs", HTTP_GET, [this]() { handleGetRadioConfigs(); });
+
+  server.on("/gateway_traffic", HTTP_GET, [this]() { handleListenGateway(NULL); });
   server.onPattern("/gateway_traffic/:type", HTTP_GET, [this](const UrlTokenBindings* b) { handleListenGateway(b); });
+
   server.onPattern("/gateways/:device_id/:type/:group_id", HTTP_ANY, [this](const UrlTokenBindings* b) { handleUpdateGroup(b); });
   server.onPattern("/raw_commands/:type", HTTP_ANY, [this](const UrlTokenBindings* b) { handleSendRaw(b); });
   server.onPattern("/download_update/:component", HTTP_GET, [this](const UrlTokenBindings* b) { handleDownloadUpdate(b); });
@@ -293,9 +296,14 @@ void MiLightHttpServer::handleUpdateSettings() {
 
 void MiLightHttpServer::handleListenGateway(const UrlTokenBindings* bindings) {
   bool available = false;
-  MiLightRadioConfig* config = MiLightRadioConfig::fromString(bindings->get("type"));
+  bool listenAll = bindings == NULL;
+  uint8_t configIx = 0;
+  MiLightRadioConfig* currentConfig =
+    listenAll
+      ? MiLightRadioConfig::ALL_CONFIGS[0]
+      : MiLightRadioConfig::fromString(bindings->get("type"));
 
-  if (config == NULL) {
+  if (currentConfig == NULL && bindings != NULL) {
     String body = "Unknown device type: ";
     body += bindings->get("type");
 
@@ -303,12 +311,17 @@ void MiLightHttpServer::handleListenGateway(const UrlTokenBindings* bindings) {
     return;
   }
 
-  milightClient->prepare(*config, 0, 0);
-
   while (!available) {
     if (!server.clientConnected()) {
       return;
     }
+
+    if (listenAll) {
+      currentConfig = MiLightRadioConfig::ALL_CONFIGS[
+        configIx++ % MiLightRadioConfig::NUM_CONFIGS
+      ];
+    }
+    milightClient->prepare(*currentConfig, 0, 0);
 
     if (milightClient->available()) {
       available = true;
@@ -317,13 +330,18 @@ void MiLightHttpServer::handleListenGateway(const UrlTokenBindings* bindings) {
     yield();
   }
 
-  uint8_t packet[config->getPacketLength()];
+  uint8_t packet[currentConfig->getPacketLength()];
   milightClient->read(packet);
 
   char response[200];
   char* responseBuffer = response;
 
-  responseBuffer += sprintf_P(responseBuffer, PSTR("\nPacket received (%d bytes):\n"), sizeof(packet));
+  responseBuffer += sprintf_P(
+    responseBuffer,
+    PSTR("\n%s packet received (%d bytes):\n"),
+    currentConfig->name,
+    sizeof(packet)
+  );
   milightClient->formatPacket(packet, responseBuffer);
 
   server.send(200, TEXT_PLAIN, response);

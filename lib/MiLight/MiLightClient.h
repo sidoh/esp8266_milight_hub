@@ -1,3 +1,4 @@
+#include <functional>
 #include <Arduino.h>
 #include <MiLightRadio.h>
 #include <MiLightRadioFactory.h>
@@ -11,6 +12,7 @@
 
 #define MILIGHT_DEFAULT_RESEND_COUNT 10
 
+
 class MiLightClient {
 public:
   MiLightClient(MiLightRadioFactory* radioFactory);
@@ -19,8 +21,11 @@ public:
     delete[] radios;
   }
 
+  typedef std::function<void(uint8_t* packet, const MiLightRadioConfig& config)> PacketSentHandler;
+
   void begin();
   void prepare(MiLightRadioConfig& config, const uint16_t deviceId = -1, const uint8_t groupId = -1);
+  void prepare(MiLightRadioType config, const uint16_t deviceId = -1, const uint8_t groupId = -1);
 
   void setResendCount(const unsigned int resendCount);
   bool available();
@@ -62,14 +67,16 @@ public:
   void update(const JsonObject& object);
   void handleCommand(const String& command);
 
+  void onPacketSent(PacketSentHandler handler);
+
 protected:
 
   MiLightRadio** radios;
   MiLightRadio* currentRadio;
   PacketFormatter* formatter;
   const size_t numRadios;
-
   unsigned int resendCount;
+  PacketSentHandler packetSentHandler;
 
   MiLightRadio* switchRadio(const MiLightRadioType type);
   uint8_t parseStatus(const JsonObject& object);

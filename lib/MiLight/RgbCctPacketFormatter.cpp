@@ -76,7 +76,7 @@ void RgbCctPacketFormatter::previousMode() {
 }
 
 void RgbCctPacketFormatter::updateBrightness(uint8_t brightness) {
-  command(RGB_CCT_BRIGHTNESS, 0x8F + brightness);
+  command(RGB_CCT_BRIGHTNESS, RGB_CCT_BRIGHTNESS_OFFSET + brightness);
 }
 
 void RgbCctPacketFormatter::updateHue(uint16_t value) {
@@ -85,15 +85,15 @@ void RgbCctPacketFormatter::updateHue(uint16_t value) {
 }
 
 void RgbCctPacketFormatter::updateColorRaw(uint8_t value) {
-  command(RGB_CCT_COLOR, 0x5F + value);
+  command(RGB_CCT_COLOR, RGB_CCT_COLOR_OFFSET + value);
 }
 
 void RgbCctPacketFormatter::updateTemperature(uint8_t value) {
-  command(RGB_CCT_KELVIN, 0x94 - (value*2));
+  command(RGB_CCT_KELVIN, RGB_CCT_KELVIN_OFFSET - (value*2));
 }
 
 void RgbCctPacketFormatter::updateSaturation(uint8_t value) {
-  uint8_t remapped = value + 0xD;
+  uint8_t remapped = value + RGB_CCT_SATURATION_OFFSET;
   command(RGB_CCT_SATURATION, remapped);
 }
 
@@ -108,6 +108,44 @@ void RgbCctPacketFormatter::enableNightMode() {
 
 void RgbCctPacketFormatter::finalizePacket(uint8_t* packet) {
   encodeV2Packet(packet);
+}
+
+void RgbCctPacketFormatter::parsePacket(const uint8_t *packet, JsonObject& result) {
+  uint8_t packetCopy[RGB_CCT_PACKET_LEN];
+  memcpy(packetCopy, packet, RGB_CCT_PACKET_LEN);
+  decodeV2Packet(packetCopy);
+
+  result["device_id"] = (packetCopy[2] << 8) | packetCopy[3];
+  result["group_id"] = packetCopy[7];
+  result["device_type"] = "rgb_cct";
+
+  uint8_t command = (packetCopy[RGB_CCT_COMMAND_INDEX] & 0x7F);
+  uint8_t arg = packetCopy[RGB_CCT_ARGUMENT_INDEX];
+
+  if (command == RGB_CCT_ON) {
+    // Group is not reliably encoded in group byte. Extract from arg byte
+    if (arg < 5) {
+      result["status"] = "on";
+      result["group_id"] = arg;
+    } else {
+      result["status"] = "off";
+      result["group_id"] = arg-5;
+    }
+  } else if (command == RGB_CCT_COLOR) {
+    uint8_t rescaledColor = (arg - RGB_CCT_COLOR_OFFSET) % 0x100;
+    uint16_t hue = rescale<uint16_t, uint16_t>(rescaledColor, 360, 255.0);
+    result["hue"] = hue;
+  } else if (command == RGB_CCT_KELVIN) {
+    uint8_t temperature = RGB_CCT_KELVIN_OFFSET;
+    temperature -= arg;
+    temperature /= 2;
+    result["temperature"] = temperature;
+  // brightness == saturation
+  } else if (command == RGB_CCT_BRIGHTNESS && arg >= RGB_CCT_BRIGHTNESS_OFFSET) {
+    result["level"] = constrain(arg - RGB_CCT_BRIGHTNESS_OFFSET, 0, 100);
+  } else if (command == RGB_CCT_SATURATION) {
+    result["saturation"] = constrain(arg - RGB_CCT_SATURATION_OFFSET, 0, 100);
+  }
 }
 
 uint8_t RgbCctPacketFormatter::xorKey(uint8_t key) {

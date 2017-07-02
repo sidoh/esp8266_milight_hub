@@ -9,7 +9,8 @@
 MiLightClient::MiLightClient(MiLightRadioFactory* radioFactory)
   : resendCount(MILIGHT_DEFAULT_RESEND_COUNT),
     currentRadio(NULL),
-    numRadios(MiLightRadioConfig::NUM_CONFIGS)
+    numRadios(MiLightRadioConfig::NUM_CONFIGS),
+    packetSentHandler(NULL)
 {
   radios = new MiLightRadio*[numRadios];
 
@@ -63,7 +64,14 @@ void MiLightClient::prepare(MiLightRadioConfig& config,
   const uint16_t deviceId,
   const uint8_t groupId) {
 
-  switchRadio(config.type);
+  prepare(config.type, deviceId, groupId);
+}
+
+void MiLightClient::prepare(MiLightRadioType type,
+  const uint16_t deviceId,
+  const uint8_t groupId) {
+
+  switchRadio(type);
 
   if (deviceId >= 0 && groupId >= 0) {
     formatter->prepare(deviceId, groupId);
@@ -108,6 +116,10 @@ void MiLightClient::write(uint8_t packet[]) {
 
   for (int i = 0; i < this->resendCount; i++) {
     currentRadio->write(packet, currentRadio->config().getPacketLength());
+  }
+
+  if (this->packetSentHandler) {
+    this->packetSentHandler(packet, currentRadio->config());
   }
 
 #ifdef DEBUG_PRINTF
@@ -374,4 +386,8 @@ void MiLightClient::flushPacket() {
 
   setResendCount(prevNumRepeats);
   formatter->reset();
+}
+
+void MiLightClient::onPacketSent(PacketSentHandler handler) {
+  this->packetSentHandler = handler;
 }

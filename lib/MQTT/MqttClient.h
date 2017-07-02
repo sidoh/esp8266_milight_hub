@@ -18,6 +18,7 @@ public:
   void begin();
   void handleClient();
   void reconnect();
+  void sendUpdate(MiLightRadioType type, uint16_t deviceId, uint16_t groupId, const char* update);
 
 private:
   WiFiClient tcpClient;

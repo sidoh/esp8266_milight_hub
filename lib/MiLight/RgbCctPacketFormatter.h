@@ -4,6 +4,12 @@
 #define RGB_CCT_ARGUMENT_INDEX 5
 #define RGB_CCT_NUM_MODES 9
 #define V2_OFFSET_JUMP_START 0x54
+#define RGB_CCT_PACKET_LEN 9
+
+#define RGB_CCT_COLOR_OFFSET 0x5F
+#define RGB_CCT_BRIGHTNESS_OFFSET 0x8F
+#define RGB_CCT_SATURATION_OFFSET 0xD
+#define RGB_CCT_KELVIN_OFFSET 0x94
 
 #ifndef _RGB_CCT_PACKET_FORMATTER_H
 #define _RGB_CCT_PACKET_FORMATTER_H
@@ -28,7 +34,7 @@ public:
   static uint8_t const V2_OFFSETS[][4] PROGMEM;
 
   RgbCctPacketFormatter()
-    : PacketFormatter(9),
+    : PacketFormatter(RGB_CCT_PACKET_LEN),
       lastMode(0)
   { }
 
@@ -53,6 +59,7 @@ public:
   virtual void previousMode();
 
   virtual void finalizePacket(uint8_t* packet);
+  virtual void parsePacket(const uint8_t* packet, JsonObject& result);
 
   static void encodeV2Packet(uint8_t* packet);
   static void decodeV2Packet(uint8_t* packet);
