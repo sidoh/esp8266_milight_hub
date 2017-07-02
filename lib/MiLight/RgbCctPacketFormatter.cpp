@@ -139,7 +139,6 @@ void RgbCctPacketFormatter::parsePacket(const uint8_t *packet, JsonObject& resul
     uint8_t temperature = RGB_CCT_KELVIN_OFFSET;
     temperature -= arg;
     temperature /= 2;
-    printf("Temperature: %d -> %u\n", arg, temperature);
     result["temperature"] = temperature;
   // brightness == saturation
   } else if (command == RGB_CCT_BRIGHTNESS && arg >= RGB_CCT_BRIGHTNESS_OFFSET) {
