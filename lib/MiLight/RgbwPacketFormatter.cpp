@@ -91,6 +91,28 @@ void RgbwPacketFormatter::enableNightMode() {
   command(button | 0x10, 0);
 }
 
+void RgbwPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& result) {
+  uint8_t command = packet[RGBW_COMMAND_INDEX] & 0x7F;
+
+  result["device_id"] = (packet[1] << 8) | packet[2];
+  result["device_type"] = "rgbw";
+  result["group_id"] = packet[RGBW_BRIGHTNESS_GROUP_INDEX] & 0x7;
+
+  if (command >= RGBW_ALL_ON && command <= RGBW_GROUP_4_OFF) {
+    result["status"] = (command % 2) ? "on" : "off";
+  } else if (command == RGBW_BRIGHTNESS) {
+    uint8_t brightness = 31;
+    brightness -= packet[RGBW_BRIGHTNESS_GROUP_INDEX] >> 3;
+    brightness += 17;
+    brightness %= 32;
+    result["level"] = rescale<uint8_t, uint8_t>(brightness, 100, 25);
+  } else if (command == RGBW_COLOR) {
+    uint16_t remappedColor = rescale<uint16_t, uint16_t>(packet[RGBW_COLOR_INDEX], 360.0, 255.0);
+    remappedColor = (remappedColor + 320) % 360;
+    result["hue"] = remappedColor;
+  }
+}
+
 void RgbwPacketFormatter::format(uint8_t const* packet, char* buffer) {
   PacketFormatter::formatV1Packet(packet, buffer);
 }
