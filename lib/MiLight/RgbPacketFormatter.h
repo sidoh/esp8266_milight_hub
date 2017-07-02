@@ -39,6 +39,7 @@ public:
   virtual void modeSpeedUp();
   virtual void nextMode();
   virtual void previousMode();
+  virtual void parsePacket(const uint8_t* packet, JsonObject& result);
 
   virtual void initializePacket(uint8_t* packet);
 };

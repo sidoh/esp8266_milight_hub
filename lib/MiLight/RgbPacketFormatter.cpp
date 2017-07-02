@@ -78,6 +78,24 @@ void RgbPacketFormatter::previousMode() {
   command(RGB_MODE_DOWN, 0);
 }
 
+void RgbPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& result) {
+  uint8_t command = packet[RGB_COMMAND_INDEX] & 0x7F;
+
+  result["group_id"] = 0;
+  result["device_id"] = (packet[1] << 8) | packet[2];
+  result["device_type"] = "rgb";
+
+  if (command == RGB_ON) {
+    result["status"] = "on";
+  } else if (command == RGB_OFF) {
+    result["status"] = "off";
+  } else if (command == 0) {
+    uint16_t remappedColor = rescale<uint16_t, uint16_t>(packet[RGB_COLOR_INDEX], 360.0, 255.0);
+    remappedColor = (remappedColor + 320) % 360;
+    result["hue"] = remappedColor;
+  }
+}
+
 void RgbPacketFormatter::format(uint8_t const* packet, char* buffer) {
   buffer += sprintf_P(buffer, "b0       : %02X\n", packet[0]);
   buffer += sprintf_P(buffer, "ID       : %02X%02X\n", packet[1], packet[2]);
