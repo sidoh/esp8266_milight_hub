@@ -125,10 +125,10 @@ void RgbCctPacketFormatter::parsePacket(const uint8_t *packet, JsonObject& resul
   if (command == RGB_CCT_ON) {
     // Group is not reliably encoded in group byte. Extract from arg byte
     if (arg < 5) {
-      result["status"] = "on";
+      result["state"] = "ON";
       result["group_id"] = arg;
     } else {
-      result["status"] = "off";
+      result["state"] = "OFF";
       result["group_id"] = arg-5;
     }
   } else if (command == RGB_CCT_COLOR) {

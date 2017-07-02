@@ -99,7 +99,7 @@ void RgbwPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& result)
   result["group_id"] = packet[RGBW_BRIGHTNESS_GROUP_INDEX] & 0x7;
 
   if (command >= RGBW_ALL_ON && command <= RGBW_GROUP_4_OFF) {
-    result["status"] = (command % 2) ? "on" : "off";
+    result["state"] = (command % 2) ? "ON" : "OFF";
   } else if (command == RGBW_BRIGHTNESS) {
     uint8_t brightness = 31;
     brightness -= packet[RGBW_BRIGHTNESS_GROUP_INDEX] >> 3;

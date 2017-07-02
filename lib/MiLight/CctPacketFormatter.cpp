@@ -155,7 +155,7 @@ void CctPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& result) 
 
   uint8_t onOffGroupId = cctCommandIdToGroup(command);
   if (onOffGroupId < 255) {
-    result["status"] = cctCommandToStatus(command) == ON ? "on" : "off";
+    result["state"] = cctCommandToStatus(command) == ON ? "ON" : "OFF";
   }
 }
 
