@@ -11,6 +11,7 @@ This is a replacement for a Milight/LimitlessLED remote/gateway hosted on an ESP
 2. This project exposes a nice REST API to control your bulbs.
 3. You can secure the ESP8266 with a username/password, which is more than you can say for the Milight gateway! (The 2.4 GHz protocol is still totally insecure, so this doesn't accomplish much :).
 4. Official hubs connect to remote servers to enable WAN access, and this behavior is not disableable.
+5. This project is capable of passively listening for Milight packets sent from other devices (like remotes). It can publish data from intercepted packets to MQTT. This could, for example, allow the use of Milight remotes while keeping your home automation platform's state in sync. See the MQTT section for more detail.
 
 ## Supported bulbs
 
@@ -173,6 +174,28 @@ irb(main):004:0> client.publish('milight/0x118D/rgb_cct/1', '{"status":"ON","col
 ```
 
 This will instruct the ESP to send messages to RGB+CCT bulbs with device ID `0x118D` in group 1 to turn on, set color to RGB(255,200,255), and brightness to 100.
+
+#### Updates
+
+To enable passive listening, make sure that `listen_repeats` is set to something larger than 0 (the default value of 3 is a good choice).
+
+To publish data from intercepted packets to an MQTT topic, configure MQTT server settings, and set the `mqtt_update_topic_pattern` to something of your choice. As with `mqtt_topic_pattern`, the tokens `:device_id`, `:device_type`, and `:group_id` will be substituted with the values from the relevant packet.
+
+The published message is a JSON blob containing the following keys:
+
+* `device_id`
+* `device_type` (rgb_cct, rgbw, etc.)
+* `group_id`
+* Any number of: `status`, `level`, `hue`, `saturation`, `kelvin`
+
+As an example, if `mqtt_update_topic_pattern` is set to `milight/updates/:device_id/:device_type/:group_id`, and the group 1 on button of a Milight remote is pressed, the following update will be dispatched:
+
+```ruby
+irb(main):005:0> client.subscribe('milight/updates/+/+/+')
+=> 27
+irb(main):006:0> puts client.get.inspect
+["lights/updates/0x1C8E/rgb_cct/1", "{\"device_id\":7310,\"group_id\":1,\"device_type\":\"rgb_cct\",\"status\":\"on\"}"]
+```
 
 ## UDP Gateways
 
