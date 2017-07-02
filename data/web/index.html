@@ -31,6 +31,7 @@
     .error-info:before { content: '('; }
     .error-info:after { content: ')'; }
     .header-btn { margin: 20px; }
+    #sniffed-traffic { max-height: 50em; overflow-y: auto; }
     .btn-secondary {
       background-color: #fff;
       border: 1px solid #ccc;
@@ -213,10 +214,8 @@
     var sniffRequest;
     var sniffing = false;
     var getTraffic = function() {
-      var sniffType = $('#sniff-type input:checked').data('value');
-
-      sniffRequest = $.get('/gateway_traffic/' + sniffType, function(data) {
-        $('#sniffed-traffic').html(data + $('#sniffed-traffic').html());
+      sniffRequest = $.get('/gateway_traffic', function(data) {
+        $('#sniffed-traffic').prepend('<pre>' + data + '</pre>');
         getTraffic();
       });
     };
@@ -1012,24 +1011,9 @@
       <div class="col-sm-12">
         <button type="button" id="sniff" class="btn btn-primary">Start Sniffing</button>
 
-        <div class="btn-group" id="sniff-type" data-toggle="buttons">
-          <label class="btn btn-secondary active">
-            <input type="radio" name="options" autocomplete="off" data-value="rgbw" checked> RGBW
-          </label>
-          <label class="btn btn-secondary">
-            <input type="radio" name="options" autocomplete="off" data-value="cct"> CCT
-          </label>
-          <label class="btn btn-secondary">
-            <input type="radio" name="options" autocomplete="off" data-value="rgb_cct"> RGB+CCT
-          </label>
-          <label class="btn btn-secondary">
-            <input type="radio" name="options" autocomplete="off" data-value="rgb"> RGB
-          </label>
-        </div>
-
         <div> &nbsp; </div>
 
-        <pre id="sniffed-traffic"></pre>
+        <div id="sniffed-traffic"></div>
       </div>
     </div>
 
