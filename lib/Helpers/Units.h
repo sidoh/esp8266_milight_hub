@@ -4,6 +4,7 @@
 #ifndef _UNITS_H
 #define _UNITS_H
 
+// MiLight CCT bulbs range from 2700K-6500K, or ~370.3-153.8 mireds.
 #define COLOR_TEMP_MAX_MIREDS 370
 #define COLOR_TEMP_MIN_MIREDS 153
 
@@ -15,7 +16,6 @@ public:
   }
 
   static uint8_t miredsToWhiteVal(uint16_t mireds, uint8_t maxValue = 255) {
-      // MiLight CCT bulbs range from 2700K-6500K, or ~370.3-153.8 mireds.
       uint32_t tempMireds = constrain(mireds, COLOR_TEMP_MIN_MIREDS, COLOR_TEMP_MAX_MIREDS);
 
       uint8_t scaledTemp = round(
