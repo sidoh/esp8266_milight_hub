@@ -141,8 +141,9 @@ void RgbCctPacketFormatter::parsePacket(const uint8_t *packet, JsonObject& resul
     temperature /= 2;
     result["temperature"] = temperature;
   // brightness == saturation
-  } else if (command == RGB_CCT_BRIGHTNESS && arg >= RGB_CCT_BRIGHTNESS_OFFSET) {
-    result["level"] = constrain(arg - RGB_CCT_BRIGHTNESS_OFFSET, 0, 100);
+  } else if (command == RGB_CCT_BRIGHTNESS && arg >= (RGB_CCT_BRIGHTNESS_OFFSET - 15)) {
+    uint8_t level = constrain(arg - RGB_CCT_BRIGHTNESS_OFFSET, 0, 100);
+    result["brightness"] = rescale<uint8_t, uint8_t>(level, 255, 100);
   } else if (command == RGB_CCT_SATURATION) {
     result["saturation"] = constrain(arg - RGB_CCT_SATURATION_OFFSET, 0, 100);
   }
