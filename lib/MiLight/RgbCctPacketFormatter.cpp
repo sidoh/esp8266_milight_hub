@@ -137,10 +137,22 @@ void RgbCctPacketFormatter::parsePacket(const uint8_t *packet, JsonObject& resul
     uint16_t hue = Units::rescale<uint16_t, uint16_t>(rescaledColor, 360, 255.0);
     result["hue"] = hue;
   } else if (command == RGB_CCT_KELVIN) {
-    uint8_t temperature = RGB_CCT_KELVIN_OFFSET;
-    temperature -= arg;
-    temperature /= 2;
-    result["temperature"] = temperature;
+    uint8_t temperature =
+        static_cast<uint8_t>(
+          // Range in packets is 180 - 220 or something like that. Shift to
+          // 0..224. Then strip out values out of range [0..24), and (224..255]
+          constrain(
+            static_cast<uint8_t>(arg + RGB_CCT_KELVIN_REMOTE_OFFSET),
+            24,
+            224
+          )
+            +
+          // Shift 24 down to 0
+          RGB_CCT_KELVIN_REMOTE_START
+        )/2; // values are in increments of 2
+        printf("%u\n", temperature);
+
+    result["color_temp"] = Units::whiteValToMireds(temperature, 100);
   // brightness == saturation
   } else if (command == RGB_CCT_BRIGHTNESS && arg >= (RGB_CCT_BRIGHTNESS_OFFSET - 15)) {
     uint8_t level = constrain(arg - RGB_CCT_BRIGHTNESS_OFFSET, 0, 100);

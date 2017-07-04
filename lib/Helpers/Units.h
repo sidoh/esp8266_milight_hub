@@ -14,9 +14,8 @@ public:
     return round(value * (newMax / oldMax));
   }
 
-  static uint8_t miredsToBrightness(uint8_t mireds, uint8_t maxValue = 255) {
-      // MiLight CCT bulbs range from 2700K-6500K, or ~370.3-153.8 mireds. Note
-      // that mireds are inversely correlated with color temperature.
+  static uint8_t miredsToWhiteVal(uint16_t mireds, uint8_t maxValue = 255) {
+      // MiLight CCT bulbs range from 2700K-6500K, or ~370.3-153.8 mireds.
       uint32_t tempMireds = constrain(mireds, COLOR_TEMP_MIN_MIREDS, COLOR_TEMP_MAX_MIREDS);
 
       uint8_t scaledTemp = round(
@@ -26,12 +25,12 @@ public:
         static_cast<double>(COLOR_TEMP_MAX_MIREDS - COLOR_TEMP_MIN_MIREDS)
       );
 
-      return (maxValue - scaledTemp);
+      return scaledTemp;
   }
 
-  static uint8_t brightnessToMireds(uint8_t value, uint8_t maxValue = 255) {
+  static uint16_t whiteValToMireds(uint8_t value, uint8_t maxValue = 255) {
     uint8_t reverseValue = maxValue - value;
-    uint8_t scaled = rescale(reverseValue, (COLOR_TEMP_MAX_MIREDS - COLOR_TEMP_MIN_MIREDS), maxValue);
+    uint16_t scaled = rescale<uint16_t, uint16_t>(reverseValue, (COLOR_TEMP_MAX_MIREDS - COLOR_TEMP_MIN_MIREDS), maxValue);
 
     return COLOR_TEMP_MIN_MIREDS + scaled;
   }

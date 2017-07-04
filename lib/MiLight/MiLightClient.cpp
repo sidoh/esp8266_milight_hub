@@ -284,7 +284,7 @@ void MiLightClient::update(const JsonObject& request) {
   }
   // HomeAssistant
   if (request.containsKey("brightness")) {
-    uint8_t scaledBrightness = round(request.get<uint8_t>("brightness") * (100/255.0));
+    uint8_t scaledBrightness = Units::rescale(request.get<uint8_t>("brightness"), 100, 255);
     this->updateBrightness(scaledBrightness);
   }
 
@@ -294,7 +294,7 @@ void MiLightClient::update(const JsonObject& request) {
   // HomeAssistant
   if (request.containsKey("color_temp")) {
     this->updateTemperature(
-      Units::miredsToBrightness(request["color_temp"], 100)
+      Units::miredsToWhiteVal(request["color_temp"], 100)
     );
   }
 
