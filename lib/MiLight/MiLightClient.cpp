@@ -2,9 +2,7 @@
 #include <MiLightRadioConfig.h>
 #include <Arduino.h>
 #include <RGBConverter.h>
-
-#define COLOR_TEMP_MAX_MIREDS 370
-#define COLOR_TEMP_MIN_MIREDS 153
+#include <Units.h>
 
 MiLightClient::MiLightClient(MiLightRadioFactory* radioFactory)
   : resendCount(MILIGHT_DEFAULT_RESEND_COUNT),
@@ -295,20 +293,9 @@ void MiLightClient::update(const JsonObject& request) {
   }
   // HomeAssistant
   if (request.containsKey("color_temp")) {
-    // MiLight CCT bulbs range from 2700K-6500K, or ~370.3-153.8 mireds. Note
-    // that mireds are inversely correlated with color temperature.
-    uint32_t tempMireds = request["color_temp"];
-    tempMireds = tempMireds > COLOR_TEMP_MAX_MIREDS ? COLOR_TEMP_MAX_MIREDS : tempMireds;
-    tempMireds = tempMireds < COLOR_TEMP_MIN_MIREDS ? COLOR_TEMP_MIN_MIREDS : tempMireds;
-
-    uint8_t scaledTemp = round(
-      100*
-      (tempMireds - COLOR_TEMP_MIN_MIREDS)
-        /
-      static_cast<double>(COLOR_TEMP_MAX_MIREDS - COLOR_TEMP_MIN_MIREDS)
+    this->updateTemperature(
+      Units::miredsToBrightness(request["color_temp"], 100)
     );
-
-    this->updateTemperature(100 - scaledTemp);
   }
 
   if (request.containsKey("mode")) {

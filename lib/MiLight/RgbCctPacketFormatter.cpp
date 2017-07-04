@@ -1,4 +1,5 @@
 #include <RgbCctPacketFormatter.h>
+#include <Units.h>
 
 #define V2_OFFSET(byte, key, jumpStart) ( \
   pgm_read_byte(&V2_OFFSETS[byte-1][key%4]) \
@@ -80,7 +81,7 @@ void RgbCctPacketFormatter::updateBrightness(uint8_t brightness) {
 }
 
 void RgbCctPacketFormatter::updateHue(uint16_t value) {
-  uint8_t remapped = rescale(value, 255, 360);
+  uint8_t remapped = Units::rescale(value, 255, 360);
   updateColorRaw(remapped);
 }
 
@@ -133,7 +134,7 @@ void RgbCctPacketFormatter::parsePacket(const uint8_t *packet, JsonObject& resul
     }
   } else if (command == RGB_CCT_COLOR) {
     uint8_t rescaledColor = (arg - RGB_CCT_COLOR_OFFSET) % 0x100;
-    uint16_t hue = rescale<uint16_t, uint16_t>(rescaledColor, 360, 255.0);
+    uint16_t hue = Units::rescale<uint16_t, uint16_t>(rescaledColor, 360, 255.0);
     result["hue"] = hue;
   } else if (command == RGB_CCT_KELVIN) {
     uint8_t temperature = RGB_CCT_KELVIN_OFFSET;
@@ -143,9 +144,13 @@ void RgbCctPacketFormatter::parsePacket(const uint8_t *packet, JsonObject& resul
   // brightness == saturation
   } else if (command == RGB_CCT_BRIGHTNESS && arg >= (RGB_CCT_BRIGHTNESS_OFFSET - 15)) {
     uint8_t level = constrain(arg - RGB_CCT_BRIGHTNESS_OFFSET, 0, 100);
-    result["brightness"] = rescale<uint8_t, uint8_t>(level, 255, 100);
+    result["brightness"] = Units::rescale<uint8_t, uint8_t>(level, 255, 100);
   } else if (command == RGB_CCT_SATURATION) {
     result["saturation"] = constrain(arg - RGB_CCT_SATURATION_OFFSET, 0, 100);
+  }
+
+  if (! result.containsKey("state")) {
+    result["state"] = "ON";
   }
 }
 

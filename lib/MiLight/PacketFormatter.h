@@ -71,11 +71,6 @@ public:
 
   static void formatV1Packet(uint8_t const* packet, char* buffer);
 
-  template <typename T, typename V>
-  static T rescale(T value, V newMax, float oldMax = 255.0) {
-    return round(value * (newMax / oldMax));
-  }
-
   size_t getPacketLength() const;
 
 protected:

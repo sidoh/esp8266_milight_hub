@@ -157,6 +157,10 @@ void CctPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& result) 
   if (onOffGroupId < 255) {
     result["state"] = cctCommandToStatus(command) == ON ? "ON" : "OFF";
   }
+
+  if (! result.containsKey("state")) {
+    result["state"] = "ON";
+  }
 }
 
 void CctPacketFormatter::format(uint8_t const* packet, char* buffer) {
