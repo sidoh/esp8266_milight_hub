@@ -37,6 +37,16 @@
       border: 1px solid #ccc;
     }
     .inline { display: inline-block; }
+    .white-temp-picker {
+      height: 2em;
+      background: linear-gradient(to right,
+        rgb(166, 209, 255) 0%,
+        rgb(255, 255, 255) 50%,
+        rgb(255, 160, 0) 100%
+      );
+      display: inline-block;
+      padding: 3px 0;
+    }
     .hue-picker {
       height: 2em;
       width: 100%;
@@ -860,11 +870,13 @@
       </div>
       <div class="row">
         <div class="col-sm-6">
-          <input class="slider raw-update" name="temperature"
-              data-slider-min="0"
-              data-slider-max="100"
-              data-slider-value="100"
-          />
+          <div class="white-temp-picker">
+            <input class="slider raw-update" name="temperature"
+                data-slider-min="0"
+                data-slider-max="100"
+                data-slider-value="100"
+            />
+          </div>
         </div>
       </div>
     </div>
