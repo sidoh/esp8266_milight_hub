@@ -85,6 +85,27 @@ void MqttClient::handleClient() {
   mqttClient->loop();
 }
 
+void MqttClient::sendUpdate(MiLightRadioType type, uint16_t deviceId, uint16_t groupId, const char* update) {
+  String topic = settings.mqttUpdateTopicPattern;
+
+  if (topic.length() == 0) {
+    return;
+  }
+
+  String deviceIdStr = String(deviceId, 16);
+  deviceIdStr.toUpperCase();
+
+  topic.replace(":device_id", String("0x") + deviceIdStr);
+  topic.replace(":group_id", String(groupId));
+  topic.replace(":device_type", MiLightRadioConfig::fromType(type)->name);
+
+#ifdef MQTT_DEBUG
+  printf_P(PSTR("MqttClient - publishing update to %s: %s\n"), topic.c_str(), update);
+#endif
+
+  mqttClient->publish(topic.c_str(), update);
+}
+
 void MqttClient::subscribe() {
   String topic = settings.mqttTopicPattern;
 

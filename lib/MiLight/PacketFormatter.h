@@ -2,6 +2,7 @@
 #include <inttypes.h>
 #include <functional>
 #include <MiLightButtons.h>
+#include <ArduinoJson.h>
 
 #define PACKET_FORMATTER_BUFFER_SIZE 48
 
@@ -66,12 +67,9 @@ public:
   virtual void prepare(uint16_t deviceId, uint8_t groupId);
   virtual void format(uint8_t const* packet, char* buffer);
 
-  static void formatV1Packet(uint8_t const* packet, char* buffer);
+  virtual void parsePacket(const uint8_t* packet, JsonObject& result);
 
-  template <typename T>
-  static T rescale(T value, uint8_t newMax, float oldMax = 255.0) {
-    return round(value * (newMax / oldMax));
-  }
+  static void formatV1Packet(uint8_t const* packet, char* buffer);
 
   size_t getPacketLength() const;
 

@@ -1,5 +1,6 @@
 #include <RgbwPacketFormatter.h>
 #include <MiLightButtons.h>
+#include <Units.h>
 
 #define STATUS_COMMAND(status, groupId) ( RGBW_GROUP_1_ON + ((groupId - 1)*2) + status )
 
@@ -49,7 +50,7 @@ void RgbwPacketFormatter::updateStatus(MiLightStatus status, uint8_t groupId) {
 
 void RgbwPacketFormatter::updateBrightness(uint8_t value) {
   // Expect an input value in [0, 100]. Map it down to [0, 25].
-  const uint8_t adjustedBrightness = rescale(value, 25, 100);
+  const uint8_t adjustedBrightness = Units::rescale(value, 25, 100);
 
   // The actual protocol uses a bizarre range where min is 16, max is 23:
   // [16, 15, ..., 0, 31, ..., 23]
@@ -71,7 +72,7 @@ void RgbwPacketFormatter::command(uint8_t command, uint8_t arg) {
 
 void RgbwPacketFormatter::updateHue(uint16_t value) {
   const int16_t remappedColor = (value + 40) % 360;
-  updateColorRaw(rescale(remappedColor, 255, 360));
+  updateColorRaw(Units::rescale(remappedColor, 255, 360));
 }
 
 void RgbwPacketFormatter::updateColorRaw(uint8_t value) {
@@ -89,6 +90,32 @@ void RgbwPacketFormatter::enableNightMode() {
 
   command(button, 0);
   command(button | 0x10, 0);
+}
+
+void RgbwPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& result) {
+  uint8_t command = packet[RGBW_COMMAND_INDEX] & 0x7F;
+
+  result["device_id"] = (packet[1] << 8) | packet[2];
+  result["device_type"] = "rgbw";
+  result["group_id"] = packet[RGBW_BRIGHTNESS_GROUP_INDEX] & 0x7;
+
+  if (command >= RGBW_ALL_ON && command <= RGBW_GROUP_4_OFF) {
+    result["state"] = (command % 2) ? "ON" : "OFF";
+  } else if (command == RGBW_BRIGHTNESS) {
+    uint8_t brightness = 31;
+    brightness -= packet[RGBW_BRIGHTNESS_GROUP_INDEX] >> 3;
+    brightness += 17;
+    brightness %= 32;
+    result["brightness"] = Units::rescale<uint8_t, uint8_t>(brightness, 255, 25);
+  } else if (command == RGBW_COLOR) {
+    uint16_t remappedColor = Units::rescale<uint16_t, uint16_t>(packet[RGBW_COLOR_INDEX], 360.0, 255.0);
+    remappedColor = (remappedColor + 320) % 360;
+    result["hue"] = remappedColor;
+  }
+
+  if (! result.containsKey("state")) {
+    result["state"] = "ON";
+  }
 }
 
 void RgbwPacketFormatter::format(uint8_t const* packet, char* buffer) {

@@ -2,14 +2,13 @@
 #include <MiLightRadioConfig.h>
 #include <Arduino.h>
 #include <RGBConverter.h>
-
-#define COLOR_TEMP_MAX_MIREDS 370
-#define COLOR_TEMP_MIN_MIREDS 153
+#include <Units.h>
 
 MiLightClient::MiLightClient(MiLightRadioFactory* radioFactory)
   : resendCount(MILIGHT_DEFAULT_RESEND_COUNT),
     currentRadio(NULL),
-    numRadios(MiLightRadioConfig::NUM_CONFIGS)
+    numRadios(MiLightRadioConfig::NUM_CONFIGS),
+    packetSentHandler(NULL)
 {
   radios = new MiLightRadio*[numRadios];
 
@@ -63,7 +62,14 @@ void MiLightClient::prepare(MiLightRadioConfig& config,
   const uint16_t deviceId,
   const uint8_t groupId) {
 
-  switchRadio(config.type);
+  prepare(config.type, deviceId, groupId);
+}
+
+void MiLightClient::prepare(MiLightRadioType type,
+  const uint16_t deviceId,
+  const uint8_t groupId) {
+
+  switchRadio(type);
 
   if (deviceId >= 0 && groupId >= 0) {
     formatter->prepare(deviceId, groupId);
@@ -108,6 +114,10 @@ void MiLightClient::write(uint8_t packet[]) {
 
   for (int i = 0; i < this->resendCount; i++) {
     currentRadio->write(packet, currentRadio->config().getPacketLength());
+  }
+
+  if (this->packetSentHandler) {
+    this->packetSentHandler(packet, currentRadio->config());
   }
 
 #ifdef DEBUG_PRINTF
@@ -274,7 +284,7 @@ void MiLightClient::update(const JsonObject& request) {
   }
   // HomeAssistant
   if (request.containsKey("brightness")) {
-    uint8_t scaledBrightness = round(request.get<uint8_t>("brightness") * (100/255.0));
+    uint8_t scaledBrightness = Units::rescale(request.get<uint8_t>("brightness"), 100, 255);
     this->updateBrightness(scaledBrightness);
   }
 
@@ -283,20 +293,9 @@ void MiLightClient::update(const JsonObject& request) {
   }
   // HomeAssistant
   if (request.containsKey("color_temp")) {
-    // MiLight CCT bulbs range from 2700K-6500K, or ~370.3-153.8 mireds. Note
-    // that mireds are inversely correlated with color temperature.
-    uint32_t tempMireds = request["color_temp"];
-    tempMireds = tempMireds > COLOR_TEMP_MAX_MIREDS ? COLOR_TEMP_MAX_MIREDS : tempMireds;
-    tempMireds = tempMireds < COLOR_TEMP_MIN_MIREDS ? COLOR_TEMP_MIN_MIREDS : tempMireds;
-
-    uint8_t scaledTemp = round(
-      100*
-      (tempMireds - COLOR_TEMP_MIN_MIREDS)
-        /
-      static_cast<double>(COLOR_TEMP_MAX_MIREDS - COLOR_TEMP_MIN_MIREDS)
+    this->updateTemperature(
+      Units::miredsToWhiteVal(request["color_temp"], 100)
     );
-
-    this->updateTemperature(100 - scaledTemp);
   }
 
   if (request.containsKey("mode")) {
@@ -374,4 +373,8 @@ void MiLightClient::flushPacket() {
 
   setResendCount(prevNumRepeats);
   formatter->reset();
+}
+
+void MiLightClient::onPacketSent(PacketSentHandler handler) {
+  this->packetSentHandler = handler;
 }

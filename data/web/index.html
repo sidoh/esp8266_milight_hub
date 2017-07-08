@@ -31,11 +31,22 @@
     .error-info:before { content: '('; }
     .error-info:after { content: ')'; }
     .header-btn { margin: 20px; }
+    #sniffed-traffic { max-height: 50em; overflow-y: auto; }
     .btn-secondary {
       background-color: #fff;
       border: 1px solid #ccc;
     }
     .inline { display: inline-block; }
+    .white-temp-picker {
+      height: 2em;
+      background: linear-gradient(to right,
+        rgb(166, 209, 255) 0%,
+        rgb(255, 255, 255) 50%,
+        rgb(255, 160, 0) 100%
+      );
+      display: inline-block;
+      padding: 3px 0;
+    }
     .hue-picker {
       height: 2em;
       width: 100%;
@@ -124,8 +135,9 @@
   <script lang="text/javascript">
     var FORM_SETTINGS = [
       "admin_username", "admin_password", "ce_pin", "csn_pin", "reset_pin","packet_repeats",
-      "http_repeat_factor", "auto_restart_period", "discovery_port", "mqtt_server", 
-      "mqtt_topic_pattern", "mqtt_username", "mqtt_password", "radio_interface_type"
+      "http_repeat_factor", "auto_restart_period", "discovery_port", "mqtt_server",
+      "mqtt_topic_pattern", "mqtt_update_topic_pattern", "mqtt_username", "mqtt_password",
+      "radio_interface_type", "listen_repeats"
     ];
 
     var FORM_SETTINGS_HELP = {
@@ -141,9 +153,14 @@
       mqtt_server : "Domain or IP address of MQTT broker. Optionally specify a port " +
         "with (example) mymqqtbroker.com:1884.",
       mqtt_topic_pattern : "Pattern for MQTT topics to listen on. Example: " +
-        "lights/:device_id/:type/:group. See README for further details.",
+        "lights/:device_id/:device_type/:group_id. See README for further details.",
+      mqtt_update_topic_pattern : "Pattern to publish MQTT updates. Packets that " +
+        "are received from other devices, and packets that are sent from this device will " +
+        "result in updates being sent.",
       discovery_port : "UDP port to listen for discovery packets on. Defaults to " +
-        "the same port used by MiLight devices, 48899. Use 0 to disable."
+        "the same port used by MiLight devices, 48899. Use 0 to disable.",
+      listen_repeats : "Increasing this increases the amount of time spent listening for " +
+        "packets. Set to 0 to disable listening. Default is 3."
     }
 
     var UDP_PROTOCOL_VERSIONS = [ 5, 6 ];
@@ -207,10 +224,8 @@
     var sniffRequest;
     var sniffing = false;
     var getTraffic = function() {
-      var sniffType = $('#sniff-type input:checked').data('value');
-
-      sniffRequest = $.get('/gateway_traffic/' + sniffType, function(data) {
-        $('#sniffed-traffic').html(data + $('#sniffed-traffic').html());
+      sniffRequest = $.get('/gateway_traffic', function(data) {
+        $('#sniffed-traffic').prepend('<pre>' + data + '</pre>');
         getTraffic();
       });
     };
@@ -855,11 +870,13 @@
       </div>
       <div class="row">
         <div class="col-sm-6">
-          <input class="slider raw-update" name="temperature"
-              data-slider-min="0"
-              data-slider-max="100"
-              data-slider-value="100"
-          />
+          <div class="white-temp-picker">
+            <input class="slider raw-update" name="temperature"
+                data-slider-min="0"
+                data-slider-max="100"
+                data-slider-value="100"
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -1006,24 +1023,9 @@
       <div class="col-sm-12">
         <button type="button" id="sniff" class="btn btn-primary">Start Sniffing</button>
 
-        <div class="btn-group" id="sniff-type" data-toggle="buttons">
-          <label class="btn btn-secondary active">
-            <input type="radio" name="options" autocomplete="off" data-value="rgbw" checked> RGBW
-          </label>
-          <label class="btn btn-secondary">
-            <input type="radio" name="options" autocomplete="off" data-value="cct"> CCT
-          </label>
-          <label class="btn btn-secondary">
-            <input type="radio" name="options" autocomplete="off" data-value="rgb_cct"> RGB+CCT
-          </label>
-          <label class="btn btn-secondary">
-            <input type="radio" name="options" autocomplete="off" data-value="rgb"> RGB
-          </label>
-        </div>
-
         <div> &nbsp; </div>
 
-        <pre id="sniffed-traffic"></pre>
+        <div id="sniffed-traffic"></div>
       </div>
     </div>
 

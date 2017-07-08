@@ -1,4 +1,5 @@
 #include <RgbPacketFormatter.h>
+#include <Units.h>
 
 void RgbPacketFormatter::initializePacket(uint8_t *packet) {
   size_t packetPtr = 0;
@@ -37,7 +38,7 @@ void RgbPacketFormatter::command(uint8_t command, uint8_t arg) {
 
 void RgbPacketFormatter::updateHue(uint16_t value) {
   const int16_t remappedColor = (value + 40) % 360;
-  updateColorRaw(rescale(remappedColor, 255, 360));
+  updateColorRaw(Units::rescale(remappedColor, 255, 360));
 }
 
 void RgbPacketFormatter::updateColorRaw(uint8_t value) {
@@ -76,6 +77,28 @@ void RgbPacketFormatter::nextMode() {
 
 void RgbPacketFormatter::previousMode() {
   command(RGB_MODE_DOWN, 0);
+}
+
+void RgbPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& result) {
+  uint8_t command = packet[RGB_COMMAND_INDEX] & 0x7F;
+
+  result["group_id"] = 0;
+  result["device_id"] = (packet[1] << 8) | packet[2];
+  result["device_type"] = "rgb";
+
+  if (command == RGB_ON) {
+    result["state"] = "ON";
+  } else if (command == RGB_OFF) {
+    result["state"] = "OFF";
+  } else if (command == 0) {
+    uint16_t remappedColor = Units::rescale<uint16_t, uint16_t>(packet[RGB_COLOR_INDEX], 360.0, 255.0);
+    remappedColor = (remappedColor + 320) % 360;
+    result["hue"] = remappedColor;
+  }
+
+  if (! result.containsKey("state")) {
+    result["state"] = "ON";
+  }
 }
 
 void RgbPacketFormatter::format(uint8_t const* packet, char* buffer) {
