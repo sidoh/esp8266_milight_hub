@@ -106,7 +106,7 @@ void RgbwPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& result)
     brightness -= packet[RGBW_BRIGHTNESS_GROUP_INDEX] >> 3;
     brightness += 17;
     brightness %= 32;
-    result["level"] = Units::rescale<uint8_t, uint8_t>(brightness, 100, 25);
+    result["brightness"] = Units::rescale<uint8_t, uint8_t>(brightness, 255, 25);
   } else if (command == RGBW_COLOR) {
     uint16_t remappedColor = Units::rescale<uint16_t, uint16_t>(packet[RGBW_COLOR_INDEX], 360.0, 255.0);
     remappedColor = (remappedColor + 320) % 360;
