@@ -150,7 +150,6 @@ void RgbCctPacketFormatter::parsePacket(const uint8_t *packet, JsonObject& resul
           // Shift 24 down to 0
           RGB_CCT_KELVIN_REMOTE_START
         )/2; // values are in increments of 2
-        printf("%u\n", temperature);
 
     result["color_temp"] = Units::whiteValToMireds(temperature, 100);
   // brightness == saturation
