@@ -156,9 +156,7 @@ void CctPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& result) 
   uint8_t onOffGroupId = cctCommandIdToGroup(command);
   if (onOffGroupId < 255) {
     result["state"] = cctCommandToStatus(command) == ON ? "ON" : "OFF";
-  }
-
-  if (command == CCT_BRIGHTNESS_DOWN) {
+  } else if (command == CCT_BRIGHTNESS_DOWN) {
     result["command"] = "brightness_down";
   } else if (command == CCT_BRIGHTNESS_UP) {
     result["command"] = "brightness_up";
