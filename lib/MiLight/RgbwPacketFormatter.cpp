@@ -3,6 +3,7 @@
 #include <Units.h>
 
 #define STATUS_COMMAND(status, groupId) ( RGBW_GROUP_1_ON + ((groupId - 1)*2) + status )
+#define GROUP_FOR_STATUS_COMMAND(buttonId) ( (buttonId - 1) / 2 )
 
 void RgbwPacketFormatter::initializePacket(uint8_t* packet) {
   size_t packetPtr = 0;
@@ -101,6 +102,10 @@ void RgbwPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& result)
 
   if (command >= RGBW_ALL_ON && command <= RGBW_GROUP_4_OFF) {
     result["state"] = (command % 2) ? "ON" : "OFF";
+    // Determine group ID from button ID for on/off. The remote's state is from
+    // the last packet sent, not the current one, and that can be wrong for
+    // on/off commands.
+    result["group_id"] = GROUP_FOR_STATUS_COMMAND(command);
   } else if (command == RGBW_BRIGHTNESS) {
     uint8_t brightness = 31;
     brightness -= packet[RGBW_BRIGHTNESS_GROUP_INDEX] >> 3;
@@ -111,6 +116,14 @@ void RgbwPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& result)
     uint16_t remappedColor = Units::rescale<uint16_t, uint16_t>(packet[RGBW_COLOR_INDEX], 360.0, 255.0);
     remappedColor = (remappedColor + 320) % 360;
     result["hue"] = remappedColor;
+  } else if (command == RGBW_SPEED_DOWN) {
+    result["command"] = "mode_speed_down";
+  } else if (command == RGBW_SPEED_UP) {
+    result["command"] = "mode_speed_up";
+  } else if (command == RGBW_DISCO_MODE) {
+    result["mode"] = packet[0] & ~RGBW;
+  } else {
+    result["button_id"] = command;
   }
 
   if (! result.containsKey("state")) {

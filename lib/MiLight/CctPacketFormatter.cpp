@@ -156,6 +156,16 @@ void CctPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& result) 
   uint8_t onOffGroupId = cctCommandIdToGroup(command);
   if (onOffGroupId < 255) {
     result["state"] = cctCommandToStatus(command) == ON ? "ON" : "OFF";
+  } else if (command == CCT_BRIGHTNESS_DOWN) {
+    result["command"] = "brightness_down";
+  } else if (command == CCT_BRIGHTNESS_UP) {
+    result["command"] = "brightness_up";
+  } else if (command == CCT_TEMPERATURE_DOWN) {
+    result["command"] = "temperature_down";
+  } else if (command == CCT_TEMPERATURE_UP) {
+    result["command"] = "temperature_up";
+  } else {
+    result["button_id"] = command;
   }
 
   if (! result.containsKey("state")) {

@@ -124,8 +124,11 @@ void RgbCctPacketFormatter::parsePacket(const uint8_t *packet, JsonObject& resul
   uint8_t arg = packetCopy[RGB_CCT_ARGUMENT_INDEX];
 
   if (command == RGB_CCT_ON) {
-    // Group is not reliably encoded in group byte. Extract from arg byte
-    if (arg < 5) {
+    if (arg == RGB_CCT_MODE_SPEED_DOWN) {
+      result["command"] = "mode_speed_down";
+    } else if (arg == RGB_CCT_MODE_SPEED_UP) {
+      result["command"] = "mode_speed_up";
+    } else if (arg < 5) { // Group is not reliably encoded in group byte. Extract from arg byte
       result["state"] = "ON";
       result["group_id"] = arg;
     } else {
@@ -158,6 +161,11 @@ void RgbCctPacketFormatter::parsePacket(const uint8_t *packet, JsonObject& resul
     result["brightness"] = Units::rescale<uint8_t, uint8_t>(level, 255, 100);
   } else if (command == RGB_CCT_SATURATION) {
     result["saturation"] = constrain(arg - RGB_CCT_SATURATION_OFFSET, 0, 100);
+  } else if (command == RGB_CCT_MODE) {
+    result["mode"] = arg;
+  } else {
+    result["button_id"] = command;
+    result["argument"] = arg;
   }
 
   if (! result.containsKey("state")) {

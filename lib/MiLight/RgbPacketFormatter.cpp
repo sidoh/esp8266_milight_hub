@@ -94,6 +94,16 @@ void RgbPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& result) 
     uint16_t remappedColor = Units::rescale<uint16_t, uint16_t>(packet[RGB_COLOR_INDEX], 360.0, 255.0);
     remappedColor = (remappedColor + 320) % 360;
     result["hue"] = remappedColor;
+  } else if (command == RGB_MODE_DOWN) {
+    result["command"] = "previous_mode";
+  } else if (command == RGB_MODE_UP) {
+    result["command"] = "next_mode";
+  } else if (command == RGB_SPEED_DOWN) {
+    result["command"] = "mode_speed_down";
+  } else if (command == RGB_SPEED_UP) {
+    result["command"] = "mode_speed_up";
+  } else {
+    result["button_id"] = command;
   }
 
   if (! result.containsKey("state")) {
