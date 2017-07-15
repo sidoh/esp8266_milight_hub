@@ -116,6 +116,8 @@ void RgbwPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& result)
     uint16_t remappedColor = Units::rescale<uint16_t, uint16_t>(packet[RGBW_COLOR_INDEX], 360.0, 255.0);
     remappedColor = (remappedColor + 320) % 360;
     result["hue"] = remappedColor;
+  } else {
+    result["button_id"] = command;
   }
 
   if (! result.containsKey("state")) {
