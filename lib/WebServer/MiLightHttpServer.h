@@ -13,7 +13,7 @@ const char DEFAULT_INDEX_PAGE[] PROGMEM
   = "Web app not installed. Click <a href=\"/download_update/web\">here</a> to attempt to download it from GitHub.";
 
 const char TEXT_PLAIN[] PROGMEM = "text/plain";
-const char APPLICATION_JSON[] PROGMEM = "application/json";
+const char APPLICATION_JSON[] = "application/json";
 
 class MiLightHttpServer {
 public:

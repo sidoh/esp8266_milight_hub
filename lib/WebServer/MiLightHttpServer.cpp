@@ -24,7 +24,7 @@ void MiLightHttpServer::begin() {
   server.onPattern("/gateways/:device_id/:type/:group_id", HTTP_ANY, [this](const UrlTokenBindings* b) { handleUpdateGroup(b); });
   server.onPattern("/raw_commands/:type", HTTP_ANY, [this](const UrlTokenBindings* b) { handleSendRaw(b); });
   server.onPattern("/download_update/:component", HTTP_GET, [this](const UrlTokenBindings* b) { handleDownloadUpdate(b); });
-  server.on("/web", HTTP_POST, [this]() { server.send(200, TEXT_PLAIN, "success"); }, handleUpdateFile(WEB_INDEX_FILENAME));
+  server.on("/web", HTTP_POST, [this]() { server.send_P(200, TEXT_PLAIN, PSTR("success")); }, handleUpdateFile(WEB_INDEX_FILENAME));
   server.on("/about", HTTP_GET, [this]() { handleAbout(); });
   server.on("/latest_release", HTTP_GET, [this]() { handleGetLatestRelease(); });
   server.on("/system", HTTP_POST, [this]() { handleSystemPost(); });
@@ -127,7 +127,7 @@ void MiLightHttpServer::handleSystemPost() {
   if (request.containsKey("command")) {
     if (request["command"] == "restart") {
       Serial.println(F("Restarting..."));
-      server.send(200, TEXT_PLAIN, "true");
+      server.send_P(200, TEXT_PLAIN, PSTR("true"));
 
       delay(100);
 
@@ -136,7 +136,7 @@ void MiLightHttpServer::handleSystemPost() {
       handled = true;
     } else if (request["command"] == "clear_wifi_config") {
         Serial.println(F("Resetting Wifi and then Restarting..."));
-        server.send(200, TEXT_PLAIN, "true");
+        server.send_P(200, TEXT_PLAIN, PSTR("true"));
 
         delay(100);
         ESP.eraseConfig();
@@ -148,9 +148,9 @@ void MiLightHttpServer::handleSystemPost() {
   }
 
   if (handled) {
-    server.send(200, TEXT_PLAIN, "true");
+    server.send_P(200, TEXT_PLAIN, PSTR("true"));
   } else {
-    server.send(400, TEXT_PLAIN, F("{\"error\":\"Unhandled command\"}"));
+    server.send_P(400, TEXT_PLAIN, PSTR("{\"error\":\"Unhandled command\"}"));
   }
 }
 
@@ -183,11 +183,11 @@ void MiLightHttpServer::handleDownloadUpdate(const UrlTokenBindings* bindings) {
       server.sendHeader("Location", "/");
       server.send(302);
     } else {
-      server.send(500, TEXT_PLAIN, F("Failed to download update from Github. Check serial logs for more information."));
+      server.send_P(500, TEXT_PLAIN, PSTR("Failed to download update from Github. Check serial logs for more information."));
     }
   } else {
     String body = String("Unknown component: ") + component;
-    server.send(400, TEXT_PLAIN, body);
+    server.send(400, "text/plain", body);
   }
 }
 
@@ -308,7 +308,7 @@ void MiLightHttpServer::handleListenGateway(const UrlTokenBindings* bindings) {
     String body = "Unknown device type: ";
     body += bindings->get("type");
 
-    server.send(400, TEXT_PLAIN, body);
+    server.send(400, "text/plain", body);
     return;
   }
 
@@ -345,7 +345,7 @@ void MiLightHttpServer::handleListenGateway(const UrlTokenBindings* bindings) {
   );
   milightClient->formatPacket(packet, responseBuffer);
 
-  server.send(200, TEXT_PLAIN, response);
+  server.send(200, "text/plain", response);
 }
 
 void MiLightHttpServer::handleUpdateGroup(const UrlTokenBindings* urlBindings) {
@@ -353,7 +353,7 @@ void MiLightHttpServer::handleUpdateGroup(const UrlTokenBindings* urlBindings) {
   JsonObject& request = buffer.parse(server.arg("plain"));
 
   if (!request.success()) {
-    server.send(400, TEXT_PLAIN, F("Invalid JSON"));
+    server.send_P(400, TEXT_PLAIN, PSTR("Invalid JSON"));
     return;
   }
 
@@ -382,7 +382,7 @@ void MiLightHttpServer::handleUpdateGroup(const UrlTokenBindings* urlBindings) {
     if (config == NULL) {
       String body = "Unknown device type: ";
       body += String(_radioType);
-      server.send(400, TEXT_PLAIN, body);
+      server.send(400, "text/plain", body);
       return;
     }
 
@@ -416,7 +416,7 @@ void MiLightHttpServer::handleSendRaw(const UrlTokenBindings* bindings) {
     String body = "Unknown device type: ";
     body += bindings->get("type");
 
-    server.send(400, TEXT_PLAIN, body);
+    server.send(400, "text/plain", body);
     return;
   }
 
@@ -435,7 +435,7 @@ void MiLightHttpServer::handleSendRaw(const UrlTokenBindings* bindings) {
     milightClient->write(packet);
   }
 
-  server.send(200, TEXT_PLAIN, "true");
+  server.send_P(200, TEXT_PLAIN, PSTR("true"));
 }
 
 ESP8266WebServer::THandlerFunction MiLightHttpServer::handleServe_P(const char* data, size_t length) {

@@ -28,8 +28,8 @@ gulp.task('buildfs_embeded', ['buildfs_inline'], function() {
 
     var data = fs.readFileSync(source);
 
-    wstream.write('#define index_html_gz_len ' + (data.length+1) + '\n');
-    wstream.write('const char index_html_gz[] PROGMEM = {')
+    wstream.write('#define index_html_gz_len ' + data.length + '\n');
+    wstream.write('static const char index_html_gz[] PROGMEM = {')
 
     for (i=0; i<data.length; i++) {
         wstream.write(data[i].toString());
