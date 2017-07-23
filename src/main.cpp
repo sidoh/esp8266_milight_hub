@@ -16,6 +16,7 @@
 #include <RGBConverter.h>
 #include <MiLightDiscoveryServer.h>
 #include <MiLightClient.h>
+#include <index.html.gz.h>
 
 WiFiManager wifiManager;
 

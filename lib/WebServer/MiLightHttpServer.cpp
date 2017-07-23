@@ -7,11 +7,12 @@
 #include <GithubClient.h>
 #include <string.h>
 #include <TokenIterator.h>
+#include <index.html.gz.h>
 
 void MiLightHttpServer::begin() {
   applySettings(settings);
 
-  server.on("/", HTTP_GET, handleServeFile(WEB_INDEX_FILENAME, "text/html", DEFAULT_INDEX_PAGE));
+  server.on("/", HTTP_GET, handleServe_P(index_html_gz, index_html_gz_len));
   server.on("/settings", HTTP_GET, handleServeFile(SETTINGS_FILE, APPLICATION_JSON));
   server.on("/settings", HTTP_PUT, [this]() { handleUpdateSettings(); });
   server.on("/settings", HTTP_POST, [this]() { server.send_P(200, TEXT_PLAIN, PSTR("success. rebooting")); ESP.restart(); }, handleUpdateFile(SETTINGS_FILE));
@@ -435,4 +436,16 @@ void MiLightHttpServer::handleSendRaw(const UrlTokenBindings* bindings) {
   }
 
   server.send(200, TEXT_PLAIN, "true");
+}
+
+ESP8266WebServer::THandlerFunction MiLightHttpServer::handleServe_P(const char* data, size_t length) {
+  return [this, data, length]() {
+    server.sendHeader("Content-Encoding", "gzip");
+    server.sendHeader("Content-Length", String(length));
+    server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+    server.send(200, "text/html", "");
+    server.setContentLength(length);
+    server.sendContent_P(data, length);
+    server.client().stop();
+  };
 }

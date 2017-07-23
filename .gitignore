@@ -3,3 +3,5 @@
 .clang_complete
 .gcc-flags.json
 /dist
+/web/node_modules
+/web/build
