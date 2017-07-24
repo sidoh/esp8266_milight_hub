@@ -286,12 +286,9 @@ var handleCheckForUpdates = function() {
       });
 
       if (releaseAsset.length > 0) {
-        console.log(releaseAsset[0].url);
         $('#firmware-link').prop('href', releaseAsset[0].browser_download_url);
       }
     }
-
-    console.log(latestRelease);
   }
 
   var handleError = function(e, d) {
