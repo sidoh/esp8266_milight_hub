@@ -15,17 +15,20 @@ def is_tool(name):
     except:
         return False;
 
-if is_tool("npm"):
-    os.chdir("web")
-    print("Attempting to build webpage...")
-    try:
-        print check_output(["npm", "install"])
-        print check_output(["node_modules/.bin/gulp"])
-        copyfile("build/index.html.gz.h", "../dist/index.html.gz.h")
+def pre_build(source, target, env):
+    if is_tool("npm"):
+        os.chdir("web")
+        print("Attempting to build webpage...")
+        try:
+            print check_output(["npm", "install"])
+            print check_output(["node_modules/.bin/gulp"])
+            copyfile("build/index.html.gz.h", "../dist/index.html.gz.h")
 
-    except Exception as e:
-        print "Encountered error building webpage: ", e
-        print "WARNING: Failed to build web package. Using pre-built page."
-        pass
-    finally:
-        os.chdir("..");
+        except Exception as e:
+            print "Encountered error building webpage: ", e
+            print "WARNING: Failed to build web package. Using pre-built page."
+            pass
+        finally:
+            os.chdir("..");
+
+env.Execute(pre_build)
