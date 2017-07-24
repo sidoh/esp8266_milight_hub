@@ -210,11 +210,13 @@ void MiLightHttpServer::handleAbout() {
   response["version"] = QUOTE(MILIGHT_HUB_VERSION);
   response["variant"] = QUOTE(FIRMWARE_VARIANT);
   response["free_heap"] = ESP.getFreeHeap();
+  response["arduino_version"] = ESP.getCoreVersion();
+  response["reset_reason"] = ESP.getResetReason();
 
   String body;
   response.printTo(body);
 
-  server.send(200, "application", body);
+  server.send(200, APPLICATION_JSON, body);
 }
 
 void MiLightHttpServer::handleGetRadioConfigs() {
