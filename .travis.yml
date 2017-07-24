@@ -5,9 +5,14 @@ sudo: false
 cache:
   directories:
   - "~/.platformio"
+env:
+  - NODE_VERSION="6"
+before_install:
+  - nvm install $NODE_VERSION
 install:
 - pip install -U platformio
 - platformio lib install
+- cd web && npm install && cd ..
 script:
 - platformio run
 before_deploy:
