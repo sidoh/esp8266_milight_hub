@@ -4,14 +4,14 @@
 #include <Settings.h>
 #include <MiLightHttpServer.h>
 #include <MiLightRadioConfig.h>
-#include <GithubClient.h>
 #include <string.h>
 #include <TokenIterator.h>
+#include <index.html.gz.h>
 
 void MiLightHttpServer::begin() {
   applySettings(settings);
 
-  server.on("/", HTTP_GET, handleServeFile(WEB_INDEX_FILENAME, "text/html", DEFAULT_INDEX_PAGE));
+  server.on("/", HTTP_GET, handleServe_P(index_html_gz, index_html_gz_len));
   server.on("/settings", HTTP_GET, handleServeFile(SETTINGS_FILE, APPLICATION_JSON));
   server.on("/settings", HTTP_PUT, [this]() { handleUpdateSettings(); });
   server.on("/settings", HTTP_POST, [this]() { server.send_P(200, TEXT_PLAIN, PSTR("success. rebooting")); ESP.restart(); }, handleUpdateFile(SETTINGS_FILE));
@@ -22,10 +22,8 @@ void MiLightHttpServer::begin() {
 
   server.onPattern("/gateways/:device_id/:type/:group_id", HTTP_ANY, [this](const UrlTokenBindings* b) { handleUpdateGroup(b); });
   server.onPattern("/raw_commands/:type", HTTP_ANY, [this](const UrlTokenBindings* b) { handleSendRaw(b); });
-  server.onPattern("/download_update/:component", HTTP_GET, [this](const UrlTokenBindings* b) { handleDownloadUpdate(b); });
-  server.on("/web", HTTP_POST, [this]() { server.send(200, TEXT_PLAIN, "success"); }, handleUpdateFile(WEB_INDEX_FILENAME));
+  server.on("/web", HTTP_POST, [this]() { server.send_P(200, TEXT_PLAIN, PSTR("success")); }, handleUpdateFile(WEB_INDEX_FILENAME));
   server.on("/about", HTTP_GET, [this]() { handleAbout(); });
-  server.on("/latest_release", HTTP_GET, [this]() { handleGetLatestRelease(); });
   server.on("/system", HTTP_POST, [this]() { handleSystemPost(); });
   server.on("/firmware", HTTP_POST,
     [this](){
@@ -73,38 +71,6 @@ void MiLightHttpServer::begin() {
   server.begin();
 }
 
-void MiLightHttpServer::handleGetLatestRelease() {
-  GithubClient client = GithubClient::apiClient();
-  String path = GithubClient::buildApiRequest(
-    MILIGHT_GITHUB_USER,
-    MILIGHT_GITHUB_REPO,
-    "/releases/latest"
-  );
-
-  Serial.println(path);
-
-  // This is an ugly hack, but probably not worth optimizing. The nice way
-  // to do this would be to extract the content len from GitHub's response
-  // and stream the body to the server directly. But this would require parsing
-  // headers in the response from GitHub, which seems like more trouble than
-  // it's worth.
-  const String& fsPath = "/_cv.json";
-  size_t tries = 0;
-
-  while (tries++ < MAX_DOWNLOAD_ATTEMPTS && !client.download(path, fsPath)) {
-    Serial.println(F("Failed download attempt."));
-  }
-
-  if (!SPIFFS.exists(fsPath)) {
-    server.send_P(500, TEXT_PLAIN, PSTR("Failed to stream API request from GitHub. Check Serial logs for more information."));
-    return;
-  }
-
-  File file = SPIFFS.open(fsPath, "r");
-  server.streamFile(file, APPLICATION_JSON);
-  SPIFFS.remove(fsPath);
-}
-
 void MiLightHttpServer::handleClient() {
   server.handleClient();
 }
@@ -126,7 +92,7 @@ void MiLightHttpServer::handleSystemPost() {
   if (request.containsKey("command")) {
     if (request["command"] == "restart") {
       Serial.println(F("Restarting..."));
-      server.send(200, TEXT_PLAIN, "true");
+      server.send_P(200, TEXT_PLAIN, PSTR("true"));
 
       delay(100);
 
@@ -135,7 +101,7 @@ void MiLightHttpServer::handleSystemPost() {
       handled = true;
     } else if (request["command"] == "clear_wifi_config") {
         Serial.println(F("Resetting Wifi and then Restarting..."));
-        server.send(200, TEXT_PLAIN, "true");
+        server.send_P(200, TEXT_PLAIN, PSTR("true"));
 
         delay(100);
         ESP.eraseConfig();
@@ -147,46 +113,9 @@ void MiLightHttpServer::handleSystemPost() {
   }
 
   if (handled) {
-    server.send(200, TEXT_PLAIN, "true");
+    server.send_P(200, TEXT_PLAIN, PSTR("true"));
   } else {
-    server.send(400, TEXT_PLAIN, F("{\"error\":\"Unhandled command\"}"));
-  }
-}
-
-void MiLightHttpServer::handleDownloadUpdate(const UrlTokenBindings* bindings) {
-  GithubClient downloader = GithubClient::rawDownloader();
-  const String& component = bindings->get("component");
-
-  if (component.equalsIgnoreCase("web")) {
-    Serial.println(F("Attempting to update web UI..."));
-
-    bool result = false;
-    size_t tries = 0;
-
-    while (!result && tries++ <= MAX_DOWNLOAD_ATTEMPTS) {
-      Serial.println(F("building url\n"));
-      String urlPath = GithubClient::buildRepoPath(
-        MILIGHT_GITHUB_USER,
-        MILIGHT_GITHUB_REPO,
-        MILIGHT_REPO_WEB_PATH
-      );
-
-      printf_P(PSTR("URL: %s\n"), urlPath.c_str());
-
-      result = downloader.download(urlPath, WEB_INDEX_FILENAME);
-    }
-
-    Serial.println(F("Download complete!"));
-
-    if (result) {
-      server.sendHeader("Location", "/");
-      server.send(302);
-    } else {
-      server.send(500, TEXT_PLAIN, F("Failed to download update from Github. Check serial logs for more information."));
-    }
-  } else {
-    String body = String("Unknown component: ") + component;
-    server.send(400, TEXT_PLAIN, body);
+    server.send_P(400, TEXT_PLAIN, PSTR("{\"error\":\"Unhandled command\"}"));
   }
 }
 
@@ -211,11 +140,13 @@ void MiLightHttpServer::handleAbout() {
   response["version"] = QUOTE(MILIGHT_HUB_VERSION);
   response["variant"] = QUOTE(FIRMWARE_VARIANT);
   response["free_heap"] = ESP.getFreeHeap();
+  response["arduino_version"] = ESP.getCoreVersion();
+  response["reset_reason"] = ESP.getResetReason();
 
   String body;
   response.printTo(body);
 
-  server.send(200, "application", body);
+  server.send(200, APPLICATION_JSON, body);
 }
 
 void MiLightHttpServer::handleGetRadioConfigs() {
@@ -307,7 +238,7 @@ void MiLightHttpServer::handleListenGateway(const UrlTokenBindings* bindings) {
     String body = "Unknown device type: ";
     body += bindings->get("type");
 
-    server.send(400, TEXT_PLAIN, body);
+    server.send(400, "text/plain", body);
     return;
   }
 
@@ -344,7 +275,7 @@ void MiLightHttpServer::handleListenGateway(const UrlTokenBindings* bindings) {
   );
   milightClient->formatPacket(packet, responseBuffer);
 
-  server.send(200, TEXT_PLAIN, response);
+  server.send(200, "text/plain", response);
 }
 
 void MiLightHttpServer::handleUpdateGroup(const UrlTokenBindings* urlBindings) {
@@ -352,7 +283,7 @@ void MiLightHttpServer::handleUpdateGroup(const UrlTokenBindings* urlBindings) {
   JsonObject& request = buffer.parse(server.arg("plain"));
 
   if (!request.success()) {
-    server.send(400, TEXT_PLAIN, F("Invalid JSON"));
+    server.send_P(400, TEXT_PLAIN, PSTR("Invalid JSON"));
     return;
   }
 
@@ -379,9 +310,9 @@ void MiLightHttpServer::handleUpdateGroup(const UrlTokenBindings* urlBindings) {
     MiLightRadioConfig* config = MiLightRadioConfig::fromString(_radioType);
 
     if (config == NULL) {
-      String body = "Unknown device type: ";
-      body += String(_radioType);
-      server.send(400, TEXT_PLAIN, body);
+      char buffer[40];
+      sprintf_P(buffer, PSTR("Unknown device type: %s"), _radioType);
+      server.send(400, "text/plain", buffer);
       return;
     }
 
@@ -412,10 +343,9 @@ void MiLightHttpServer::handleSendRaw(const UrlTokenBindings* bindings) {
   MiLightRadioConfig* config = MiLightRadioConfig::fromString(bindings->get("type"));
 
   if (config == NULL) {
-    String body = "Unknown device type: ";
-    body += bindings->get("type");
-
-    server.send(400, TEXT_PLAIN, body);
+    char buffer[50];
+    sprintf_P(buffer, PSTR("Unknown device type: %s"), bindings->get("type"));
+    server.send(400, "text/plain", buffer);
     return;
   }
 
@@ -434,5 +364,17 @@ void MiLightHttpServer::handleSendRaw(const UrlTokenBindings* bindings) {
     milightClient->write(packet);
   }
 
-  server.send(200, TEXT_PLAIN, "true");
+  server.send_P(200, TEXT_PLAIN, PSTR("true"));
+}
+
+ESP8266WebServer::THandlerFunction MiLightHttpServer::handleServe_P(const char* data, size_t length) {
+  return [this, data, length]() {
+    server.sendHeader("Content-Encoding", "gzip");
+    server.sendHeader("Content-Length", String(length));
+    server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+    server.send(200, "text/html", "");
+    server.setContentLength(length);
+    server.sendContent_P(data, length);
+    server.client().stop();
+  };
 }

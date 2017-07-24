@@ -9,11 +9,8 @@
 
 typedef std::function<void(void)> SettingsSavedHandler;
 
-const char DEFAULT_INDEX_PAGE[] PROGMEM
-  = "Web app not installed. Click <a href=\"/download_update/web\">here</a> to attempt to download it from GitHub.";
-
 const char TEXT_PLAIN[] PROGMEM = "text/plain";
-const char APPLICATION_JSON[] PROGMEM = "application/json";
+const char APPLICATION_JSON[] = "application/json";
 
 class MiLightHttpServer {
 public:
@@ -39,17 +36,16 @@ protected:
 
   bool serveFile(const char* file, const char* contentType = "text/html");
   ESP8266WebServer::THandlerFunction handleUpdateFile(const char* filename);
+  ESP8266WebServer::THandlerFunction handleServe_P(const char* data, size_t length);
   void applySettings(Settings& settings);
 
   void handleUpdateSettings();
   void handleGetRadioConfigs();
   void handleAbout();
-  void handleGetLatestRelease();
   void handleSystemPost();
   void handleListenGateway(const UrlTokenBindings* urlBindings);
   void handleSendRaw(const UrlTokenBindings* urlBindings);
   void handleUpdateGroup(const UrlTokenBindings* urlBindings);
-  void handleDownloadUpdate(const UrlTokenBindings* urlBindings);
 
   void handleRequest(const JsonObject& request);
 
