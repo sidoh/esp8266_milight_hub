@@ -42,12 +42,10 @@ protected:
   void handleUpdateSettings();
   void handleGetRadioConfigs();
   void handleAbout();
-  void handleGetLatestRelease();
   void handleSystemPost();
   void handleListenGateway(const UrlTokenBindings* urlBindings);
   void handleSendRaw(const UrlTokenBindings* urlBindings);
   void handleUpdateGroup(const UrlTokenBindings* urlBindings);
-  void handleDownloadUpdate(const UrlTokenBindings* urlBindings);
 
   void handleRequest(const JsonObject& request);
 

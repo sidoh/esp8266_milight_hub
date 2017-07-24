@@ -305,7 +305,7 @@ var handleCheckForUpdates = function() {
     '/about',
     {
       success: function(data) {
-        currentVersion = JSON.parse(data);
+        currentVersion = data;
         handleReceiveData();
       },
       failure: handleError
