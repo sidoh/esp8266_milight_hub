@@ -82,8 +82,6 @@ void MiLightHttpServer::handleGetLatestRelease() {
     "/releases/latest"
   );
 
-  Serial.println(path);
-
   // This is an ugly hack, but probably not worth optimizing. The nice way
   // to do this would be to extract the content len from GitHub's response
   // and stream the body to the server directly. But this would require parsing
