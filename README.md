@@ -48,12 +48,11 @@ Connect SPI pins (CS, SCK, MOSI, MISO) to appropriate SPI pins on the ESP8266. W
 
 #### Setting up the ESP
 
-You'll need to flash the firmware and a SPIFFS image. It's really easy to do this with [PlatformIO](http://platformio.org/):
+The goal here is to flash your ESP with the firmware. It's really easy to do this with [PlatformIO](http://platformio.org/):
 
 ```
 export ESP_BOARD=nodemcuv2
 platformio run -e $ESP_BOARD --target upload
-platformio run -e $ESP_BOARD --target uploadfs
 ```
 
 Of course make sure to substitute `nodemcuv2` with the board that you're using.
@@ -76,7 +75,7 @@ Both mDNS and SSDP are supported.
 
 #### Use it!
 
-The HTTP endpoints (shown below) will be fully functional at this point. You should also be able to navigate to `http://<ip_of_esp>`. The UI should look like this:
+The HTTP endpoints (shown below) will be fully functional at this point. You should also be able to navigate to `http://<ip_of_esp>`, or `http://milight-hub.local` if your client supports mDNS. The UI should look like this:
 
 ![Web UI](http://imgur.com/XNNigvL.png)
 
@@ -86,7 +85,6 @@ The HTTP endpoints (shown below) will be fully functional at this point. You sho
 1. `GET /about`. Return information about current firmware version.
 1. `POST /system`. Post commands in the form `{"comamnd": <command>}`. Currently supports the commands: `restart`.
 1. `POST /firmware`. OTA firmware update.
-1. `POST /web`. Update web UI.
 1. `GET /settings`. Gets current settings as JSON.
 1. `PUT /settings`. Patches settings (e.g., doesn't overwrite keys that aren't present). Accepts a JSON blob in the body.
 1. `GET /radio_configs`. Get a list of supported radio configs (aka `device_type`s).
