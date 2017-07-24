@@ -316,7 +316,7 @@ var handleCheckForUpdates = function() {
   );
 
   $.ajax(
-    '/latest_release',
+    'https://api.github.com/repos/sidoh/esp8266_milight_hub/releases/latest',
     {
       success: function(data) {
         latestRelease = data;
