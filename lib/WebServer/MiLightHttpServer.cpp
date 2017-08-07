@@ -67,12 +67,19 @@ void MiLightHttpServer::begin() {
       yield();
     }
   );
+  wsServer.onEvent(
+    [this](uint8_t num, WStype_t type, uint8_t * payload, size_t length) {
+      handleWsEvent(num, type, payload, length);
+    }
+  );
+  wsServer.begin();
 
   server.begin();
 }
 
 void MiLightHttpServer::handleClient() {
   server.handleClient();
+  wsServer.loop();
 }
 
 void MiLightHttpServer::on(const char* path, HTTPMethod method, ESP8266WebServer::THandlerFunction handler) {
@@ -365,6 +372,42 @@ void MiLightHttpServer::handleSendRaw(const UrlTokenBindings* bindings) {
   }
 
   server.send_P(200, TEXT_PLAIN, PSTR("true"));
+}
+
+void MiLightHttpServer::handleWsEvent(uint8_t num, WStype_t type, uint8_t *payload, size_t length) {
+  switch (type) {
+    case WStype_DISCONNECTED:
+      if (numWsClients > 0) {
+        numWsClients--;
+      }
+      break;
+
+    case WStype_CONNECTED:
+      numWsClients++;
+      break;
+  }
+}
+
+void MiLightHttpServer::handlePacketSent(uint8_t *packet, const MiLightRadioConfig& config) {
+  if (numWsClients > 0) {
+    size_t packetLen = config.packetFormatter->getPacketLength();
+    char buffer[packetLen*3];
+    IntParsing::bytesToHexStr(packet, packetLen, buffer, packetLen*3);
+
+    char formattedPacket[200];
+    config.packetFormatter->format(packet, formattedPacket);
+
+    char responseBuffer[300];
+    sprintf_P(
+      responseBuffer,
+      PSTR("\n%s packet received (%d bytes):\n%s"),
+      config.name,
+      sizeof(packet),
+      formattedPacket
+    );
+
+    wsServer.broadcastTXT(reinterpret_cast<uint8_t*>(responseBuffer));
+  }
 }
 
 ESP8266WebServer::THandlerFunction MiLightHttpServer::handleServe_P(const char* data, size_t length) {

@@ -1,6 +1,7 @@
 #include <WebServer.h>
 #include <MiLightClient.h>
 #include <Settings.h>
+#include <WebSocketsServer.h>
 
 #ifndef _MILIGHT_HTTP_SERVER
 #define _MILIGHT_HTTP_SERVER
@@ -16,6 +17,8 @@ class MiLightHttpServer {
 public:
   MiLightHttpServer(Settings& settings, MiLightClient*& milightClient)
     : server(WebServer(80)),
+      wsServer(WebSocketsServer(81)),
+      numWsClients(0),
       milightClient(milightClient),
       settings(settings)
   {
@@ -26,6 +29,7 @@ public:
   void handleClient();
   void onSettingsSaved(SettingsSavedHandler handler);
   void on(const char* path, HTTPMethod method, ESP8266WebServer::THandlerFunction handler);
+  void handlePacketSent(uint8_t* packet, const MiLightRadioConfig& config);
   WiFiClient client();
 
 protected:
@@ -48,13 +52,16 @@ protected:
   void handleUpdateGroup(const UrlTokenBindings* urlBindings);
 
   void handleRequest(const JsonObject& request);
+  void handleWsEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length);
 
   File updateFile;
 
   WebServer server;
+  WebSocketsServer wsServer;
   Settings& settings;
   MiLightClient*& milightClient;
   SettingsSavedHandler settingsSavedHandler;
+  size_t numWsClients;
 
 };
 
