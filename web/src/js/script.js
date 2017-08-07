@@ -33,6 +33,14 @@ var DEFAULT_UDP_PROTOCL_VERSION = 5;
 
 var selectize;
 
+var webSocket = new WebSocket("ws://" + location.hostname + ":81");
+webSocket.onmessage = function(e) {
+  if (sniffing) {
+    var message = e.data;
+    $('#sniffed-traffic').prepend('<pre>' + message + '</pre>');
+  }
+}
+
 var toHex = function(v) {
   return "0x" + (v).toString(16).toUpperCase();
 }
@@ -85,15 +93,6 @@ var sendCommand = _.throttle(
   },
   1000
 )
-
-var sniffRequest;
-var sniffing = false;
-var getTraffic = function() {
-  sniffRequest = $.get('/gateway_traffic', function(data) {
-    $('#sniffed-traffic').prepend('<pre>' + data + '</pre>');
-    getTraffic();
-  });
-};
 
 var gatewayServerRow = function(deviceId, port, version) {
   var elmt = '<tr>';
@@ -381,12 +380,10 @@ $(function() {
 
   $('#sniff').click(function() {
     if (sniffing) {
-      sniffRequest.abort();
       sniffing = false;
       $(this).html('Start Sniffing');
     } else {
       sniffing = true;
-      getTraffic();
       $(this).html('Stop Sniffing');
     }
   });

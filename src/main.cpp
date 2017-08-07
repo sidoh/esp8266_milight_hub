@@ -79,6 +79,7 @@ void onPacketSentHandler(uint8_t* packet, const MiLightRadioConfig& config) {
   if (mqttClient) {
     mqttClient->sendUpdate(type, deviceId, groupId, output);
   }
+  httpServer->handlePacketSent(packet, config);
 }
 
 void handleListen() {
