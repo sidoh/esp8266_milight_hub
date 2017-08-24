@@ -298,6 +298,11 @@ void MiLightClient::update(const JsonObject& request) {
     );
   }
 
+  //Homeassistant - Switch to white if white value is set
+  if (request.containsKey("white_value")) {
+    this->updateColorWhite();
+  }
+  
   if (request.containsKey("mode")) {
     this->updateMode(request["mode"]);
   }
