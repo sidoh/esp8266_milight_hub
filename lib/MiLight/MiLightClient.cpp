@@ -268,12 +268,9 @@ void MiLightClient::update(const JsonObject& request) {
     uint8_t g = color["g"];
     uint8_t b = color["b"];
     //If close to white
-    if( r > 256 - RGB_BOUNDARY && g > 256 - RGB_BOUNDARY && b > 256 - RGB_BOUNDARY)
-    {
+    if( r > 256 - RGB_WHITE_BOUNDARY && g > 256 - RGB_WHITE_BOUNDARY && b > 256 - RGB_WHITE_BOUNDARY) {
         this->updateColorWhite();
-    }
-    else
-    {
+    } else {
       double hsv[3];
       RGBConverter converter;
       converter.rgbToHsv(r, g, b, hsv);

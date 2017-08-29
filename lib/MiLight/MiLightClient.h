@@ -12,7 +12,7 @@
 
 #define MILIGHT_DEFAULT_RESEND_COUNT 10
 //Used to determine close to white
-#define RGB_BOUNDARY 40
+#define RGB_WHITE_BOUNDARY 40
 
 class MiLightClient {
 public:
