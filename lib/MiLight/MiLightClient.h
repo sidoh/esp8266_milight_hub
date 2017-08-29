@@ -67,7 +67,8 @@ public:
 
   void update(const JsonObject& object);
   void handleCommand(const String& command);
-
+  void handleEffect(const String& effect);
+  
   void onPacketSent(PacketSentHandler handler);
 
 protected:

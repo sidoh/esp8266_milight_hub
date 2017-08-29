@@ -253,6 +253,11 @@ void MiLightClient::update(const JsonObject& request) {
     }
   }
 
+  //Homeassistant - Handle effect
+  if (request.containsKey("effect")) {
+    this->handleEffect(request["effect"]);
+  }
+
   if (request.containsKey("hue")) {
     this->updateHue(request["hue"]);
   }
@@ -337,6 +342,14 @@ void MiLightClient::handleCommand(const String& command) {
     this->modeSpeedDown();
   } else if (command == "mode_speed_up") {
     this->modeSpeedUp();
+  }
+}
+
+void MiLightClient::handleEffect(const String& effect) {
+  if (effect == "night_mode") {
+    this->enableNightMode();
+  } else if (effect == "white") {
+    this->updateColorWhite();
   }
 }
 
