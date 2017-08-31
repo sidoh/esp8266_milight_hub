@@ -253,6 +253,11 @@ void MiLightClient::update(const JsonObject& request) {
     }
   }
 
+  //Homeassistant - Handle effect
+  if (request.containsKey("effect")) {
+    this->handleEffect(request["effect"]);
+  }
+
   if (request.containsKey("hue")) {
     this->updateHue(request["hue"]);
   }
@@ -267,16 +272,20 @@ void MiLightClient::update(const JsonObject& request) {
     uint8_t r = color["r"];
     uint8_t g = color["g"];
     uint8_t b = color["b"];
+    //If close to white
+    if( r > 256 - RGB_WHITE_BOUNDARY && g > 256 - RGB_WHITE_BOUNDARY && b > 256 - RGB_WHITE_BOUNDARY) {
+        this->updateColorWhite();
+    } else {
+      double hsv[3];
+      RGBConverter converter;
+      converter.rgbToHsv(r, g, b, hsv);
 
-    double hsv[3];
-    RGBConverter converter;
-    converter.rgbToHsv(r, g, b, hsv);
+      uint16_t hue = round(hsv[0]*360);
+      uint8_t saturation = round(hsv[1]*100);
 
-    uint16_t hue = round(hsv[0]*360);
-    uint8_t saturation = round(hsv[1]*100);
-
-    this->updateHue(hue);
-    this->updateSaturation(saturation);
+      this->updateHue(hue);
+      this->updateSaturation(saturation);
+    }
   }
 
   if (request.containsKey("level")) {
@@ -333,6 +342,14 @@ void MiLightClient::handleCommand(const String& command) {
     this->modeSpeedDown();
   } else if (command == "mode_speed_up") {
     this->modeSpeedUp();
+  }
+}
+
+void MiLightClient::handleEffect(const String& effect) {
+  if (effect == "night_mode") {
+    this->enableNightMode();
+  } else if (effect == "white") {
+    this->updateColorWhite();
   }
 }
 

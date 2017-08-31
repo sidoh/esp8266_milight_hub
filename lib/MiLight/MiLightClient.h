@@ -11,7 +11,8 @@
 //#define DEBUG_PRINTF
 
 #define MILIGHT_DEFAULT_RESEND_COUNT 10
-
+//Used to determine close to white
+#define RGB_WHITE_BOUNDARY 40
 
 class MiLightClient {
 public:
@@ -66,7 +67,8 @@ public:
 
   void update(const JsonObject& object);
   void handleCommand(const String& command);
-
+  void handleEffect(const String& effect);
+  
   void onPacketSent(PacketSentHandler handler);
 
 protected:
