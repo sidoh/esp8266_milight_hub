@@ -32,6 +32,7 @@ var UDP_PROTOCOL_VERSIONS = [ 5, 6 ];
 var DEFAULT_UDP_PROTOCL_VERSION = 5;
 
 var selectize;
+var sniffing = false;
 
 var webSocket = new WebSocket("ws://" + location.hostname + ":81");
 webSocket.onmessage = function(e) {
