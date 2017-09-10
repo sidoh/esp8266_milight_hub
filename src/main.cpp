@@ -3,7 +3,6 @@
 #include <ArduinoJson.h>
 #include <stdlib.h>
 #include <FS.h>
-#include <GithubClient.h>
 #include <IntParsing.h>
 #include <Size.h>
 #include <MiLightRadioConfig.h>
@@ -80,6 +79,7 @@ void onPacketSentHandler(uint8_t* packet, const MiLightRadioConfig& config) {
   if (mqttClient) {
     mqttClient->sendUpdate(type, deviceId, groupId, output);
   }
+  httpServer->handlePacketSent(packet, config);
 }
 
 void handleListen() {

@@ -1,6 +1,7 @@
 #include <WebServer.h>
 #include <MiLightClient.h>
 #include <Settings.h>
+#include <WebSocketsServer.h>
 
 #ifndef _MILIGHT_HTTP_SERVER
 #define _MILIGHT_HTTP_SERVER
@@ -9,16 +10,15 @@
 
 typedef std::function<void(void)> SettingsSavedHandler;
 
-const char DEFAULT_INDEX_PAGE[] PROGMEM
-  = "Web app not installed. Click <a href=\"/download_update/web\">here</a> to attempt to download it from GitHub.";
-
 const char TEXT_PLAIN[] PROGMEM = "text/plain";
-const char APPLICATION_JSON[] PROGMEM = "application/json";
+const char APPLICATION_JSON[] = "application/json";
 
 class MiLightHttpServer {
 public:
   MiLightHttpServer(Settings& settings, MiLightClient*& milightClient)
     : server(WebServer(80)),
+      wsServer(WebSocketsServer(81)),
+      numWsClients(0),
       milightClient(milightClient),
       settings(settings)
   {
@@ -29,6 +29,7 @@ public:
   void handleClient();
   void onSettingsSaved(SettingsSavedHandler handler);
   void on(const char* path, HTTPMethod method, ESP8266WebServer::THandlerFunction handler);
+  void handlePacketSent(uint8_t* packet, const MiLightRadioConfig& config);
   WiFiClient client();
 
 protected:
@@ -39,26 +40,28 @@ protected:
 
   bool serveFile(const char* file, const char* contentType = "text/html");
   ESP8266WebServer::THandlerFunction handleUpdateFile(const char* filename);
+  ESP8266WebServer::THandlerFunction handleServe_P(const char* data, size_t length);
   void applySettings(Settings& settings);
 
   void handleUpdateSettings();
   void handleGetRadioConfigs();
   void handleAbout();
-  void handleGetLatestRelease();
   void handleSystemPost();
   void handleListenGateway(const UrlTokenBindings* urlBindings);
   void handleSendRaw(const UrlTokenBindings* urlBindings);
   void handleUpdateGroup(const UrlTokenBindings* urlBindings);
-  void handleDownloadUpdate(const UrlTokenBindings* urlBindings);
 
   void handleRequest(const JsonObject& request);
+  void handleWsEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length);
 
   File updateFile;
 
   WebServer server;
+  WebSocketsServer wsServer;
   Settings& settings;
   MiLightClient*& milightClient;
   SettingsSavedHandler settingsSavedHandler;
+  size_t numWsClients;
 
 };
 
