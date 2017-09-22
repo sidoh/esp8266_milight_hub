@@ -1,0 +1,30 @@
+#include <inttypes.h>
+#include <PacketFormatter.h>
+
+#ifndef _V2_PACKET_FORMATTER
+#define _V2_PACKET_FORMATTER
+
+#define V2_COMMAND_INDEX 4
+#define V2_ARGUMENT_INDEX 5
+
+class V2PacketFormatter : public PacketFormatter {
+public:
+  V2PacketFormatter(uint8_t protocolId, uint8_t numGroups);
+
+  virtual void initializePacket(uint8_t* packet);
+
+  virtual void updateStatus(MiLightStatus status, uint8_t group);
+  virtual void command(uint8_t command, uint8_t arg);
+  virtual void format(uint8_t const* packet, char* buffer);
+  virtual void unpair();
+
+  virtual void finalizePacket(uint8_t* packet);
+
+  uint8_t groupCommandArg(MiLightStatus status, uint8_t groupId);
+
+private:
+  const uint8_t protocolId;
+  const uint8_t numGroups;
+};
+
+#endif

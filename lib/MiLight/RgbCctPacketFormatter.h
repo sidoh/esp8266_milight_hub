@@ -1,7 +1,5 @@
-#include <PacketFormatter.h>
+#include <V2PacketFormatter.h>
 
-#define RGB_CCT_COMMAND_INDEX 4
-#define RGB_CCT_ARGUMENT_INDEX 5
 #define RGB_CCT_NUM_MODES 9
 #define RGB_CCT_PACKET_LEN 9
 
@@ -32,25 +30,19 @@ enum MiLightRgbCctArguments {
   RGB_CCT_MODE_SPEED_DOWN = 0x0B
 };
 
-class RgbCctPacketFormatter : public PacketFormatter {
+class RgbCctPacketFormatter : public V2PacketFormatter {
 public:
   RgbCctPacketFormatter()
-    : PacketFormatter(RGB_CCT_PACKET_LEN),
+    : V2PacketFormatter(0x20, 4),
       lastMode(0)
   { }
 
-  virtual void initializePacket(uint8_t* packet);
-
-  virtual void updateStatus(MiLightStatus status, uint8_t group);
   virtual void updateBrightness(uint8_t value);
-  virtual void command(uint8_t command, uint8_t arg);
   virtual void updateHue(uint16_t value);
   virtual void updateColorRaw(uint8_t value);
   virtual void updateColorWhite();
   virtual void updateTemperature(uint8_t value);
   virtual void updateSaturation(uint8_t value);
-  virtual void format(uint8_t const* packet, char* buffer);
-  virtual void unpair();
   virtual void enableNightMode();
 
   virtual void modeSpeedDown();
@@ -59,7 +51,6 @@ public:
   virtual void nextMode();
   virtual void previousMode();
 
-  virtual void finalizePacket(uint8_t* packet);
   virtual void parsePacket(const uint8_t* packet, JsonObject& result);
 
 protected:
