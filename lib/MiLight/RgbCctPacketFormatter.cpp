@@ -1,24 +1,8 @@
 #include <RgbCctPacketFormatter.h>
 #include <Units.h>
-
-#define V2_OFFSET(byte, key, jumpStart) ( \
-  pgm_read_byte(&V2_OFFSETS[byte-1][key%4]) \
-    + \
-  ((jumpStart > 0 && key >= jumpStart && key <= jumpStart+0x80) ? 0x80 : 0) \
-)
+#include <V2RFEncoding.h>
 
 #define GROUP_COMMAND_ARG(status, groupId) ( groupId + (status == OFF ? 5 : 0) )
-
-uint8_t const RgbCctPacketFormatter::V2_OFFSETS[][4] = {
-  { 0x45, 0x1F, 0x14, 0x5C }, // request type
-  { 0x2B, 0xC9, 0xE3, 0x11 }, // id 1
-  { 0x6D, 0x5F, 0x8A, 0x2B }, // id 2
-  { 0xAF, 0x03, 0x1D, 0xF3 }, // command
-  { 0x1A, 0xE2, 0xF0, 0xD1 }, // argument
-  { 0x04, 0xD8, 0x71, 0x42 }, // sequence
-  { 0xAF, 0x04, 0xDD, 0x07 }, // group
-  { 0x61, 0x13, 0x38, 0x64 }  // checksum
-};
 
 void RgbCctPacketFormatter::initializePacket(uint8_t* packet) {
   size_t packetPtr = 0;
@@ -108,13 +92,13 @@ void RgbCctPacketFormatter::enableNightMode() {
 }
 
 void RgbCctPacketFormatter::finalizePacket(uint8_t* packet) {
-  encodeV2Packet(packet);
+  V2RFEncoding::encodeV2Packet(packet);
 }
 
 void RgbCctPacketFormatter::parsePacket(const uint8_t *packet, JsonObject& result) {
   uint8_t packetCopy[RGB_CCT_PACKET_LEN];
   memcpy(packetCopy, packet, RGB_CCT_PACKET_LEN);
-  decodeV2Packet(packetCopy);
+  V2RFEncoding::decodeV2Packet(packetCopy);
 
   result["device_id"] = (packetCopy[2] << 8) | packetCopy[3];
   result["group_id"] = packetCopy[7];
@@ -173,54 +157,6 @@ void RgbCctPacketFormatter::parsePacket(const uint8_t *packet, JsonObject& resul
   }
 }
 
-uint8_t RgbCctPacketFormatter::xorKey(uint8_t key) {
-  // Generate most significant nibble
-  const uint8_t shift = (key & 0x0F) < 0x04 ? 0 : 1;
-  const uint8_t x = (((key & 0xF0) >> 4) + shift + 6) % 8;
-  const uint8_t msn = (((4 + x) ^ 1) & 0x0F) << 4;
-
-  // Generate least significant nibble
-  const uint8_t lsn = ((((key & 0xF) + 4)^2) & 0x0F);
-
-  return ( msn | lsn );
-}
-
-uint8_t RgbCctPacketFormatter::decodeByte(uint8_t byte, uint8_t s1, uint8_t xorKey, uint8_t s2) {
-  uint8_t value = byte - s2;
-  value = value ^ xorKey;
-  value = value - s1;
-
-  return value;
-}
-
-uint8_t RgbCctPacketFormatter::encodeByte(uint8_t byte, uint8_t s1, uint8_t xorKey, uint8_t s2) {
-  uint8_t value = byte + s1;
-  value = value ^ xorKey;
-  value = value + s2;
-
-  return value;
-}
-
-void RgbCctPacketFormatter::decodeV2Packet(uint8_t *packet) {
-  uint8_t key = xorKey(packet[0]);
-
-  for (size_t i = 1; i <= 8; i++) {
-    packet[i] = decodeByte(packet[i], 0, key, V2_OFFSET(i, packet[0], V2_OFFSET_JUMP_START));
-  }
-}
-
-void RgbCctPacketFormatter::encodeV2Packet(uint8_t *packet) {
-  uint8_t key = xorKey(packet[0]);
-  uint8_t sum = key;
-
-  for (size_t i = 1; i <= 7; i++) {
-    sum += packet[i];
-    packet[i] = encodeByte(packet[i], 0, key, V2_OFFSET(i, packet[0], V2_OFFSET_JUMP_START));
-  }
-
-  packet[8] = encodeByte(sum, 2, key, V2_OFFSET(8, packet[0], 0));
-}
-
 void RgbCctPacketFormatter::format(uint8_t const* packet, char* buffer) {
   buffer += sprintf_P(buffer, PSTR("Raw packet: "));
   for (int i = 0; i < packetLength; i++) {
@@ -230,7 +166,7 @@ void RgbCctPacketFormatter::format(uint8_t const* packet, char* buffer) {
   uint8_t decodedPacket[packetLength];
   memcpy(decodedPacket, packet, packetLength);
 
-  decodeV2Packet(decodedPacket);
+  V2RFEncoding::decodeV2Packet(decodedPacket);
 
   buffer += sprintf_P(buffer, PSTR("\n\nDecoded:\n"));
   buffer += sprintf_P(buffer, PSTR("Key      : %02X\n"), decodedPacket[0]);
