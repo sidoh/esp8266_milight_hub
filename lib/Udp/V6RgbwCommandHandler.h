@@ -20,7 +20,7 @@ enum RgbwCommandIds {
 class V6RgbwCommandHandler : public V6CommandHandler {
 public:
   V6RgbwCommandHandler()
-    : V6CommandHandler(0x0700, MilightRgbwConfig)
+    : V6CommandHandler(0x0700, FUT096Config)
   { }
 
   virtual bool handleCommand(

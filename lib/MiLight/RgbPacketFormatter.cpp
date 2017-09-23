@@ -4,7 +4,7 @@
 void RgbPacketFormatter::initializePacket(uint8_t *packet) {
   size_t packetPtr = 0;
 
-  packet[packetPtr++] = RGB;
+  packet[packetPtr++] = 0xA4;
   packet[packetPtr++] = deviceId >> 8;
   packet[packetPtr++] = deviceId & 0xFF;
   packet[packetPtr++] = 0;

@@ -7,13 +7,14 @@
 MiLightClient::MiLightClient(MiLightRadioFactory* radioFactory)
   : resendCount(MILIGHT_DEFAULT_RESEND_COUNT),
     currentRadio(NULL),
+    currentRemote(NULL),
     numRadios(MiLightRadioConfig::NUM_CONFIGS),
     packetSentHandler(NULL)
 {
   radios = new MiLightRadio*[numRadios];
 
   for (size_t i = 0; i < numRadios; i++) {
-    radios[i] = radioFactory->create(*MiLightRadioConfig::ALL_CONFIGS[i]);
+    radios[i] = radioFactory->create(MiLightRadioConfig::ALL_CONFIGS[i]);
   }
 }
 
@@ -22,64 +23,65 @@ void MiLightClient::begin() {
     radios[i]->begin();
   }
 
-  this->currentRadio = radios[0];
-  this->currentRadio->configure();
+  switchRadio(static_cast<size_t>(0));
 }
 
 void MiLightClient::setHeld(bool held) {
-  formatter->setHeld(held);
+  currentRemote->packetFormatter->setHeld(held);
 }
 
-MiLightRadio* MiLightClient::switchRadio(const MiLightRadioType type) {
-  MiLightRadio* radio = NULL;
+size_t MiLightClient::getNumRadios() const {
+  return numRadios;
+}
+
+MiLightRadio* MiLightClient::switchRadio(size_t radioIx) {
+  if (radioIx >= getNumRadios()) {
+    return NULL;
+  }
+
+  if (this->currentRadio != radios[radioIx]) {
+    this->currentRadio = radios[radioIx];
+    this->currentRadio->configure();
+  }
+
+  return this->currentRadio;
+}
+
+MiLightRadio* MiLightClient::switchRadio(const MiLightRemoteConfig* remoteConfig) {
+  MiLightRadio* radio;
 
   for (int i = 0; i < numRadios; i++) {
-    if (this->radios[i]->config().type == type) {
-      radio = radios[i];
+    if (&this->radios[i]->config() == &remoteConfig->radioConfig) {
+      radio = switchRadio(i);
       break;
     }
   }
 
-  if (radio != NULL) {
-    if (currentRadio != radio) {
-      radio->configure();
-    }
-
-    this->currentRadio = radio;
-    this->formatter = radio->config().packetFormatter;
-
-    return radio;
-  } else {
-    Serial.print(F("MiLightClient - tried to get radio for unknown type: "));
-    Serial.println(type);
-  }
-
-  return NULL;
+  return radio;
 }
 
-
-void MiLightClient::prepare(MiLightRadioConfig& config,
+void MiLightClient::prepare(const MiLightRemoteConfig* config,
   const uint16_t deviceId,
-  const uint8_t groupId) {
-
-  prepare(config.type, deviceId, groupId);
-}
-
-void MiLightClient::prepare(MiLightRadioType type,
-  const uint16_t deviceId,
-  const uint8_t groupId) {
-
-  switchRadio(type);
+  const uint8_t groupId
+) {
+  switchRadio(config);
+  this->currentRemote = config;
 
   if (deviceId >= 0 && groupId >= 0) {
-    formatter->prepare(deviceId, groupId);
+    currentRemote->packetFormatter->prepare(deviceId, groupId);
   }
+}
+
+void MiLightClient::prepare(const MiLightRemoteType type,
+  const uint16_t deviceId,
+  const uint8_t groupId
+) {
+  prepare(MiLightRemoteConfig::fromType(type));
 }
 
 void MiLightClient::setResendCount(const unsigned int resendCount) {
   this->resendCount = resendCount;
 }
-
 
 bool MiLightClient::available() {
   if (currentRadio == NULL) {
@@ -88,14 +90,16 @@ bool MiLightClient::available() {
 
   return currentRadio->available();
 }
-void MiLightClient::read(uint8_t packet[]) {
+
+size_t MiLightClient::read(uint8_t packet[]) {
   if (currentRadio == NULL) {
-    return;
+    return 0;
   }
 
-  size_t length = currentRadio->config().getPacketLength();
-
+  size_t length;
   currentRadio->read(packet, length);
+
+  return length;
 }
 
 void MiLightClient::write(uint8_t packet[]) {
@@ -105,7 +109,7 @@ void MiLightClient::write(uint8_t packet[]) {
 
 #ifdef DEBUG_PRINTF
   printf("Sending packet: ");
-  for (int i = 0; i < currentRadio->config().getPacketLength(); i++) {
+  for (int i = 0; i < currentRemote->packetFormatter->getPacketLength(); i++) {
     printf("%02X", packet[i]);
   }
   printf("\n");
@@ -113,11 +117,11 @@ void MiLightClient::write(uint8_t packet[]) {
 #endif
 
   for (int i = 0; i < this->resendCount; i++) {
-    currentRadio->write(packet, currentRadio->config().getPacketLength());
+    currentRadio->write(packet, currentRemote->packetFormatter->getPacketLength());
   }
 
   if (this->packetSentHandler) {
-    this->packetSentHandler(packet, currentRadio->config());
+    this->packetSentHandler(packet, *currentRemote);
   }
 
 #ifdef DEBUG_PRINTF
@@ -128,106 +132,106 @@ void MiLightClient::write(uint8_t packet[]) {
 }
 
 void MiLightClient::updateColorRaw(const uint8_t color) {
-  formatter->updateColorRaw(color);
+  currentRemote->packetFormatter->updateColorRaw(color);
   flushPacket();
 }
 
 void MiLightClient::updateHue(const uint16_t hue) {
-  formatter->updateHue(hue);
+  currentRemote->packetFormatter->updateHue(hue);
   flushPacket();
 }
 
 void MiLightClient::updateBrightness(const uint8_t brightness) {
-  formatter->updateBrightness(brightness);
+  currentRemote->packetFormatter->updateBrightness(brightness);
   flushPacket();
 }
 
 void MiLightClient::updateMode(uint8_t mode) {
-  formatter->updateMode(mode);
+  currentRemote->packetFormatter->updateMode(mode);
   flushPacket();
 }
 
 void MiLightClient::nextMode() {
-  formatter->nextMode();
+  currentRemote->packetFormatter->nextMode();
   flushPacket();
 }
 
 void MiLightClient::previousMode() {
-  formatter->previousMode();
+  currentRemote->packetFormatter->previousMode();
   flushPacket();
 }
 
 void MiLightClient::modeSpeedDown() {
-  formatter->modeSpeedDown();
+  currentRemote->packetFormatter->modeSpeedDown();
   flushPacket();
 }
 void MiLightClient::modeSpeedUp() {
-  formatter->modeSpeedUp();
+  currentRemote->packetFormatter->modeSpeedUp();
   flushPacket();
 }
 
 void MiLightClient::updateStatus(MiLightStatus status, uint8_t groupId) {
-  formatter->updateStatus(status, groupId);
+  currentRemote->packetFormatter->updateStatus(status, groupId);
   flushPacket();
 }
 
 void MiLightClient::updateStatus(MiLightStatus status) {
-  formatter->updateStatus(status);
+  currentRemote->packetFormatter->updateStatus(status);
   flushPacket();
 }
 
 void MiLightClient::updateSaturation(const uint8_t value) {
-  formatter->updateSaturation(value);
+  currentRemote->packetFormatter->updateSaturation(value);
   flushPacket();
 }
 
 void MiLightClient::updateColorWhite() {
-  formatter->updateColorWhite();
+  currentRemote->packetFormatter->updateColorWhite();
   flushPacket();
 }
 
 void MiLightClient::enableNightMode() {
-  formatter->enableNightMode();
+  currentRemote->packetFormatter->enableNightMode();
   flushPacket();
 }
 
 void MiLightClient::pair() {
-  formatter->pair();
+  currentRemote->packetFormatter->pair();
   flushPacket();
 }
 
 void MiLightClient::unpair() {
-  formatter->unpair();
+  currentRemote->packetFormatter->unpair();
   flushPacket();
 }
 
 void MiLightClient::increaseBrightness() {
-  formatter->increaseBrightness();
+  currentRemote->packetFormatter->increaseBrightness();
   flushPacket();
 }
 
 void MiLightClient::decreaseBrightness() {
-  formatter->decreaseBrightness();
+  currentRemote->packetFormatter->decreaseBrightness();
   flushPacket();
 }
 
 void MiLightClient::increaseTemperature() {
-  formatter->increaseTemperature();
+  currentRemote->packetFormatter->increaseTemperature();
   flushPacket();
 }
 
 void MiLightClient::decreaseTemperature() {
-  formatter->decreaseTemperature();
+  currentRemote->packetFormatter->decreaseTemperature();
   flushPacket();
 }
 
 void MiLightClient::updateTemperature(const uint8_t temperature) {
-  formatter->updateTemperature(temperature);
+  currentRemote->packetFormatter->updateTemperature(temperature);
   flushPacket();
 }
 
 void MiLightClient::command(uint8_t command, uint8_t arg) {
-  formatter->command(command, arg);
+  currentRemote->packetFormatter->command(command, arg);
   flushPacket();
 }
 
@@ -367,12 +371,8 @@ uint8_t MiLightClient::parseStatus(const JsonObject& object) {
   return (strStatus.equalsIgnoreCase("on") || strStatus.equalsIgnoreCase("true")) ? ON : OFF;
 }
 
-void MiLightClient::formatPacket(uint8_t* packet, char* buffer) {
-  formatter->format(packet, buffer);
-}
-
 void MiLightClient::flushPacket() {
-  PacketStream& stream = formatter->buildPackets();
+  PacketStream& stream = currentRemote->packetFormatter->buildPackets();
   const size_t prevNumRepeats = this->resendCount;
 
   // When sending multiple packets, normalize the number of repeats
@@ -389,7 +389,7 @@ void MiLightClient::flushPacket() {
   }
 
   setResendCount(prevNumRepeats);
-  formatter->reset();
+  currentRemote->packetFormatter->reset();
 }
 
 void MiLightClient::onPacketSent(PacketSentHandler handler) {

@@ -9,6 +9,13 @@ V2PacketFormatter::V2PacketFormatter(uint8_t protocolId, uint8_t numGroups)
     numGroups(numGroups)
 { }
 
+bool V2PacketFormatter::canHandle(const uint8_t *packet, const size_t packetLen) {
+  uint8_t packetCopy[V2_PACKET_LEN];
+  memcpy(packetCopy, packet, V2_PACKET_LEN);
+  V2RFEncoding::decodeV2Packet(packetCopy);
+  return packetCopy[V2_PROTOCOL_ID_INDEX] == protocolId;
+}
+
 void V2PacketFormatter::initializePacket(uint8_t* packet) {
   size_t packetPtr = 0;
 

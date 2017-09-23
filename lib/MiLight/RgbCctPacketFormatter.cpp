@@ -1,6 +1,6 @@
 #include <RgbCctPacketFormatter.h>
-#include <Units.h>
 #include <V2RFEncoding.h>
+#include <Units.h>
 
 void RgbCctPacketFormatter::modeSpeedDown() {
   command(RGB_CCT_ON, RGB_CCT_MODE_SPEED_DOWN);
@@ -55,8 +55,8 @@ void RgbCctPacketFormatter::enableNightMode() {
 }
 
 void RgbCctPacketFormatter::parsePacket(const uint8_t *packet, JsonObject& result) {
-  uint8_t packetCopy[RGB_CCT_PACKET_LEN];
-  memcpy(packetCopy, packet, RGB_CCT_PACKET_LEN);
+  uint8_t packetCopy[V2_PACKET_LEN];
+  memcpy(packetCopy, packet, V2_PACKET_LEN);
   V2RFEncoding::decodeV2Packet(packetCopy);
 
   result["device_id"] = (packetCopy[2] << 8) | packetCopy[3];

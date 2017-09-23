@@ -55,7 +55,7 @@ class LT8900MiLightRadio : public MiLightRadio {
 
   private:
 
-    void vInitRadioModule(MiLightRadioType type);
+    void vInitRadioModule();
     void vSetSyncWord(uint16_t syncWord3, uint16_t syncWord2, uint16_t syncWord1, uint16_t syncWord0);
     uint16_t uiReadRegister(uint8_t reg);
     void regWrite16(byte ADDR, byte V1, byte V2, byte WAIT);

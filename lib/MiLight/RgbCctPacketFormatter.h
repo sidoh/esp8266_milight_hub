@@ -1,7 +1,9 @@
 #include <V2PacketFormatter.h>
 
+#ifndef _RGB_CCT_PACKET_FORMATTER_H
+#define _RGB_CCT_PACKET_FORMATTER_H
+
 #define RGB_CCT_NUM_MODES 9
-#define RGB_CCT_PACKET_LEN 9
 
 #define RGB_CCT_COLOR_OFFSET 0x5F
 #define RGB_CCT_BRIGHTNESS_OFFSET 0x8F
@@ -11,9 +13,6 @@
 // Remotes have a larger range
 #define RGB_CCT_KELVIN_REMOTE_OFFSET 0x4C
 #define RGB_CCT_KELVIN_REMOTE_START  0xE8
-
-#ifndef _RGB_CCT_PACKET_FORMATTER_H
-#define _RGB_CCT_PACKET_FORMATTER_H
 
 enum MiLightRgbCctCommand {
   RGB_CCT_ON = 0x01,

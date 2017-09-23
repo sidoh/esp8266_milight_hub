@@ -1,17 +1,18 @@
 #ifndef _MILIGHT_BUTTONS
-#define _MILIGHT_BUTTONS 
+#define _MILIGHT_BUTTONS
 
-enum MiLightRadioType {
-  UNKNOWN = 0,
-  RGBW  = 0xB0,
-  CCT   = 0x5A,
-  RGB_CCT = 0x20,
-  RGB = 0xA4
+enum MiLightRemoteType {
+  REMOTE_TYPE_UNKNOWN,
+  REMOTE_TYPE_RGBW,
+  REMOTE_TYPE_CCT,
+  REMOTE_TYPE_RGB_CCT,
+  REMOTE_TYPE_RGB,
+  REMOTE_TYPE_FUT089
 };
 
-enum MiLightStatus { 
-  ON = 0, 
-  OFF = 1 
+enum MiLightStatus {
+  ON = 0,
+  OFF = 1
 };
 
 #endif
