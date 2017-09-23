@@ -28,7 +28,8 @@ void FUT089PacketFormatter::updateColorRaw(uint8_t value) {
 }
 
 void FUT089PacketFormatter::updateTemperature(uint8_t value) {
-  command(FUT089_KELVIN, value);
+  updateColorWhite();
+  command(FUT089_KELVIN, 100 - value);
 }
 
 void FUT089PacketFormatter::updateSaturation(uint8_t value) {
