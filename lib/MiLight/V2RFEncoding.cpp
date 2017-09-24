@@ -3,7 +3,7 @@
 #define V2_OFFSET(byte, key, jumpStart) ( \
   pgm_read_byte(&V2_OFFSETS[byte-1][key%4]) \
     + \
-  ((jumpStart > 0 && key >= jumpStart && key <= jumpStart+0x80) ? 0x80 : 0) \
+  ((jumpStart > 0 && key >= jumpStart && key < jumpStart+0x80) ? 0x80 : 0) \
 )
 
 uint8_t const V2RFEncoding::V2_OFFSETS[][4] = {
