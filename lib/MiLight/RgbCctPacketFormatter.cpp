@@ -4,7 +4,7 @@
 #define V2_OFFSET(byte, key, jumpStart) ( \
   pgm_read_byte(&V2_OFFSETS[byte-1][key%4]) \
     + \
-  ((jumpStart > 0 && key >= jumpStart && key <= jumpStart+0x80) ? 0x80 : 0) \
+  ((jumpStart > 0 && key >= jumpStart && key < jumpStart+0x80) ? 0x80 : 0) \
 )
 
 #define GROUP_COMMAND_ARG(status, groupId) ( groupId + (status == OFF ? 5 : 0) )
