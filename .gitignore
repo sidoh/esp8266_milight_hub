@@ -4,3 +4,4 @@
 .gcc-flags.json
 /web/node_modules
 /web/build
+/dist/*.bin
