@@ -315,6 +315,11 @@ void MiLightClient::update(const JsonObject& request) {
     this->updateMode(request["mode"]);
   }
 
+  // Raw packet command/args
+  if (request.containsKey("button_id") && request.containsKey("argument")) {
+    this->command(request["button_id"], request["argument"]);
+  }
+
   // Always turn off last
   if (parsedStatus == OFF) {
     this->updateStatus(OFF);
