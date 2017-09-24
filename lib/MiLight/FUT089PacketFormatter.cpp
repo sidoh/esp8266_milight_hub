@@ -75,15 +75,15 @@ void FUT089PacketFormatter::parsePacket(const uint8_t *packet, JsonObject& resul
     uint8_t rescaledColor = (arg - FUT089_COLOR_OFFSET) % 0x100;
     uint16_t hue = Units::rescale<uint16_t, uint16_t>(rescaledColor, 360, 255.0);
     result["hue"] = hue;
-  } else if (command == FUT089_KELVIN) {
-    result["color_temp"] = Units::whiteValToMireds(arg, 100);
   } else if (command == FUT089_BRIGHTNESS) {
     uint8_t level = constrain(arg, 0, 100);
     result["brightness"] = Units::rescale<uint8_t, uint8_t>(level, 255, 100);
   // saturation == kelvin. arg ranges are the same, so won't be able to parse
   // both unless state is persisted
-  } else if (command == FUT089_SATURATION) {
-    result["saturation"] = constrain(arg, 0, 100);
+  // } else if (command == FUT089_SATURATION) {
+  //   result["saturation"] = constrain(arg, 0, 100);
+  // } else if (command == FUT089_KELVIN) {
+  //   result["color_temp"] = Units::whiteValToMireds(arg, 100);
   } else if (command == FUT089_MODE) {
     result["mode"] = arg;
   } else {
