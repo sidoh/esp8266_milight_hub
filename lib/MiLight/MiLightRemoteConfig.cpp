@@ -9,7 +9,7 @@ const MiLightRemoteConfig* MiLightRemoteConfig::ALL_REMOTES[] = {
 };
 
 const MiLightRemoteConfig* MiLightRemoteConfig::fromType(const String& type) {
-  if (type.equalsIgnoreCase("rgb") || type.equalsIgnoreCase("fut096")) {
+  if (type.equalsIgnoreCase("rgbw") || type.equalsIgnoreCase("fut096")) {
     return &FUT096Config;
   }
 
@@ -23,6 +23,10 @@ const MiLightRemoteConfig* MiLightRemoteConfig::fromType(const String& type) {
 
   if (type.equalsIgnoreCase("fut089")) {
     return &FUT089Config;
+  }
+
+  if (type.equalsIgnoreCase("rgb") || type.equalsIgnoreCase("fut098")) {
+    return &FUT098Config;
   }
 
   return NULL;
