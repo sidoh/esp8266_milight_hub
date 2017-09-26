@@ -1,15 +1,12 @@
 #include <GroupState.h>
 
-#ifndef _STATE_CACHE_H
-#define _STATE_CACHE_H
+#ifndef _GROUP_STATE_STORE_H
+#define _GROUP_STATE_STORE_H
 
 class GroupStateStore {
 public:
-  bool get(const GroupId& id, GroupState& state);
-  void set(const GroupId& id, const GroupState& state);
-
-private:
-  void evictOldest(GroupState& state);
+  virtual const GroupState* get(const GroupId& id) = 0;
+  virtual void set(const GroupId& id, const GroupState& state) = 0;
 };
 
 #endif

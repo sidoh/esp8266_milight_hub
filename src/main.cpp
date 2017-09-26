@@ -16,6 +16,7 @@
 #include <RGBConverter.h>
 #include <MiLightDiscoveryServer.h>
 #include <MiLightClient.h>
+#include <GroupStateCache.h>
 
 WiFiManager wifiManager;
 
@@ -27,6 +28,7 @@ MiLightHttpServer *httpServer = NULL;
 MqttClient* mqttClient = NULL;
 MiLightDiscoveryServer* discoveryServer = NULL;
 uint8_t currentRadioType = 0;
+GroupStateCache* stateCache = new GroupStateCache(100);
 
 int numUdpServers = 0;
 MiLightUdpServer** udpServers;
