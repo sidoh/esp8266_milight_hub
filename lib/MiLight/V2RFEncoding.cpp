@@ -1,7 +1,7 @@
 #include <V2RFEncoding.h>
 
 #define V2_OFFSET(byte, key, jumpStart) ( \
-  pgm_read_byte(&V2_OFFSETS[byte-1][key%4]) \
+  V2_OFFSETS[byte-1][key%4] \
     + \
   ((jumpStart > 0 && key >= jumpStart && key < jumpStart+0x80) ? 0x80 : 0) \
 )
