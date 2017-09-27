@@ -54,7 +54,7 @@ void RgbCctPacketFormatter::enableNightMode() {
   command(RGB_CCT_ON | 0x80, arg);
 }
 
-void RgbCctPacketFormatter::parsePacket(const uint8_t *packet, JsonObject& result) {
+void RgbCctPacketFormatter::parsePacket(const uint8_t *packet, JsonObject& result, GroupStateStore* stateStore) {
   uint8_t packetCopy[V2_PACKET_LEN];
   memcpy(packetCopy, packet, V2_PACKET_LEN);
   V2RFEncoding::decodeV2Packet(packetCopy);

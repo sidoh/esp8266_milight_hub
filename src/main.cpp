@@ -70,7 +70,7 @@ void initMilightUdpServers() {
 void onPacketSentHandler(uint8_t* packet, const MiLightRemoteConfig& config) {
   StaticJsonBuffer<200> buffer;
   JsonObject& result = buffer.createObject();
-  config.packetFormatter->parsePacket(packet, result);
+  config.packetFormatter->parsePacket(packet, result, stateCache);
 
   if (!result.containsKey("device_id")
     ||!result.containsKey("group_id")

@@ -79,7 +79,7 @@ void RgbPacketFormatter::previousMode() {
   command(RGB_MODE_DOWN, 0);
 }
 
-void RgbPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& result) {
+void RgbPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& result, GroupStateStore* stateStore) {
   uint8_t command = packet[RGB_COMMAND_INDEX] & 0x7F;
 
   result["group_id"] = 0;

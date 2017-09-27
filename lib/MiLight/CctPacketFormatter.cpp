@@ -146,7 +146,7 @@ MiLightStatus CctPacketFormatter::cctCommandToStatus(uint8_t command) {
   }
 }
 
-void CctPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& result) {
+void CctPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& result, GroupStateStore* stateStore) {
   uint8_t command = packet[CCT_COMMAND_INDEX] & 0x7F;
 
   result["device_id"] = (packet[1] << 8) | packet[2];
