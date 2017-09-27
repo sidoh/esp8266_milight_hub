@@ -33,32 +33,46 @@ bool GroupId::operator==(const GroupId &other) {
 }
 
 GroupState::GroupState() {
-  _on         = 0;
-  _brightness = 0;
-  _hue        = 0;
-  _saturation = 0;
-  _mode       = 0;
-  _bulbMode   = 0;
-  _kelvin     = 0;
+  _on              = 0;
+  _brightness      = 0;
+  _hue             = 0;
+  _saturation      = 0;
+  _mode            = 0;
+  _bulbMode        = 0;
+  _kelvin          = 0;
+  _isSetOn         = 0;
+  _isSetHue        = 0;
+  _isSetBrightness = 0;
+  _isSetSaturation = 0;
+  _isSetMode       = 0;
+  _isSetKelvin     = 0;
+  _isSetBulbMode   = 0;
 }
 
-bool GroupState::isOn() { return _on; }
+bool GroupState::isSetOn() const { return _isSetOn; }
+bool GroupState::isOn() const { return _on; }
 void GroupState::setOn(bool on) { _on = on; }
 
+bool GroupState::isSetBrightness() const { return _isSetBrightness; }
 uint8_t GroupState::getBrightness() const { return _brightness; }
 void GroupState::setBrightness(uint8_t brightness) { _brightness = brightness; }
 
-uint8_t GroupState::getHue() { return _hue; }
+bool GroupState::isSetHue() const { return _isSetHue; }
+uint8_t GroupState::getHue() const { return _hue; }
 void GroupState::setHue(uint8_t hue) { _hue = hue; }
 
-uint8_t GroupState::getSaturation() { return _saturation; }
+bool GroupState::isSetSaturation() const { return _isSetSaturation; }
+uint8_t GroupState::getSaturation() const { return _saturation; }
 void GroupState::setSaturation(uint8_t saturation) { _saturation = saturation; }
 
-uint8_t GroupState::getMode() { return _mode; }
+bool GroupState::isSetMode() const { return _isSetMode; }
+uint8_t GroupState::getMode() const { return _mode; }
 void GroupState::setMode(uint8_t mode) { _mode = mode; }
 
-uint8_t GroupState::getKelvin() { return _kelvin; }
+bool GroupState::isSetKelvin() const { return _isSetKelvin; }
+uint8_t GroupState::getKelvin() const { return _kelvin; }
 void GroupState::setKelvin(uint8_t kelvin) { _kelvin = kelvin; }
 
-BulbMode GroupState::getBulbMode() { return static_cast<BulbMode>(_bulbMode); }
+bool GroupState::isSetBulbMode() const { return _isSetBulbMode; }
+BulbMode GroupState::getBulbMode() const { return static_cast<BulbMode>(_bulbMode); }
 void GroupState::setBulbMode(BulbMode bulbMode) { _bulbMode = bulbMode; }

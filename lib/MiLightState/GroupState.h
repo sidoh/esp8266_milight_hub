@@ -28,31 +28,38 @@ public:
   GroupState();
 
   // 1 bit
-  bool isOn();
+  bool isSetOn() const;
+  bool isOn() const;
   void setOn(bool on);
 
   // 7 bits
+  bool isSetBrightness() const;
   uint8_t getBrightness() const;
   void setBrightness(uint8_t brightness);
 
   // 8 bits
-  uint8_t getHue();
+  bool isSetHue() const;
+  uint8_t getHue() const;
   void setHue(uint8_t hue);
 
   // 7 bits
-  uint8_t getSaturation();
+  bool isSetSaturation() const;
+  uint8_t getSaturation() const;
   void setSaturation(uint8_t saturation);
 
   // 5 bits
-  uint8_t getMode();
+  bool isSetMode() const;
+  uint8_t getMode() const;
   void setMode(uint8_t mode);
 
   // 7 bits
-  uint8_t getKelvin();
+  bool isSetKelvin() const;
+  uint8_t getKelvin() const;
   void setKelvin(uint8_t kelvin);
 
   // 3 bits
-  BulbMode getBulbMode();
+  bool isSetBulbMode() const;
+  BulbMode getBulbMode() const;
   void setBulbMode(BulbMode mode);
 
   static const GroupState DEFAULT_STATE;
@@ -65,10 +72,17 @@ private:
     _saturation : 7,
     _mode       : 4,
     _bulbMode   : 3,
-                : 2;
-  uint8_t
-    _kelvin     : 7,
-                : 1;
+    _isSetOn    : 1,
+    _isSetHue   : 1;
+
+  uint16_t
+    _kelvin          : 7,
+    _isSetBrightness : 1,
+    _isSetSaturation : 1,
+    _isSetMode       : 1,
+    _isSetKelvin     : 1,
+    _isSetBulbMode   : 1,
+                     : 4;
 };
 
 struct GroupStateNode {
