@@ -55,6 +55,8 @@ public:
   BulbMode getBulbMode();
   void setBulbMode(BulbMode mode);
 
+  static const GroupState DEFAULT_STATE;
+
 private:
   uint32_t
     _on         : 1,

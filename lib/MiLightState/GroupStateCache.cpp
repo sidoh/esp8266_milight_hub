@@ -5,7 +5,13 @@ GroupStateCache::GroupStateCache(const size_t maxSize)
 { }
 
 const GroupState* GroupStateCache::get(const GroupId& id) {
-  return getInternal(id);
+  GroupState* state = getInternal(id);
+
+  if (state == NULL) {
+    return &GroupState::DEFAULT_STATE;
+  } else {
+    return state;
+  }
 }
 
 void GroupStateCache::set(const GroupId& id, const GroupState& state) {
