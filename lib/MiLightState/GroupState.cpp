@@ -1,5 +1,10 @@
 #include <GroupState.h>
 
+const GroupState& GroupState::defaultState() {
+  static GroupState instance;
+  return instance;
+}
+
 GroupId::GroupId()
   : deviceId(0),
     groupId(0),

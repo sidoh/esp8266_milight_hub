@@ -8,7 +8,7 @@ const GroupState* GroupStateCache::get(const GroupId& id) {
   GroupState* state = getInternal(id);
 
   if (state == NULL) {
-    return &GroupState::DEFAULT_STATE;
+    return &GroupState::defaultState();
   } else {
     return state;
   }

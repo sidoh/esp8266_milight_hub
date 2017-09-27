@@ -62,7 +62,7 @@ public:
   BulbMode getBulbMode() const;
   void setBulbMode(BulbMode mode);
 
-  static const GroupState DEFAULT_STATE;
+  static const GroupState& defaultState();
 
 private:
   uint32_t
