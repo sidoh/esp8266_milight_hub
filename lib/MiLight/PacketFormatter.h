@@ -71,7 +71,7 @@ public:
   virtual void prepare(uint16_t deviceId, uint8_t groupId);
   virtual void format(uint8_t const* packet, char* buffer);
 
-  virtual const GroupState* parsePacket(const uint8_t* packet, GroupStateStore* stateStore);
+  virtual const GroupState* parsePacket(const uint8_t* packet, JsonObject& result, GroupStateStore* stateStore);
 
   static void formatV1Packet(uint8_t const* packet, char* buffer);
 
