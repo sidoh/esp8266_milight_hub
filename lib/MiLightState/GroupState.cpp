@@ -69,6 +69,7 @@ GroupState::GroupState() {
   _isSetMode            = 0;
   _isSetKelvin          = 0;
   _isSetBulbMode        = 0;
+  _dirty                = 1;
 }
 
 bool GroupState::isSetState() const { return _isSetState; }
@@ -163,6 +164,10 @@ void GroupState::setBulbMode(BulbMode bulbMode) {
   _isSetBulbMode = 1;
   _bulbMode = bulbMode;
 }
+
+bool GroupState::isDirty() const { return _dirty; }
+bool GroupState::setDirty() { _dirty = 1; }
+bool GroupState::clearDirty() { _dirty = 0; }
 
 void GroupState::patch(const JsonObject& state) {
   if (state.containsKey("state")) {

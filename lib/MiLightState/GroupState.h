@@ -70,6 +70,10 @@ public:
   BulbMode getBulbMode() const;
   void setBulbMode(BulbMode mode);
 
+  bool isDirty() const;
+  bool setDirty();
+  bool clearDirty();
+
   void patch(const JsonObject& state);
   void applyState(JsonObject& state);
 
@@ -97,6 +101,7 @@ private:
     _brightnessMode       : 7,
     _isSetBrightnessColor : 1,
     _isSetBrightnessMode  : 1,
+    _dirty                : 1,
                           : 5;
 };
 
