@@ -50,12 +50,22 @@ void FUT089PacketFormatter::parsePacket(const uint8_t *packet, JsonObject& resul
   memcpy(packetCopy, packet, V2_PACKET_LEN);
   V2RFEncoding::decodeV2Packet(packetCopy);
 
-  result["device_id"] = (packetCopy[2] << 8) | packetCopy[3];
-  result["group_id"] = packetCopy[7];
+  const uint16_t deviceId = (packetCopy[2] << 8) | packetCopy[3];
+  const uint8_t groupId = packetCopy[7];
+
+  result["device_id"] = deviceId;
+  result["group_id"] = groupId;
   result["device_type"] = "fut089";
 
   uint8_t command = (packetCopy[V2_COMMAND_INDEX] & 0x7F);
   uint8_t arg = packetCopy[V2_ARGUMENT_INDEX];
+
+  // only need state for saturation and kelvin (they have the same command ID)
+  GroupState* state = NULL;
+  if (command == FUT089_SATURATION) {
+    GroupId group(deviceId, groupId, REMOTE_TYPE_FUT089);
+    state = stateStore->get(group);
+  }
 
   if (command == FUT089_ON) {
     if (arg == FUT089_MODE_SPEED_DOWN) {
@@ -78,12 +88,14 @@ void FUT089PacketFormatter::parsePacket(const uint8_t *packet, JsonObject& resul
   } else if (command == FUT089_BRIGHTNESS) {
     uint8_t level = constrain(arg, 0, 100);
     result["brightness"] = Units::rescale<uint8_t, uint8_t>(level, 255, 100);
-  // saturation == kelvin. arg ranges are the same, so won't be able to parse
-  // both unless state is persisted
-  // } else if (command == FUT089_SATURATION) {
-  //   result["saturation"] = constrain(arg, 0, 100);
-  // } else if (command == FUT089_KELVIN) {
-  //   result["color_temp"] = Units::whiteValToMireds(arg, 100);
+  // saturation == kelvin. arg ranges are the same, so can't distinguish
+  // without using state
+  } else if (command == FUT089_SATURATION) {
+    if (state->getBulbMode() == BULB_MODE_COLOR) {
+      result["saturation"] = constrain(arg, 0, 100);
+    } else {
+      result["color_temp"] = Units::whiteValToMireds(arg, 100);
+    }
   } else if (command == FUT089_MODE) {
     result["mode"] = arg;
   } else {
