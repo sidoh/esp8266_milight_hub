@@ -1,6 +1,7 @@
 #include <inttypes.h>
 #include <Arduino.h>
 #include <MiLightButtons.h>
+#include <ArduinoJson.h>
 
 #ifndef _GROUP_STATE_H
 #define _GROUP_STATE_H
@@ -20,7 +21,14 @@ struct GroupId {
 enum BulbMode {
   BULB_MODE_WHITE,
   BULB_MODE_COLOR,
-  BULB_MODE_SCENE
+  BULB_MODE_SCENE,
+  BULB_MODE_NIGHT
+};
+static const char* BULB_MODE_NAMES[] = {
+  "white",
+  "color",
+  "scene",
+  "night"
 };
 
 class GroupState {
@@ -28,9 +36,9 @@ public:
   GroupState();
 
   // 1 bit
-  bool isSetOn() const;
-  bool isOn() const;
-  void setOn(bool on);
+  bool isSetState() const;
+  MiLightStatus getState() const;
+  void setState(const MiLightStatus& on);
 
   // 7 bits
   bool isSetBrightness() const;
@@ -62,17 +70,20 @@ public:
   BulbMode getBulbMode() const;
   void setBulbMode(BulbMode mode);
 
+  void patch(const JsonObject& state);
+  void applyState(JsonObject& state);
+
   static const GroupState& defaultState();
 
 private:
   uint32_t
-    _on         : 1,
+    _state      : 1,
     _brightness : 7,
     _hue        : 8,
     _saturation : 7,
     _mode       : 4,
     _bulbMode   : 3,
-    _isSetOn    : 1,
+    _isSetState : 1,
     _isSetHue   : 1;
 
   uint16_t
