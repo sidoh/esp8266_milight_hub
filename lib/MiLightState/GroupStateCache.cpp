@@ -9,7 +9,6 @@ GroupState* GroupStateCache::get(const GroupId& id) {
 
   if (state == NULL) {
     state = set(id, GroupState::defaultState(id.deviceType));
-    Serial.println(state->getBrightness());
     return state;
   } else {
     return state;
