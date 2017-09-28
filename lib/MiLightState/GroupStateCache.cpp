@@ -4,34 +4,42 @@ GroupStateCache::GroupStateCache(const size_t maxSize)
   : maxSize(maxSize)
 { }
 
-const GroupState* GroupStateCache::get(const GroupId& id) {
+GroupState* GroupStateCache::get(const GroupId& id) {
   GroupState* state = getInternal(id);
 
   if (state == NULL) {
-    return &GroupState::defaultState();
+    state = set(id, GroupState::defaultState(id.deviceType));
+    Serial.println(state->getBrightness());
+    return state;
   } else {
     return state;
   }
 }
 
-void GroupStateCache::set(const GroupId& id, const GroupState& state) {
+GroupState* GroupStateCache::set(const GroupId& id, const GroupState& state) {
   GroupCacheNode* pushedNode = NULL;
   if (cache.size() >= maxSize) {
     pushedNode = cache.pop();
   }
 
   GroupState* cachedState = getInternal(id);
+
   if (cachedState == NULL) {
     if (pushedNode == NULL) {
-      cache.unshift(new GroupCacheNode(id, state));
+      GroupCacheNode* newNode = new GroupCacheNode(id, state);
+      cachedState = &newNode->state;
+      cache.unshift(newNode);
     } else {
       pushedNode->id = id;
       pushedNode->state = state;
+      cachedState = &pushedNode->state;
       cache.unshift(pushedNode);
     }
   } else {
     *cachedState = state;
   }
+
+  return cachedState;
 }
 
 GroupState* GroupStateCache::getInternal(const GroupId& id) {

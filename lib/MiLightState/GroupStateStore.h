@@ -5,8 +5,8 @@
 
 class GroupStateStore {
 public:
-  virtual const GroupState* get(const GroupId& id) = 0;
-  virtual void set(const GroupId& id, const GroupState& state) = 0;
+  virtual GroupState* get(const GroupId& id) = 0;
+  virtual GroupState* set(const GroupId& id, const GroupState& state) = 0;
 };
 
 #endif

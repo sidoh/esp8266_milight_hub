@@ -17,8 +17,8 @@ class GroupStateCache : public GroupStateStore {
 public:
   GroupStateCache(const size_t maxSize);
 
-  const GroupState* get(const GroupId& id);
-  void set(const GroupId& id, const GroupState& state);
+  GroupState* get(const GroupId& id);
+  GroupState* set(const GroupId& id, const GroupState& state);
 
 private:
   LinkedList<GroupCacheNode*> cache;

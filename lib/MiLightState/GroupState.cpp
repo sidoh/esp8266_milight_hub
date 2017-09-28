@@ -1,9 +1,21 @@
 #include <GroupState.h>
 #include <Units.h>
+#include <MiLightRemoteConfig.h>
 
-const GroupState& GroupState::defaultState() {
-  static GroupState instance;
-  return instance;
+const GroupState& GroupState::defaultState(MiLightRemoteType remoteType) {
+  static GroupState instances[MiLightRemoteConfig::NUM_REMOTES];
+  GroupState& state = instances[remoteType];
+
+  switch (remoteType) {
+    case REMOTE_TYPE_RGB:
+      state.setBulbMode(BULB_MODE_COLOR);
+      break;
+    case REMOTE_TYPE_CCT:
+      state.setBulbMode(BULB_MODE_WHITE);
+      break;
+  }
+
+  return state;
 }
 
 GroupId::GroupId()
@@ -39,34 +51,82 @@ bool GroupId::operator==(const GroupId &other) {
 }
 
 GroupState::GroupState() {
-  _state           = 0;
-  _brightness      = 0;
-  _hue             = 0;
-  _saturation      = 0;
-  _mode            = 0;
-  _bulbMode        = 0;
-  _kelvin          = 0;
-  _isSetState      = 0;
-  _isSetHue        = 0;
-  _isSetBrightness = 0;
-  _isSetSaturation = 0;
-  _isSetMode       = 0;
-  _isSetKelvin     = 0;
-  _isSetBulbMode   = 0;
+  _state                = 0;
+  _brightness           = 0;
+  _brightnessColor      = 0;
+  _brightnessMode       = 0;
+  _hue                  = 0;
+  _saturation           = 0;
+  _mode                 = 0;
+  _bulbMode             = 0;
+  _kelvin               = 0;
+  _isSetState           = 0;
+  _isSetHue             = 0;
+  _isSetBrightness      = 0;
+  _isSetBrightnessColor = 0;
+  _isSetBrightnessMode  = 0;
+  _isSetSaturation      = 0;
+  _isSetMode            = 0;
+  _isSetKelvin          = 0;
+  _isSetBulbMode        = 0;
 }
 
 bool GroupState::isSetState() const { return _isSetState; }
 MiLightStatus GroupState::getState() const { return _state ? ON : OFF; }
-void GroupState::setState(const MiLightStatus& state) {
+void GroupState::setState(const MiLightStatus state) {
   _isSetState = 1;
   _state = state == ON ? 1 : 0;
 }
 
-bool GroupState::isSetBrightness() const { return _isSetBrightness; }
-uint8_t GroupState::getBrightness() const { return _brightness; }
+bool GroupState::isSetBrightness() const {
+  if (! _isSetBulbMode) {
+    return _isSetBrightness;
+  }
+
+  switch (_bulbMode) {
+    case BULB_MODE_WHITE:
+      return _isSetBrightness;
+    case BULB_MODE_COLOR:
+      return _isSetBrightnessColor;
+    case BULB_MODE_SCENE:
+      return _isSetBrightnessMode;
+  }
+
+  return false;
+}
+
+uint8_t GroupState::getBrightness() const {
+  switch (_bulbMode) {
+    case BULB_MODE_WHITE:
+      return _brightness;
+    case BULB_MODE_COLOR:
+      return _brightnessColor;
+    case BULB_MODE_SCENE:
+      return _brightnessMode;
+  }
+
+  return 0;
+}
+
 void GroupState::setBrightness(uint8_t brightness) {
-  _isSetBrightness = 1;
-  _brightness = brightness;
+  uint8_t bulbMode = _bulbMode;
+  if (! _isSetBulbMode) {
+    bulbMode = BULB_MODE_WHITE;
+  }
+
+  switch (bulbMode) {
+    case BULB_MODE_WHITE:
+      _isSetBrightness = 1;
+      _brightness = brightness;
+      break;
+    case BULB_MODE_COLOR:
+      _isSetBrightnessColor = 1;
+      _brightnessColor = brightness;
+      break;
+    case BULB_MODE_SCENE:
+      _isSetBrightnessMode = 1;
+      _brightnessMode = brightness;
+  }
 }
 
 bool GroupState::isSetHue() const { return _isSetHue; }
@@ -109,7 +169,7 @@ void GroupState::patch(const JsonObject& state) {
     setState(state["state"] == "ON" ? ON : OFF);
   }
   if (state.containsKey("brightness")) {
-    setBrightness(Units::rescale(state["brightness"], 100, 255));
+    setBrightness(Units::rescale(state.get<uint8_t>("brightness"), 100, 255));
   }
   if (state.containsKey("hue")) {
     setHue(Units::rescale<uint8_t, uint16_t>(state["hue"], 255, 360));

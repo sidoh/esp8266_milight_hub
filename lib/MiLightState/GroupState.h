@@ -38,7 +38,7 @@ public:
   // 1 bit
   bool isSetState() const;
   MiLightStatus getState() const;
-  void setState(const MiLightStatus& on);
+  void setState(const MiLightStatus on);
 
   // 7 bits
   bool isSetBrightness() const;
@@ -73,7 +73,7 @@ public:
   void patch(const JsonObject& state);
   void applyState(JsonObject& state);
 
-  static const GroupState& defaultState();
+  static const GroupState& defaultState(MiLightRemoteType remoteType);
 
 private:
   uint32_t
@@ -86,14 +86,18 @@ private:
     _isSetState : 1,
     _isSetHue   : 1;
 
-  uint16_t
-    _kelvin          : 7,
-    _isSetBrightness : 1,
-    _isSetSaturation : 1,
-    _isSetMode       : 1,
-    _isSetKelvin     : 1,
-    _isSetBulbMode   : 1,
-                     : 4;
+  uint32_t
+    _kelvin               : 7,
+    _isSetBrightness      : 1,
+    _isSetSaturation      : 1,
+    _isSetMode            : 1,
+    _isSetKelvin          : 1,
+    _isSetBulbMode        : 1,
+    _brightnessColor      : 7,
+    _brightnessMode       : 7,
+    _isSetBrightnessColor : 1,
+    _isSetBrightnessMode  : 1,
+                          : 5;
 };
 
 struct GroupStateNode {

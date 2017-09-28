@@ -81,6 +81,12 @@ void onPacketSentHandler(uint8_t* packet, const MiLightRemoteConfig& config) {
 
   uint16_t deviceId = result["device_id"];
   uint16_t groupId = result["group_id"];
+  const MiLightRemoteConfig* remoteConfig = MiLightRemoteConfig::fromType(result.get<String>("device_type"));
+
+  GroupId bulbId(deviceId, groupId, remoteConfig->type);
+  GroupState* groupState = stateCache->get(bulbId);
+  groupState->patch(result);
+  groupState->applyState(result);
 
   char output[200];
   result.printTo(output);
