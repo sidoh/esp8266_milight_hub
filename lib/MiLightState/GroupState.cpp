@@ -198,7 +198,7 @@ void GroupState::patch(const JsonObject& state) {
     setBrightness(Units::rescale(state.get<uint8_t>("brightness"), 100, 255));
   }
   if (state.containsKey("hue")) {
-    setHue(Units::rescale<uint8_t, uint16_t>(state["hue"], 255, 360));
+    setHue(Units::rescale<uint16_t, uint16_t>(state["hue"], 255, 360));
     setBulbMode(BULB_MODE_COLOR);
   }
   if (state.containsKey("saturation")) {
@@ -235,7 +235,7 @@ void GroupState::applyState(JsonObject& partialState) {
 
     if (getBulbMode() == BULB_MODE_COLOR) {
       if (state.fields._isSetHue) {
-        partialState["hue"] = Units::rescale<uint8_t, uint16_t>(getHue(), 360, 255);
+        partialState["hue"] = Units::rescale<uint16_t, uint16_t>(getHue(), 360, 255);
       }
       if (state.fields._isSetSaturation) {
         partialState["saturation"] = getSaturation();
