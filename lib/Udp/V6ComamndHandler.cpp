@@ -21,7 +21,7 @@ bool V6CommandHandler::handleCommand(MiLightClient* client,
   uint32_t command,
   uint32_t commandArg)
 {
-  client->prepare(radioConfig, deviceId, group);
+  client->prepare(&remoteConfig, deviceId, group);
 
   if (commandType == V6_PAIR) {
     client->pair();

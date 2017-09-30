@@ -20,7 +20,7 @@ Support has been added for the following [bulb types](http://futlight.com/produc
 1. RGBW bulbs: FUT014, FUT016, FUT103
 1. Dual-White (CCT) bulbs: FUT019
 1. RGB LED strips: FUT025
-1. RGB + Dual White (RGB+CCT) bulbs: FUT015
+1. RGB + Dual White (RGB+CCT) bulbs: FUT015, FUT105
 
 Other bulb types might work, but have not been tested. It is also relatively easy to add support for new bulb types.
 

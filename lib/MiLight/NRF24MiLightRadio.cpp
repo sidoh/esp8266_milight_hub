@@ -49,7 +49,7 @@ int NRF24MiLightRadio::configure() {
   }
 
   // +1 to be able to buffer the length
-  retval = _pl1167.setMaxPacketLength(_config.getPacketLength() + 1);
+  retval = _pl1167.setMaxPacketLength(_config.packetLength + 1);
   if (retval < 0) {
     return retval;
   }

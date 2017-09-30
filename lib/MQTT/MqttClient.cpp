@@ -4,6 +4,7 @@
 #include <IntParsing.h>
 #include <ArduinoJson.h>
 #include <WiFiClient.h>
+#include <MiLightRadioConfig.h>
 
 MqttClient::MqttClient(Settings& settings, MiLightClient*& milightClient)
   : milightClient(milightClient),
@@ -85,7 +86,7 @@ void MqttClient::handleClient() {
   mqttClient->loop();
 }
 
-void MqttClient::sendUpdate(MiLightRadioType type, uint16_t deviceId, uint16_t groupId, const char* update) {
+void MqttClient::sendUpdate(const MiLightRemoteConfig& remoteConfig, uint16_t deviceId, uint16_t groupId, const char* update) {
   String topic = settings.mqttUpdateTopicPattern;
 
   if (topic.length() == 0) {
@@ -97,7 +98,7 @@ void MqttClient::sendUpdate(MiLightRadioType type, uint16_t deviceId, uint16_t g
 
   topic.replace(":device_id", String("0x") + deviceIdStr);
   topic.replace(":group_id", String(groupId));
-  topic.replace(":device_type", MiLightRadioConfig::fromType(type)->name);
+  topic.replace(":device_type", remoteConfig.name);
 
 #ifdef MQTT_DEBUG
   printf_P(PSTR("MqttClient - publishing update to %s: %s\n"), topic.c_str(), update);
@@ -123,7 +124,7 @@ void MqttClient::subscribe() {
 void MqttClient::publishCallback(char* topic, byte* payload, int length) {
   uint16_t deviceId = 0;
   uint8_t groupId = 0;
-  MiLightRadioConfig* config = &MilightRgbCctConfig;
+  const MiLightRemoteConfig* config = &FUT092Config;
   char cstrPayload[length + 1];
   cstrPayload[length] = 0;
   memcpy(cstrPayload, payload, sizeof(byte)*length);
@@ -148,7 +149,7 @@ void MqttClient::publishCallback(char* topic, byte* payload, int length) {
   }
 
   if (tokenBindings.hasBinding("device_type")) {
-    config = MiLightRadioConfig::fromString(tokenBindings.get("device_type"));
+    config = MiLightRemoteConfig::fromType(tokenBindings.get("device_type"));
   }
 
   StaticJsonBuffer<400> buffer;
@@ -158,6 +159,6 @@ void MqttClient::publishCallback(char* topic, byte* payload, int length) {
   printf_P(PSTR("MqttClient - device %04X, group %u\n"), deviceId, groupId);
 #endif
 
-  milightClient->prepare(*config, deviceId, groupId);
+  milightClient->prepare(config, deviceId, groupId);
   milightClient->update(obj);
 }

@@ -29,7 +29,7 @@ public:
   void handleClient();
   void onSettingsSaved(SettingsSavedHandler handler);
   void on(const char* path, HTTPMethod method, ESP8266WebServer::THandlerFunction handler);
-  void handlePacketSent(uint8_t* packet, const MiLightRadioConfig& config);
+  void handlePacketSent(uint8_t* packet, const MiLightRemoteConfig& config);
   WiFiClient client();
 
 protected:

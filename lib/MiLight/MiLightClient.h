@@ -3,6 +3,7 @@
 #include <MiLightRadio.h>
 #include <MiLightRadioFactory.h>
 #include <MiLightButtons.h>
+#include <MiLightRemoteConfig.h>
 #include <Settings.h>
 
 #ifndef _MILIGHTCLIENT_H
@@ -22,15 +23,15 @@ public:
     delete[] radios;
   }
 
-  typedef std::function<void(uint8_t* packet, const MiLightRadioConfig& config)> PacketSentHandler;
+  typedef std::function<void(uint8_t* packet, const MiLightRemoteConfig& config)> PacketSentHandler;
 
   void begin();
-  void prepare(MiLightRadioConfig& config, const uint16_t deviceId = -1, const uint8_t groupId = -1);
-  void prepare(MiLightRadioType config, const uint16_t deviceId = -1, const uint8_t groupId = -1);
+  void prepare(const MiLightRemoteConfig* remoteConfig, const uint16_t deviceId = -1, const uint8_t groupId = -1);
+  void prepare(const MiLightRemoteType type, const uint16_t deviceId = -1, const uint8_t groupId = -1);
 
   void setResendCount(const unsigned int resendCount);
   bool available();
-  void read(uint8_t packet[]);
+  size_t read(uint8_t packet[]);
   void write(uint8_t packet[]);
 
   void setHeld(bool held);
@@ -63,24 +64,26 @@ public:
 
   void updateSaturation(const uint8_t saturation);
 
-  void formatPacket(uint8_t* packet, char* buffer);
-
   void update(const JsonObject& object);
   void handleCommand(const String& command);
   void handleEffect(const String& effect);
-  
+
   void onPacketSent(PacketSentHandler handler);
+
+  size_t getNumRadios() const;
+  MiLightRadio* switchRadio(size_t radioIx);
+  MiLightRemoteConfig& currentRemoteConfig() const;
 
 protected:
 
   MiLightRadio** radios;
   MiLightRadio* currentRadio;
-  PacketFormatter* formatter;
+  const MiLightRemoteConfig* currentRemote;
   const size_t numRadios;
   unsigned int resendCount;
   PacketSentHandler packetSentHandler;
 
-  MiLightRadio* switchRadio(const MiLightRadioType type);
+  MiLightRadio* switchRadio(const MiLightRemoteConfig* remoteConfig);
   uint8_t parseStatus(const JsonObject& object);
 
   void flushPacket();

@@ -81,7 +81,7 @@
 
          <div id="latest-version">
            <h4>Latest Version</h4>
-           
+
            <div class="status"></div>
            <div id="latest-version-info">
              <label>Version</label>
@@ -146,7 +146,7 @@
     <div>&nbsp;</div>
 
     <div class="row">
-      <div class="col-sm-4">
+      <div class="col-sm-3">
         <label for="deviceId" id="device-id-label">
           Device Id
           <span class="error-info"></span>
@@ -155,8 +155,8 @@
 				</select>
       </div>
 
-      <div class="col-sm-3">
-        <div class="mode-option" id="group-option" data-for="cct,rgbw,rgb_cct">
+      <div class="col-sm-4">
+        <div class="mode-option" id="group-option" data-for="cct,rgbw,rgb_cct,fut089">
           <label for="groupId">Group</label>
 
           <div class="btn-group" id="groupId" data-toggle="buttons">
@@ -171,6 +171,18 @@
             </label>
             <label class="btn btn-secondary">
               <input type="radio" name="options" autocomplete="off" data-value="4"> 4
+            </label>
+            <label class="btn btn-secondary mode-option" data-for="fut089">
+              <input type="radio" name="options" autocomplete="off" data-value="5"> 5
+            </label>
+            <label class="btn btn-secondary mode-option" data-for="fut089">
+              <input type="radio" name="options" autocomplete="off" data-value="6"> 6
+            </label>
+            <label class="btn btn-secondary mode-option" data-for="fut089">
+              <input type="radio" name="options" autocomplete="off" data-value="7"> 7
+            </label>
+            <label class="btn btn-secondary mode-option" data-for="fut089">
+              <input type="radio" name="options" autocomplete="off" data-value="8"> 8
             </label>
             <label class="btn btn-secondary">
               <input type="radio" name="options" autocomplete="off" data-value="0"> All
@@ -195,12 +207,15 @@
           <label class="btn btn-secondary">
             <input type="radio" name="mode" autocomplete="off" data-value="rgb"> RGB
           </label>
+          <label class="btn btn-secondary">
+            <input type="radio" name="mode" autocomplete="off" data-value="fut089"> FUT089
+          </label>
         </div>
       </div>
     </div>
 
     <div class="row"><div class="col-sm-12">
-    <div class="mode-option" data-for="rgbw,rgb_cct,rgb">
+    <div class="mode-option" data-for="rgbw,rgb_cct,rgb,fut089">
       <div class="row">
         <div class="col-sm-12">
           <h5>Hue</h5>
@@ -218,7 +233,7 @@
     </div>
     </div></div>
 
-    <div class="mode-option" data-for="rgb_cct">
+    <div class="mode-option" data-for="rgb_cct,fut089">
       <div class="row">
         <div class="col-sm-12">
           <h5>Saturation</h5>
@@ -235,7 +250,7 @@
       </div>
     </div>
 
-    <div class="mode-option" data-for="cct,rgb_cct">
+    <div class="mode-option" data-for="cct,rgb_cct,fut089">
       <div class="row">
         <div class="col-sm-12">
           <h5>Color Temperature</h5>
@@ -282,7 +297,7 @@
           <li>
             <input type="checkbox" name="status" class="raw-update" data-toggle="toggle" checked/>
           </li>
-          <div class="mode-option inline" data-for="rgbw,rgb_cct">
+          <div class="mode-option inline" data-for="rgbw,rgb_cct,fut089">
             <li>
               <button type="button" class="btn btn-secondary command-btn" data-command="set_white">White</button>
             </li>
@@ -302,7 +317,7 @@
         </ul>
         <p></p>
         <ul class="command-buttons">
-          <div class="mode-option inline" data-for="rgb,rgbw,rgb_cct">
+          <div class="mode-option inline" data-for="rgb">
             <li>
               <div class="plus-minus-group">
                 <button type="button" class="btn btn-default btn-number command-btn" data-command="previous_mode">
@@ -316,7 +331,19 @@
               </div>
             </li>
           </div>
-          <div class="mode-option inline" data-for="rgb,rgbw,rgb_cct">
+          <div class="mode-option inline" data-for="rgbw,rgb_cct,fut089">
+            <li>
+              <div class="dropdown">
+                <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">
+                  Mode
+                  <span class="caret"></span>
+                </button>
+                <ul class="dropdown-menu mode-dropdown">
+                </ul>
+              </div>
+            </li>
+          </div>
+          <div class="mode-option inline" data-for="rgb,rgbw,rgb_cct,fut089">
             <li>
               <div class="plus-minus-group">
                 <button type="button" class="btn btn-default btn-number command-btn" data-command="mode_speed_down">

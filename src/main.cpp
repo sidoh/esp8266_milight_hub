@@ -6,6 +6,7 @@
 #include <IntParsing.h>
 #include <Size.h>
 #include <MiLightRadioConfig.h>
+#include <MiLightRemoteConfig.h>
 #include <MiLightHttpServer.h>
 #include <Settings.h>
 #include <MiLightUdpServer.h>
@@ -64,20 +65,26 @@ void initMilightUdpServers() {
   }
 }
 
-void onPacketSentHandler(uint8_t* packet, const MiLightRadioConfig& config) {
+void onPacketSentHandler(uint8_t* packet, const MiLightRemoteConfig& config) {
   StaticJsonBuffer<200> buffer;
   JsonObject& result = buffer.createObject();
   config.packetFormatter->parsePacket(packet, result);
 
+  if (!result.containsKey("device_id")
+    ||!result.containsKey("group_id")
+    ||!result.containsKey("device_type")) {
+    Serial.println(F("Skipping update because packet formatter didn't supply necessary information."));
+    return;
+  }
+
   uint16_t deviceId = result["device_id"];
   uint16_t groupId = result["group_id"];
-  MiLightRadioType type = MiLightRadioConfig::fromString(result["device_type"])->type;
 
   char output[200];
   result.printTo(output);
 
   if (mqttClient) {
-    mqttClient->sendUpdate(type, deviceId, groupId, output);
+    mqttClient->sendUpdate(config, deviceId, groupId, output);
   }
   httpServer->handlePacketSent(packet, config);
 }
@@ -87,17 +94,25 @@ void handleListen() {
     return;
   }
 
-  MiLightRadioConfig* config = MiLightRadioConfig::ALL_CONFIGS[
-    currentRadioType++ % MiLightRadioConfig::NUM_CONFIGS
-  ];
-  milightClient->prepare(*config);
+  MiLightRadio* radio = milightClient->switchRadio(currentRadioType++ % milightClient->getNumRadios());
 
   for (size_t i = 0; i < settings.listenRepeats; i++) {
     if (milightClient->available()) {
-      uint8_t readPacket[9];
-      milightClient->read(readPacket);
+      uint8_t readPacket[MILIGHT_MAX_PACKET_LENGTH];
+      size_t packetLen = milightClient->read(readPacket);
 
-      onPacketSentHandler(readPacket, *config);
+      const MiLightRemoteConfig* remoteConfig = MiLightRemoteConfig::fromReceivedPacket(
+        radio->config(),
+        readPacket,
+        packetLen
+      );
+
+      if (remoteConfig == NULL) {
+        Serial.println(F("ERROR: Couldn't find remote for received packet!"));
+        return;
+      }
+
+      onPacketSentHandler(readPacket, *remoteConfig);
     }
   }
 }

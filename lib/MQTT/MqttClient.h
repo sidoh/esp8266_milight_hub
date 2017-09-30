@@ -2,6 +2,7 @@
 #include <Settings.h>
 #include <PubSubClient.h>
 #include <WiFiClient.h>
+#include <MiLightRadioConfig.h>
 
 #ifndef MQTT_CONNECTION_ATTEMPT_FREQUENCY
 #define MQTT_CONNECTION_ATTEMPT_FREQUENCY 5000
@@ -18,7 +19,7 @@ public:
   void begin();
   void handleClient();
   void reconnect();
-  void sendUpdate(MiLightRadioType type, uint16_t deviceId, uint16_t groupId, const char* update);
+  void sendUpdate(const MiLightRemoteConfig& remoteConfig, uint16_t deviceId, uint16_t groupId, const char* update);
 
 private:
   WiFiClient tcpClient;

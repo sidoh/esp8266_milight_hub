@@ -8,7 +8,7 @@
 void RgbwPacketFormatter::initializePacket(uint8_t* packet) {
   size_t packetPtr = 0;
 
-  packet[packetPtr++] = RGBW;
+  packet[packetPtr++] = RGBW_PROTOCOL_ID_BYTE;
   packet[packetPtr++] = deviceId >> 8;
   packet[packetPtr++] = deviceId & 0xFF;
   packet[packetPtr++] = 0;
@@ -42,7 +42,7 @@ void RgbwPacketFormatter::previousMode() {
 
 void RgbwPacketFormatter::updateMode(uint8_t mode) {
   command(RGBW_DISCO_MODE, 0);
-  currentPacket[0] = RGBW | mode;
+  currentPacket[0] = RGBW_PROTOCOL_ID_BYTE | mode;
 }
 
 void RgbwPacketFormatter::updateStatus(MiLightStatus status, uint8_t groupId) {
@@ -121,7 +121,7 @@ void RgbwPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& result)
   } else if (command == RGBW_SPEED_UP) {
     result["command"] = "mode_speed_up";
   } else if (command == RGBW_DISCO_MODE) {
-    result["mode"] = packet[0] & ~RGBW;
+    result["mode"] = packet[0] & ~RGBW_PROTOCOL_ID_BYTE;
   } else {
     result["button_id"] = command;
   }

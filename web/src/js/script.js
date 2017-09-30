@@ -399,6 +399,16 @@ $(function() {
     $(this).closest('tr').remove();
   });
 
+  for (var i = 0; i < 9; i++) {
+    $('.mode-dropdown').append('<li><a href="#" data-mode-value="' + i + '">' + i + '</a></li>');
+  }
+
+  $('body').on('click', '.mode-dropdown li a', function(e) {
+    updateGroup({mode: $(this).data('mode-value')});
+    e.preventDefault();
+    return false;
+  });
+
   selectize = $('#deviceId').selectize({
     create: true,
     sortField: 'text',
