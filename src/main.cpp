@@ -5,6 +5,7 @@
 #include <FS.h>
 #include <IntParsing.h>
 #include <Size.h>
+#include <LinkedList.h>
 #include <GroupStateStore.h>
 #include <MiLightRadioConfig.h>
 #include <MiLightRemoteConfig.h>
