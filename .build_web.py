@@ -15,7 +15,7 @@ def is_tool(name):
     except:
         return False;
 
-def pre_build(source, target, env):
+def build_web():
     if is_tool("npm"):
         os.chdir("web")
         print("Attempting to build webpage...")
@@ -31,4 +31,4 @@ def pre_build(source, target, env):
         finally:
             os.chdir("..");
 
-env.Execute(pre_build)
+build_web()
