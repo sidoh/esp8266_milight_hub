@@ -16,6 +16,10 @@
 #define MILIGHT_HUB_VERSION unknown
 #endif
 
+#ifndef MILIGHT_MAX_STATE_ITEMS
+#define MILIGHT_MAX_STATE_ITEMS 100
+#endif
+
 #define SETTINGS_FILE  "/config.json"
 #define SETTINGS_TERMINATOR '\0'
 

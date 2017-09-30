@@ -28,7 +28,7 @@ MiLightHttpServer *httpServer = NULL;
 MqttClient* mqttClient = NULL;
 MiLightDiscoveryServer* discoveryServer = NULL;
 uint8_t currentRadioType = 0;
-GroupStateStore stateStore(100);
+GroupStateStore stateStore(MILIGHT_MAX_PACKET_LENGTH);
 
 int numUdpServers = 0;
 MiLightUdpServer** udpServers;
