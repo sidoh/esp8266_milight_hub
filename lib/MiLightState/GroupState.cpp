@@ -179,16 +179,14 @@ bool GroupState::clearDirty() { state.fields._dirty = 0; }
 
 void GroupState::load(Stream& stream) {
   for (size_t i = 0; i < DATA_BYTES; i++) {
-    state.data[i] = stream.read();
+    stream.readBytes(reinterpret_cast<uint8_t*>(&state.data[i]), 4);
   }
   clearDirty();
 }
 
 void GroupState::dump(Stream& stream) const {
   for (size_t i = 0; i < DATA_BYTES; i++) {
-    uint32_t val = state.data[i];
-    uint8_t* bytePtr = reinterpret_cast<uint8_t*>(&val);
-    stream.write(bytePtr, 4);
+    stream.write(reinterpret_cast<const uint8_t*>(&state.data[i]), 4);
   }
 }
 

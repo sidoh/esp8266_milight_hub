@@ -9,7 +9,10 @@ GroupState* GroupStateStore::get(const GroupId& id) {
 
   if (state == NULL) {
     trackEviction();
-    state = cache.set(id, GroupState::defaultState(id.deviceType));
+    GroupState loadedState = GroupState::defaultState(id.deviceType);
+    persistence.get(id, loadedState);
+
+    state = cache.set(id, loadedState);
   }
 
   return state;
@@ -27,7 +30,7 @@ void GroupStateStore::trackEviction() {
 
 void GroupStateStore::flush() {
   ListNode<GroupCacheNode*>* curr = cache.getHead();
-
+  
   while (curr != NULL && curr->data->state.isDirty()) {
     persistence.set(curr->data->id, curr->data->state);
     curr->data->state.clearDirty();

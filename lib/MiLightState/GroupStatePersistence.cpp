@@ -5,6 +5,7 @@ static const char FILE_PREFIX[] = "group_states/";
 
 void GroupStatePersistence::get(const GroupId &id, GroupState& state) {
   char path[30];
+  memset(path, 0, 30);
   buildFilename(id, path);
 
   if (SPIFFS.exists(path)) {
@@ -16,6 +17,7 @@ void GroupStatePersistence::get(const GroupId &id, GroupState& state) {
 
 void GroupStatePersistence::set(const GroupId &id, const GroupState& state) {
   char path[30];
+  memset(path, 0, 30);
   buildFilename(id, path);
 
   File f = SPIFFS.open(path, "w");
