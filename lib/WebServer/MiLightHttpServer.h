@@ -2,6 +2,7 @@
 #include <MiLightClient.h>
 #include <Settings.h>
 #include <WebSocketsServer.h>
+#include <GroupStateStore.h>
 
 #ifndef _MILIGHT_HTTP_SERVER
 #define _MILIGHT_HTTP_SERVER
@@ -15,12 +16,13 @@ const char APPLICATION_JSON[] = "application/json";
 
 class MiLightHttpServer {
 public:
-  MiLightHttpServer(Settings& settings, MiLightClient*& milightClient)
+  MiLightHttpServer(Settings& settings, MiLightClient*& milightClient, GroupStateStore& stateStore)
     : server(WebServer(80)),
       wsServer(WebSocketsServer(81)),
       numWsClients(0),
       milightClient(milightClient),
-      settings(settings)
+      settings(settings),
+      stateStore(stateStore)
   {
     this->applySettings(settings);
   }
@@ -50,6 +52,7 @@ protected:
   void handleListenGateway(const UrlTokenBindings* urlBindings);
   void handleSendRaw(const UrlTokenBindings* urlBindings);
   void handleUpdateGroup(const UrlTokenBindings* urlBindings);
+  void handleGetGroup(const UrlTokenBindings* urlBindings);
 
   void handleRequest(const JsonObject& request);
   void handleWsEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length);
@@ -60,6 +63,7 @@ protected:
   WebSocketsServer wsServer;
   Settings& settings;
   MiLightClient*& milightClient;
+  GroupStateStore& stateStore;
   SettingsSavedHandler settingsSavedHandler;
   size_t numWsClients;
 

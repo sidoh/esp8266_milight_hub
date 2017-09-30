@@ -20,7 +20,11 @@ void MiLightHttpServer::begin() {
   server.on("/gateway_traffic", HTTP_GET, [this]() { handleListenGateway(NULL); });
   server.onPattern("/gateway_traffic/:type", HTTP_GET, [this](const UrlTokenBindings* b) { handleListenGateway(b); });
 
-  server.onPattern("/gateways/:device_id/:type/:group_id", HTTP_ANY, [this](const UrlTokenBindings* b) { handleUpdateGroup(b); });
+  const char groupPattern[] = "/gateways/:device_id/:type/:group_id";
+  server.onPattern(groupPattern, HTTP_PUT, [this](const UrlTokenBindings* b) { handleUpdateGroup(b); });
+  server.onPattern(groupPattern, HTTP_POST, [this](const UrlTokenBindings* b) { handleUpdateGroup(b); });
+  server.onPattern(groupPattern, HTTP_GET, [this](const UrlTokenBindings* b) { handleGetGroup(b); });
+
   server.onPattern("/raw_commands/:type", HTTP_ANY, [this](const UrlTokenBindings* b) { handleSendRaw(b); });
   server.on("/web", HTTP_POST, [this]() { server.send_P(200, TEXT_PLAIN, PSTR("success")); }, handleUpdateFile(WEB_INDEX_FILENAME));
   server.on("/about", HTTP_GET, [this]() { handleAbout(); });
@@ -286,6 +290,30 @@ void MiLightHttpServer::handleListenGateway(const UrlTokenBindings* bindings) {
   remoteConfig->packetFormatter->format(packet, responseBuffer);
 
   server.send(200, "text/plain", response);
+}
+
+void MiLightHttpServer::handleGetGroup(const UrlTokenBindings* urlBindings) {
+  const String _deviceId = urlBindings->get("device_id");
+  uint8_t _groupId = atoi(urlBindings->get("group_id"));
+  const MiLightRemoteConfig* _remoteType = MiLightRemoteConfig::fromType(urlBindings->get("type"));
+
+  if (_remoteType == NULL) {
+    char buffer[40];
+    sprintf_P(buffer, PSTR("Unknown device type\n"));
+    server.send(400, TEXT_PLAIN, buffer);
+    return;
+  }
+
+  GroupId groupId(parseInt<uint16_t>(_deviceId), _groupId, _remoteType->type);
+  GroupState* state = stateStore.get(groupId);
+
+  String body;
+  StaticJsonBuffer<200> jsonBuffer;
+  JsonObject& obj = jsonBuffer.createObject();
+  state->applyState(obj);
+  obj.printTo(body);
+
+  server.send(200, APPLICATION_JSON, body);
 }
 
 void MiLightHttpServer::handleUpdateGroup(const UrlTokenBindings* urlBindings) {
