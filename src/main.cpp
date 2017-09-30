@@ -5,6 +5,7 @@
 #include <FS.h>
 #include <IntParsing.h>
 #include <Size.h>
+#include <GroupStateStore.h>
 #include <MiLightRadioConfig.h>
 #include <MiLightRemoteConfig.h>
 #include <MiLightHttpServer.h>
@@ -16,7 +17,6 @@
 #include <RGBConverter.h>
 #include <MiLightDiscoveryServer.h>
 #include <MiLightClient.h>
-#include <GroupStateStore.h>
 
 WiFiManager wifiManager;
 
