@@ -30,7 +30,7 @@ void GroupStateStore::trackEviction() {
 
 void GroupStateStore::flush() {
   ListNode<GroupCacheNode*>* curr = cache.getHead();
-  
+
   while (curr != NULL && curr->data->state.isDirty()) {
     persistence.set(curr->data->id, curr->data->state);
     curr->data->state.clearDirty();

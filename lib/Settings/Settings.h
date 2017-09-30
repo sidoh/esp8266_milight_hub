@@ -17,7 +17,7 @@
 #endif
 
 #ifndef MILIGHT_MAX_STATE_ITEMS
-#define MILIGHT_MAX_STATE_ITEMS 100
+#define MILIGHT_MAX_STATE_ITEMS 10
 #endif
 
 #define SETTINGS_FILE  "/config.json"
