@@ -5,14 +5,7 @@ GroupStateCache::GroupStateCache(const size_t maxSize)
 { }
 
 GroupState* GroupStateCache::get(const GroupId& id) {
-  GroupState* state = getInternal(id);
-
-  if (state == NULL) {
-    state = set(id, GroupState::defaultState(id.deviceType));
-    return state;
-  } else {
-    return state;
-  }
+  return getInternal(id);
 }
 
 GroupState* GroupStateCache::set(const GroupId& id, const GroupState& state) {
@@ -39,6 +32,19 @@ GroupState* GroupStateCache::set(const GroupId& id, const GroupState& state) {
   }
 
   return cachedState;
+}
+
+GroupId GroupStateCache::getLru() {
+  GroupCacheNode* node = cache.getLast();
+  return node->id;
+}
+
+bool GroupStateCache::isFull() const {
+  return cache.size() >= maxSize;
+}
+
+ListNode<GroupCacheNode*>* GroupStateCache::getHead() {
+  return cache.getHead();
 }
 
 GroupState* GroupStateCache::getInternal(const GroupId& id) {

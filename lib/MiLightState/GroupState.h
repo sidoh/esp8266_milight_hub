@@ -77,32 +77,42 @@ public:
   void patch(const JsonObject& state);
   void applyState(JsonObject& state);
 
+  void load(Stream& stream);
+  void dump(Stream& stream) const;
+
   static const GroupState& defaultState(MiLightRemoteType remoteType);
 
 private:
-  uint32_t
-    _state      : 1,
-    _brightness : 7,
-    _hue        : 8,
-    _saturation : 7,
-    _mode       : 4,
-    _bulbMode   : 3,
-    _isSetState : 1,
-    _isSetHue   : 1;
+  static const size_t DATA_BYTES = 2;
+  union Data {
+    uint32_t data[DATA_BYTES];
+    struct Fields {
+      uint32_t
+        _state                : 1,
+        _brightness           : 7,
+        _hue                  : 8,
+        _saturation           : 7,
+        _mode                 : 4,
+        _bulbMode             : 3,
+        _isSetState           : 1,
+        _isSetHue             : 1;
+      uint32_t
+        _kelvin               : 7,
+        _isSetBrightness      : 1,
+        _isSetSaturation      : 1,
+        _isSetMode            : 1,
+        _isSetKelvin          : 1,
+        _isSetBulbMode        : 1,
+        _brightnessColor      : 7,
+        _brightnessMode       : 7,
+        _isSetBrightnessColor : 1,
+        _isSetBrightnessMode  : 1,
+        _dirty                : 1,
+                              : 5;
+    } fields;
+  };
 
-  uint32_t
-    _kelvin               : 7,
-    _isSetBrightness      : 1,
-    _isSetSaturation      : 1,
-    _isSetMode            : 1,
-    _isSetKelvin          : 1,
-    _isSetBulbMode        : 1,
-    _brightnessColor      : 7,
-    _brightnessMode       : 7,
-    _isSetBrightnessColor : 1,
-    _isSetBrightnessMode  : 1,
-    _dirty                : 1,
-                          : 5;
+  Data state;
 };
 
 struct GroupStateNode {

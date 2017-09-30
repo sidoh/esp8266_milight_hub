@@ -40,7 +40,7 @@ public:
 	/*
 		Returns current size of LinkedList
 	*/
-	virtual int size();
+	virtual int size() const;
 	/*
 		Adds a T object in the specified index;
 		Unlink and link the LinkedList correcly;
@@ -91,6 +91,7 @@ public:
 	ListNode<T>* getNode(int index);
   virtual void spliceToFront(ListNode<T>* node);
   ListNode<T>* getHead() { return root; }
+	T getLast() const { return last == NULL ? T() : last->data; }
 
 };
 
@@ -157,7 +158,7 @@ ListNode<T>* LinkedList<T>::getNode(int index){
 }
 
 template<typename T>
-int LinkedList<T>::size(){
+int LinkedList<T>::size() const{
 	return _size;
 }
 

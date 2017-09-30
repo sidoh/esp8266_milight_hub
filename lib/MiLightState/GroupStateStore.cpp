@@ -1,0 +1,40 @@
+#include <GroupStateStore.h>
+
+GroupStateStore::GroupStateStore(const size_t maxSize)
+  : cache(GroupStateCache(maxSize))
+{ }
+
+GroupState* GroupStateStore::get(const GroupId& id) {
+  GroupState* state = cache.get(id);
+
+  if (state == NULL) {
+    trackEviction();
+    state = cache.set(id, GroupState::defaultState(id.deviceType));
+  }
+
+  return state;
+}
+
+GroupState* GroupStateStore::set(const GroupId &id, const GroupState& state) {
+  *(get(id)) = state;
+}
+
+void GroupStateStore::trackEviction() {
+  if (cache.isFull()) {
+    evictedIds.add(cache.getLru());
+  }
+}
+
+void GroupStateStore::flush() {
+  ListNode<GroupCacheNode*>* curr = cache.getHead();
+
+  while (curr != NULL && curr->data->state.isDirty()) {
+    persistence.set(curr->data->id, curr->data->state);
+    curr->data->state.clearDirty();
+    curr = curr->next;
+  }
+
+  while (evictedIds.size() > 0) {
+    persistence.clear(evictedIds.shift());
+  }
+}

@@ -1,5 +1,5 @@
+#include <GroupState.h>
 #include <LinkedList.h>
-#include <GroupStateStore.h>
 
 #ifndef _GROUP_STATE_CACHE_H
 #define _GROUP_STATE_CACHE_H
@@ -13,12 +13,15 @@ struct GroupCacheNode {
   GroupState state;
 };
 
-class GroupStateCache : public GroupStateStore {
+class GroupStateCache {
 public:
   GroupStateCache(const size_t maxSize);
 
   GroupState* get(const GroupId& id);
   GroupState* set(const GroupId& id, const GroupState& state);
+  GroupId getLru();
+  bool isFull() const;
+  ListNode<GroupCacheNode*>* getHead();
 
 private:
   LinkedList<GroupCacheNode*> cache;

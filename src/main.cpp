@@ -16,7 +16,7 @@
 #include <RGBConverter.h>
 #include <MiLightDiscoveryServer.h>
 #include <MiLightClient.h>
-#include <GroupStateCache.h>
+#include <GroupStateStore.h>
 
 WiFiManager wifiManager;
 
@@ -28,7 +28,7 @@ MiLightHttpServer *httpServer = NULL;
 MqttClient* mqttClient = NULL;
 MiLightDiscoveryServer* discoveryServer = NULL;
 uint8_t currentRadioType = 0;
-GroupStateCache* stateCache = new GroupStateCache(100);
+GroupStateStore stateStore(100);
 
 int numUdpServers = 0;
 MiLightUdpServer** udpServers;
@@ -70,7 +70,7 @@ void initMilightUdpServers() {
 void onPacketSentHandler(uint8_t* packet, const MiLightRemoteConfig& config) {
   StaticJsonBuffer<200> buffer;
   JsonObject& result = buffer.createObject();
-  config.packetFormatter->parsePacket(packet, result, stateCache);
+  config.packetFormatter->parsePacket(packet, result, &stateStore);
 
   if (!result.containsKey("device_id")
     ||!result.containsKey("group_id")
@@ -84,7 +84,7 @@ void onPacketSentHandler(uint8_t* packet, const MiLightRemoteConfig& config) {
   const MiLightRemoteConfig* remoteConfig = MiLightRemoteConfig::fromType(result.get<String>("device_type"));
 
   GroupId bulbId(deviceId, groupId, remoteConfig->type);
-  GroupState* groupState = stateCache->get(bulbId);
+  GroupState* groupState = stateStore.get(bulbId);
   groupState->patch(result);
   groupState->applyState(result);
 
@@ -218,6 +218,7 @@ void loop() {
   }
 
   handleListen();
+  stateStore.flush();
 
   if (shouldRestart()) {
     Serial.println(F("Auto-restart triggered. Restarting..."));

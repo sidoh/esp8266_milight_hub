@@ -1,0 +1,38 @@
+#include <GroupStatePersistence.h>
+#include <FS.h>
+
+static const char FILE_PREFIX[] = "group_states/";
+
+void GroupStatePersistence::get(const GroupId &id, GroupState& state) {
+  char path[30];
+  buildFilename(id, path);
+
+  if (SPIFFS.exists(path)) {
+    File f = SPIFFS.open(path, "r");
+    state.load(f);
+    f.close();
+  }
+}
+
+void GroupStatePersistence::set(const GroupId &id, const GroupState& state) {
+  char path[30];
+  buildFilename(id, path);
+
+  File f = SPIFFS.open(path, "w");
+  state.dump(f);
+  f.close();
+}
+
+void GroupStatePersistence::clear(const GroupId &id) {
+  char path[30];
+  buildFilename(id, path);
+
+  if (SPIFFS.exists(path)) {
+    SPIFFS.remove(path);
+  }
+}
+
+char* GroupStatePersistence::buildFilename(const GroupId &id, char *buffer) {
+  uint32_t compactId = (id.deviceId << 24) | (id.deviceType << 8) | id.groupId;
+  return buffer + sprintf(buffer, "%s%x", FILE_PREFIX, compactId);
+}
