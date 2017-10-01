@@ -38,45 +38,45 @@ public:
   // 1 bit
   bool isSetState() const;
   MiLightStatus getState() const;
-  void setState(const MiLightStatus on);
+  bool setState(const MiLightStatus on);
 
   // 7 bits
   bool isSetBrightness() const;
   uint8_t getBrightness() const;
-  void setBrightness(uint8_t brightness);
+  bool setBrightness(uint8_t brightness);
 
   // 8 bits
   bool isSetHue() const;
   uint16_t getHue() const;
-  void setHue(uint16_t hue);
+  bool setHue(uint16_t hue);
 
   // 7 bits
   bool isSetSaturation() const;
   uint8_t getSaturation() const;
-  void setSaturation(uint8_t saturation);
+  bool setSaturation(uint8_t saturation);
 
   // 5 bits
   bool isSetMode() const;
   uint8_t getMode() const;
-  void setMode(uint8_t mode);
+  bool setMode(uint8_t mode);
 
   // 7 bits
   bool isSetKelvin() const;
   uint8_t getKelvin() const;
   uint16_t getMireds() const;
-  void setKelvin(uint8_t kelvin);
-  void setMireds(uint16_t mireds);
+  bool setKelvin(uint8_t kelvin);
+  bool setMireds(uint16_t mireds);
 
   // 3 bits
   bool isSetBulbMode() const;
   BulbMode getBulbMode() const;
-  void setBulbMode(BulbMode mode);
+  bool setBulbMode(BulbMode mode);
 
   bool isDirty() const;
   bool setDirty();
   bool clearDirty();
 
-  void patch(const JsonObject& state);
+  bool patch(const JsonObject& state);
   void applyState(JsonObject& state);
 
   void load(Stream& stream);

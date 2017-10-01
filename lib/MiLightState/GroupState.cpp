@@ -75,10 +75,16 @@ GroupState::GroupState() {
 
 bool GroupState::isSetState() const { return state.fields._isSetState; }
 MiLightStatus GroupState::getState() const { return state.fields._state ? ON : OFF; }
-void GroupState::setState(const MiLightStatus status) {
+bool GroupState::setState(const MiLightStatus status) {
+  if (isSetState() && getState() == status) {
+    return false;
+  }
+
   setDirty();
   state.fields._isSetState = 1;
   state.fields._state = status == ON ? 1 : 0;
+
+  return true;
 }
 
 bool GroupState::isSetBrightness() const {
@@ -109,7 +115,11 @@ uint8_t GroupState::getBrightness() const {
 
   return 0;
 }
-void GroupState::setBrightness(uint8_t brightness) {
+bool GroupState::setBrightness(uint8_t brightness) {
+  if (isSetBrightness() && getBrightness() == brightness) {
+    return false;
+  }
+
   setDirty();
 
   uint8_t bulbMode = state.fields._bulbMode;
@@ -129,33 +139,55 @@ void GroupState::setBrightness(uint8_t brightness) {
     case BULB_MODE_SCENE:
       state.fields._isSetBrightnessMode = 1;
       state.fields._brightnessMode = brightness;
+    default:
+      return false;
   }
+
+  return true;
 }
 
 bool GroupState::isSetHue() const { return state.fields._isSetHue; }
 uint16_t GroupState::getHue() const {
   return Units::rescale<uint16_t, uint16_t>(state.fields._hue, 360, 255);
 }
-void GroupState::setHue(uint16_t hue) {
+bool GroupState::setHue(uint16_t hue) {
+  if (isSetHue() && getHue() == hue) {
+    return false;
+  }
+
   setDirty();
   state.fields._isSetHue = 1;
   state.fields._hue = Units::rescale<uint16_t, uint16_t>(hue, 255, 360);
+
+  return true;
 }
 
 bool GroupState::isSetSaturation() const { return state.fields._isSetSaturation; }
 uint8_t GroupState::getSaturation() const { return state.fields._saturation; }
-void GroupState::setSaturation(uint8_t saturation) {
+bool GroupState::setSaturation(uint8_t saturation) {
+  if (isSetSaturation() && getSaturation() == saturation) {
+    return false;
+  }
+
   setDirty();
   state.fields._isSetSaturation = 1;
   state.fields._saturation = saturation;
+
+  return true;
 }
 
 bool GroupState::isSetMode() const { return state.fields._isSetMode; }
 uint8_t GroupState::getMode() const { return state.fields._mode; }
-void GroupState::setMode(uint8_t mode) {
+bool GroupState::setMode(uint8_t mode) {
+  if (isSetMode() && getMode() == mode) {
+    return false;
+  }
+
   setDirty();
   state.fields._isSetMode = 1;
   state.fields._mode = mode;
+
+  return true;
 }
 
 bool GroupState::isSetKelvin() const { return state.fields._isSetKelvin; }
@@ -163,21 +195,33 @@ uint8_t GroupState::getKelvin() const { return state.fields._kelvin; }
 uint16_t GroupState::getMireds() const {
   return Units::whiteValToMireds(getKelvin(), 100);
 }
-void GroupState::setKelvin(uint8_t kelvin) {
+bool GroupState::setKelvin(uint8_t kelvin) {
+  if (isSetKelvin() && getKelvin() == kelvin) {
+    return false;
+  }
+
   setDirty();
   state.fields._isSetKelvin = 1;
   state.fields._kelvin = kelvin;
+
+  return true;
 }
-void GroupState::setMireds(uint16_t mireds) {
-  setKelvin(Units::miredsToWhiteVal(mireds, 100));
+bool GroupState::setMireds(uint16_t mireds) {
+  return setKelvin(Units::miredsToWhiteVal(mireds, 100));
 }
 
 bool GroupState::isSetBulbMode() const { return state.fields._isSetBulbMode; }
 BulbMode GroupState::getBulbMode() const { return static_cast<BulbMode>(state.fields._bulbMode); }
-void GroupState::setBulbMode(BulbMode bulbMode) {
+bool GroupState::setBulbMode(BulbMode bulbMode) {
+  if (isSetBulbMode() && getBulbMode() == bulbMode) {
+    return false;
+  }
+
   setDirty();
   state.fields._isSetBulbMode = 1;
   state.fields._bulbMode = bulbMode;
+
+  return true;
 }
 
 bool GroupState::isDirty() const { return state.fields._dirty; }
@@ -197,37 +241,41 @@ void GroupState::dump(Stream& stream) const {
   }
 }
 
-void GroupState::patch(const JsonObject& state) {
+bool GroupState::patch(const JsonObject& state) {
+  bool changes = false;
+
   if (state.containsKey("state")) {
-    setState(state["state"] == "ON" ? ON : OFF);
+    changes |= setState(state["state"] == "ON" ? ON : OFF);
   }
   if (state.containsKey("brightness")) {
-    setBrightness(Units::rescale(state.get<uint8_t>("brightness"), 100, 255));
+    changes |= setBrightness(Units::rescale(state.get<uint8_t>("brightness"), 100, 255));
   }
   if (state.containsKey("hue")) {
-    setHue(state["hue"]);
-    setBulbMode(BULB_MODE_COLOR);
+    changes |= setHue(state["hue"]);
+    changes |= setBulbMode(BULB_MODE_COLOR);
   }
   if (state.containsKey("saturation")) {
-    setSaturation(state["saturation"]);
+    changes |= setSaturation(state["saturation"]);
   }
   if (state.containsKey("mode")) {
-    setMode(state["mode"]);
-    setBulbMode(BULB_MODE_SCENE);
+    changes |= setMode(state["mode"]);
+    changes |= setBulbMode(BULB_MODE_SCENE);
   }
   if (state.containsKey("color_temp")) {
-    setMireds(state["color_temp"]);
-    setBulbMode(BULB_MODE_WHITE);
+    changes |= setMireds(state["color_temp"]);
+    changes |= setBulbMode(BULB_MODE_WHITE);
   }
   if (state.containsKey("command")) {
     const String& command = state["command"];
 
     if (command == "white_mode") {
-      setBulbMode(BULB_MODE_WHITE);
+      changes |= setBulbMode(BULB_MODE_WHITE);
     } else if (command == "night_mode") {
-      setBulbMode(BULB_MODE_NIGHT);
+      changes |= setBulbMode(BULB_MODE_NIGHT);
     }
   }
+
+  return changes;
 }
 
 void GroupState::applyState(JsonObject& partialState) {

@@ -87,12 +87,12 @@ void onPacketSentHandler(uint8_t* packet, const MiLightRemoteConfig& config) {
 
   GroupId bulbId(deviceId, groupId, remoteConfig->type);
   GroupState* groupState = stateStore.get(bulbId);
-  groupState->patch(result);
+  bool changes = groupState->patch(result);
 
-  char output[200];
-  result.printTo(output);
-
-  if (mqttClient) {
+  if (changes && mqttClient) {
+    char output[200];
+    result.printTo(output);
+    
     mqttClient->sendUpdate(config, deviceId, groupId, output);
 
     groupState->applyState(result);
