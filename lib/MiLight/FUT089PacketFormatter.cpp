@@ -102,8 +102,4 @@ void FUT089PacketFormatter::parsePacket(const uint8_t *packet, JsonObject& resul
     result["button_id"] = command;
     result["argument"] = arg;
   }
-
-  if (! result.containsKey("state")) {
-    result["state"] = "ON";
-  }
 }

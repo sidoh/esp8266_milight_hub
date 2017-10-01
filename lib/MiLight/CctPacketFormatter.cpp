@@ -167,10 +167,6 @@ void CctPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& result, 
   } else {
     result["button_id"] = command;
   }
-
-  if (! result.containsKey("state")) {
-    result["state"] = "ON";
-  }
 }
 
 void CctPacketFormatter::format(uint8_t const* packet, char* buffer) {
