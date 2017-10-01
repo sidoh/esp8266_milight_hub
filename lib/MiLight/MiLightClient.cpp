@@ -4,12 +4,14 @@
 #include <RGBConverter.h>
 #include <Units.h>
 
-MiLightClient::MiLightClient(MiLightRadioFactory* radioFactory)
+MiLightClient::MiLightClient(MiLightRadioFactory* radioFactory, GroupStateStore& stateStore)
   : resendCount(MILIGHT_DEFAULT_RESEND_COUNT),
     currentRadio(NULL),
     currentRemote(NULL),
     numRadios(MiLightRadioConfig::NUM_CONFIGS),
-    packetSentHandler(NULL)
+    packetSentHandler(NULL),
+    stateStore(stateStore),
+    currentState(NULL)
 {
   radios = new MiLightRadio*[numRadios];
 
@@ -70,6 +72,8 @@ void MiLightClient::prepare(const MiLightRemoteConfig* config,
   if (deviceId >= 0 && groupId >= 0) {
     currentRemote->packetFormatter->prepare(deviceId, groupId);
   }
+
+  currentState = stateStore.get(GroupId(deviceId, groupId, config->type));
 }
 
 void MiLightClient::prepare(const MiLightRemoteType type,

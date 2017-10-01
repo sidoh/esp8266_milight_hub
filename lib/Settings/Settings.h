@@ -113,6 +113,7 @@ public:
   String mqttPassword;
   String mqttTopicPattern;
   String mqttUpdateTopicPattern;
+  String mqttStateTopicPattern;
   uint16_t discoveryPort;
   uint8_t listenRepeats;
 

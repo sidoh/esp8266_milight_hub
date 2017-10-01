@@ -5,6 +5,7 @@
 #include <MiLightButtons.h>
 #include <MiLightRemoteConfig.h>
 #include <Settings.h>
+#include <GroupStateStore.h>
 
 #ifndef _MILIGHTCLIENT_H
 #define _MILIGHTCLIENT_H
@@ -17,7 +18,7 @@
 
 class MiLightClient {
 public:
-  MiLightClient(MiLightRadioFactory* radioFactory);
+  MiLightClient(MiLightRadioFactory* radioFactory, GroupStateStore& stateStore);
 
   ~MiLightClient() {
     delete[] radios;
@@ -82,6 +83,8 @@ protected:
   const size_t numRadios;
   unsigned int resendCount;
   PacketSentHandler packetSentHandler;
+  GroupStateStore& stateStore;
+  const GroupState* currentState;
 
   MiLightRadio* switchRadio(const MiLightRemoteConfig* remoteConfig);
   uint8_t parseStatus(const JsonObject& object);

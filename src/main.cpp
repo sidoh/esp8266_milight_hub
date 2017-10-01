@@ -87,14 +87,18 @@ void onPacketSentHandler(uint8_t* packet, const MiLightRemoteConfig& config) {
   GroupId bulbId(deviceId, groupId, remoteConfig->type);
   GroupState* groupState = stateStore.get(bulbId);
   groupState->patch(result);
-  groupState->applyState(result);
 
   char output[200];
   result.printTo(output);
 
   if (mqttClient) {
     mqttClient->sendUpdate(config, deviceId, groupId, output);
+
+    groupState->applyState(result);
+    result.printTo(output);
+    mqttClient->sendState(config, deviceId, groupId, output);
   }
+
   httpServer->handlePacketSent(packet, config);
 }
 
@@ -143,7 +147,7 @@ void applySettings() {
     Serial.println(F("ERROR: unable to construct radio factory"));
   }
 
-  milightClient = new MiLightClient(radioFactory);
+  milightClient = new MiLightClient(radioFactory, stateStore);
   milightClient->begin();
   milightClient->onPacketSent(onPacketSentHandler);
 

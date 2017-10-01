@@ -1,8 +1,8 @@
 var FORM_SETTINGS = [
   "admin_username", "admin_password", "ce_pin", "csn_pin", "reset_pin","packet_repeats",
   "http_repeat_factor", "auto_restart_period", "discovery_port", "mqtt_server",
-  "mqtt_topic_pattern", "mqtt_update_topic_pattern", "mqtt_username", "mqtt_password",
-  "radio_interface_type", "listen_repeats"
+  "mqtt_topic_pattern", "mqtt_update_topic_pattern", "mqtt_state_topic_pattern",
+  "mqtt_username", "mqtt_password", "radio_interface_type", "listen_repeats"
 ];
 
 var FORM_SETTINGS_HELP = {
@@ -22,6 +22,9 @@ var FORM_SETTINGS_HELP = {
   mqtt_update_topic_pattern : "Pattern to publish MQTT updates. Packets that " +
     "are received from other devices, and packets that are sent from this device will " +
     "result in updates being sent.",
+  mqtt_state_topic_pattern : "Pattern for MQTT topic to publish state to. When a group " +
+    "changes state, the full known state of the group will be published to this topic " +
+    "pattern.",
   discovery_port : "UDP port to listen for discovery packets on. Defaults to " +
     "the same port used by MiLight devices, 48899. Use 0 to disable.",
   listen_repeats : "Increasing this increases the amount of time spent listening for " +
