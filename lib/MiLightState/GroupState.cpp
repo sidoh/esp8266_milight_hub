@@ -1,6 +1,7 @@
 #include <GroupState.h>
 #include <Units.h>
 #include <MiLightRemoteConfig.h>
+#include <RGBConverter.h>
 
 const GroupState& GroupState::defaultState(MiLightRemoteType remoteType) {
   static GroupState instances[MiLightRemoteConfig::NUM_REMOTES];
@@ -96,7 +97,6 @@ bool GroupState::isSetBrightness() const {
 
   return false;
 }
-
 uint8_t GroupState::getBrightness() const {
   switch (state.fields._bulbMode) {
     case BULB_MODE_WHITE:
@@ -109,7 +109,6 @@ uint8_t GroupState::getBrightness() const {
 
   return 0;
 }
-
 void GroupState::setBrightness(uint8_t brightness) {
   setDirty();
 
@@ -134,11 +133,13 @@ void GroupState::setBrightness(uint8_t brightness) {
 }
 
 bool GroupState::isSetHue() const { return state.fields._isSetHue; }
-uint8_t GroupState::getHue() const { return state.fields._hue; }
-void GroupState::setHue(uint8_t hue) {
+uint16_t GroupState::getHue() const {
+  return Units::rescale<uint16_t, uint16_t>(state.fields._hue, 360, 255);
+}
+void GroupState::setHue(uint16_t hue) {
   setDirty();
   state.fields._isSetHue = 1;
-  state.fields._hue = hue;
+  state.fields._hue = Units::rescale<uint16_t, uint16_t>(hue, 255, 360);
 }
 
 bool GroupState::isSetSaturation() const { return state.fields._isSetSaturation; }
@@ -159,10 +160,16 @@ void GroupState::setMode(uint8_t mode) {
 
 bool GroupState::isSetKelvin() const { return state.fields._isSetKelvin; }
 uint8_t GroupState::getKelvin() const { return state.fields._kelvin; }
+uint16_t GroupState::getMireds() const {
+  return Units::whiteValToMireds(getKelvin(), 100);
+}
 void GroupState::setKelvin(uint8_t kelvin) {
   setDirty();
   state.fields._isSetKelvin = 1;
   state.fields._kelvin = kelvin;
+}
+void GroupState::setMireds(uint16_t mireds) {
+  setKelvin(Units::miredsToWhiteVal(mireds, 100));
 }
 
 bool GroupState::isSetBulbMode() const { return state.fields._isSetBulbMode; }
@@ -198,7 +205,7 @@ void GroupState::patch(const JsonObject& state) {
     setBrightness(Units::rescale(state.get<uint8_t>("brightness"), 100, 255));
   }
   if (state.containsKey("hue")) {
-    setHue(Units::rescale<uint16_t, uint16_t>(state["hue"], 255, 360));
+    setHue(state["hue"]);
     setBulbMode(BULB_MODE_COLOR);
   }
   if (state.containsKey("saturation")) {
@@ -209,7 +216,7 @@ void GroupState::patch(const JsonObject& state) {
     setBulbMode(BULB_MODE_SCENE);
   }
   if (state.containsKey("color_temp")) {
-    setKelvin(Units::miredsToWhiteVal(state["color_temp"], 100));
+    setMireds(state["color_temp"]);
     setBulbMode(BULB_MODE_WHITE);
   }
   if (state.containsKey("command")) {
@@ -224,29 +231,36 @@ void GroupState::patch(const JsonObject& state) {
 }
 
 void GroupState::applyState(JsonObject& partialState) {
-  if (state.fields._isSetState) {
+  if (isSetState()) {
     partialState["state"] = getState() == ON ? "ON" : "OFF";
   }
-  if (state.fields._isSetBrightness) {
+  if (isSetBrightness()) {
     partialState["brightness"] = Units::rescale(getBrightness(), 255, 100);
   }
-  if (state.fields._isSetBulbMode) {
+  if (isSetBulbMode()) {
     partialState["bulb_mode"] = BULB_MODE_NAMES[getBulbMode()];
 
     if (getBulbMode() == BULB_MODE_COLOR) {
-      if (state.fields._isSetHue) {
-        partialState["hue"] = Units::rescale<uint16_t, uint16_t>(getHue(), 360, 255);
-      }
-      if (state.fields._isSetSaturation) {
+      if (isSetHue() && isSetSaturation()) {
+        uint8_t rgb[3];
+        RGBConverter converter;
+        converter.hsvToRgb(getHue()/360.0, getSaturation()/100.0, 1, rgb);
+        JsonObject& color = partialState.createNestedObject("color");
+        color["r"] = rgb[0];
+        color["g"] = rgb[1];
+        color["b"] = rgb[2];
+      } else if (isSetHue()) {
+        partialState["hue"] = getHue();
+      } else if (isSetSaturation()) {
         partialState["saturation"] = getSaturation();
       }
     } else if (getBulbMode() == BULB_MODE_SCENE) {
-      if (state.fields._isSetMode) {
+      if (isSetMode()) {
         partialState["mode"] = getMode();
       }
     } else if (getBulbMode() == BULB_MODE_WHITE) {
-      if (state.fields._isSetKelvin) {
-        partialState["color_temp"] = Units::whiteValToMireds(getKelvin(), 100);
+      if (isSetKelvin()) {
+        partialState["color_temp"] = getMireds();
       }
     }
   }

@@ -33,7 +33,7 @@ void FUT089PacketFormatter::updateTemperature(uint8_t value) {
 }
 
 void FUT089PacketFormatter::updateSaturation(uint8_t value) {
-  command(FUT089_SATURATION, value);
+  command(FUT089_SATURATION, 100 - value);
 }
 
 void FUT089PacketFormatter::updateColorWhite() {
@@ -92,9 +92,9 @@ void FUT089PacketFormatter::parsePacket(const uint8_t *packet, JsonObject& resul
   // without using state
   } else if (command == FUT089_SATURATION) {
     if (state->getBulbMode() == BULB_MODE_COLOR) {
-      result["saturation"] = constrain(arg, 0, 100);
+      result["saturation"] = 100 - constrain(arg, 0, 100);
     } else {
-      result["color_temp"] = Units::whiteValToMireds(arg, 100);
+      result["color_temp"] = Units::whiteValToMireds(100 - arg, 100);
     }
   } else if (command == FUT089_MODE) {
     result["mode"] = arg;

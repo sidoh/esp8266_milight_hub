@@ -47,8 +47,8 @@ public:
 
   // 8 bits
   bool isSetHue() const;
-  uint8_t getHue() const;
-  void setHue(uint8_t hue);
+  uint16_t getHue() const;
+  void setHue(uint16_t hue);
 
   // 7 bits
   bool isSetSaturation() const;
@@ -63,7 +63,9 @@ public:
   // 7 bits
   bool isSetKelvin() const;
   uint8_t getKelvin() const;
+  uint16_t getMireds() const;
   void setKelvin(uint8_t kelvin);
+  void setMireds(uint16_t mireds);
 
   // 3 bits
   bool isSetBulbMode() const;

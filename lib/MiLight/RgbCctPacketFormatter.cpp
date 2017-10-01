@@ -37,7 +37,16 @@ void RgbCctPacketFormatter::updateColorRaw(uint8_t value) {
 }
 
 void RgbCctPacketFormatter::updateTemperature(uint8_t value) {
-  command(RGB_CCT_KELVIN, RGB_CCT_KELVIN_OFFSET - (value*2));
+  // Packet scale is [0x94, 0x92, .. 0, .., 0xCE, 0xCC]. Increments of 2.
+  // From coolest to warmest.
+  // To convert from [0, 100] scale:
+  //   * Multiply by 2
+  //   * Reverse direction (increasing values should be cool -> warm)
+  //   * Start scale at 0xCC
+
+  value = ((100 - value) * 2) + RGB_CCT_KELVIN_REMOTE_END;
+
+  command(RGB_CCT_KELVIN, value);
 }
 
 void RgbCctPacketFormatter::updateSaturation(uint8_t value) {
@@ -83,19 +92,19 @@ void RgbCctPacketFormatter::parsePacket(const uint8_t *packet, JsonObject& resul
     uint16_t hue = Units::rescale<uint16_t, uint16_t>(rescaledColor, 360, 255.0);
     result["hue"] = hue;
   } else if (command == RGB_CCT_KELVIN) {
-    uint8_t temperature =
-        static_cast<uint8_t>(
-          // Range in packets is 180 - 220 or something like that. Shift to
-          // 0..224. Then strip out values out of range [0..24), and (224..255]
-          constrain(
-            static_cast<uint8_t>(arg + RGB_CCT_KELVIN_REMOTE_OFFSET),
-            24,
-            224
-          )
-            +
-          // Shift 24 down to 0
-          RGB_CCT_KELVIN_REMOTE_START
-        )/2; // values are in increments of 2
+    // Packet range is [0x94, 0x92, ..., 0xCC]. Remote sends values outside this
+    // range, so normalize.
+    uint8_t temperature = arg;
+    if (arg < 0xCC && arg >= 0xB0) {
+      temperature = 0xCC;
+    } else if (arg > 0x94 && arg <= 0xAF) {
+      temperature = 0x94;
+    }
+
+    temperature = (temperature + (0x100 - RGB_CCT_KELVIN_REMOTE_END)) % 0x100;
+    temperature /= 2;
+    temperature = (100 - temperature);
+    temperature = constrain(temperature, 0, 100);
 
     result["color_temp"] = Units::whiteValToMireds(temperature, 100);
   // brightness == saturation
