@@ -68,7 +68,8 @@ public:
     httpRepeatFactor(5),
     listenRepeats(3),
     _autoRestartPeriod(0),
-    discoveryPort(48899)
+    discoveryPort(48899),
+    stateFlushInterval(10)
   { }
 
   ~Settings() {
@@ -116,6 +117,7 @@ public:
   String mqttStateTopicPattern;
   uint16_t discoveryPort;
   uint8_t listenRepeats;
+  size_t stateFlushInterval;
 
 protected:
   size_t _autoRestartPeriod;

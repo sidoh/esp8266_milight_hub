@@ -30,6 +30,7 @@ MqttClient* mqttClient = NULL;
 MiLightDiscoveryServer* discoveryServer = NULL;
 uint8_t currentRadioType = 0;
 GroupStateStore stateStore(MILIGHT_MAX_STATE_ITEMS);
+size_t lastFlush = 0;
 
 int numUdpServers = 0;
 MiLightUdpServer** udpServers;
@@ -176,6 +177,11 @@ bool shouldRestart() {
   return settings.getAutoRestartPeriod()*60*1000 < millis();
 }
 
+bool shouldFlush() {
+  return ((lastFlush + (settings.stateFlushInterval*1000) < millis())
+    || lastFlush > millis()); // in case millis() wraps
+}
+
 void setup() {
   Serial.begin(9600);
   wifiManager.autoConnect();
@@ -223,7 +229,11 @@ void loop() {
   }
 
   handleListen();
-  stateStore.flush();
+
+  if (shouldFlush()) {
+    stateStore.flush();
+    lastFlush = millis();
+  }
 
   if (shouldRestart()) {
     Serial.println(F("Auto-restart triggered. Restarting..."));
