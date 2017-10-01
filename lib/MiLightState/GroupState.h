@@ -1,5 +1,5 @@
+#include <stddef.h>
 #include <inttypes.h>
-#include <Arduino.h>
 #include <MiLightButtons.h>
 #include <ArduinoJson.h>
 
