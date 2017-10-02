@@ -81,23 +81,25 @@ void onPacketSentHandler(uint8_t* packet, const MiLightRemoteConfig& config) {
     return;
   }
 
-  uint16_t deviceId = result["device_id"];
-  uint16_t groupId = result["group_id"];
-  const MiLightRemoteConfig* remoteConfig = MiLightRemoteConfig::fromType(result.get<String>("device_type"));
+  if (mqttClient) {
+    uint16_t deviceId = result["device_id"];
+    uint16_t groupId = result["group_id"];
+    const MiLightRemoteConfig* remoteConfig = MiLightRemoteConfig::fromType(result.get<String>("device_type"));
 
-  GroupId bulbId(deviceId, groupId, remoteConfig->type);
-  GroupState* groupState = stateStore.get(bulbId);
-  bool changes = groupState->patch(result);
+    GroupId bulbId(deviceId, groupId, remoteConfig->type);
+    GroupState* groupState = stateStore.get(bulbId);
+    bool changes = groupState->patch(result);
 
-  if (changes && mqttClient) {
     char output[200];
     result.printTo(output);
-    
+
     mqttClient->sendUpdate(config, deviceId, groupId, output);
 
-    groupState->applyState(result);
-    result.printTo(output);
-    mqttClient->sendState(config, deviceId, groupId, output);
+    if (changes) {
+      groupState->applyState(result);
+      result.printTo(output);
+      mqttClient->sendState(config, deviceId, groupId, output);
+    }
   }
 
   httpServer->handlePacketSent(packet, config);
