@@ -29,6 +29,10 @@ PacketFormatter::PacketFormatter(const size_t packetLength, const size_t maxPack
   packetStream.packetStream = PACKET_BUFFER;
 }
 
+bool PacketFormatter::canHandle(const uint8_t *packet, const size_t len) {
+  return len == packetLength;
+}
+
 void PacketFormatter::finalizePacket(uint8_t* packet) { }
 
 void PacketFormatter::updateStatus(MiLightStatus status) {

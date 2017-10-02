@@ -161,7 +161,7 @@ void MiLightHttpServer::handleGetRadioConfigs() {
   JsonArray& arr = buffer.createArray();
 
   for (size_t i = 0; i < MiLightRadioConfig::NUM_CONFIGS; i++) {
-    const MiLightRadioConfig* config = MiLightRadioConfig::ALL_CONFIGS[i];
+    const MiLightRemoteConfig* config = MiLightRemoteConfig::ALL_REMOTES[i];
     arr.add(config->name);
   }
 
@@ -235,17 +235,18 @@ void MiLightHttpServer::handleUpdateSettings() {
 void MiLightHttpServer::handleListenGateway(const UrlTokenBindings* bindings) {
   bool available = false;
   bool listenAll = bindings == NULL;
-  uint8_t configIx = 0;
-  MiLightRadioConfig* currentConfig =
-    listenAll
-      ? MiLightRadioConfig::ALL_CONFIGS[0]
-      : MiLightRadioConfig::fromString(bindings->get("type"));
+  size_t configIx = 0;
+  const MiLightRadioConfig* radioConfig = NULL;
 
-  if (currentConfig == NULL && bindings != NULL) {
-    String body = "Unknown device type: ";
-    body += bindings->get("type");
+  if (bindings != NULL) {
+    String strType(bindings->get("type"));
+    const MiLightRemoteConfig* remoteConfig = MiLightRemoteConfig::fromType(strType);
+    milightClient->prepare(remoteConfig, 0, 0);
+    radioConfig = &remoteConfig->radioConfig;
+  }
 
-    server.send(400, "text/plain", body);
+  if (radioConfig == NULL && !listenAll) {
+    server.send_P(400, TEXT_PLAIN, PSTR("Unknown device type supplied."));
     return;
   }
 
@@ -255,11 +256,8 @@ void MiLightHttpServer::handleListenGateway(const UrlTokenBindings* bindings) {
     }
 
     if (listenAll) {
-      currentConfig = MiLightRadioConfig::ALL_CONFIGS[
-        configIx++ % MiLightRadioConfig::NUM_CONFIGS
-      ];
+      radioConfig = &milightClient->switchRadio(configIx++ % milightClient->getNumRadios())->config();
     }
-    milightClient->prepare(*currentConfig, 0, 0);
 
     if (milightClient->available()) {
       available = true;
@@ -268,8 +266,13 @@ void MiLightHttpServer::handleListenGateway(const UrlTokenBindings* bindings) {
     yield();
   }
 
-  uint8_t packet[currentConfig->getPacketLength()];
-  milightClient->read(packet);
+  uint8_t packet[MILIGHT_MAX_PACKET_LENGTH];
+  size_t packetLen = milightClient->read(packet);
+  const MiLightRemoteConfig* remoteConfig = MiLightRemoteConfig::fromReceivedPacket(
+    *radioConfig,
+    packet,
+    packetLen
+  );
 
   char response[200];
   char* responseBuffer = response;
@@ -277,10 +280,10 @@ void MiLightHttpServer::handleListenGateway(const UrlTokenBindings* bindings) {
   responseBuffer += sprintf_P(
     responseBuffer,
     PSTR("\n%s packet received (%d bytes):\n"),
-    currentConfig->name,
-    sizeof(packet)
+    remoteConfig->name.c_str(),
+    packetLen
   );
-  milightClient->formatPacket(packet, responseBuffer);
+  remoteConfig->packetFormatter->format(packet, responseBuffer);
 
   server.send(200, "text/plain", response);
 }
@@ -300,25 +303,25 @@ void MiLightHttpServer::handleUpdateGroup(const UrlTokenBindings* urlBindings) {
 
   String _deviceIds = urlBindings->get("device_id");
   String _groupIds = urlBindings->get("group_id");
-  String _radioTypes = urlBindings->get("type");
+  String _remoteTypes = urlBindings->get("type");
   char deviceIds[_deviceIds.length()];
   char groupIds[_groupIds.length()];
-  char radioTypes[_radioTypes.length()];
-  strcpy(radioTypes, _radioTypes.c_str());
+  char remoteTypes[_remoteTypes.length()];
+  strcpy(remoteTypes, _remoteTypes.c_str());
   strcpy(groupIds, _groupIds.c_str());
   strcpy(deviceIds, _deviceIds.c_str());
 
   TokenIterator deviceIdItr(deviceIds, _deviceIds.length());
   TokenIterator groupIdItr(groupIds, _groupIds.length());
-  TokenIterator radioTypesItr(radioTypes, _radioTypes.length());
+  TokenIterator remoteTypesItr(remoteTypes, _remoteTypes.length());
 
-  while (radioTypesItr.hasNext()) {
-    const char* _radioType = radioTypesItr.nextToken();
-    MiLightRadioConfig* config = MiLightRadioConfig::fromString(_radioType);
+  while (remoteTypesItr.hasNext()) {
+    const char* _remoteType = remoteTypesItr.nextToken();
+    const MiLightRemoteConfig* config = MiLightRemoteConfig::fromType(_remoteType);
 
     if (config == NULL) {
       char buffer[40];
-      sprintf_P(buffer, PSTR("Unknown device type: %s"), _radioType);
+      sprintf_P(buffer, PSTR("Unknown device type: %s"), _remoteType);
       server.send(400, "text/plain", buffer);
       return;
     }
@@ -331,7 +334,7 @@ void MiLightHttpServer::handleUpdateGroup(const UrlTokenBindings* urlBindings) {
       while (groupIdItr.hasNext()) {
         const uint8_t groupId = atoi(groupIdItr.nextToken());
 
-        milightClient->prepare(*config, deviceId, groupId);
+        milightClient->prepare(config, deviceId, groupId);
         handleRequest(request);
       }
     }
@@ -347,7 +350,7 @@ void MiLightHttpServer::handleRequest(const JsonObject& request) {
 void MiLightHttpServer::handleSendRaw(const UrlTokenBindings* bindings) {
   DynamicJsonBuffer buffer;
   JsonObject& request = buffer.parse(server.arg("plain"));
-  MiLightRadioConfig* config = MiLightRadioConfig::fromString(bindings->get("type"));
+  const MiLightRemoteConfig* config = MiLightRemoteConfig::fromType(bindings->get("type"));
 
   if (config == NULL) {
     char buffer[50];
@@ -356,16 +359,16 @@ void MiLightHttpServer::handleSendRaw(const UrlTokenBindings* bindings) {
     return;
   }
 
-  uint8_t packet[config->getPacketLength()];
+  uint8_t packet[MILIGHT_MAX_PACKET_LENGTH];
   const String& hexPacket = request["packet"];
-  hexStrToBytes<uint8_t>(hexPacket.c_str(), hexPacket.length(), packet, config->getPacketLength());
+  hexStrToBytes<uint8_t>(hexPacket.c_str(), hexPacket.length(), packet, MILIGHT_MAX_PACKET_LENGTH);
 
   size_t numRepeats = MILIGHT_DEFAULT_RESEND_COUNT;
   if (request.containsKey("num_repeats")) {
     numRepeats = request["num_repeats"];
   }
 
-  milightClient->prepare(*config, 0, 0);
+  milightClient->prepare(config, 0, 0);
 
   for (size_t i = 0; i < numRepeats; i++) {
     milightClient->write(packet);
@@ -388,7 +391,7 @@ void MiLightHttpServer::handleWsEvent(uint8_t num, WStype_t type, uint8_t *paylo
   }
 }
 
-void MiLightHttpServer::handlePacketSent(uint8_t *packet, const MiLightRadioConfig& config) {
+void MiLightHttpServer::handlePacketSent(uint8_t *packet, const MiLightRemoteConfig& config) {
   if (numWsClients > 0) {
     size_t packetLen = config.packetFormatter->getPacketLength();
     char buffer[packetLen*3];
@@ -401,8 +404,8 @@ void MiLightHttpServer::handlePacketSent(uint8_t *packet, const MiLightRadioConf
     sprintf_P(
       responseBuffer,
       PSTR("\n%s packet received (%d bytes):\n%s"),
-      config.name,
-      sizeof(packet),
+      config.name.c_str(),
+      packetLen,
       formattedPacket
     );
 

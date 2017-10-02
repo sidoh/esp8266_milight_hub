@@ -1,32 +1,8 @@
 #include <MiLightRadioConfig.h>
 
-MiLightRadioConfig* MiLightRadioConfig::ALL_CONFIGS[] = {
-  &MilightRgbwConfig,
-  &MilightCctConfig,
-  &MilightRgbCctConfig,
-  &MilightRgbConfig
+MiLightRadioConfig MiLightRadioConfig::ALL_CONFIGS[] = {
+  MiLightRadioConfig(0x147A, 0x258B, 7, 9, 40, 71), // rgbw
+  MiLightRadioConfig(0x050A, 0x55AA, 7, 4, 39, 74), // cct
+  MiLightRadioConfig(0x7236, 0x1809, 9, 8, 39, 70), // rgb+cct, fut089
+  MiLightRadioConfig(0x9AAB, 0xBCCD, 6, 3, 38, 73)  // rgb
 };
-
-MiLightRadioConfig* MiLightRadioConfig::fromString(const String& s) {
-  for (size_t i = 0; i < MiLightRadioConfig::NUM_CONFIGS; i++) {
-    MiLightRadioConfig* config = MiLightRadioConfig::ALL_CONFIGS[i];
-    if (s.equalsIgnoreCase(config->name)) {
-      return config;
-    }
-  }
-  return NULL;
-}
-
-MiLightRadioConfig* MiLightRadioConfig::fromType(MiLightRadioType type) {
-  for (size_t i = 0; i < MiLightRadioConfig::NUM_CONFIGS; i++) {
-    MiLightRadioConfig* config = MiLightRadioConfig::ALL_CONFIGS[i];
-    if (config->type == type) {
-      return config;
-    }
-  }
-  return NULL;
-}
-
-size_t MiLightRadioConfig::getPacketLength() const {
-  return packetFormatter->getPacketLength();
-}

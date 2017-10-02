@@ -3,6 +3,8 @@
 #ifndef _RGBW_PACKET_FORMATTER_H
 #define _RGBW_PACKET_FORMATTER_H
 
+#define RGBW_PROTOCOL_ID_BYTE 0xB0
+
 enum MiLightRgbwButton {
   RGBW_ALL_ON            = 0x01,
   RGBW_ALL_OFF           = 0x02,
