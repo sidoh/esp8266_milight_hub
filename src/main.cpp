@@ -94,12 +94,9 @@ void onPacketSentHandler(uint8_t* packet, const MiLightRemoteConfig& config) {
     result.printTo(output);
 
     mqttClient->sendUpdate(config, deviceId, groupId, output);
-
-    if (changes) {
-      groupState->applyState(result);
-      result.printTo(output);
-      mqttClient->sendState(config, deviceId, groupId, output);
-    }
+    groupState->applyState(result);
+    result.printTo(output);
+    mqttClient->sendState(config, deviceId, groupId, output);
   }
 
   httpServer->handlePacketSent(packet, config);
