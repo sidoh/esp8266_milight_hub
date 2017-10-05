@@ -62,3 +62,38 @@ const MiLightRemoteConfig* MiLightRemoteConfig::fromReceivedPacket(
 
   return NULL;
 }
+
+const MiLightRemoteConfig FUT096Config( //rgbw
+  new RgbwPacketFormatter(),
+  MiLightRadioConfig::ALL_CONFIGS[0],
+  REMOTE_TYPE_RGBW,
+  "rgbw"
+);
+
+const MiLightRemoteConfig FUT091Config( //cct
+  new CctPacketFormatter(),
+  MiLightRadioConfig::ALL_CONFIGS[1],
+  REMOTE_TYPE_CCT,
+  "cct"
+);
+
+const MiLightRemoteConfig FUT092Config( //rgb+cct
+  new RgbCctPacketFormatter(),
+  MiLightRadioConfig::ALL_CONFIGS[2],
+  REMOTE_TYPE_RGB_CCT,
+  "rgb_cct"
+);
+
+const MiLightRemoteConfig FUT089Config( //rgb+cct B8 / FUT089
+  new FUT089PacketFormatter(),
+  MiLightRadioConfig::ALL_CONFIGS[2],
+  REMOTE_TYPE_FUT089,
+  "fut089"
+);
+
+const MiLightRemoteConfig FUT098Config( //rgb
+  new RgbPacketFormatter(),
+  MiLightRadioConfig::ALL_CONFIGS[3],
+  REMOTE_TYPE_RGB,
+  "rgb"
+);
