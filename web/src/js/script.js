@@ -58,7 +58,6 @@ var activeUrl = function() {
     , mode = getCurrentMode();
 
   if (deviceId == "") {
-    alert("Please enter a device ID.");
     throw "Must enter device ID";
   }
 
@@ -75,14 +74,18 @@ var getCurrentMode = function() {
 
 var updateGroup = _.throttle(
   function(params) {
-    $.ajax(
-      activeUrl(),
-      {
-        method: 'PUT',
-        data: JSON.stringify(params),
-        contentType: 'application/json'
-      }
-    );
+    try {
+      $.ajax(
+        activeUrl(),
+        {
+          method: 'PUT',
+          data: JSON.stringify(params),
+          contentType: 'application/json'
+        }
+      );
+    } catch (e) {
+      alert(e);
+    }
   },
   1000
 );
@@ -330,6 +333,29 @@ var handleCheckForUpdates = function() {
   );
 };
 
+var handleStateUpdate = function(state) {
+  if (state.state) {
+    $('input[name="status"]').prop('checked', state.state == 'ON').click();
+  }
+  if (state.color) {
+    var hsv = RGBtoHSV(state.color.r, state.color.g, state.color.b);
+    $('input[name="saturation"]').slider('setValue', hsv.s*100);
+    updatePreviewColor(hsv.h*360,hsv.s*100,hsv.v*100);
+  }
+};
+
+var updatePreviewColor = function(hue, saturation, value) {
+  if (! saturation) {
+    saturation = 100;
+  }
+  if (! value) {
+    value = 50;
+  }
+  $('.hue-value-display').css({
+    backgroundColor: "hsl(" + hue + "," + saturation + "%," + value + "%)"
+  });
+};
+
 $(function() {
   $('.radio-option').click(function() {
     $(this).prev().prop('checked', true);
@@ -342,9 +368,7 @@ $(function() {
       , hue = Math.round(360*pct)
       ;
 
-    $('.hue-value-display').css({
-      backgroundColor: "hsl(" + hue + ",100%,50%)"
-    });
+    updatePreviewColor(hue);
 
     updateGroup({hue: hue});
   };
@@ -413,6 +437,19 @@ $(function() {
     updateGroup({mode: $(this).data('mode-value')});
     e.preventDefault();
     return false;
+  });
+
+  $('input[name="mode"],input[name="options"],#deviceId').change(function(e) {
+    try {
+      $.getJSON(
+        activeUrl(),
+        function(e) {
+          handleStateUpdate(e);
+        }
+      );
+    } catch (e) {
+      // Skip
+    }
   });
 
   selectize = $('#deviceId').selectize({
