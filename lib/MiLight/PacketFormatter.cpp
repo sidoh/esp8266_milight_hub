@@ -1,9 +1,9 @@
 #include <PacketFormatter.h>
 
-uint8_t* PacketFormatter::PACKET_BUFFER = new uint8_t[PACKET_FORMATTER_BUFFER_SIZE];
+static uint8_t* PACKET_BUFFER = new uint8_t[PACKET_FORMATTER_BUFFER_SIZE];
 
 PacketStream::PacketStream()
-    : packetStream(NULL),
+    : packetStream(PACKET_BUFFER),
       numPackets(0),
       packetLength(0),
       currentPacket(0)
@@ -26,7 +26,6 @@ PacketFormatter::PacketFormatter(const size_t packetLength, const size_t maxPack
     held(false)
 {
   packetStream.packetLength = packetLength;
-  packetStream.packetStream = PACKET_BUFFER;
 }
 
 bool PacketFormatter::canHandle(const uint8_t *packet, const size_t len) {

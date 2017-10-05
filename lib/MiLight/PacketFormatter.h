@@ -78,8 +78,6 @@ public:
   size_t getPacketLength() const;
 
 protected:
-  static uint8_t* PACKET_BUFFER;
-
   uint8_t* currentPacket;
   size_t packetLength;
   uint16_t deviceId;
