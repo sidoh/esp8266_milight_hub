@@ -91,7 +91,7 @@ void MqttClient::sendUpdate(const MiLightRemoteConfig& remoteConfig, uint16_t de
 }
 
 void MqttClient::sendState(const MiLightRemoteConfig& remoteConfig, uint16_t deviceId, uint16_t groupId, const char* update) {
-  publish(settings.mqttStateTopicPattern, remoteConfig, deviceId, groupId, update);
+  publish(settings.mqttStateTopicPattern, remoteConfig, deviceId, groupId, update, true);
 }
 
 void MqttClient::subscribe() {
@@ -108,7 +108,14 @@ void MqttClient::subscribe() {
   mqttClient->subscribe(topic.c_str());
 }
 
-void MqttClient::publish(const String& _topic, const MiLightRemoteConfig &remoteConfig, uint16_t deviceId, uint16_t groupId, const char* message) {
+void MqttClient::publish(
+  const String& _topic,
+  const MiLightRemoteConfig &remoteConfig,
+  uint16_t deviceId,
+  uint16_t groupId,
+  const char* message,
+  const bool retain
+) {
   if (_topic.length() == 0) {
     return;
   }
@@ -126,7 +133,7 @@ void MqttClient::publish(const String& _topic, const MiLightRemoteConfig &remote
   printf_P(PSTR("MqttClient - publishing update to %s: %s\n"), topic.c_str(), update);
 #endif
 
-  mqttClient->publish(topic.c_str(), message);
+  mqttClient->publish(topic.c_str(), message, retain);
 }
 
 void MqttClient::publishCallback(char* topic, byte* payload, int length) {
