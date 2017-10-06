@@ -150,7 +150,8 @@ bool shouldRestart() {
 
 void setup() {
   Serial.begin(9600);
-  wifiManager.autoConnect();
+  String ssid = "ESP" + String(ESP.getChipId());
+  wifiManager.autoConnect(ssid.c_str(), "milightHub");
   SPIFFS.begin();
   Settings::load(settings);
   applySettings();
