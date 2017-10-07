@@ -7,6 +7,7 @@
 #include <string.h>
 #include <TokenIterator.h>
 #include <index.html.gz.h>
+#include <WiFiManager.h>
 
 void MiLightHttpServer::begin() {
   applySettings(settings);
@@ -115,7 +116,8 @@ void MiLightHttpServer::handleSystemPost() {
         server.send_P(200, TEXT_PLAIN, PSTR("true"));
 
         delay(100);
-        ESP.eraseConfig();
+        WiFiManager wifiManager;
+        wifiManager.resetSettings();
         delay(100);
         ESP.restart();
 
