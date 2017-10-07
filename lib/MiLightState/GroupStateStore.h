@@ -9,8 +9,8 @@ class GroupStateStore {
 public:
   GroupStateStore(const size_t maxSize);
 
-  GroupState* get(const GroupId& id);
-  GroupState* set(const GroupId& id, const GroupState& state);
+  GroupState& get(const GroupId& id);
+  GroupState& set(const GroupId& id, const GroupState& state);
 
   void flush();
 

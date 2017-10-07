@@ -84,7 +84,6 @@ protected:
   unsigned int resendCount;
   PacketSentHandler packetSentHandler;
   GroupStateStore& stateStore;
-  const GroupState* currentState;
 
   MiLightRadio* switchRadio(const MiLightRemoteConfig* remoteConfig);
   uint8_t parseStatus(const JsonObject& object);

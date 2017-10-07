@@ -4,7 +4,7 @@ GroupStateStore::GroupStateStore(const size_t maxSize)
   : cache(GroupStateCache(maxSize))
 { }
 
-GroupState* GroupStateStore::get(const GroupId& id) {
+GroupState& GroupStateStore::get(const GroupId& id) {
   GroupState* state = cache.get(id);
 
   if (state == NULL) {
@@ -15,11 +15,13 @@ GroupState* GroupStateStore::get(const GroupId& id) {
     state = cache.set(id, loadedState);
   }
 
-  return state;
+  return *state;
 }
 
-GroupState* GroupStateStore::set(const GroupId &id, const GroupState& state) {
-  *(get(id)) = state;
+GroupState& GroupStateStore::set(const GroupId &id, const GroupState& state) {
+  GroupState& storedState = get(id);
+  storedState = state;
+  return storedState;
 }
 
 void GroupStateStore::trackEviction() {

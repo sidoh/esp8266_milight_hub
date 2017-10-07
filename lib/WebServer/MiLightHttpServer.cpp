@@ -7,7 +7,6 @@
 #include <string.h>
 #include <TokenIterator.h>
 #include <index.html.gz.h>
-#include <WiFiManager.h>
 
 void MiLightHttpServer::begin() {
   applySettings(settings);
@@ -116,8 +115,7 @@ void MiLightHttpServer::handleSystemPost() {
         server.send_P(200, TEXT_PLAIN, PSTR("true"));
 
         delay(100);
-        WiFiManager wifiManager;
-        wifiManager.resetSettings();
+        ESP.eraseConfig();
         delay(100);
         ESP.restart();
 
@@ -307,12 +305,12 @@ void MiLightHttpServer::handleGetGroup(const UrlTokenBindings* urlBindings) {
   }
 
   GroupId groupId(parseInt<uint16_t>(_deviceId), _groupId, _remoteType->type);
-  GroupState* state = stateStore.get(groupId);
+  GroupState& state = stateStore.get(groupId);
 
   String body;
   StaticJsonBuffer<200> jsonBuffer;
   JsonObject& obj = jsonBuffer.createObject();
-  state->applyState(obj);
+  state.applyState(obj);
   obj.printTo(body);
 
   server.send(200, APPLICATION_JSON, body);

@@ -60,13 +60,6 @@ void FUT089PacketFormatter::parsePacket(const uint8_t *packet, JsonObject& resul
   uint8_t command = (packetCopy[V2_COMMAND_INDEX] & 0x7F);
   uint8_t arg = packetCopy[V2_ARGUMENT_INDEX];
 
-  // only need state for saturation and kelvin (they have the same command ID)
-  GroupState* state = NULL;
-  if (command == FUT089_SATURATION) {
-    GroupId group(deviceId, groupId, REMOTE_TYPE_FUT089);
-    state = stateStore->get(group);
-  }
-
   if (command == FUT089_ON) {
     if (arg == FUT089_MODE_SPEED_DOWN) {
       result["command"] = "mode_speed_down";
@@ -91,7 +84,10 @@ void FUT089PacketFormatter::parsePacket(const uint8_t *packet, JsonObject& resul
   // saturation == kelvin. arg ranges are the same, so can't distinguish
   // without using state
   } else if (command == FUT089_SATURATION) {
-    if (state->getBulbMode() == BULB_MODE_COLOR) {
+    GroupId group(deviceId, groupId, REMOTE_TYPE_FUT089);
+    GroupState& state = stateStore->get(group);
+
+    if (state.getBulbMode() == BULB_MODE_COLOR) {
       result["saturation"] = 100 - constrain(arg, 0, 100);
     } else {
       result["color_temp"] = Units::whiteValToMireds(100 - arg, 100);
