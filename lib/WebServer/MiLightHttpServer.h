@@ -44,6 +44,7 @@ protected:
   ESP8266WebServer::THandlerFunction handleUpdateFile(const char* filename);
   ESP8266WebServer::THandlerFunction handleServe_P(const char* data, size_t length);
   void applySettings(Settings& settings);
+  void sendGroupState(GroupState& state);
 
   void handleUpdateSettings();
   void handleGetRadioConfigs();

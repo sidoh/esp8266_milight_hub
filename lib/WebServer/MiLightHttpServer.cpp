@@ -292,6 +292,16 @@ void MiLightHttpServer::handleListenGateway(const UrlTokenBindings* bindings) {
   server.send(200, "text/plain", response);
 }
 
+void MiLightHttpServer::sendGroupState(GroupState &state) {
+  String body;
+  StaticJsonBuffer<200> jsonBuffer;
+  JsonObject& obj = jsonBuffer.createObject();
+  state.applyState(obj);
+  obj.printTo(body);
+
+  server.send(200, APPLICATION_JSON, body);
+}
+
 void MiLightHttpServer::handleGetGroup(const UrlTokenBindings* urlBindings) {
   const String _deviceId = urlBindings->get("device_id");
   uint8_t _groupId = atoi(urlBindings->get("group_id"));
@@ -306,14 +316,7 @@ void MiLightHttpServer::handleGetGroup(const UrlTokenBindings* urlBindings) {
 
   GroupId groupId(parseInt<uint16_t>(_deviceId), _groupId, _remoteType->type);
   GroupState& state = stateStore.get(groupId);
-
-  String body;
-  StaticJsonBuffer<200> jsonBuffer;
-  JsonObject& obj = jsonBuffer.createObject();
-  state.applyState(obj);
-  obj.printTo(body);
-
-  server.send(200, APPLICATION_JSON, body);
+  sendGroupState(stateStore.get(groupId));
 }
 
 void MiLightHttpServer::handleUpdateGroup(const UrlTokenBindings* urlBindings) {
@@ -343,6 +346,9 @@ void MiLightHttpServer::handleUpdateGroup(const UrlTokenBindings* urlBindings) {
   TokenIterator groupIdItr(groupIds, _groupIds.length());
   TokenIterator remoteTypesItr(remoteTypes, _remoteTypes.length());
 
+  GroupId foundGroupId;
+  size_t groupCount = 0;
+
   while (remoteTypesItr.hasNext()) {
     const char* _remoteType = remoteTypesItr.nextToken();
     const MiLightRemoteConfig* config = MiLightRemoteConfig::fromType(_remoteType);
@@ -364,11 +370,17 @@ void MiLightHttpServer::handleUpdateGroup(const UrlTokenBindings* urlBindings) {
 
         milightClient->prepare(config, deviceId, groupId);
         handleRequest(request);
+        foundGroupId = GroupId(deviceId, groupId, config->type);
+        groupCount++;
       }
     }
   }
 
-  server.send(200, APPLICATION_JSON, "true");
+  if (groupCount == 1) {
+    sendGroupState(stateStore.get(foundGroupId));
+  } else {
+    server.send(200, APPLICATION_JSON, "true");
+  }
 }
 
 void MiLightHttpServer::handleRequest(const JsonObject& request) {
