@@ -65,6 +65,8 @@ This project uses [WiFiManager](https://github.com/tzapu/WiFiManager) to avoid t
 
 When the ESP powers on, you should be able to see a network named "ESPXXXXX", with XXXXX being an identifier for your ESP. Connect to this AP and a window should pop up prompting you to enter WiFi credentials.
 
+The network password is "**milightHub**".
+
 #### Get IP Address
 
 Both mDNS and SSDP are supported.
