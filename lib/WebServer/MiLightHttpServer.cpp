@@ -142,8 +142,6 @@ void MiLightHttpServer::applySettings(Settings& settings) {
   } else {
     server.disableAuthentication();
   }
-
-  milightClient->setResendCount(settings.packetRepeats);
 }
 
 void MiLightHttpServer::onSettingsSaved(SettingsSavedHandler handler) {

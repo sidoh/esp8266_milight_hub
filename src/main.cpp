@@ -167,6 +167,7 @@ void applySettings() {
   milightClient = new MiLightClient(radioFactory, stateStore);
   milightClient->begin();
   milightClient->onPacketSent(onPacketSentHandler);
+  milightClient->setResendCount(settings.packetRepeats);
 
   if (settings.mqttServer().length() > 0) {
     mqttClient = new MqttClient(settings, milightClient);
