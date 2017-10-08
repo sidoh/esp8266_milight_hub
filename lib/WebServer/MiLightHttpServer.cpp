@@ -12,7 +12,7 @@ void MiLightHttpServer::begin() {
   applySettings(settings);
 
   server.on("/", HTTP_GET, handleServe_P(index_html_gz, index_html_gz_len));
-  server.on("/settings", HTTP_GET, handleServeFile(SETTINGS_FILE, APPLICATION_JSON));
+  server.on("/settings", HTTP_GET, [this]() { serveSettings(); });
   server.on("/settings", HTTP_PUT, [this]() { handleUpdateSettings(); });
   server.on("/settings", HTTP_POST, [this]() { server.send_P(200, TEXT_PLAIN, PSTR("success.")); }, handleUpdateFile(SETTINGS_FILE));
   server.on("/radio_configs", HTTP_GET, [this]() { handleGetRadioConfigs(); });
@@ -128,6 +128,12 @@ void MiLightHttpServer::handleSystemPost() {
   } else {
     server.send_P(400, TEXT_PLAIN, PSTR("{\"error\":\"Unhandled command\"}"));
   }
+}
+
+void MiLightHttpServer::serveSettings() {
+  // Save first to set defaults
+  settings.save();
+  serveFile(SETTINGS_FILE, APPLICATION_JSON);
 }
 
 void MiLightHttpServer::applySettings(Settings& settings) {
