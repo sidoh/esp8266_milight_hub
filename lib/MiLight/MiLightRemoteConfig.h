@@ -17,17 +17,20 @@ public:
     PacketFormatter* packetFormatter,
     MiLightRadioConfig& radioConfig,
     const MiLightRemoteType type,
-    const String name
+    const String name,
+    const size_t numGroups
   ) : packetFormatter(packetFormatter),
       radioConfig(radioConfig),
       type(type),
-      name(name)
+      name(name),
+      numGroups(numGroups)
   { }
 
   PacketFormatter* const packetFormatter;
   const MiLightRadioConfig& radioConfig;
   const MiLightRemoteType type;
   const String name;
+  const size_t numGroups;
 
   static const MiLightRemoteConfig* fromType(MiLightRemoteType type);
   static const MiLightRemoteConfig* fromType(const String& type);

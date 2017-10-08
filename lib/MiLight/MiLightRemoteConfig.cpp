@@ -1,11 +1,14 @@
 #include <MiLightRemoteConfig.h>
 
+/**
+ * IMPORTANT NOTE: These should be in the same order as MiLightRemoteType.
+ */
 const MiLightRemoteConfig* MiLightRemoteConfig::ALL_REMOTES[] = {
-  &FUT096Config,
-  &FUT091Config,
-  &FUT092Config,
-  &FUT089Config,
-  &FUT098Config
+  &FUT096Config, // rgbw
+  &FUT091Config, // cct
+  &FUT092Config, // rgb+cct
+  &FUT098Config, // rgb
+  &FUT089Config  // 8-group rgb+cct (b8, fut089)
 };
 
 const MiLightRemoteConfig* MiLightRemoteConfig::fromType(const String& type) {
@@ -35,21 +38,12 @@ const MiLightRemoteConfig* MiLightRemoteConfig::fromType(const String& type) {
 }
 
 const MiLightRemoteConfig* MiLightRemoteConfig::fromType(MiLightRemoteType type) {
-  switch (type) {
-    case REMOTE_TYPE_RGBW:
-      return &FUT096Config;
-    case REMOTE_TYPE_RGB:
-      return &FUT098Config;
-    case REMOTE_TYPE_CCT:
-      return &FUT091Config;
-    case REMOTE_TYPE_RGB_CCT:
-      return &FUT092Config;
-    case REMOTE_TYPE_FUT089:
-      return &FUT089Config;
-    default:
-      Serial.println(F("ERROR - tried to fetch remote config for unknown type"));
-      return NULL;
+  if (type == REMOTE_TYPE_UNKNOWN || type >= size(ALL_REMOTES)) {
+    Serial.println(F("ERROR - tried to fetch remote config for unknown type"));
+    return NULL;
   }
+
+  return ALL_REMOTES[type];
 }
 
 const MiLightRemoteConfig* MiLightRemoteConfig::fromReceivedPacket(
@@ -74,33 +68,38 @@ const MiLightRemoteConfig FUT096Config( //rgbw
   new RgbwPacketFormatter(),
   MiLightRadioConfig::ALL_CONFIGS[0],
   REMOTE_TYPE_RGBW,
-  "rgbw"
+  "rgbw",
+  4
 );
 
 const MiLightRemoteConfig FUT091Config( //cct
   new CctPacketFormatter(),
   MiLightRadioConfig::ALL_CONFIGS[1],
   REMOTE_TYPE_CCT,
-  "cct"
+  "cct",
+  4
 );
 
 const MiLightRemoteConfig FUT092Config( //rgb+cct
   new RgbCctPacketFormatter(),
   MiLightRadioConfig::ALL_CONFIGS[2],
   REMOTE_TYPE_RGB_CCT,
-  "rgb_cct"
+  "rgb_cct",
+  4
 );
 
 const MiLightRemoteConfig FUT089Config( //rgb+cct B8 / FUT089
   new FUT089PacketFormatter(),
   MiLightRadioConfig::ALL_CONFIGS[2],
   REMOTE_TYPE_FUT089,
-  "fut089"
+  "fut089",
+  8
 );
 
 const MiLightRemoteConfig FUT098Config( //rgb
   new RgbPacketFormatter(),
   MiLightRadioConfig::ALL_CONFIGS[3],
   REMOTE_TYPE_RGB,
-  "rgb"
+  "rgb",
+  0
 );

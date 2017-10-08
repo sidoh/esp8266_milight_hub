@@ -1,4 +1,5 @@
 #include <GroupStateStore.h>
+#include <MiLightRemoteConfig.h>
 
 GroupStateStore::GroupStateStore(const size_t maxSize)
   : cache(GroupStateCache(maxSize))
@@ -21,6 +22,17 @@ GroupState& GroupStateStore::get(const BulbId& id) {
 GroupState& GroupStateStore::set(const BulbId &id, const GroupState& state) {
   GroupState& storedState = get(id);
   storedState = state;
+
+  if (id.groupId == 0) {
+    const MiLightRemoteConfig* remote = MiLightRemoteConfig::fromType(id.deviceType);
+    BulbId individualBulb(id);
+
+    for (size_t i = 1; i < remote->numGroups; i++) {
+      individualBulb.groupId = i;
+      set(individualBulb, state);
+    }
+  }
+
   return storedState;
 }
 
