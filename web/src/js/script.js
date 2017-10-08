@@ -3,7 +3,7 @@ var FORM_SETTINGS = [
   "http_repeat_factor", "auto_restart_period", "discovery_port", "mqtt_server",
   "mqtt_topic_pattern", "mqtt_update_topic_pattern", "mqtt_state_topic_pattern",
   "mqtt_username", "mqtt_password", "radio_interface_type", "listen_repeats",
-  "state_flush_interval"
+  "state_flush_interval", "mqtt_state_rate_limit"
 ];
 
 var FORM_SETTINGS_HELP = {
@@ -31,7 +31,9 @@ var FORM_SETTINGS_HELP = {
   listen_repeats : "Increasing this increases the amount of time spent listening for " +
     "packets. Set to 0 to disable listening. Default is 3.",
   state_flush_interval : "Number of seconds between flushing states from RAM to flash. " +
-    "Set to 0 to disable delay and immediately persist state to flash."
+    "Set to 0 to disable delay and immediately persist state to flash.",
+  mqtt_state_rate_limit : "Minimum number of milliseconds between MQTT updates of bulb state. " +
+    "Defaults to 500."
 }
 
 var UDP_PROTOCOL_VERSIONS = [ 5, 6 ];
