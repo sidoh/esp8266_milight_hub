@@ -123,4 +123,6 @@ struct GroupStateNode {
   GroupId prevNode;
 };
 
+extern const GroupId DEFAULT_GROUP_ID;
+
 #endif

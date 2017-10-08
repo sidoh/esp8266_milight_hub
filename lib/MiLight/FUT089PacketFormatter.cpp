@@ -45,17 +45,16 @@ void FUT089PacketFormatter::enableNightMode() {
   command(FUT089_ON | 0x80, arg);
 }
 
-void FUT089PacketFormatter::parsePacket(const uint8_t *packet, JsonObject& result, GroupStateStore* stateStore) {
+GroupId FUT089PacketFormatter::parsePacket(const uint8_t *packet, JsonObject& result, GroupStateStore* stateStore) {
   uint8_t packetCopy[V2_PACKET_LEN];
   memcpy(packetCopy, packet, V2_PACKET_LEN);
   V2RFEncoding::decodeV2Packet(packetCopy);
 
-  const uint16_t deviceId = (packetCopy[2] << 8) | packetCopy[3];
-  const uint8_t groupId = packetCopy[7];
-
-  result["device_id"] = deviceId;
-  result["group_id"] = groupId;
-  result["device_type"] = "fut089";
+  GroupId groupId(
+    (packetCopy[2] << 8) | packetCopy[3],
+    packetCopy[7],
+    REMOTE_TYPE_FUT089
+  );
 
   uint8_t command = (packetCopy[V2_COMMAND_INDEX] & 0x7F);
   uint8_t arg = packetCopy[V2_ARGUMENT_INDEX];
@@ -69,10 +68,10 @@ void FUT089PacketFormatter::parsePacket(const uint8_t *packet, JsonObject& resul
       result["command"] = "white_mode";
     } else if (arg <= 8) { // Group is not reliably encoded in group byte. Extract from arg byte
       result["state"] = "ON";
-      result["group_id"] = arg;
+      groupId.groupId = arg;
     } else if (arg >= 9 && arg <= 17) {
       result["state"] = "OFF";
-      result["group_id"] = arg-9;
+      groupId.groupId = arg-9;
     }
   } else if (command == FUT089_COLOR) {
     uint8_t rescaledColor = (arg - FUT089_COLOR_OFFSET) % 0x100;
@@ -84,8 +83,7 @@ void FUT089PacketFormatter::parsePacket(const uint8_t *packet, JsonObject& resul
   // saturation == kelvin. arg ranges are the same, so can't distinguish
   // without using state
   } else if (command == FUT089_SATURATION) {
-    GroupId group(deviceId, groupId, REMOTE_TYPE_FUT089);
-    GroupState& state = stateStore->get(group);
+    GroupState& state = stateStore->get(groupId);
 
     if (state.getBulbMode() == BULB_MODE_COLOR) {
       result["saturation"] = 100 - constrain(arg, 0, 100);
@@ -98,4 +96,6 @@ void FUT089PacketFormatter::parsePacket(const uint8_t *packet, JsonObject& resul
     result["button_id"] = command;
     result["argument"] = arg;
   }
+
+  return groupId;
 }

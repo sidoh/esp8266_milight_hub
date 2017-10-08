@@ -3,6 +3,8 @@
 #include <MiLightRemoteConfig.h>
 #include <RGBConverter.h>
 
+const GroupId DEFAULT_GROUP_ID;
+
 const GroupState& GroupState::defaultState(MiLightRemoteType remoteType) {
   static GroupState instances[MiLightRemoteConfig::NUM_REMOTES];
   GroupState& state = instances[remoteType];

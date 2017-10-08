@@ -79,12 +79,14 @@ void RgbPacketFormatter::previousMode() {
   command(RGB_MODE_DOWN, 0);
 }
 
-void RgbPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& result, GroupStateStore* stateStore) {
+GroupId RgbPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& result, GroupStateStore* stateStore) {
   uint8_t command = packet[RGB_COMMAND_INDEX] & 0x7F;
 
-  result["group_id"] = 0;
-  result["device_id"] = (packet[1] << 8) | packet[2];
-  result["device_type"] = "rgb";
+  GroupId groupId(
+    (packet[1] << 8) | packet[2],
+    0,
+    REMOTE_TYPE_RGB
+  );
 
   if (command == RGB_ON) {
     result["state"] = "ON";
@@ -105,6 +107,8 @@ void RgbPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& result, 
   } else {
     result["button_id"] = command;
   }
+
+  return groupId;
 }
 
 void RgbPacketFormatter::format(uint8_t const* packet, char* buffer) {

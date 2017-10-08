@@ -93,19 +93,21 @@ void RgbwPacketFormatter::enableNightMode() {
   command(button | 0x10, 0);
 }
 
-void RgbwPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& result, GroupStateStore* stateStore) {
+GroupId RgbwPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& result, GroupStateStore* stateStore) {
   uint8_t command = packet[RGBW_COMMAND_INDEX] & 0x7F;
 
-  result["device_id"] = (packet[1] << 8) | packet[2];
-  result["device_type"] = "rgbw";
-  result["group_id"] = packet[RGBW_BRIGHTNESS_GROUP_INDEX] & 0x7;
+  GroupId groupId(
+    (packet[1] << 8) | packet[2],
+    packet[RGBW_BRIGHTNESS_GROUP_INDEX] & 0x7,
+    REMOTE_TYPE_RGBW
+  );
 
   if (command >= RGBW_ALL_ON && command <= RGBW_GROUP_4_OFF) {
     result["state"] = (command % 2) ? "ON" : "OFF";
     // Determine group ID from button ID for on/off. The remote's state is from
     // the last packet sent, not the current one, and that can be wrong for
     // on/off commands.
-    result["group_id"] = GROUP_FOR_STATUS_COMMAND(command);
+    groupId.groupId = GROUP_FOR_STATUS_COMMAND(command);
   } else if (command == RGBW_BRIGHTNESS) {
     uint8_t brightness = 31;
     brightness -= packet[RGBW_BRIGHTNESS_GROUP_INDEX] >> 3;
@@ -125,6 +127,8 @@ void RgbwPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& result,
   } else {
     result["button_id"] = command;
   }
+
+  return groupId;
 }
 
 void RgbwPacketFormatter::format(uint8_t const* packet, char* buffer) {
