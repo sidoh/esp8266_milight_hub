@@ -29,13 +29,17 @@ const MiLightRemoteConfig* MiLightRemoteConfig::fromType(const String& type) {
     return &FUT098Config;
   }
 
+  Serial.println(F("ERROR - tried to fetch remote config for type"));
+
   return NULL;
 }
 
 const MiLightRemoteConfig* MiLightRemoteConfig::fromType(MiLightRemoteType type) {
   switch (type) {
-    case REMOTE_TYPE_RGB:
+    case REMOTE_TYPE_RGBW:
       return &FUT096Config;
+    case REMOTE_TYPE_RGB:
+      return &FUT098Config;
     case REMOTE_TYPE_CCT:
       return &FUT091Config;
     case REMOTE_TYPE_RGB_CCT:
@@ -43,6 +47,7 @@ const MiLightRemoteConfig* MiLightRemoteConfig::fromType(MiLightRemoteType type)
     case REMOTE_TYPE_FUT089:
       return &FUT089Config;
     default:
+      Serial.println(F("ERROR - tried to fetch remote config for unknown type"));
       return NULL;
   }
 }
@@ -59,6 +64,8 @@ const MiLightRemoteConfig* MiLightRemoteConfig::fromReceivedPacket(
       return config;
     }
   }
+
+  Serial.println(F("ERROR - tried to fetch remote config for unknown packet"));
 
   return NULL;
 }
