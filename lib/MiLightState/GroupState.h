@@ -1,6 +1,6 @@
 #include <stddef.h>
 #include <inttypes.h>
-#include <MiLightButtons.h>
+#include <MiLightConstants.h>
 #include <ArduinoJson.h>
 
 #ifndef _GROUP_STATE_H

@@ -1,5 +1,4 @@
 #include <CctPacketFormatter.h>
-#include <MiLightButtons.h>
 
 void CctPacketFormatter::initializePacket(uint8_t* packet) {
   size_t packetPtr = 0;

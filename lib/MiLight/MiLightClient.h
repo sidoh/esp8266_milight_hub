@@ -2,7 +2,6 @@
 #include <Arduino.h>
 #include <MiLightRadio.h>
 #include <MiLightRadioFactory.h>
-#include <MiLightButtons.h>
 #include <MiLightRemoteConfig.h>
 #include <Settings.h>
 #include <GroupStateStore.h>
