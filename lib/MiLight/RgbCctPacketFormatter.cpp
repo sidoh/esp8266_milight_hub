@@ -63,12 +63,12 @@ void RgbCctPacketFormatter::enableNightMode() {
   command(RGB_CCT_ON | 0x80, arg);
 }
 
-GroupId RgbCctPacketFormatter::parsePacket(const uint8_t *packet, JsonObject& result, GroupStateStore* stateStore) {
+BulbId RgbCctPacketFormatter::parsePacket(const uint8_t *packet, JsonObject& result, GroupStateStore* stateStore) {
   uint8_t packetCopy[V2_PACKET_LEN];
   memcpy(packetCopy, packet, V2_PACKET_LEN);
   V2RFEncoding::decodeV2Packet(packetCopy);
 
-  GroupId groupId(
+  BulbId bulbId(
     (packetCopy[2] << 8) | packetCopy[3],
     packetCopy[7],
     REMOTE_TYPE_RGB_CCT
@@ -84,10 +84,10 @@ GroupId RgbCctPacketFormatter::parsePacket(const uint8_t *packet, JsonObject& re
       result["command"] = "mode_speed_up";
     } else if (arg < 5) { // Group is not reliably encoded in group byte. Extract from arg byte
       result["state"] = "ON";
-      groupId.groupId = arg;
+      bulbId.groupId = arg;
     } else {
       result["state"] = "OFF";
-      groupId.groupId = arg-5;
+      bulbId.groupId = arg-5;
     }
   } else if (command == RGB_CCT_COLOR) {
     uint8_t rescaledColor = (arg - RGB_CCT_COLOR_OFFSET) % 0x100;
@@ -122,5 +122,5 @@ GroupId RgbCctPacketFormatter::parsePacket(const uint8_t *packet, JsonObject& re
     result["argument"] = arg;
   }
 
-  return groupId;
+  return bulbId;
 }

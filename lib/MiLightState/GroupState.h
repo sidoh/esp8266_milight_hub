@@ -6,16 +6,16 @@
 #ifndef _GROUP_STATE_H
 #define _GROUP_STATE_H
 
-struct GroupId {
+struct BulbId {
   uint16_t deviceId;
   uint8_t groupId;
   MiLightRemoteType deviceType;
 
-  GroupId();
-  GroupId(const GroupId& other);
-  GroupId(const uint16_t deviceId, const uint8_t groupId, const MiLightRemoteType deviceType);
-  bool operator==(const GroupId& other);
-  void operator=(const GroupId& other);
+  BulbId();
+  BulbId(const BulbId& other);
+  BulbId(const uint16_t deviceId, const uint8_t groupId, const MiLightRemoteType deviceType);
+  bool operator==(const BulbId& other);
+  void operator=(const BulbId& other);
 };
 
 enum BulbMode {
@@ -122,12 +122,6 @@ private:
   Data state;
 };
 
-struct GroupStateNode {
-  GroupState state;
-  GroupId nextNode;
-  GroupId prevNode;
-};
-
-extern const GroupId DEFAULT_GROUP_ID;
+extern const BulbId DEFAULT_BULB_ID;
 
 #endif

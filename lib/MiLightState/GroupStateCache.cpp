@@ -4,11 +4,11 @@ GroupStateCache::GroupStateCache(const size_t maxSize)
   : maxSize(maxSize)
 { }
 
-GroupState* GroupStateCache::get(const GroupId& id) {
+GroupState* GroupStateCache::get(const BulbId& id) {
   return getInternal(id);
 }
 
-GroupState* GroupStateCache::set(const GroupId& id, const GroupState& state) {
+GroupState* GroupStateCache::set(const BulbId& id, const GroupState& state) {
   GroupCacheNode* pushedNode = NULL;
   if (cache.size() >= maxSize) {
     pushedNode = cache.pop();
@@ -34,7 +34,7 @@ GroupState* GroupStateCache::set(const GroupId& id, const GroupState& state) {
   return cachedState;
 }
 
-GroupId GroupStateCache::getLru() {
+BulbId GroupStateCache::getLru() {
   GroupCacheNode* node = cache.getLast();
   return node->id;
 }
@@ -47,7 +47,7 @@ ListNode<GroupCacheNode*>* GroupStateCache::getHead() {
   return cache.getHead();
 }
 
-GroupState* GroupStateCache::getInternal(const GroupId& id) {
+GroupState* GroupStateCache::getInternal(const BulbId& id) {
   ListNode<GroupCacheNode*>* cur = cache.getHead();
 
   while (cur != NULL) {

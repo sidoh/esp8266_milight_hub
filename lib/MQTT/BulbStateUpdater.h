@@ -14,17 +14,17 @@ class BulbStateUpdater {
 public:
   BulbStateUpdater(Settings& settings, MqttClient& mqttClient, GroupStateStore& stateStore);
 
-  void enqueueUpdate(GroupId groupId, GroupState& groupState);
+  void enqueueUpdate(BulbId bulbId, GroupState& groupState);
   void loop();
 
 private:
   Settings& settings;
   MqttClient& mqttClient;
   GroupStateStore& stateStore;
-  CircularBuffer<GroupId, MILIGHT_MAX_STALE_MQTT_GROUPS> staleGroups;
+  CircularBuffer<BulbId, MILIGHT_MAX_STALE_MQTT_GROUPS> staleGroups;
   unsigned long lastFlush;
 
-  inline void flushGroup(GroupId groupId, GroupState& state);
+  inline void flushGroup(BulbId bulbId, GroupState& state);
   inline bool canFlush() const;
 };
 

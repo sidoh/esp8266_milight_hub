@@ -146,10 +146,10 @@ MiLightStatus CctPacketFormatter::cctCommandToStatus(uint8_t command) {
   }
 }
 
-GroupId CctPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& result, GroupStateStore* stateStore) {
+BulbId CctPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& result, GroupStateStore* stateStore) {
   uint8_t command = packet[CCT_COMMAND_INDEX] & 0x7F;
 
-  GroupId groupId(
+  BulbId bulbId(
     (packet[1] << 8) | packet[2],
     packet[3],
     REMOTE_TYPE_CCT
@@ -170,7 +170,7 @@ GroupId CctPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& resul
     result["button_id"] = command;
   }
 
-  return groupId;
+  return bulbId;
 }
 
 void CctPacketFormatter::format(uint8_t const* packet, char* buffer) {

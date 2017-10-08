@@ -7,28 +7,28 @@ BulbStateUpdater::BulbStateUpdater(Settings& settings, MqttClient& mqttClient, G
     lastFlush(0)
 { }
 
-void BulbStateUpdater::enqueueUpdate(GroupId groupId, GroupState& groupState) {
+void BulbStateUpdater::enqueueUpdate(BulbId bulbId, GroupState& groupState) {
   // If can flush immediately, do so (avoids lookup of group state later).
   if (canFlush()) {
-    flushGroup(groupId, groupState);
+    flushGroup(bulbId, groupState);
   } else {
-    staleGroups.push(groupId);
+    staleGroups.push(bulbId);
   }
 }
 
 void BulbStateUpdater::loop() {
   while (canFlush() && staleGroups.size() > 0) {
-    GroupId groupId = staleGroups.shift();
-    GroupState& groupState = stateStore.get(groupId);
+    BulbId bulbId = staleGroups.shift();
+    GroupState& groupState = stateStore.get(bulbId);
 
     if (groupState.isMqttDirty()) {
-      flushGroup(groupId, groupState);
+      flushGroup(bulbId, groupState);
       groupState.clearMqttDirty();
     }
   }
 }
 
-inline void BulbStateUpdater::flushGroup(GroupId groupId, GroupState& state) {
+inline void BulbStateUpdater::flushGroup(BulbId bulbId, GroupState& state) {
   char buffer[200];
   StaticJsonBuffer<200> jsonBuffer;
   JsonObject& message = jsonBuffer.createObject();
@@ -36,9 +36,9 @@ inline void BulbStateUpdater::flushGroup(GroupId groupId, GroupState& state) {
   message.printTo(buffer);
 
   mqttClient.sendState(
-    *MiLightRemoteConfig::fromType(groupId.deviceType),
-    groupId.deviceId,
-    groupId.groupId,
+    *MiLightRemoteConfig::fromType(bulbId.deviceType),
+    bulbId.deviceId,
+    bulbId.groupId,
     buffer
   );
 

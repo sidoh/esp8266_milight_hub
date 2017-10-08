@@ -6,10 +6,10 @@
 
 struct GroupCacheNode {
   GroupCacheNode() {}
-  GroupCacheNode(const GroupId& id, const GroupState& state)
+  GroupCacheNode(const BulbId& id, const GroupState& state)
     : id(id), state(state) { }
 
-  GroupId id;
+  BulbId id;
   GroupState state;
 };
 
@@ -17,9 +17,9 @@ class GroupStateCache {
 public:
   GroupStateCache(const size_t maxSize);
 
-  GroupState* get(const GroupId& id);
-  GroupState* set(const GroupId& id, const GroupState& state);
-  GroupId getLru();
+  GroupState* get(const BulbId& id);
+  GroupState* set(const BulbId& id, const GroupState& state);
+  BulbId getLru();
   bool isFull() const;
   ListNode<GroupCacheNode*>* getHead();
 
@@ -27,7 +27,7 @@ private:
   LinkedList<GroupCacheNode*> cache;
   const size_t maxSize;
 
-  GroupState* getInternal(const GroupId& id);
+  GroupState* getInternal(const BulbId& id);
 };
 
 #endif

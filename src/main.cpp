@@ -85,27 +85,27 @@ void initMilightUdpServers() {
 void onPacketSentHandler(uint8_t* packet, const MiLightRemoteConfig& config) {
   StaticJsonBuffer<200> buffer;
   JsonObject& result = buffer.createObject();
-  GroupId groupId = config.packetFormatter->parsePacket(packet, result, &stateStore);
+  BulbId bulbId = config.packetFormatter->parsePacket(packet, result, &stateStore);
 
-  if (&groupId == &DEFAULT_GROUP_ID) {
+  if (&bulbId == &DEFAULT_BULB_ID) {
     Serial.println(F("Skipping packet handler because packet was not decoded"));
     return;
   }
 
   const MiLightRemoteConfig& remoteConfig =
-    *MiLightRemoteConfig::fromType(groupId.deviceType);
+    *MiLightRemoteConfig::fromType(bulbId.deviceType);
 
   if (mqttClient) {
-    GroupState& groupState = stateStore.get(groupId);
+    GroupState& groupState = stateStore.get(bulbId);
     groupState.patch(result);
 
     // Sends the state delta derived from the raw packet
     char output[200];
     result.printTo(output);
-    mqttClient->sendUpdate(remoteConfig, groupId.deviceId, groupId.groupId, output);
+    mqttClient->sendUpdate(remoteConfig, bulbId.deviceId, bulbId.groupId, output);
 
     // Sends the entire state
-    bulbStateUpdater->enqueueUpdate(groupId, groupState);
+    bulbStateUpdater->enqueueUpdate(bulbId, groupState);
   }
 
   httpServer->handlePacketSent(packet, remoteConfig);

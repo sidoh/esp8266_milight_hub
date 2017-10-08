@@ -4,7 +4,7 @@ GroupStateStore::GroupStateStore(const size_t maxSize)
   : cache(GroupStateCache(maxSize))
 { }
 
-GroupState& GroupStateStore::get(const GroupId& id) {
+GroupState& GroupStateStore::get(const BulbId& id) {
   GroupState* state = cache.get(id);
 
   if (state == NULL) {
@@ -18,7 +18,7 @@ GroupState& GroupStateStore::get(const GroupId& id) {
   return *state;
 }
 
-GroupState& GroupStateStore::set(const GroupId &id, const GroupState& state) {
+GroupState& GroupStateStore::set(const BulbId &id, const GroupState& state) {
   GroupState& storedState = get(id);
   storedState = state;
   return storedState;

@@ -64,8 +64,8 @@ void PacketFormatter::enableNightMode() { }
 void PacketFormatter::updateTemperature(uint8_t value) { }
 void PacketFormatter::updateSaturation(uint8_t value) { }
 
-GroupId PacketFormatter::parsePacket(const uint8_t *packet, JsonObject &result, GroupStateStore* stateStore) {
-  return DEFAULT_GROUP_ID;
+BulbId PacketFormatter::parsePacket(const uint8_t *packet, JsonObject &result, GroupStateStore* stateStore) {
+  return DEFAULT_BULB_ID;
 }
 
 void PacketFormatter::pair() {

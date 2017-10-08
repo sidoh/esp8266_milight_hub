@@ -3,22 +3,16 @@
 #ifndef _GROUP_STATE_PERSISTENCE_H
 #define _GROUP_STATE_PERSISTENCE_H
 
-struct PersistedStateNode {
-  GroupState state;
-  GroupId next;
-  GroupId prev;
-};
-
 class GroupStatePersistence {
 public:
-  void get(const GroupId& id, GroupState& state);
-  void set(const GroupId& id, const GroupState& state);
+  void get(const BulbId& id, GroupState& state);
+  void set(const BulbId& id, const GroupState& state);
 
-  void clear(const GroupId& id);
+  void clear(const BulbId& id);
 
 private:
 
-  static char* buildFilename(const GroupId& id, char* buffer);
+  static char* buildFilename(const BulbId& id, char* buffer);
 };
 
 #endif

@@ -318,9 +318,9 @@ void MiLightHttpServer::handleGetGroup(const UrlTokenBindings* urlBindings) {
     return;
   }
 
-  GroupId groupId(parseInt<uint16_t>(_deviceId), _groupId, _remoteType->type);
-  GroupState& state = stateStore.get(groupId);
-  sendGroupState(stateStore.get(groupId));
+  BulbId bulbId(parseInt<uint16_t>(_deviceId), _groupId, _remoteType->type);
+  GroupState& state = stateStore.get(bulbId);
+  sendGroupState(stateStore.get(bulbId));
 }
 
 void MiLightHttpServer::handleUpdateGroup(const UrlTokenBindings* urlBindings) {
@@ -350,7 +350,7 @@ void MiLightHttpServer::handleUpdateGroup(const UrlTokenBindings* urlBindings) {
   TokenIterator groupIdItr(groupIds, _groupIds.length());
   TokenIterator remoteTypesItr(remoteTypes, _remoteTypes.length());
 
-  GroupId foundGroupId;
+  BulbId foundBulbId;
   size_t groupCount = 0;
 
   while (remoteTypesItr.hasNext()) {
@@ -374,14 +374,14 @@ void MiLightHttpServer::handleUpdateGroup(const UrlTokenBindings* urlBindings) {
 
         milightClient->prepare(config, deviceId, groupId);
         handleRequest(request);
-        foundGroupId = GroupId(deviceId, groupId, config->type);
+        foundBulbId = BulbId(deviceId, groupId, config->type);
         groupCount++;
       }
     }
   }
 
   if (groupCount == 1) {
-    sendGroupState(stateStore.get(foundGroupId));
+    sendGroupState(stateStore.get(foundBulbId));
   } else {
     server.send(200, APPLICATION_JSON, "true");
   }

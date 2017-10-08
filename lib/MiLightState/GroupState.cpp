@@ -3,7 +3,7 @@
 #include <MiLightRemoteConfig.h>
 #include <RGBConverter.h>
 
-const GroupId DEFAULT_GROUP_ID;
+const BulbId DEFAULT_BULB_ID;
 
 const GroupState& GroupState::defaultState(MiLightRemoteType remoteType) {
   static GroupState instances[MiLightRemoteConfig::NUM_REMOTES];
@@ -21,19 +21,19 @@ const GroupState& GroupState::defaultState(MiLightRemoteType remoteType) {
   return state;
 }
 
-GroupId::GroupId()
+BulbId::BulbId()
   : deviceId(0),
     groupId(0),
     deviceType(REMOTE_TYPE_UNKNOWN)
 { }
 
-GroupId::GroupId(const GroupId &other)
+BulbId::BulbId(const BulbId &other)
   : deviceId(other.deviceId),
     groupId(other.groupId),
     deviceType(other.deviceType)
 { }
 
-GroupId::GroupId(
+BulbId::BulbId(
   const uint16_t deviceId, const uint8_t groupId, const MiLightRemoteType deviceType
 )
   : deviceId(deviceId),
@@ -41,13 +41,13 @@ GroupId::GroupId(
     deviceType(deviceType)
 { }
 
-void GroupId::operator=(const GroupId &other) {
+void BulbId::operator=(const BulbId &other) {
   deviceId = other.deviceId;
   groupId = other.groupId;
   deviceType = other.deviceType;
 }
 
-bool GroupId::operator==(const GroupId &other) {
+bool BulbId::operator==(const BulbId &other) {
   return deviceId == other.deviceId
     && groupId == other.groupId
     && deviceType == other.deviceType;

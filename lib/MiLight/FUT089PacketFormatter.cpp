@@ -45,12 +45,12 @@ void FUT089PacketFormatter::enableNightMode() {
   command(FUT089_ON | 0x80, arg);
 }
 
-GroupId FUT089PacketFormatter::parsePacket(const uint8_t *packet, JsonObject& result, GroupStateStore* stateStore) {
+BulbId FUT089PacketFormatter::parsePacket(const uint8_t *packet, JsonObject& result, GroupStateStore* stateStore) {
   uint8_t packetCopy[V2_PACKET_LEN];
   memcpy(packetCopy, packet, V2_PACKET_LEN);
   V2RFEncoding::decodeV2Packet(packetCopy);
 
-  GroupId groupId(
+  BulbId bulbId(
     (packetCopy[2] << 8) | packetCopy[3],
     packetCopy[7],
     REMOTE_TYPE_FUT089
@@ -68,10 +68,10 @@ GroupId FUT089PacketFormatter::parsePacket(const uint8_t *packet, JsonObject& re
       result["command"] = "white_mode";
     } else if (arg <= 8) { // Group is not reliably encoded in group byte. Extract from arg byte
       result["state"] = "ON";
-      groupId.groupId = arg;
+      bulbId.groupId = arg;
     } else if (arg >= 9 && arg <= 17) {
       result["state"] = "OFF";
-      groupId.groupId = arg-9;
+      bulbId.groupId = arg-9;
     }
   } else if (command == FUT089_COLOR) {
     uint8_t rescaledColor = (arg - FUT089_COLOR_OFFSET) % 0x100;
@@ -83,7 +83,7 @@ GroupId FUT089PacketFormatter::parsePacket(const uint8_t *packet, JsonObject& re
   // saturation == kelvin. arg ranges are the same, so can't distinguish
   // without using state
   } else if (command == FUT089_SATURATION) {
-    GroupState& state = stateStore->get(groupId);
+    GroupState& state = stateStore->get(bulbId);
 
     if (state.getBulbMode() == BULB_MODE_COLOR) {
       result["saturation"] = 100 - constrain(arg, 0, 100);
@@ -97,5 +97,5 @@ GroupId FUT089PacketFormatter::parsePacket(const uint8_t *packet, JsonObject& re
     result["argument"] = arg;
   }
 
-  return groupId;
+  return bulbId;
 }

@@ -3,7 +3,7 @@
 
 static const char FILE_PREFIX[] = "group_states/";
 
-void GroupStatePersistence::get(const GroupId &id, GroupState& state) {
+void GroupStatePersistence::get(const BulbId &id, GroupState& state) {
   char path[30];
   memset(path, 0, 30);
   buildFilename(id, path);
@@ -15,7 +15,7 @@ void GroupStatePersistence::get(const GroupId &id, GroupState& state) {
   }
 }
 
-void GroupStatePersistence::set(const GroupId &id, const GroupState& state) {
+void GroupStatePersistence::set(const BulbId &id, const GroupState& state) {
   char path[30];
   memset(path, 0, 30);
   buildFilename(id, path);
@@ -25,7 +25,7 @@ void GroupStatePersistence::set(const GroupId &id, const GroupState& state) {
   f.close();
 }
 
-void GroupStatePersistence::clear(const GroupId &id) {
+void GroupStatePersistence::clear(const BulbId &id) {
   char path[30];
   buildFilename(id, path);
 
@@ -34,7 +34,7 @@ void GroupStatePersistence::clear(const GroupId &id) {
   }
 }
 
-char* GroupStatePersistence::buildFilename(const GroupId &id, char *buffer) {
+char* GroupStatePersistence::buildFilename(const BulbId &id, char *buffer) {
   uint32_t compactId = (id.deviceId << 24) | (id.deviceType << 8) | id.groupId;
   return buffer + sprintf(buffer, "%s%x", FILE_PREFIX, compactId);
 }

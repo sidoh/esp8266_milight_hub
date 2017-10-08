@@ -79,10 +79,10 @@ void RgbPacketFormatter::previousMode() {
   command(RGB_MODE_DOWN, 0);
 }
 
-GroupId RgbPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& result, GroupStateStore* stateStore) {
+BulbId RgbPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& result, GroupStateStore* stateStore) {
   uint8_t command = packet[RGB_COMMAND_INDEX] & 0x7F;
 
-  GroupId groupId(
+  BulbId bulbId(
     (packet[1] << 8) | packet[2],
     0,
     REMOTE_TYPE_RGB
@@ -108,7 +108,7 @@ GroupId RgbPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& resul
     result["button_id"] = command;
   }
 
-  return groupId;
+  return bulbId;
 }
 
 void RgbPacketFormatter::format(uint8_t const* packet, char* buffer) {
