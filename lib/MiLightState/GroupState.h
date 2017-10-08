@@ -73,8 +73,12 @@ public:
   bool setBulbMode(BulbMode mode);
 
   bool isDirty() const;
-  bool setDirty();
+  inline bool setDirty();
   bool clearDirty();
+
+  bool isMqttDirty() const;
+  inline bool setMqttDirty();
+  bool clearMqttDirty();
 
   bool patch(const JsonObject& state);
   void applyState(JsonObject& state);
@@ -110,7 +114,8 @@ private:
         _isSetBrightnessColor : 1,
         _isSetBrightnessMode  : 1,
         _dirty                : 1,
-                              : 5;
+        _mqttDirty            : 1,
+                              : 4;
     } fields;
   };
 

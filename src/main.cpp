@@ -18,6 +18,7 @@
 #include <RGBConverter.h>
 #include <MiLightDiscoveryServer.h>
 #include <MiLightClient.h>
+#include <BulbStateUpdater.h>
 
 WiFiManager wifiManager;
 
@@ -29,13 +30,19 @@ MiLightHttpServer *httpServer = NULL;
 MqttClient* mqttClient = NULL;
 MiLightDiscoveryServer* discoveryServer = NULL;
 uint8_t currentRadioType = 0;
+
+// For tracking and managing group state
 GroupStateStore stateStore(MILIGHT_MAX_STATE_ITEMS);
+BulbStateUpdater* bulbStateUpdater;
 size_t lastFlush = 0;
 
 int numUdpServers = 0;
 MiLightUdpServer** udpServers;
 WiFiUDP udpSeder;
 
+/**
+ * Set up UDP servers (both v5 and v6).  Clean up old ones if necessary.
+ */
 void initMilightUdpServers() {
   if (udpServers) {
     for (int i = 0; i < numUdpServers; i++) {
@@ -69,39 +76,45 @@ void initMilightUdpServers() {
   }
 }
 
+/**
+ * Milight RF packet handler.
+ *
+ * Called both when a packet is sent locally, and when an intercepted packet
+ * is read.
+ */
 void onPacketSentHandler(uint8_t* packet, const MiLightRemoteConfig& config) {
   StaticJsonBuffer<200> buffer;
   JsonObject& result = buffer.createObject();
-  config.packetFormatter->parsePacket(packet, result, &stateStore);
+  GroupId groupId = config.packetFormatter->parsePacket(packet, result, &stateStore);
 
-  if (!result.containsKey("device_id")
-    ||!result.containsKey("group_id")
-    ||!result.containsKey("device_type")) {
-    Serial.println(F("Skipping update because packet formatter didn't supply necessary information."));
+  if (&groupId == &DEFAULT_GROUP_ID) {
+    Serial.println(F("Skipping packet handler because packet was not decoded"));
     return;
   }
 
+  const MiLightRemoteConfig& remoteConfig =
+    *MiLightRemoteConfig::fromType(groupId.deviceType);
+
   if (mqttClient) {
-    uint16_t deviceId = result["device_id"];
-    uint16_t groupId = result["group_id"];
-    const MiLightRemoteConfig* remoteConfig = MiLightRemoteConfig::fromType(result.get<String>("device_type"));
+    GroupState& groupState = stateStore.get(groupId);
+    groupState.patch(result);
 
-    GroupId bulbId(deviceId, groupId, remoteConfig->type);
-    GroupState& groupState = stateStore.get(bulbId);
-    bool changes = groupState.patch(result);
-
+    // Sends the state delta derived from the raw packet
     char output[200];
     result.printTo(output);
+    mqttClient->sendUpdate(remoteConfig, groupId.deviceId, groupId.groupId, output);
 
-    mqttClient->sendUpdate(config, deviceId, groupId, output);
-    groupState.applyState(result);
-    result.printTo(output);
-    mqttClient->sendState(config, deviceId, groupId, output);
+    // Sends the entire state
+    bulbStateUpdater->enqueueUpdate(groupId, groupState);
   }
 
-  httpServer->handlePacketSent(packet, config);
+  httpServer->handlePacketSent(packet, remoteConfig);
 }
 
+/**
+ * Listen for packets on one radio config.  Cycles through all configs as its
+ * called.
+ */
 void handleListen() {
   if (! settings.listenRepeats) {
     return;
@@ -130,6 +143,9 @@ void handleListen() {
   }
 }
 
+/**
+ * Apply what's in the Settings object.
+ */
 void applySettings() {
   if (milightClient) {
     delete milightClient;
@@ -139,6 +155,7 @@ void applySettings() {
   }
   if (mqttClient) {
     delete mqttClient;
+    delete bulbStateUpdater;
   }
 
   radioFactory = MiLightRadioFactory::fromSettings(settings);
@@ -154,6 +171,7 @@ void applySettings() {
   if (settings.mqttServer().length() > 0) {
     mqttClient = new MqttClient(settings, milightClient);
     mqttClient->begin();
+    bulbStateUpdater = new BulbStateUpdater(settings, *mqttClient, stateStore);
   }
 
   initMilightUdpServers();
@@ -168,6 +186,9 @@ void applySettings() {
   }
 }
 
+/**
+ *
+ */
 bool shouldRestart() {
   if (! settings.isAutoRestartEnabled()) {
     return false;
@@ -176,6 +197,9 @@ bool shouldRestart() {
   return settings.getAutoRestartPeriod()*60*1000 < millis();
 }
 
+/**
+ * Checks if group states should be flushed from memory onto flash
+ */
 bool shouldFlush() {
   return ((lastFlush + (settings.stateFlushInterval*1000) < millis())
     || lastFlush > millis()); // in case millis() wraps
@@ -216,6 +240,7 @@ void loop() {
 
   if (mqttClient) {
     mqttClient->handleClient();
+    bulbStateUpdater->loop();
   }
 
   if (udpServers) {

@@ -17,7 +17,11 @@
 #endif
 
 #ifndef MILIGHT_MAX_STATE_ITEMS
-#define MILIGHT_MAX_STATE_ITEMS 10
+#define MILIGHT_MAX_STATE_ITEMS 100
+#endif
+
+#ifndef MILIGHT_MAX_STALE_MQTT_GROUPS
+#define MILIGHT_MAX_STALE_MQTT_GROUPS 10
 #endif
 
 #define SETTINGS_FILE  "/config.json"
@@ -69,7 +73,8 @@ public:
     listenRepeats(3),
     _autoRestartPeriod(0),
     discoveryPort(48899),
-    stateFlushInterval(10)
+    stateFlushInterval(10),
+    mqttStateRateLimit(500)
   { }
 
   ~Settings() {
@@ -118,6 +123,7 @@ public:
   uint16_t discoveryPort;
   uint8_t listenRepeats;
   size_t stateFlushInterval;
+  size_t mqttStateRateLimit;
 
 protected:
   size_t _autoRestartPeriod;

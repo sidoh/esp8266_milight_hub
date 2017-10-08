@@ -73,6 +73,7 @@ GroupState::GroupState() {
   state.fields._isSetKelvin          = 0;
   state.fields._isSetBulbMode        = 0;
   state.fields._dirty                = 1;
+  state.fields._mqttDirty            = 0;
 }
 
 bool GroupState::isSetState() const { return state.fields._isSetState; }
@@ -227,8 +228,14 @@ bool GroupState::setBulbMode(BulbMode bulbMode) {
 }
 
 bool GroupState::isDirty() const { return state.fields._dirty; }
-inline bool GroupState::setDirty() { state.fields._dirty = 1; }
+inline bool GroupState::setDirty() {
+  state.fields._dirty = 1;
+  state.fields._mqttDirty = 1;
+}
 bool GroupState::clearDirty() { state.fields._dirty = 0; }
+
+bool GroupState::isMqttDirty() const { return state.fields._mqttDirty; }
+bool GroupState::clearMqttDirty() { state.fields._mqttDirty = 0; }
 
 void GroupState::load(Stream& stream) {
   for (size_t i = 0; i < DATA_BYTES; i++) {
