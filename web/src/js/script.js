@@ -1,3 +1,9 @@
+var UNIT_PARAMS = {
+  minMireds: 153,
+  maxMireds: 370,
+  maxBrightness: 255
+};
+
 var FORM_SETTINGS = [
   "admin_username", "admin_password", "ce_pin", "csn_pin", "reset_pin","packet_repeats",
   "http_repeat_factor", "auto_restart_period", "discovery_port", "mqtt_server",
@@ -77,14 +83,16 @@ var getCurrentMode = function() {
 var updateGroup = _.throttle(
   function(params) {
     try {
-      $.ajax(
-        activeUrl(),
-        {
-          method: 'PUT',
-          data: JSON.stringify(params),
-          contentType: 'application/json'
+      $.ajax({
+        url: activeUrl(),
+        method: 'PUT',
+        data: JSON.stringify(params),
+        contentType: 'application/json',
+        success: function(e) {
+          console.log(e);
+          handleStateUpdate(e);
         }
-      );
+      });
     } catch (e) {
       alert(e);
     }
@@ -336,25 +344,43 @@ var handleCheckForUpdates = function() {
 };
 
 var handleStateUpdate = function(state) {
+  console.log(state);
   if (state.state) {
-    $('input[name="status"]').prop('checked', state.state == 'ON').click();
+    // Set without firing an event
+    $('input[name="status"]')
+      .prop('checked', state.state == 'ON')
+      .bootstrapToggle('destroy')
+      .bootstrapToggle();
   }
   if (state.color) {
+    // Browsers don't support HSV, but saturation from HSL doesn't match
+    // saturation from bulb state.
+    var hsl = rgbToHsl(state.color.r, state.color.g, state.color.b);
     var hsv = RGBtoHSV(state.color.r, state.color.g, state.color.b);
+
     $('input[name="saturation"]').slider('setValue', hsv.s*100);
-    updatePreviewColor(hsv.h*360,hsv.s*100,hsv.v*100);
+    updatePreviewColor(hsl.h*360,hsl.s*100,hsl.l*100);
+  }
+  if (state.color_temp) {
+    var scaledTemp
+      = 100*(state.color_temp - UNIT_PARAMS.minMireds) / (UNIT_PARAMS.maxMireds - UNIT_PARAMS.minMireds);
+    $('input[name="temperature"]').slider('setValue', scaledTemp);
+  }
+  if (state.brightness) {
+    var scaledBrightness = state.brightness * (100 / UNIT_PARAMS.maxBrightness);
+    $('input[name="level"]').slider('setValue', scaledBrightness);
   }
 };
 
-var updatePreviewColor = function(hue, saturation, value) {
+var updatePreviewColor = function(hue, saturation, lightness) {
   if (! saturation) {
     saturation = 100;
   }
-  if (! value) {
-    value = 50;
+  if (! lightness) {
+    lightness = 50;
   }
   $('.hue-value-display').css({
-    backgroundColor: "hsl(" + hue + "," + saturation + "%," + value + "%)"
+    backgroundColor: "hsl(" + hue + "," + saturation + "%," + lightness + "%)"
   });
 };
 
