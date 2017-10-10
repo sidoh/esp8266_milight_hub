@@ -63,7 +63,8 @@ You can find pre-compiled firmware images on the [releases](https://github.com/s
 
 This project uses [WiFiManager](https://github.com/tzapu/WiFiManager) to avoid the need to hardcode AP credentials in the firmware.
 
-When the ESP powers on, you should be able to see a network named "ESPXXXXX", with XXXXX being an identifier for your ESP. Connect to this AP and a window should pop up prompting you to enter WiFi credentials.
+When the ESP powers on, you should be able to see a network named "ESPXXXXX", with XXXXX being an identifier for your ESP. Connect to this AP with the password "milightHub" and a window should pop up prompting you to enter WiFi credentials.
+
 
 #### Get IP Address
 
