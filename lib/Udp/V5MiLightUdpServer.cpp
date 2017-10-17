@@ -19,12 +19,21 @@ void V5MiLightUdpServer::handleCommand(uint8_t command, uint8_t commandArg) {
     client->prepare(&FUT096Config, deviceId, groupId);
     client->updateStatus(status);
 
+    Serial.print(F("MiLight-RGBW Command: "));
+    Serial.println(status);
+    Serial.print(F("MiLight-RGBW Group-ID: "));
+    Serial.println(groupId);
+
     this->lastGroup = groupId;
   // Command set_white for RGBW
-  } else if (command >= UDP_RGBW_GROUP_ALL_WHITE && command <= UDP_RGBW_GROUP_4_WHITE) {
+} else if (command == UDP_RGBW_GROUP_ALL_WHITE || command == UDP_RGBW_GROUP_1_WHITE || command == UDP_RGBW_GROUP_2_WHITE || command == UDP_RGBW_GROUP_3_WHITE || command == UDP_RGBW_GROUP_4_WHITE) {
     const uint8_t groupId = (command - UDP_RGBW_GROUP_ALL_WHITE)/2;
     client->prepare(&FUT096Config, deviceId, groupId);
     client->updateColorWhite();
+
+    Serial.print(F("MiLight-RGBW SetToWhite for Group-ID: "));
+    Serial.println(groupId);
+
     this->lastGroup = groupId;
   } else {
     client->prepare(&FUT096Config, deviceId, lastGroup);
@@ -62,6 +71,31 @@ void V5MiLightUdpServer::handleCommand(uint8_t command, uint8_t commandArg) {
         client->updateBrightness(
           round(((commandArg - 2) / 25.0)*100)
         );
+        break;
+
+      case UDP_RGBW_GROUP_ALL_NIGHT:
+        Serial.print(F("MiLight-RGBW: GROUP_ALL_NIGHT received!"));
+        client->enableNightMode();
+        break;
+
+      case UDP_RGBW_GROUP_1_NIGHT:
+        Serial.print(F("MiLight-RGBW: GROUP_1_NIGHT received!"));
+        client->enableNightMode();
+        break;
+
+      case UDP_RGBW_GROUP_2_NIGHT:
+        Serial.print(F("MiLight-RGBW: GROUP_2_NIGHT received!"));
+        client->enableNightMode();
+        break;
+
+      case UDP_RGBW_GROUP_3_NIGHT:
+        Serial.print(F("MiLight-RGBW: GROUP_3_NIGHT received!"));
+        client->enableNightMode();
+        break;
+
+      case UDP_RGBW_GROUP_4_NIGHT:
+        Serial.print(F("MiLight-RGBW: GROUP_4_NIGHT received!"));
+        client->enableNightMode();
         break;
 
       default:
