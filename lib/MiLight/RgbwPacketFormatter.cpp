@@ -87,9 +87,6 @@ void RgbwPacketFormatter::updateColorWhite() {
 }
 
 void RgbwPacketFormatter::enableNightMode() {
-  // OFF-command must be sent before actual night mode command
-  command(STATUS_COMMAND(OFF, groupId), 0);
-
   if (groupId == 0) {
     Serial.print("Sending RGBW_GROUP_ALL_NIGHT... Group ");
     command(RGBW_GROUP_ALL_NIGHT, 0);
@@ -106,7 +103,6 @@ void RgbwPacketFormatter::enableNightMode() {
     Serial.print("Sending RGBW_GROUP_4_NIGHT... Group ");
     command(RGBW_GROUP_4_NIGHT, 0);
   }
-
   Serial.println(groupId);
 }
 
