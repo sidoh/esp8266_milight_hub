@@ -24,8 +24,7 @@ void V5MiLightUdpServer::handleCommand(uint8_t command, uint8_t commandArg) {
     Serial.print(" - Group ");
     Serial.print(groupId);
     Serial.print(" - Command ");
-    Serial.print(command);
-    Serial.println();
+    Serial.println(command);
 
     this->lastGroup = groupId;
   // Command set_white for RGBW
@@ -39,8 +38,7 @@ void V5MiLightUdpServer::handleCommand(uint8_t command, uint8_t commandArg) {
     Serial.print(" - Group ");
     Serial.print(groupId);
     Serial.print(" - Command ");
-    Serial.print(command);
-    Serial.println();
+    Serial.println(command);
 
     this->lastGroup = groupId;
   } else {
@@ -85,8 +83,7 @@ void V5MiLightUdpServer::handleCommand(uint8_t command, uint8_t commandArg) {
         Serial.print("MiLight-RGBW: GROUP_ALL_NIGHT received! Device ");
         Serial.print(deviceId);
         Serial.print(" - Group ");
-        Serial.print(lastGroup);
-        Serial.println();
+        Serial.println(lastGroup);
         client->enableNightMode();
         break;
 
@@ -94,8 +91,7 @@ void V5MiLightUdpServer::handleCommand(uint8_t command, uint8_t commandArg) {
         Serial.print("MiLight-RGBW: GROUP_1_NIGHT received! Device ");
         Serial.print(deviceId);
         Serial.print(" - Group ");
-        Serial.print(lastGroup);
-        Serial.println();
+        Serial.println(lastGroup);
         client->enableNightMode();
         break;
 
@@ -103,8 +99,7 @@ void V5MiLightUdpServer::handleCommand(uint8_t command, uint8_t commandArg) {
         Serial.print("MiLight-RGBW: GROUP_2_NIGHT received! Device ");
         Serial.print(deviceId);
         Serial.print(" - Group ");
-        Serial.print(lastGroup);
-        Serial.println();
+        Serial.println(lastGroup);
         client->enableNightMode();
         break;
 
@@ -112,8 +107,7 @@ void V5MiLightUdpServer::handleCommand(uint8_t command, uint8_t commandArg) {
         Serial.print("MiLight-RGBW: GROUP_3_NIGHT received! Device ");
         Serial.print(deviceId);
         Serial.print(" - Group ");
-        Serial.print(lastGroup);
-        Serial.println();
+        Serial.println(lastGroup);
         client->enableNightMode();
         break;
 
@@ -121,8 +115,7 @@ void V5MiLightUdpServer::handleCommand(uint8_t command, uint8_t commandArg) {
         Serial.print("MiLight-RGBW: GROUP_4_NIGHT received! Device ");
         Serial.print(deviceId);
         Serial.print(" - Group ");
-        Serial.print(lastGroup);
-        Serial.println();
+        Serial.println(lastGroup);
         client->enableNightMode();
         break;
 
