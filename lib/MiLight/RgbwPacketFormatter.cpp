@@ -87,23 +87,10 @@ void RgbwPacketFormatter::updateColorWhite() {
 }
 
 void RgbwPacketFormatter::enableNightMode() {
-  if (groupId == 0) {
-    //Serial.print("Sending RGBW_ALL_NIGHT... Group ");
-    command(RGBW_ALL_NIGHT, 0);
-  } else if (groupId == 1) {
-    //Serial.print("Sending RGBW_GROUP_1_NIGHT... Group ");
-    command(RGBW_GROUP_1_NIGHT, 0);
-  } else if (groupId == 2) {
-    //Serial.print("Sending RGBW_GROUP_2_NIGHT... Group ");
-    command(RGBW_GROUP_2_NIGHT, 0);
-  } else if (groupId == 3) {
-    //Serial.print("Sending RGBW_GROUP_3_NIGHT... Group ");
-    command(RGBW_GROUP_3_NIGHT, 0);
-  } else if (groupId == 4) {
-    //Serial.print("Sending RGBW_GROUP_4_NIGHT... Group ");
-    command(RGBW_GROUP_4_NIGHT, 0);
-  }
-  //Serial.println(groupId);
+  uint8_t button = STATUS_COMMAND(OFF, groupId);
+
+  //command(button, 0);
+  command(button | 0x10, 0);
 }
 
 void RgbwPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& result) {
