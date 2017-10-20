@@ -89,7 +89,7 @@ void RgbwPacketFormatter::updateColorWhite() {
 void RgbwPacketFormatter::enableNightMode() {
   if (groupId == 0) {
     Serial.print("Sending RGBW_GROUP_ALL_NIGHT... Group ");
-    command(RGBW_GROUP_ALL_NIGHT, 0);
+    command(RGBW_ALL_NIGHT, 0);
   } else if (groupId == 1) {
     Serial.print("Sending RGBW_GROUP_1_NIGHT... Group ");
     command(RGBW_GROUP_1_NIGHT, 0);
