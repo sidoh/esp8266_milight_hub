@@ -19,12 +19,13 @@ void V5MiLightUdpServer::handleCommand(uint8_t command, uint8_t commandArg) {
     client->prepare(&FUT096Config, deviceId, groupId);
     client->updateStatus(status);
 
-    Serial.print("MiLight-RGBW Command received: Device ");
-    Serial.print(deviceId);
-    Serial.print(" - Group ");
-    Serial.print(groupId);
-    Serial.print(" - Command ");
-    Serial.println(command);
+    // Just some debugging stuff
+    //Serial.print("MiLight-RGBW Command received: Device ");
+    //Serial.print(deviceId);
+    //Serial.print(" - Group ");
+    //Serial.print(groupId);
+    //Serial.print(" - Command ");
+    //Serial.println(command);
 
     this->lastGroup = groupId;
   // Command set_white for RGBW
@@ -33,12 +34,13 @@ void V5MiLightUdpServer::handleCommand(uint8_t command, uint8_t commandArg) {
     client->prepare(&FUT096Config, deviceId, groupId);
     client->updateColorWhite();
 
-    Serial.print("MiLight-RGBW SetToWhite command received: Device ");
-    Serial.print(deviceId);
-    Serial.print(" - Group ");
-    Serial.print(groupId);
-    Serial.print(" - Command ");
-    Serial.println(command);
+    // Just some debugging stuff
+    //Serial.print("MiLight-RGBW SetToWhite command received: Device ");
+    //Serial.print(deviceId);
+    //Serial.print(" - Group ");
+    //Serial.print(groupId);
+    //Serial.print(" - Command ");
+    //Serial.println(command);
 
     this->lastGroup = groupId;
   } else {
@@ -80,42 +82,47 @@ void V5MiLightUdpServer::handleCommand(uint8_t command, uint8_t commandArg) {
         break;
 
       case UDP_RGBW_GROUP_ALL_NIGHT:
-        Serial.print("MiLight-RGBW: GROUP_ALL_NIGHT received! Device ");
-        Serial.print(deviceId);
-        Serial.print(" - Group ");
-        Serial.println(lastGroup);
+        // Just some debugging stuff
+        //Serial.print("MiLight-RGBW: GROUP_ALL_NIGHT received! Device ");
+        //Serial.print(deviceId);
+        //Serial.print(" - Group ");
+        //Serial.println(lastGroup);
         client->enableNightMode();
         break;
 
       case UDP_RGBW_GROUP_1_NIGHT:
-        Serial.print("MiLight-RGBW: GROUP_1_NIGHT received! Device ");
-        Serial.print(deviceId);
-        Serial.print(" - Group ");
-        Serial.println(lastGroup);
+        // Just some debugging stuff
+        //Serial.print("MiLight-RGBW: GROUP_1_NIGHT received! Device ");
+        //Serial.print(deviceId);
+        //Serial.print(" - Group ");
+        //Serial.println(lastGroup);
         client->enableNightMode();
         break;
 
       case UDP_RGBW_GROUP_2_NIGHT:
-        Serial.print("MiLight-RGBW: GROUP_2_NIGHT received! Device ");
-        Serial.print(deviceId);
-        Serial.print(" - Group ");
-        Serial.println(lastGroup);
+        // Just some debugging stuff
+        //Serial.print("MiLight-RGBW: GROUP_2_NIGHT received! Device ");
+        //Serial.print(deviceId);
+        //Serial.print(" - Group ");
+        //Serial.println(lastGroup);
         client->enableNightMode();
         break;
 
       case UDP_RGBW_GROUP_3_NIGHT:
-        Serial.print("MiLight-RGBW: GROUP_3_NIGHT received! Device ");
-        Serial.print(deviceId);
-        Serial.print(" - Group ");
-        Serial.println(lastGroup);
+        // Just some debugging stuff
+        //Serial.print("MiLight-RGBW: GROUP_3_NIGHT received! Device ");
+        //Serial.print(deviceId);
+        //Serial.print(" - Group ");
+        //Serial.println(lastGroup);
         client->enableNightMode();
         break;
 
       case UDP_RGBW_GROUP_4_NIGHT:
-        Serial.print("MiLight-RGBW: GROUP_4_NIGHT received! Device ");
-        Serial.print(deviceId);
-        Serial.print(" - Group ");
-        Serial.println(lastGroup);
+        // Just some debugging stuff
+        //Serial.print("MiLight-RGBW: GROUP_4_NIGHT received! Device ");
+        //Serial.print(deviceId);
+        //Serial.print(" - Group ");
+        //Serial.println(lastGroup);
         client->enableNightMode();
         break;
 
