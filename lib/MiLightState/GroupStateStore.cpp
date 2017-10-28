@@ -1,8 +1,10 @@
 #include <GroupStateStore.h>
 #include <MiLightRemoteConfig.h>
 
-GroupStateStore::GroupStateStore(const size_t maxSize)
-  : cache(GroupStateCache(maxSize))
+GroupStateStore::GroupStateStore(const size_t maxSize, const size_t flushRate)
+  : cache(GroupStateCache(maxSize)),
+    flushRate(flushRate),
+    lastFlush(0)
 { }
 
 GroupState& GroupStateStore::get(const BulbId& id) {
@@ -42,16 +44,42 @@ void GroupStateStore::trackEviction() {
   }
 }
 
-void GroupStateStore::flush() {
+bool GroupStateStore::flush() {
   ListNode<GroupCacheNode*>* curr = cache.getHead();
+  bool anythingFlushed = false;
 
-  while (curr != NULL && curr->data->state.isDirty()) {
+  while (curr != NULL && curr->data->state.isDirty() && !anythingFlushed) {
     persistence.set(curr->data->id, curr->data->state);
     curr->data->state.clearDirty();
+
+#ifdef STATE_DEBUG
+    BulbId bulbId = curr->data->id;
+    printf(
+      "Flushing dirty state for 0x%04X / %d / %s\n",
+      bulbId.deviceId,
+      bulbId.groupId,
+      MiLightRemoteConfig::fromType(bulbId.deviceType)->name.c_str()
+    );
+#endif
+
     curr = curr->next;
+    anythingFlushed = true;
   }
 
-  while (evictedIds.size() > 0) {
+  while (evictedIds.size() > 0 && !anythingFlushed) {
     persistence.clear(evictedIds.shift());
+    anythingFlushed = true;
+  }
+
+  return anythingFlushed;
+}
+
+void GroupStateStore::limitedFlush() {
+  unsigned long now = millis();
+
+  if ((lastFlush + flushRate) < now) {
+    if (flush()) {
+      lastFlush = now;
+    }
   }
 }

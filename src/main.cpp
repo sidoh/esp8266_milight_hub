@@ -32,12 +32,11 @@ MiLightDiscoveryServer* discoveryServer = NULL;
 uint8_t currentRadioType = 0;
 
 // For tracking and managing group state
-GroupStateStore stateStore(MILIGHT_MAX_STATE_ITEMS);
-BulbStateUpdater* bulbStateUpdater;
-size_t lastFlush = 0;
+GroupStateStore* stateStore = NULL;
+BulbStateUpdater* bulbStateUpdater = NULL;
 
 int numUdpServers = 0;
-MiLightUdpServer** udpServers;
+MiLightUdpServer** udpServers = NULL;
 WiFiUDP udpSeder;
 
 /**
@@ -85,7 +84,7 @@ void initMilightUdpServers() {
 void onPacketSentHandler(uint8_t* packet, const MiLightRemoteConfig& config) {
   StaticJsonBuffer<200> buffer;
   JsonObject& result = buffer.createObject();
-  BulbId bulbId = config.packetFormatter->parsePacket(packet, result, &stateStore);
+  BulbId bulbId = config.packetFormatter->parsePacket(packet, result, stateStore);
 
   if (&bulbId == &DEFAULT_BULB_ID) {
     Serial.println(F("Skipping packet handler because packet was not decoded"));
@@ -96,9 +95,9 @@ void onPacketSentHandler(uint8_t* packet, const MiLightRemoteConfig& config) {
     *MiLightRemoteConfig::fromType(bulbId.deviceType);
 
   if (mqttClient) {
-    GroupState& groupState = stateStore.get(bulbId);
+    GroupState& groupState = stateStore->get(bulbId);
     groupState.patch(result);
-    stateStore.set(bulbId, groupState);
+    stateStore->set(bulbId, groupState);
 
     // Sends the state delta derived from the raw packet
     char output[200];
@@ -158,6 +157,9 @@ void applySettings() {
     delete mqttClient;
     delete bulbStateUpdater;
   }
+  if (stateStore) {
+    delete stateStore;
+  }
 
   radioFactory = MiLightRadioFactory::fromSettings(settings);
 
@@ -165,7 +167,9 @@ void applySettings() {
     Serial.println(F("ERROR: unable to construct radio factory"));
   }
 
-  milightClient = new MiLightClient(radioFactory, stateStore);
+  stateStore = new GroupStateStore(MILIGHT_MAX_STATE_ITEMS, settings.stateFlushInterval);
+
+  milightClient = new MiLightClient(radioFactory, *stateStore);
   milightClient->begin();
   milightClient->onPacketSent(onPacketSentHandler);
   milightClient->setResendCount(settings.packetRepeats);
@@ -173,7 +177,7 @@ void applySettings() {
   if (settings.mqttServer().length() > 0) {
     mqttClient = new MqttClient(settings, milightClient);
     mqttClient->begin();
-    bulbStateUpdater = new BulbStateUpdater(settings, *mqttClient, stateStore);
+    bulbStateUpdater = new BulbStateUpdater(settings, *mqttClient, *stateStore);
   }
 
   initMilightUdpServers();
@@ -199,14 +203,6 @@ bool shouldRestart() {
   return settings.getAutoRestartPeriod()*60*1000 < millis();
 }
 
-/**
- * Checks if group states should be flushed from memory onto flash
- */
-bool shouldFlush() {
-  return ((lastFlush + (settings.stateFlushInterval*1000) < millis())
-    || lastFlush > millis()); // in case millis() wraps
-}
-
 void setup() {
   Serial.begin(9600);
   String ssid = "ESP" + String(ESP.getChipId());
@@ -229,7 +225,7 @@ void setup() {
   SSDP.setDeviceType("upnp:rootdevice");
   SSDP.begin();
 
-  httpServer = new MiLightHttpServer(settings, milightClient, stateStore);
+  httpServer = new MiLightHttpServer(settings, milightClient, *stateStore);
   httpServer->onSettingsSaved(applySettings);
   httpServer->on("/description.xml", HTTP_GET, []() { SSDP.schema(httpServer->client()); });
   httpServer->begin();
@@ -257,10 +253,7 @@ void loop() {
 
   handleListen();
 
-  if (shouldFlush()) {
-    stateStore.flush();
-    lastFlush = millis();
-  }
+  stateStore->limitedFlush();
 
   if (shouldRestart()) {
     Serial.println(F("Auto-restart triggered. Restarting..."));
