@@ -107,6 +107,9 @@ BulbId RgbwPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& resul
     // the last packet sent, not the current one, and that can be wrong for
     // on/off commands.
     bulbId.groupId = GROUP_FOR_STATUS_COMMAND(command);
+  } else if (command >= RGBW_ALL_MAX_LEVEL && command <= RGBW_GROUP_4_MAX_LEVEL) {
+    result["command"] = "white_mode";
+    bulbId.groupId = GROUP_FOR_STATUS_COMMAND(command & 0xF);
   } else if (command == RGBW_BRIGHTNESS) {
     uint8_t brightness = 31;
     brightness -= packet[RGBW_BRIGHTNESS_GROUP_INDEX] >> 3;
