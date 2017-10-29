@@ -13,6 +13,7 @@ install:
 - pip install -U platformio
 - platformio lib install
 - platformio upgrade && platformio update
+- platformio platform install 'https://github.com/platformio/platform-espressif8266.git#feature/stage'
 - cd web && npm install && cd ..
 script:
 - platformio run -v
