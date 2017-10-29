@@ -12,6 +12,7 @@ before_install:
 install:
 - pip install -U platformio
 - platformio lib install
+- platformio upgrade && platformio update
 - cd web && npm install && cd ..
 script:
 - platformio run -v
