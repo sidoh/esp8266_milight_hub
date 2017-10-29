@@ -34,6 +34,14 @@ enum MiLightRgbwButton {
   RGBW_GROUP_3_MIN_LEVEL = 0x18,
   RGBW_GROUP_4_MAX_LEVEL = 0x19,
   RGBW_GROUP_4_MIN_LEVEL = 0x1A,
+
+  // Button codes for night mode. A long press on the corresponding OFF button
+  // Not actually needed/used.
+  RGBW_ALL_NIGHT = 0x12,
+  RGBW_GROUP_1_NIGHT = 0x14,
+  RGBW_GROUP_2_NIGHT = 0x16,
+  RGBW_GROUP_3_NIGHT = 0x18,
+  RGBW_GROUP_4_NIGHT = 0x1A,
 };
 
 #define RGBW_COMMAND_INDEX 5
