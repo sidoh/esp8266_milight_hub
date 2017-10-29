@@ -11,8 +11,8 @@
 #define RGB_CCT_KELVIN_OFFSET 0x94
 
 // Remotes have a larger range
-#define RGB_CCT_KELVIN_REMOTE_OFFSET 0x4C
-#define RGB_CCT_KELVIN_REMOTE_START  0xE8
+#define RGB_CCT_KELVIN_REMOTE_START  0x94
+#define RGB_CCT_KELVIN_REMOTE_END    0xCC
 
 enum MiLightRgbCctCommand {
   RGB_CCT_ON = 0x01,
@@ -50,7 +50,7 @@ public:
   virtual void nextMode();
   virtual void previousMode();
 
-  virtual void parsePacket(const uint8_t* packet, JsonObject& result);
+  virtual BulbId parsePacket(const uint8_t* packet, JsonObject& result, GroupStateStore* stateStore);
 
 protected:
 

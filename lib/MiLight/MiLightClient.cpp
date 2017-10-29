@@ -4,12 +4,13 @@
 #include <RGBConverter.h>
 #include <Units.h>
 
-MiLightClient::MiLightClient(MiLightRadioFactory* radioFactory)
+MiLightClient::MiLightClient(MiLightRadioFactory* radioFactory, GroupStateStore& stateStore)
   : resendCount(MILIGHT_DEFAULT_RESEND_COUNT),
     currentRadio(NULL),
     currentRemote(NULL),
     numRadios(MiLightRadioConfig::NUM_CONFIGS),
-    packetSentHandler(NULL)
+    packetSentHandler(NULL),
+    stateStore(stateStore)
 {
   radios = new MiLightRadio*[numRadios];
 
@@ -108,7 +109,7 @@ void MiLightClient::write(uint8_t packet[]) {
   }
 
 #ifdef DEBUG_PRINTF
-  printf("Sending packet: ");
+  printf("Sending packet (%d repeats): ", this->resendCount);
   for (int i = 0; i < currentRemote->packetFormatter->getPacketLength(); i++) {
     printf("%02X", packet[i]);
   }

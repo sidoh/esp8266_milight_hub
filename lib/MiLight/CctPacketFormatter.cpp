@@ -1,5 +1,4 @@
 #include <CctPacketFormatter.h>
-#include <MiLightButtons.h>
 
 void CctPacketFormatter::initializePacket(uint8_t* packet) {
   size_t packetPtr = 0;
@@ -146,12 +145,14 @@ MiLightStatus CctPacketFormatter::cctCommandToStatus(uint8_t command) {
   }
 }
 
-void CctPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& result) {
+BulbId CctPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& result, GroupStateStore* stateStore) {
   uint8_t command = packet[CCT_COMMAND_INDEX] & 0x7F;
 
-  result["device_id"] = (packet[1] << 8) | packet[2];
-  result["device_type"] = "cct";
-  result["group_id"] = packet[3];
+  BulbId bulbId(
+    (packet[1] << 8) | packet[2],
+    packet[3],
+    REMOTE_TYPE_CCT
+  );
 
   uint8_t onOffGroupId = cctCommandIdToGroup(command);
   if (onOffGroupId < 255) {
@@ -168,9 +169,7 @@ void CctPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& result) 
     result["button_id"] = command;
   }
 
-  if (! result.containsKey("state")) {
-    result["state"] = "ON";
-  }
+  return bulbId;
 }
 
 void CctPacketFormatter::format(uint8_t const* packet, char* buffer) {

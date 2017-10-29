@@ -62,12 +62,14 @@ public:
   virtual void previousMode();
   virtual void updateMode(uint8_t mode);
   virtual void enableNightMode();
-  virtual void parsePacket(const uint8_t* packet, JsonObject& result);
+  virtual BulbId parsePacket(const uint8_t* packet, JsonObject& result, GroupStateStore* stateStore);
 
   virtual void initializePacket(uint8_t* packet);
 
 protected:
   uint8_t lastMode;
+
+  static bool isStatusCommand(const uint8_t command);
 };
 
 #endif

@@ -1,8 +1,15 @@
+var UNIT_PARAMS = {
+  minMireds: 153,
+  maxMireds: 370,
+  maxBrightness: 255
+};
+
 var FORM_SETTINGS = [
   "admin_username", "admin_password", "ce_pin", "csn_pin", "reset_pin","packet_repeats",
   "http_repeat_factor", "auto_restart_period", "discovery_port", "mqtt_server",
-  "mqtt_topic_pattern", "mqtt_update_topic_pattern", "mqtt_username", "mqtt_password",
-  "radio_interface_type", "listen_repeats"
+  "mqtt_topic_pattern", "mqtt_update_topic_pattern", "mqtt_state_topic_pattern",
+  "mqtt_username", "mqtt_password", "radio_interface_type", "listen_repeats",
+  "state_flush_interval", "mqtt_state_rate_limit"
 ];
 
 var FORM_SETTINGS_HELP = {
@@ -22,10 +29,17 @@ var FORM_SETTINGS_HELP = {
   mqtt_update_topic_pattern : "Pattern to publish MQTT updates. Packets that " +
     "are received from other devices, and packets that are sent from this device will " +
     "result in updates being sent.",
+  mqtt_state_topic_pattern : "Pattern for MQTT topic to publish state to. When a group " +
+    "changes state, the full known state of the group will be published to this topic " +
+    "pattern.",
   discovery_port : "UDP port to listen for discovery packets on. Defaults to " +
     "the same port used by MiLight devices, 48899. Use 0 to disable.",
   listen_repeats : "Increasing this increases the amount of time spent listening for " +
-    "packets. Set to 0 to disable listening. Default is 3."
+    "packets. Set to 0 to disable listening. Default is 3.",
+  state_flush_interval : "Minimum number of milliseconds between flushing state to flash. " +
+    "Set to 0 to disable delay and immediately persist state to flash.",
+  mqtt_state_rate_limit : "Minimum number of milliseconds between MQTT updates of bulb state. " +
+    "Defaults to 500."
 }
 
 var UDP_PROTOCOL_VERSIONS = [ 5, 6 ];
@@ -52,7 +66,6 @@ var activeUrl = function() {
     , mode = getCurrentMode();
 
   if (deviceId == "") {
-    alert("Please enter a device ID.");
     throw "Must enter device ID";
   }
 
@@ -69,14 +82,20 @@ var getCurrentMode = function() {
 
 var updateGroup = _.throttle(
   function(params) {
-    $.ajax(
-      activeUrl(),
-      {
+    try {
+      $.ajax({
+        url: activeUrl(),
         method: 'PUT',
         data: JSON.stringify(params),
-        contentType: 'application/json'
-      }
-    );
+        contentType: 'application/json',
+        success: function(e) {
+          console.log(e);
+          handleStateUpdate(e);
+        }
+      });
+    } catch (e) {
+      alert(e);
+    }
   },
   1000
 );
@@ -324,6 +343,47 @@ var handleCheckForUpdates = function() {
   );
 };
 
+var handleStateUpdate = function(state) {
+  console.log(state);
+  if (state.state) {
+    // Set without firing an event
+    $('input[name="status"]')
+      .prop('checked', state.state == 'ON')
+      .bootstrapToggle('destroy')
+      .bootstrapToggle();
+  }
+  if (state.color) {
+    // Browsers don't support HSV, but saturation from HSL doesn't match
+    // saturation from bulb state.
+    var hsl = rgbToHsl(state.color.r, state.color.g, state.color.b);
+    var hsv = RGBtoHSV(state.color.r, state.color.g, state.color.b);
+
+    $('input[name="saturation"]').slider('setValue', hsv.s*100);
+    updatePreviewColor(hsl.h*360,hsl.s*100,hsl.l*100);
+  }
+  if (state.color_temp) {
+    var scaledTemp
+      = 100*(state.color_temp - UNIT_PARAMS.minMireds) / (UNIT_PARAMS.maxMireds - UNIT_PARAMS.minMireds);
+    $('input[name="temperature"]').slider('setValue', scaledTemp);
+  }
+  if (state.brightness) {
+    var scaledBrightness = state.brightness * (100 / UNIT_PARAMS.maxBrightness);
+    $('input[name="level"]').slider('setValue', scaledBrightness);
+  }
+};
+
+var updatePreviewColor = function(hue, saturation, lightness) {
+  if (! saturation) {
+    saturation = 100;
+  }
+  if (! lightness) {
+    lightness = 50;
+  }
+  $('.hue-value-display').css({
+    backgroundColor: "hsl(" + hue + "," + saturation + "%," + lightness + "%)"
+  });
+};
+
 $(function() {
   $('.radio-option').click(function() {
     $(this).prev().prop('checked', true);
@@ -336,9 +396,7 @@ $(function() {
       , hue = Math.round(360*pct)
       ;
 
-    $('.hue-value-display').css({
-      backgroundColor: "hsl(" + hue + ",100%,50%)"
-    });
+    updatePreviewColor(hue);
 
     updateGroup({hue: hue});
   };
@@ -407,6 +465,19 @@ $(function() {
     updateGroup({mode: $(this).data('mode-value')});
     e.preventDefault();
     return false;
+  });
+
+  $('input[name="mode"],input[name="options"],#deviceId').change(function(e) {
+    try {
+      $.getJSON(
+        activeUrl(),
+        function(e) {
+          handleStateUpdate(e);
+        }
+      );
+    } catch (e) {
+      // Skip
+    }
   });
 
   selectize = $('#deviceId').selectize({

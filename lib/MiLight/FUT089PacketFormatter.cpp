@@ -33,7 +33,7 @@ void FUT089PacketFormatter::updateTemperature(uint8_t value) {
 }
 
 void FUT089PacketFormatter::updateSaturation(uint8_t value) {
-  command(FUT089_SATURATION, value);
+  command(FUT089_SATURATION, 100 - value);
 }
 
 void FUT089PacketFormatter::updateColorWhite() {
@@ -45,14 +45,16 @@ void FUT089PacketFormatter::enableNightMode() {
   command(FUT089_ON | 0x80, arg);
 }
 
-void FUT089PacketFormatter::parsePacket(const uint8_t *packet, JsonObject& result) {
+BulbId FUT089PacketFormatter::parsePacket(const uint8_t *packet, JsonObject& result, GroupStateStore* stateStore) {
   uint8_t packetCopy[V2_PACKET_LEN];
   memcpy(packetCopy, packet, V2_PACKET_LEN);
   V2RFEncoding::decodeV2Packet(packetCopy);
 
-  result["device_id"] = (packetCopy[2] << 8) | packetCopy[3];
-  result["group_id"] = packetCopy[7];
-  result["device_type"] = "fut089";
+  BulbId bulbId(
+    (packetCopy[2] << 8) | packetCopy[3],
+    packetCopy[7],
+    REMOTE_TYPE_FUT089
+  );
 
   uint8_t command = (packetCopy[V2_COMMAND_INDEX] & 0x7F);
   uint8_t arg = packetCopy[V2_ARGUMENT_INDEX];
@@ -66,10 +68,10 @@ void FUT089PacketFormatter::parsePacket(const uint8_t *packet, JsonObject& resul
       result["command"] = "white_mode";
     } else if (arg <= 8) { // Group is not reliably encoded in group byte. Extract from arg byte
       result["state"] = "ON";
-      result["group_id"] = arg;
+      bulbId.groupId = arg;
     } else if (arg >= 9 && arg <= 17) {
       result["state"] = "OFF";
-      result["group_id"] = arg-9;
+      bulbId.groupId = arg-9;
     }
   } else if (command == FUT089_COLOR) {
     uint8_t rescaledColor = (arg - FUT089_COLOR_OFFSET) % 0x100;
@@ -78,12 +80,16 @@ void FUT089PacketFormatter::parsePacket(const uint8_t *packet, JsonObject& resul
   } else if (command == FUT089_BRIGHTNESS) {
     uint8_t level = constrain(arg, 0, 100);
     result["brightness"] = Units::rescale<uint8_t, uint8_t>(level, 255, 100);
-  // saturation == kelvin. arg ranges are the same, so won't be able to parse
-  // both unless state is persisted
-  // } else if (command == FUT089_SATURATION) {
-  //   result["saturation"] = constrain(arg, 0, 100);
-  // } else if (command == FUT089_KELVIN) {
-  //   result["color_temp"] = Units::whiteValToMireds(arg, 100);
+  // saturation == kelvin. arg ranges are the same, so can't distinguish
+  // without using state
+  } else if (command == FUT089_SATURATION) {
+    GroupState& state = stateStore->get(bulbId);
+
+    if (state.getBulbMode() == BULB_MODE_COLOR) {
+      result["saturation"] = 100 - constrain(arg, 0, 100);
+    } else {
+      result["color_temp"] = Units::whiteValToMireds(100 - arg, 100);
+    }
   } else if (command == FUT089_MODE) {
     result["mode"] = arg;
   } else {
@@ -91,7 +97,5 @@ void FUT089PacketFormatter::parsePacket(const uint8_t *packet, JsonObject& resul
     result["argument"] = arg;
   }
 
-  if (! result.containsKey("state")) {
-    result["state"] = "ON";
-  }
+  return bulbId;
 }

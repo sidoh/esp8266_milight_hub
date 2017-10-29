@@ -20,6 +20,7 @@ public:
   void handleClient();
   void reconnect();
   void sendUpdate(const MiLightRemoteConfig& remoteConfig, uint16_t deviceId, uint16_t groupId, const char* update);
+  void sendState(const MiLightRemoteConfig& remoteConfig, uint16_t deviceId, uint16_t groupId, const char* update);
 
 private:
   WiFiClient tcpClient;
@@ -32,6 +33,14 @@ private:
   bool connect();
   void subscribe();
   void publishCallback(char* topic, byte* payload, int length);
+  void publish(
+    const String& topic,
+    const MiLightRemoteConfig& remoteConfig,
+    uint16_t deviceId,
+    uint16_t groupId,
+    const char* update,
+    const bool retain = false
+  );
 };
 
 #endif

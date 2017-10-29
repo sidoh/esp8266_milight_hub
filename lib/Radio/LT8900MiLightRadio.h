@@ -7,7 +7,6 @@
 #endif
 
 #include <MiLightRadioConfig.h>
-#include <MiLightButtons.h>
 #include <MiLightRadio.h>
 
 //#define DEBUG_PRINTF

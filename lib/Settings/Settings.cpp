@@ -77,8 +77,11 @@ void Settings::patch(JsonObject& parsedSettings) {
     this->setIfPresent(parsedSettings, "mqtt_password", mqttPassword);
     this->setIfPresent(parsedSettings, "mqtt_topic_pattern", mqttTopicPattern);
     this->setIfPresent(parsedSettings, "mqtt_update_topic_pattern", mqttUpdateTopicPattern);
+    this->setIfPresent(parsedSettings, "mqtt_state_topic_pattern", mqttStateTopicPattern);
     this->setIfPresent(parsedSettings, "discovery_port", discoveryPort);
     this->setIfPresent(parsedSettings, "listen_repeats", listenRepeats);
+    this->setIfPresent(parsedSettings, "state_flush_interval", stateFlushInterval);
+    this->setIfPresent(parsedSettings, "mqtt_state_rate_limit", mqttStateRateLimit);
 
     if (parsedSettings.containsKey("radio_interface_type")) {
       this->radioInterfaceType = Settings::typeFromString(parsedSettings["radio_interface_type"]);
@@ -143,8 +146,11 @@ void Settings::serialize(Stream& stream, const bool prettyPrint) {
   root["mqtt_password"] = this->mqttPassword;
   root["mqtt_topic_pattern"] = this->mqttTopicPattern;
   root["mqtt_update_topic_pattern"] = this->mqttUpdateTopicPattern;
+  root["mqtt_state_topic_pattern"] = this->mqttStateTopicPattern;
   root["discovery_port"] = this->discoveryPort;
   root["listen_repeats"] = this->listenRepeats;
+  root["state_flush_interval"] = this->stateFlushInterval;
+  root["mqtt_state_rate_limit"] = this->mqttStateRateLimit;
 
   if (this->deviceIds) {
     JsonArray& arr = jsonBuffer.createArray();

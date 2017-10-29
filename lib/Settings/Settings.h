@@ -16,6 +16,14 @@
 #define MILIGHT_HUB_VERSION unknown
 #endif
 
+#ifndef MILIGHT_MAX_STATE_ITEMS
+#define MILIGHT_MAX_STATE_ITEMS 100
+#endif
+
+#ifndef MILIGHT_MAX_STALE_MQTT_GROUPS
+#define MILIGHT_MAX_STALE_MQTT_GROUPS 10
+#endif
+
 #define SETTINGS_FILE  "/config.json"
 #define SETTINGS_TERMINATOR '\0'
 
@@ -64,7 +72,9 @@ public:
     httpRepeatFactor(5),
     listenRepeats(3),
     _autoRestartPeriod(0),
-    discoveryPort(48899)
+    discoveryPort(48899),
+    stateFlushInterval(1000),
+    mqttStateRateLimit(500)
   { }
 
   ~Settings() {
@@ -109,8 +119,11 @@ public:
   String mqttPassword;
   String mqttTopicPattern;
   String mqttUpdateTopicPattern;
+  String mqttStateTopicPattern;
   uint16_t discoveryPort;
   uint8_t listenRepeats;
+  size_t stateFlushInterval;
+  size_t mqttStateRateLimit;
 
 protected:
   size_t _autoRestartPeriod;

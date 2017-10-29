@@ -25,6 +25,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/9.7.0/bootstrap-slider.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.4/js/standalone/selectize.min.js"></script>
 
+  <script src="js/rgb2hsv.js" lang="text/javascript"></script>
   <script src="js/script.js" lang="text/javascript"></script>
 
   <div id="update-firmware-modal" class="modal fade" role="dialog">
@@ -192,7 +193,7 @@
       </div>
 
       <div class="col-sm-4">
-        <label for="groupId">Mode</label>
+        <label for="mode">Mode</label>
 
         <div class="btn-group" id="mode" data-toggle="buttons">
           <label class="btn btn-secondary active">
@@ -341,7 +342,7 @@
                 <ul class="dropdown-menu mode-dropdown">
                 </ul>
               </div>
-            </li>
+          </li>
           </div>
           <div class="mode-option inline" data-for="rgb,rgbw,rgb_cct,fut089">
             <li>

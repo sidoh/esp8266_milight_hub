@@ -39,7 +39,7 @@ public:
   virtual void modeSpeedUp();
   virtual void updateMode(uint8_t mode);
 
-  virtual void parsePacket(const uint8_t* packet, JsonObject& result);
+  virtual BulbId parsePacket(const uint8_t* packet, JsonObject& result, GroupStateStore* stateStore);
 };
 
 #endif

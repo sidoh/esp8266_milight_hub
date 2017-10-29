@@ -1,0 +1,50 @@
+#include <BulbStateUpdater.h>
+
+BulbStateUpdater::BulbStateUpdater(Settings& settings, MqttClient& mqttClient, GroupStateStore& stateStore)
+  : settings(settings),
+    mqttClient(mqttClient),
+    stateStore(stateStore),
+    lastFlush(0)
+{ }
+
+void BulbStateUpdater::enqueueUpdate(BulbId bulbId, GroupState& groupState) {
+  // If can flush immediately, do so (avoids lookup of group state later).
+  if (canFlush()) {
+    flushGroup(bulbId, groupState);
+  } else {
+    staleGroups.push(bulbId);
+  }
+}
+
+void BulbStateUpdater::loop() {
+  while (canFlush() && staleGroups.size() > 0) {
+    BulbId bulbId = staleGroups.shift();
+    GroupState& groupState = stateStore.get(bulbId);
+
+    if (groupState.isMqttDirty()) {
+      flushGroup(bulbId, groupState);
+      groupState.clearMqttDirty();
+    }
+  }
+}
+
+inline void BulbStateUpdater::flushGroup(BulbId bulbId, GroupState& state) {
+  char buffer[200];
+  StaticJsonBuffer<200> jsonBuffer;
+  JsonObject& message = jsonBuffer.createObject();
+  state.applyState(message);
+  message.printTo(buffer);
+
+  mqttClient.sendState(
+    *MiLightRemoteConfig::fromType(bulbId.deviceType),
+    bulbId.deviceId,
+    bulbId.groupId,
+    buffer
+  );
+
+  lastFlush = millis();
+}
+
+inline bool BulbStateUpdater::canFlush() const {
+  return (millis() > (lastFlush + settings.mqttStateRateLimit));
+}

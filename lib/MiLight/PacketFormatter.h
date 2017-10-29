@@ -1,8 +1,10 @@
 #include <Arduino.h>
 #include <inttypes.h>
 #include <functional>
-#include <MiLightButtons.h>
+#include <MiLightConstants.h>
 #include <ArduinoJson.h>
+#include <GroupState.h>
+#include <GroupStateStore.h>
 
 #ifndef _PACKET_FORMATTER_H
 #define _PACKET_FORMATTER_H
@@ -69,7 +71,7 @@ public:
   virtual void prepare(uint16_t deviceId, uint8_t groupId);
   virtual void format(uint8_t const* packet, char* buffer);
 
-  virtual void parsePacket(const uint8_t* packet, JsonObject& result);
+  virtual BulbId parsePacket(const uint8_t* packet, JsonObject& result, GroupStateStore* stateStore);
 
   static void formatV1Packet(uint8_t const* packet, char* buffer);
 
