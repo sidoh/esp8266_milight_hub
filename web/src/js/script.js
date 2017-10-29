@@ -36,7 +36,7 @@ var FORM_SETTINGS_HELP = {
     "the same port used by MiLight devices, 48899. Use 0 to disable.",
   listen_repeats : "Increasing this increases the amount of time spent listening for " +
     "packets. Set to 0 to disable listening. Default is 3.",
-  state_flush_interval : "Number of seconds between flushing states from RAM to flash. " +
+  state_flush_interval : "Minimum number of milliseconds between flushing state to flash. " +
     "Set to 0 to disable delay and immediately persist state to flash.",
   mqtt_state_rate_limit : "Minimum number of milliseconds between MQTT updates of bulb state. " +
     "Defaults to 500."
