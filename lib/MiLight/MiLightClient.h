@@ -15,6 +15,14 @@
 //Used to determine close to white
 #define RGB_WHITE_BOUNDARY 40
 
+#ifndef MILIGHT_CLIENT_RESEND_THROTTLE_THRESHOLD
+#define MILIGHT_CLIENT_RESEND_THROTTLE_THRESHOLD 100
+#endif
+
+#ifndef MILIGHT_CLIENT_RESEND_THROTTLE_WEIGHT
+#define MILIGHT_CLIENT_RESEND_THROTTLE_WEIGHT 8
+#endif
+
 class MiLightClient {
 public:
   MiLightClient(MiLightRadioFactory* radioFactory, GroupStateStore& stateStore);
@@ -80,9 +88,25 @@ protected:
   MiLightRadio* currentRadio;
   const MiLightRemoteConfig* currentRemote;
   const size_t numRadios;
-  unsigned int resendCount;
   PacketSentHandler packetSentHandler;
   GroupStateStore& stateStore;
+
+  // Used to track auto repeat limiting
+  unsigned long lastSend;
+  int currentResendCount;
+  unsigned int baseResendCount;
+
+  /*
+   * Calculates the number of resend packets based on when the last packet
+   * was sent using this function:
+   *
+   *      lastRepeatsValue + (millisSinceLastSend - THRESHOLD) / 8
+   *
+   * When the last send was more recent than THRESHOLD, the number of repeats
+   * will be decreased to a minimum of zero.  When less recent, it will be
+   * increased up to a maximum of the default resend count.
+   */
+  void updateResendCount();
 
   MiLightRadio* switchRadio(const MiLightRemoteConfig* remoteConfig);
   uint8_t parseStatus(const JsonObject& object);

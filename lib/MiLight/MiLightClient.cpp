@@ -5,12 +5,13 @@
 #include <Units.h>
 
 MiLightClient::MiLightClient(MiLightRadioFactory* radioFactory, GroupStateStore& stateStore)
-  : resendCount(MILIGHT_DEFAULT_RESEND_COUNT),
+  : baseResendCount(MILIGHT_DEFAULT_RESEND_COUNT),
     currentRadio(NULL),
     currentRemote(NULL),
     numRadios(MiLightRadioConfig::NUM_CONFIGS),
     packetSentHandler(NULL),
-    stateStore(stateStore)
+    stateStore(stateStore),
+    lastSend(0)
 {
   radios = new MiLightRadio*[numRadios];
 
@@ -66,6 +67,7 @@ void MiLightClient::prepare(const MiLightRemoteConfig* config,
   const uint8_t groupId
 ) {
   switchRadio(config);
+
   this->currentRemote = config;
 
   if (deviceId >= 0 && groupId >= 0) {
@@ -81,7 +83,8 @@ void MiLightClient::prepare(const MiLightRemoteType type,
 }
 
 void MiLightClient::setResendCount(const unsigned int resendCount) {
-  this->resendCount = resendCount;
+  this->baseResendCount = resendCount;
+  this->currentResendCount = resendCount;
 }
 
 bool MiLightClient::available() {
@@ -117,7 +120,7 @@ void MiLightClient::write(uint8_t packet[]) {
   int iStart = millis();
 #endif
 
-  for (int i = 0; i < this->resendCount; i++) {
+  for (int i = 0; i < this->currentResendCount; i++) {
     currentRadio->write(packet, currentRemote->packetFormatter->getPacketLength());
   }
 
@@ -377,16 +380,21 @@ uint8_t MiLightClient::parseStatus(const JsonObject& object) {
   return (strStatus.equalsIgnoreCase("on") || strStatus.equalsIgnoreCase("true")) ? ON : OFF;
 }
 
+void MiLightClient::updateResendCount() {
+  unsigned long now = millis();
+  long millisSinceLastSend = now - lastSend;
+  long x = (millisSinceLastSend - MILIGHT_CLIENT_RESEND_THROTTLE_THRESHOLD);
+  long delta = x/MILIGHT_CLIENT_RESEND_THROTTLE_WEIGHT;
+
+  this->currentResendCount = constrain(this->currentResendCount + delta, 1, this->baseResendCount);
+  this->lastSend = now;
+}
+
 void MiLightClient::flushPacket() {
   PacketStream& stream = currentRemote->packetFormatter->buildPackets();
-  const size_t prevNumRepeats = this->resendCount;
-
-  // When sending multiple packets, normalize the number of repeats
-  if (stream.numPackets > 1) {
-    setResendCount(MILIGHT_DEFAULT_RESEND_COUNT);
-  }
 
   while (stream.hasNext()) {
+    updateResendCount();
     write(stream.next());
 
     if (stream.hasNext()) {
@@ -394,8 +402,8 @@ void MiLightClient::flushPacket() {
     }
   }
 
-  setResendCount(prevNumRepeats);
   currentRemote->packetFormatter->reset();
+  lastSend = millis();
 }
 
 void MiLightClient::onPacketSent(PacketSentHandler handler) {
