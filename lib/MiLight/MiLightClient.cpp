@@ -403,7 +403,6 @@ void MiLightClient::flushPacket() {
   }
 
   currentRemote->packetFormatter->reset();
-  lastSend = millis();
 }
 
 void MiLightClient::onPacketSent(PacketSentHandler handler) {
