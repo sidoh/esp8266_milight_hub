@@ -4,14 +4,23 @@
 #include <RGBConverter.h>
 #include <Units.h>
 
-MiLightClient::MiLightClient(MiLightRadioFactory* radioFactory, GroupStateStore& stateStore)
+MiLightClient::MiLightClient(
+  MiLightRadioFactory* radioFactory,
+  GroupStateStore& stateStore,
+  size_t throttleThreshold,
+  size_t throttleSensitivity,
+  size_t packetRepeatMinimum
+)
   : baseResendCount(MILIGHT_DEFAULT_RESEND_COUNT),
     currentRadio(NULL),
     currentRemote(NULL),
     numRadios(MiLightRadioConfig::NUM_CONFIGS),
     packetSentHandler(NULL),
     stateStore(stateStore),
-    lastSend(0)
+    lastSend(0),
+    throttleThreshold(throttleThreshold),
+    throttleSensitivity(throttleSensitivity),
+    packetRepeatMinimum(packetRepeatMinimum)
 {
   radios = new MiLightRadio*[numRadios];
 
@@ -85,6 +94,7 @@ void MiLightClient::prepare(const MiLightRemoteType type,
 void MiLightClient::setResendCount(const unsigned int resendCount) {
   this->baseResendCount = resendCount;
   this->currentResendCount = resendCount;
+  this->throttleMultiplier = ceil((throttleSensitivity / 1000.0) * this->baseResendCount);
 }
 
 bool MiLightClient::available() {
@@ -383,10 +393,10 @@ uint8_t MiLightClient::parseStatus(const JsonObject& object) {
 void MiLightClient::updateResendCount() {
   unsigned long now = millis();
   long millisSinceLastSend = now - lastSend;
-  long x = (millisSinceLastSend - MILIGHT_CLIENT_RESEND_THROTTLE_THRESHOLD);
-  long delta = x/MILIGHT_CLIENT_RESEND_THROTTLE_WEIGHT;
+  long x = (millisSinceLastSend - throttleThreshold);
+  long delta = x * throttleMultiplier;
 
-  this->currentResendCount = constrain(this->currentResendCount + delta, 1, this->baseResendCount);
+  this->currentResendCount = constrain(this->currentResendCount + delta, packetRepeatMinimum, this->baseResendCount);
   this->lastSend = now;
 }
 

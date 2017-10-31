@@ -9,7 +9,8 @@ var FORM_SETTINGS = [
   "http_repeat_factor", "auto_restart_period", "discovery_port", "mqtt_server",
   "mqtt_topic_pattern", "mqtt_update_topic_pattern", "mqtt_state_topic_pattern",
   "mqtt_username", "mqtt_password", "radio_interface_type", "listen_repeats",
-  "state_flush_interval", "mqtt_state_rate_limit"
+  "state_flush_interval", "mqtt_state_rate_limit", "packet_repeat_throttle_threshold",
+  "packet_repeat_throttle_sensitivity", "packet_repeat_minimum"
 ];
 
 var FORM_SETTINGS_HELP = {
@@ -39,7 +40,16 @@ var FORM_SETTINGS_HELP = {
   state_flush_interval : "Minimum number of milliseconds between flushing state to flash. " +
     "Set to 0 to disable delay and immediately persist state to flash.",
   mqtt_state_rate_limit : "Minimum number of milliseconds between MQTT updates of bulb state. " +
-    "Defaults to 500."
+    "Defaults to 500.",
+  packet_repeat_throttle_threshold : "Controls how packet repeats are throttled.  Packets sent " +
+    "with less time between them than this value (in milliseconds) will cause " +
+    "packet repeats to be throttled down.  More than this value will unthrottle " +
+    "up.  Defaults to 200ms",
+  packet_repeat_throttle_sensitivity : "Controls how packet repeats are throttled. " +
+    "Higher values cause packets to be throttled up and down faster.  Set to 0 " +
+    "to disable throttling.  Defaults to 1.  Maximum value 1000.",
+  packet_repeat_minimum : "Controls how far throttling can decrease the number " +
+    "of repeated packets.  Defaults to 3."
 }
 
 var UDP_PROTOCOL_VERSIONS = [ 5, 6 ];

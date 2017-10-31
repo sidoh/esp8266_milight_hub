@@ -25,7 +25,13 @@
 
 class MiLightClient {
 public:
-  MiLightClient(MiLightRadioFactory* radioFactory, GroupStateStore& stateStore);
+  MiLightClient(
+    MiLightRadioFactory* radioFactory,
+    GroupStateStore& stateStore,
+    size_t throttleThreshold,
+    size_t throttleSensitivity,
+    size_t packetRepeatMinimum
+  );
 
   ~MiLightClient() {
     delete[] radios;
@@ -95,6 +101,16 @@ protected:
   unsigned long lastSend;
   int currentResendCount;
   unsigned int baseResendCount;
+  int packetRepeatMinimum;
+  size_t throttleThreshold;
+  size_t throttleSensitivity;
+
+  // This will be pre-computed, but is simply:
+  //
+  //    (sensitivity / 1000.0) * R
+  //
+  // Where R is the base number of repeats.
+  size_t throttleMultiplier;
 
   /*
    * Calculates the number of resend packets based on when the last packet

@@ -169,7 +169,13 @@ void applySettings() {
 
   stateStore = new GroupStateStore(MILIGHT_MAX_STATE_ITEMS, settings.stateFlushInterval);
 
-  milightClient = new MiLightClient(radioFactory, *stateStore);
+  milightClient = new MiLightClient(
+    radioFactory,
+    *stateStore,
+    settings.packetRepeatThrottleThreshold,
+    settings.packetRepeatThrottleSensitivity,
+    settings.packetRepeatMinimum
+  );
   milightClient->begin();
   milightClient->onPacketSent(onPacketSentHandler);
   milightClient->setResendCount(settings.packetRepeats);
