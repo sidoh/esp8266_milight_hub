@@ -15,14 +15,6 @@
 //Used to determine close to white
 #define RGB_WHITE_BOUNDARY 40
 
-#ifndef MILIGHT_CLIENT_RESEND_THROTTLE_THRESHOLD
-#define MILIGHT_CLIENT_RESEND_THROTTLE_THRESHOLD 100
-#endif
-
-#ifndef MILIGHT_CLIENT_RESEND_THROTTLE_WEIGHT
-#define MILIGHT_CLIENT_RESEND_THROTTLE_WEIGHT 8
-#endif
-
 class MiLightClient {
 public:
   MiLightClient(
