@@ -402,9 +402,9 @@ void MiLightClient::updateResendCount() {
 
 void MiLightClient::flushPacket() {
   PacketStream& stream = currentRemote->packetFormatter->buildPackets();
+  updateResendCount();
 
   while (stream.hasNext()) {
-    updateResendCount();
     write(stream.next());
 
     if (stream.hasNext()) {
