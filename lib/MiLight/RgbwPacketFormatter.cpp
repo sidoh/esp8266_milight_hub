@@ -88,7 +88,7 @@ void RgbwPacketFormatter::updateColorWhite() {
 void RgbwPacketFormatter::enableNightMode() {
   uint8_t button = STATUS_COMMAND(OFF, groupId);
 
-  //command(button, 0);
+  command(button, 0);
   command(button | 0x10, 0);
 }
 
