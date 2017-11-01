@@ -76,7 +76,7 @@ public:
     stateFlushInterval(1000),
     mqttStateRateLimit(500),
     packetRepeatThrottleThreshold(200),
-    packetRepeatThrottleSensitivity(1),
+    packetRepeatThrottleSensitivity(0),
     packetRepeatMinimum(3)
   { }
 
