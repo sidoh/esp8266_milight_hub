@@ -108,7 +108,7 @@ protected:
    * Calculates the number of resend packets based on when the last packet
    * was sent using this function:
    *
-   *      lastRepeatsValue + (millisSinceLastSend - THRESHOLD) / 8
+   *    lastRepeatsValue + (millisSinceLastSend - THRESHOLD) * throttleMultiplier
    *
    * When the last send was more recent than THRESHOLD, the number of repeats
    * will be decreased to a minimum of zero.  When less recent, it will be
