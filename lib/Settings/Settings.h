@@ -74,7 +74,10 @@ public:
     _autoRestartPeriod(0),
     discoveryPort(48899),
     stateFlushInterval(1000),
-    mqttStateRateLimit(500)
+    mqttStateRateLimit(500),
+    packetRepeatThrottleThreshold(200),
+    packetRepeatThrottleSensitivity(0),
+    packetRepeatMinimum(3)
   { }
 
   ~Settings() {
@@ -124,6 +127,9 @@ public:
   uint8_t listenRepeats;
   size_t stateFlushInterval;
   size_t mqttStateRateLimit;
+  size_t packetRepeatThrottleSensitivity;
+  size_t packetRepeatThrottleThreshold;
+  size_t packetRepeatMinimum;
 
 protected:
   size_t _autoRestartPeriod;
