@@ -121,13 +121,7 @@ void MqttClient::publish(
   }
 
   String topic = _topic;
-
-  String deviceIdStr = String(deviceId, 16);
-  deviceIdStr.toUpperCase();
-
-  topic.replace(":device_id", String("0x") + deviceIdStr);
-  topic.replace(":group_id", String(groupId));
-  topic.replace(":device_type", remoteConfig.name);
+  MqttClient::bindTopicString(topic, remoteConfig, deviceId, groupId);
 
 #ifdef MQTT_DEBUG
   printf_P(PSTR("MqttClient - publishing update to %s: %s\n"), topic.c_str(), update);
@@ -176,4 +170,21 @@ void MqttClient::publishCallback(char* topic, byte* payload, int length) {
 
   milightClient->prepare(config, deviceId, groupId);
   milightClient->update(obj);
+}
+
+inline void MqttClient::bindTopicString(
+  String& topicPattern,
+  const MiLightRemoteConfig& remoteConfig,
+  const uint16_t deviceId,
+  const uint16_t groupId
+) {
+  String deviceIdHex = String(deviceId, 16);
+  deviceIdHex.toUpperCase();
+  deviceIdHex = String("0x") + deviceIdHex;
+
+  topicPattern.replace(":device_id", deviceIdHex);
+  topicPattern.replace(":hex_device_id", deviceIdHex);
+  topicPattern.replace(":dec_device_id", String(deviceId));
+  topicPattern.replace(":group_id", String(groupId));
+  topicPattern.replace(":device_type", remoteConfig.name);
 }

@@ -41,6 +41,13 @@ private:
     const char* update,
     const bool retain = false
   );
+
+  inline static void bindTopicString(
+    String& topicPattern,
+    const MiLightRemoteConfig& remoteConfig,
+    const uint16_t deviceId,
+    const uint16_t groupId
+  );
 };
 
 #endif
