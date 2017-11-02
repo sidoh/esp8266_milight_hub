@@ -14,7 +14,7 @@ install:
 - platformio lib install
 - cd web && npm install && cd ..
 script:
-- platformio run -v
+- platformio run
 before_deploy:
   - ./.prepare_release
 deploy:
