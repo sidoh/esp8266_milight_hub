@@ -73,7 +73,7 @@ public:
     listenRepeats(3),
     _autoRestartPeriod(0),
     discoveryPort(48899),
-    stateFlushInterval(1000),
+    stateFlushInterval(10000),
     mqttStateRateLimit(500),
     packetRepeatThrottleThreshold(200),
     packetRepeatThrottleSensitivity(0),
