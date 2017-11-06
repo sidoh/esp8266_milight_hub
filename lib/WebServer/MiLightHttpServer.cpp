@@ -48,6 +48,8 @@ void MiLightHttpServer::begin() {
         );
       }
 
+      delay(1000);
+
       ESP.restart();
     },
     [this](){
