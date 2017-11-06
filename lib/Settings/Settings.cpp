@@ -26,6 +26,10 @@ void Settings::deserialize(Settings& settings, String json) {
   DynamicJsonBuffer jsonBuffer;
   JsonObject& parsedSettings = jsonBuffer.parseObject(json);
   settings.patch(parsedSettings);
+  settings._staticGate.fromString(settings.staticGate);
+  settings._staticIp.fromString(settings.staticIp);
+  settings._staticMask.fromString(settings.staticMask);
+
 }
 
 void Settings::updateDeviceIds(JsonArray& arr) {
@@ -85,6 +89,22 @@ void Settings::patch(JsonObject& parsedSettings) {
     this->setIfPresent(parsedSettings, "packet_repeat_throttle_threshold", packetRepeatThrottleThreshold);
     this->setIfPresent(parsedSettings, "packet_repeat_throttle_sensitivity", packetRepeatThrottleSensitivity);
     this->setIfPresent(parsedSettings, "packet_repeat_minimum", packetRepeatMinimum);
+
+    //Eigene Variablen
+    this->setIfPresent(parsedSettings, "hostname", hostname);
+    this->setIfPresent(parsedSettings, "static_ip", staticIp);
+    this->setIfPresent(parsedSettings, "static_mask", staticMask);
+    this->setIfPresent(parsedSettings, "static_gate", staticGate);
+    this->setIfPresent(parsedSettings, "sda_pin", sdaPin);
+    this->setIfPresent(parsedSettings, "scl_pin", sclPin);
+    this->setIfPresent(parsedSettings, "mqtt_pin1", mqttPin1);
+    this->setIfPresent(parsedSettings, "mqtt_pin2", mqttPin2);
+    this->setIfPresent(parsedSettings, "mqtt_pin3", mqttPin3);
+    this->setIfPresent(parsedSettings, "mqtt_pin4", mqttPin4);
+    this->setIfPresent(parsedSettings, "ota_pass", otaPass);
+    this->setIfPresent(parsedSettings, "mqtt_client_id", mqttClientId);
+    this->setIfPresent(parsedSettings, "mqtt_sensor_topic_pattern", mqttSensorTopicPattern);
+
 
     if (parsedSettings.containsKey("radio_interface_type")) {
       this->radioInterfaceType = Settings::typeFromString(parsedSettings["radio_interface_type"]);
@@ -157,6 +177,23 @@ void Settings::serialize(Stream& stream, const bool prettyPrint) {
   root["packet_repeat_throttle_sensitivity"] = this->packetRepeatThrottleSensitivity;
   root["packet_repeat_throttle_threshold"] = this->packetRepeatThrottleThreshold;
   root["packet_repeat_minimum"] = this->packetRepeatMinimum;
+
+  //Eigene Variablen
+  root["hostname"] = this->hostname;
+  root["static_ip"] = this->staticIp;
+  root["static_mask"] = this->staticMask;
+  root["static_gate"] = this->staticGate;
+  root["sda_pin"] = this->sdaPin;
+  root["scl_pin"] = this->sclPin;
+  root["mqtt_pin1"] = this->mqttPin1;
+  root["mqtt_pin2"] = this->mqttPin2;
+  root["mqtt_pin3"] = this->mqttPin3;
+  root["mqtt_pin4"] = this->mqttPin4;
+  root["ota_pass"] = this->otaPass;
+  root["mqtt_client_id"] = this->mqttClientId;
+  root["mqtt_sensor_topic_pattern"] = this->mqttSensorTopicPattern;
+
+
 
   if (this->deviceIds) {
     JsonArray& arr = jsonBuffer.createArray();
