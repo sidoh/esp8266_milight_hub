@@ -24,7 +24,7 @@
 #include <EEPROM.h>
 #include <BME280I2C.h>
 #include <AS_BH1750.h>
-#include <si7021.h>
+#include <Si7021.h>
 #include <Wire.h>
 #include <Timer.h>
 
