@@ -194,9 +194,9 @@ var loadSettings = function() {
           field.filter('[value="' + val[k] + '"]').click();
         } else {
           field.val(val[k]);
-          if(val[k].length > 50){
+          if(field.val().length > 50){
               field.width('40em');
-          }else if((val[k].length < 6 || $.isNumeric(val[k])) && val[k].length > 0 ){
+          }else if(field.val().length < 6 && field.val().length > 0  ){
               field.width('5em');
           }else{
               field.width('20em');
