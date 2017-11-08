@@ -94,11 +94,11 @@ void onPacketSentHandler(uint8_t* packet, const MiLightRemoteConfig& config) {
   const MiLightRemoteConfig& remoteConfig =
     *MiLightRemoteConfig::fromType(bulbId.deviceType);
 
-  if (mqttClient) {
-    GroupState& groupState = stateStore->get(bulbId);
-    groupState.patch(result);
-    stateStore->set(bulbId, groupState);
+  GroupState& groupState = stateStore->get(bulbId);
+  groupState.patch(result);
+  stateStore->set(bulbId, groupState);
 
+  if (mqttClient) {
     // Sends the state delta derived from the raw packet
     char output[200];
     result.printTo(output);
