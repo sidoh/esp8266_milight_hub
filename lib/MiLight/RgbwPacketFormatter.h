@@ -56,6 +56,7 @@ public:
       lastMode(0)
   { }
 
+  virtual bool canHandle(const uint8_t* packet, const size_t len);
   virtual void updateStatus(MiLightStatus status, uint8_t groupId);
   virtual void updateBrightness(uint8_t value);
   virtual void command(uint8_t command, uint8_t arg);

@@ -1,9 +1,15 @@
 #include <CctPacketFormatter.h>
 
+static const uint8_t CCT_PROTOCOL_ID = 0x5A;
+
+bool CctPacketFormatter::canHandle(const uint8_t *packet, const size_t len) {
+  return len == packetLength && packet[0] == CCT_PROTOCOL_ID;
+}
+
 void CctPacketFormatter::initializePacket(uint8_t* packet) {
   size_t packetPtr = 0;
 
-  packet[packetPtr++] = 0x5A;
+  packet[packetPtr++] = CCT_PROTOCOL_ID;
   packet[packetPtr++] = deviceId >> 8;
   packet[packetPtr++] = deviceId & 0xFF;
   packet[packetPtr++] = groupId;

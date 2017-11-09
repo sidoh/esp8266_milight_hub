@@ -4,6 +4,10 @@
 #define STATUS_COMMAND(status, groupId) ( RGBW_GROUP_1_ON + ((groupId - 1)*2) + status )
 #define GROUP_FOR_STATUS_COMMAND(buttonId) ( (buttonId - 1) / 2 )
 
+bool RgbwPacketFormatter::canHandle(const uint8_t *packet, const size_t len) {
+  return len == packetLength && (packet[0] & 0xF0) == RGBW_PROTOCOL_ID_BYTE;
+}
+
 void RgbwPacketFormatter::initializePacket(uint8_t* packet) {
   size_t packetPtr = 0;
 
