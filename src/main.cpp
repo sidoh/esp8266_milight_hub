@@ -134,7 +134,10 @@ void handleListen() {
       );
 
       if (remoteConfig == NULL) {
-        Serial.println(F("ERROR: Couldn't find remote for received packet!"));
+        // This can happen under normal circumstances, so not an error condition
+#ifdef DEBUG_PRINTF
+        Serial.println(F("WARNING: Couldn't find remote for received packet"));
+#endif
         return;
       }
 
