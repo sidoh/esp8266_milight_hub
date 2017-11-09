@@ -122,7 +122,7 @@ void MiLightClient::write(uint8_t packet[]) {
   }
 
 #ifdef DEBUG_PRINTF
-  printf("Sending packet (%d repeats): ", this->resendCount);
+  printf("Sending packet (%d repeats): ", this->currentResendCount);
   for (int i = 0; i < currentRemote->packetFormatter->getPacketLength(); i++) {
     printf("%02X", packet[i]);
   }
