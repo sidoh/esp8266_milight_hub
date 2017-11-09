@@ -1,8 +1,9 @@
 #include <RgbwPacketFormatter.h>
 #include <Units.h>
 
-#define STATUS_COMMAND(status, groupId) ( RGBW_GROUP_1_ON + ((groupId - 1)*2) + status )
-#define GROUP_FOR_STATUS_COMMAND(buttonId) ( (buttonId - 1) / 2 )
+#define STATUS_COMMAND(status, groupId) ( RGBW_GROUP_1_ON + (((groupId) - 1)*2) + (status) )
+#define GROUP_FOR_STATUS_COMMAND(buttonId) ( ((buttonId) - 1) / 2 )
+#define STATUS_FOR_COMMAND(buttonId) ( ((buttonId) % 2) == 0 ? OFF : ON )
 
 bool RgbwPacketFormatter::canHandle(const uint8_t *packet, const size_t len) {
   return len == packetLength && (packet[0] & 0xF0) == RGBW_PROTOCOL_ID_BYTE;
@@ -106,13 +107,19 @@ BulbId RgbwPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& resul
   );
 
   if (command >= RGBW_ALL_ON && command <= RGBW_GROUP_4_OFF) {
-    result["state"] = (command % 2) ? "ON" : "OFF";
+    result["state"] = (STATUS_FOR_COMMAND(command) == ON) ? "ON" : "OFF";
+
     // Determine group ID from button ID for on/off. The remote's state is from
     // the last packet sent, not the current one, and that can be wrong for
     // on/off commands.
     bulbId.groupId = GROUP_FOR_STATUS_COMMAND(command);
-  } else if (command >= RGBW_ALL_MAX_LEVEL && command <= RGBW_GROUP_4_MAX_LEVEL) {
-    result["command"] = "white_mode";
+  } else if (command >= RGBW_ALL_MAX_LEVEL && command <= RGBW_GROUP_4_MIN_LEVEL) {
+    if ((command % 2) == 0) {
+      result["state"] = "ON";
+      result["command"] = "night_mode";
+    } else {
+      result["command"] = "white_mode";
+    }
     bulbId.groupId = GROUP_FOR_STATUS_COMMAND(command & 0xF);
   } else if (command == RGBW_BRIGHTNESS) {
     uint8_t brightness = 31;
