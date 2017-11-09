@@ -8,6 +8,11 @@
 #define MQTT_CONNECTION_ATTEMPT_FREQUENCY 5000
 #endif
 
+#ifndef MQTT_KEEPALIVE
+#define MQTT_KEEPALIVE 90
+#endif
+
+
 #ifndef _MQTT_CLIENT_H
 #define _MQTT_CLIENT_H
 
@@ -20,6 +25,7 @@ public:
   void handleClient();
   void reconnect();
   void sendUpdate(const MiLightRemoteConfig& remoteConfig, uint16_t deviceId, uint16_t groupId, const char* update);
+  void sendSensor(String sensor , const char* update);
   void sendState(const MiLightRemoteConfig& remoteConfig, uint16_t deviceId, uint16_t groupId, const char* update);
 
 private:
@@ -47,6 +53,12 @@ private:
     const MiLightRemoteConfig& remoteConfig,
     const uint16_t deviceId,
     const uint16_t groupId
+  );
+
+  void publishSensor(
+    const String& topic,
+    const String& sensor,
+    const char* update
   );
 };
 

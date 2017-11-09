@@ -5,15 +5,44 @@ var UNIT_PARAMS = {
 };
 
 var FORM_SETTINGS = [
-  "admin_username", "admin_password", "ce_pin", "csn_pin", "reset_pin","packet_repeats",
+  "admin_username", "admin_password",
+  "hostname", "static_ip" , "static_mask" , "static_gate", "ota_pass",
+  "ce_pin", "csn_pin", "reset_pin",
+  "sda_pin", "scl_pin" ,"mqtt_pin1", "mqtt_pin2", "mqtt_pin3", "mqtt_pin4",
+  "packet_repeats",
   "http_repeat_factor", "auto_restart_period", "discovery_port", "mqtt_server",
   "mqtt_topic_pattern", "mqtt_update_topic_pattern", "mqtt_state_topic_pattern",
+  "mqtt_sensor_topic_pattern", "mqtt_client_id",
   "mqtt_username", "mqtt_password", "radio_interface_type", "listen_repeats",
   "state_flush_interval", "mqtt_state_rate_limit", "packet_repeat_throttle_threshold",
   "packet_repeat_throttle_sensitivity", "packet_repeat_minimum"
 ];
 
+var FORM_SETTINGS_HEADLINES = {
+  admin_username : "Frontend Settings",
+  hostname : "IP Settings",
+  ota_pass : "Over the Air Update Settings",
+  ce_pin : "Hardware Settings",
+  sda_pin : "I2C Interface Settings",
+  packet_repeats : "Milight Settings",
+  mqtt_server : "Mqtt Settings",
+  radio_interface_type : "2.4G Module Settings"
+};
+
 var FORM_SETTINGS_HELP = {
+
+
+  hostname : "After the next reboot the device is reachable by ne new hostname.",
+  ota_pass : "Password for Over The Air programming update",
+  sda_pin : "'SDA' for I2C interface",
+  scl_pin : "'SCL' for I2C interface" ,
+  mqtt_sensor_topic_pattern : "Pattern to publish i2c Sensor updates. Example" +
+    "sensors/:sensor_type ",
+    mqtt_pin1 : "first pin whose status change is to be sent",
+    mqtt_pin2 : "second pin whose status change is to be sent",
+    mqtt_pin3 : "third pin whose status change is to be sent",
+    mqtt_pin4 : "fourth pin whose status change is to be sent",
+
   ce_pin : "'CE' for NRF24L01 interface, and 'PKT' for 'PL1167/LT8900' interface",
   packet_repeats : "The number of times to repeat RF packets sent to bulbs",
   http_repeat_factor : "Multiplicative factor on packet_repeats for " +
@@ -165,6 +194,13 @@ var loadSettings = function() {
           field.filter('[value="' + val[k] + '"]').click();
         } else {
           field.val(val[k]);
+          if(field.val().length > 50){
+              field.width('40em');
+          }else if(field.val().length < 6 && field.val().length > 0  ){
+              field.width('5em');
+          }else{
+              field.width('20em');
+          }
         }
       }
     });
@@ -519,7 +555,17 @@ $(function() {
   var settings = "";
 
   FORM_SETTINGS.forEach(function(k) {
-    var elmt = '<div class="form-entry">';
+    var elmt = '';
+
+    if(FORM_SETTINGS_HEADLINES[k]){
+      elmt += ' <div class="row header-row">' +
+        '<div class="col-sm-12">' +
+          '<h3>'+ FORM_SETTINGS_HEADLINES[k] +'</h3>' +
+        '</div>' +
+      '</div>';
+    }
+
+    elmt += '<div class="form-entry">';
     elmt += '<div>';
     elmt += '<label for="' + k + '">' + k + '</label>';
 
@@ -538,10 +584,14 @@ $(function() {
           '<input type="radio" id="lt8900" name="radio_interface_type" autocomplete="off" value="LT8900" /> PL1167/LT8900' +
         '</label>' +
       '</div>';
+      elmt += '</div>';
     } else {
       elmt += '<input type="text" class="form-control" name="' + k + '"/>';
       elmt += '</div>';
     }
+
+
+
 
     settings += elmt;
   });
@@ -557,6 +607,13 @@ $(function() {
         obj[k] = elmt.filter(':checked').val();
       } else {
         obj[k] = elmt.val();
+        if(elmt.val().length > 50){
+            elmt.width('40em');
+        }else if(elmt.val().length < 6 && elmt.val().length > 0 ){
+            elmt.width('5em');
+        }else{
+            elmt.width('20em');
+        }
       }
     });
 

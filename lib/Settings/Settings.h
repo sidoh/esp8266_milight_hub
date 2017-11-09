@@ -1,6 +1,9 @@
 #include <Arduino.h>
 #include <StringStream.h>
 #include <ArduinoJson.h>
+//Eigene Includes
+#include <IPAddress.h>
+
 
 #ifndef _SETTINGS_H_INCLUDED
 #define _SETTINGS_H_INCLUDED
@@ -130,6 +133,24 @@ public:
   size_t packetRepeatThrottleSensitivity;
   size_t packetRepeatThrottleThreshold;
   size_t packetRepeatMinimum;
+
+  //Eigene Variablen
+  String hostname;
+  String otaPass;
+  String staticIp;
+  String staticMask;
+  String staticGate;
+  IPAddress _staticIp;
+  IPAddress _staticMask;
+  IPAddress _staticGate;
+  uint8_t sdaPin;
+  uint8_t sclPin;
+  uint8_t mqttPin1;
+  uint8_t mqttPin2;
+  uint8_t mqttPin3;
+  uint8_t mqttPin4;
+  String mqttClientId;
+  String mqttSensorTopicPattern;
 
 protected:
   size_t _autoRestartPeriod;

@@ -46,18 +46,23 @@ bool MqttClient::connect() {
   char nameBuffer[30];
   sprintf_P(nameBuffer, PSTR("milight-hub-%u"), ESP.getChipId());
 
+if(settings.mqttClientId.length() <= 0 ){
+//  sprintf_P(settings.mqttClientId.c_str() , PSTR("milight-hub-%u"), ESP.getChipId());
+  settings.mqttClientId = PSTR("milight-hub-%u"), ESP.getChipId() ;
+}
+
 #ifdef MQTT_DEBUG
     Serial.println(F("MqttClient - connecting"));
 #endif
 
   if (settings.mqttUsername.length() > 0) {
     return mqttClient->connect(
-      nameBuffer,
+      settings.mqttClientId.c_str(),
       settings.mqttUsername.c_str(),
       settings.mqttPassword.c_str()
     );
   } else {
-    return mqttClient->connect(nameBuffer);
+    return mqttClient->connect(settings.mqttClientId.c_str());
   }
 }
 
@@ -88,6 +93,10 @@ void MqttClient::handleClient() {
 
 void MqttClient::sendUpdate(const MiLightRemoteConfig& remoteConfig, uint16_t deviceId, uint16_t groupId, const char* update) {
   publish(settings.mqttUpdateTopicPattern, remoteConfig, deviceId, groupId, update);
+}
+
+void MqttClient::sendSensor(String sensor , const char* update) {
+  publishSensor(settings.mqttSensorTopicPattern, sensor , update);
 }
 
 void MqttClient::sendState(const MiLightRemoteConfig& remoteConfig, uint16_t deviceId, uint16_t groupId, const char* update) {
@@ -130,11 +139,35 @@ void MqttClient::publish(
   mqttClient->publish(topic.c_str(), message, retain);
 }
 
+void MqttClient::publishSensor(
+  const String& _topic,
+  const String& snesor,
+  const char* message
+) {
+  if (_topic.length() == 0) {
+    return;
+  }
+
+  String topic = _topic;
+  topic.replace(":sensor_type", snesor);
+
+#ifdef MQTT_DEBUG
+  printf_P(PSTR("MqttClient - publishing sensor update to %s: %s\n"), topic.c_str(), message);
+#endif
+Serial.print("MqttClient - publishing sensor update to ");
+Serial.print(topic.c_str());
+Serial.print(" data ");
+Serial.println(message);
+
+  mqttClient->publish(topic.c_str(), message );
+}
+
 void MqttClient::publishCallback(char* topic, byte* payload, int length) {
   uint16_t deviceId = 0;
   uint8_t groupId = 0;
   const MiLightRemoteConfig* config = &FUT092Config;
   char cstrPayload[length + 1];
+  String temp = topic ;
   cstrPayload[length] = 0;
   memcpy(cstrPayload, payload, sizeof(byte)*length);
 
@@ -148,6 +181,13 @@ void MqttClient::publishCallback(char* topic, byte* payload, int length) {
   TokenIterator patternIterator(topicPattern, settings.mqttTopicPattern.length(), '/');
   TokenIterator topicIterator(topic, strlen(topic), '/');
   UrlTokenBindings tokenBindings(patternIterator, topicIterator);
+
+  Serial.print("MqttClient - publishCallback sensors? ");
+  if ( temp.indexOf("sensors") > 0 ) {
+    Serial.println("yes");
+    return;
+  }
+  Serial.println("no");
 
   if (tokenBindings.hasBinding("device_id")) {
     deviceId = parseInt<uint16_t>(tokenBindings.get("device_id"));
