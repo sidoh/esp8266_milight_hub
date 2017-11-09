@@ -14,7 +14,13 @@ void MiLightHttpServer::begin() {
   server.on("/", HTTP_GET, handleServe_P(index_html_gz, index_html_gz_len));
   server.on("/settings", HTTP_GET, [this]() { serveSettings(); });
   server.on("/settings", HTTP_PUT, [this]() { handleUpdateSettings(); });
-  server.on("/settings", HTTP_POST, [this]() { server.send_P(200, TEXT_PLAIN, PSTR("success.")); }, handleUpdateFile(SETTINGS_FILE));
+  server.on("/settings", HTTP_POST,
+    [this]() {
+      Settings::load(settings);
+      server.send_P(200, TEXT_PLAIN, PSTR("success."));
+    },
+    handleUpdateFile(SETTINGS_FILE)
+  );
   server.on("/radio_configs", HTTP_GET, [this]() { handleGetRadioConfigs(); });
 
   server.on("/gateway_traffic", HTTP_GET, [this]() { handleListenGateway(NULL); });
