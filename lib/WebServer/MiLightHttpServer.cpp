@@ -247,6 +247,8 @@ void MiLightHttpServer::handleListenGateway(const UrlTokenBindings* bindings) {
   bool listenAll = bindings == NULL;
   size_t configIx = 0;
   const MiLightRadioConfig* radioConfig = NULL;
+  const MiLightRemoteConfig* remoteConfig = NULL;
+  uint8_t packet[MILIGHT_MAX_PACKET_LENGTH];
 
   if (bindings != NULL) {
     String strType(bindings->get("type"));
@@ -260,7 +262,7 @@ void MiLightHttpServer::handleListenGateway(const UrlTokenBindings* bindings) {
     return;
   }
 
-  while (!available) {
+  while (remoteConfig == NULL) {
     if (!server.clientConnected()) {
       return;
     }
@@ -270,19 +272,16 @@ void MiLightHttpServer::handleListenGateway(const UrlTokenBindings* bindings) {
     }
 
     if (milightClient->available()) {
-      available = true;
+      size_t packetLen = milightClient->read(packet);
+      remoteConfig = MiLightRemoteConfig::fromReceivedPacket(
+        *radioConfig,
+        packet,
+        packetLen
+      );
     }
 
     yield();
   }
-
-  uint8_t packet[MILIGHT_MAX_PACKET_LENGTH];
-  size_t packetLen = milightClient->read(packet);
-  const MiLightRemoteConfig* remoteConfig = MiLightRemoteConfig::fromReceivedPacket(
-    *radioConfig,
-    packet,
-    packetLen
-  );
 
   char response[200];
   char* responseBuffer = response;
@@ -291,7 +290,7 @@ void MiLightHttpServer::handleListenGateway(const UrlTokenBindings* bindings) {
     responseBuffer,
     PSTR("\n%s packet received (%d bytes):\n"),
     remoteConfig->name.c_str(),
-    packetLen
+    remoteConfig->packetFormatter->getPacketLength()
   );
   remoteConfig->packetFormatter->format(packet, responseBuffer);
 
