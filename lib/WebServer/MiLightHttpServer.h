@@ -16,7 +16,7 @@ const char APPLICATION_JSON[] = "application/json";
 
 class MiLightHttpServer {
 public:
-  MiLightHttpServer(Settings& settings, MiLightClient*& milightClient, GroupStateStore& stateStore)
+  MiLightHttpServer(Settings& settings, MiLightClient*& milightClient, GroupStateStore*& stateStore)
     : server(WebServer(80)),
       wsServer(WebSocketsServer(81)),
       numWsClients(0),
@@ -65,7 +65,7 @@ protected:
   WebSocketsServer wsServer;
   Settings& settings;
   MiLightClient*& milightClient;
-  GroupStateStore& stateStore;
+  GroupStateStore*& stateStore;
   SettingsSavedHandler settingsSavedHandler;
   size_t numWsClients;
 
