@@ -30,6 +30,7 @@ public:
   }
 
   typedef std::function<void(uint8_t* packet, const MiLightRemoteConfig& config)> PacketSentHandler;
+  typedef std::function<void(void)> EventHandler;
 
   void begin();
   void prepare(const MiLightRemoteConfig* remoteConfig, const uint16_t deviceId = -1, const uint8_t groupId = -1);
@@ -75,6 +76,8 @@ public:
   void handleEffect(const String& effect);
 
   void onPacketSent(PacketSentHandler handler);
+  void onUpdateBegin(EventHandler handler);
+  void onUpdateEnd(EventHandler handler);
 
   size_t getNumRadios() const;
   MiLightRadio* switchRadio(size_t radioIx);
@@ -86,8 +89,11 @@ protected:
   MiLightRadio* currentRadio;
   const MiLightRemoteConfig* currentRemote;
   const size_t numRadios;
-  PacketSentHandler packetSentHandler;
   GroupStateStore& stateStore;
+
+  PacketSentHandler packetSentHandler;
+  EventHandler updateBeginHandler;
+  EventHandler updateEndHandler;
 
   // Used to track auto repeat limiting
   unsigned long lastSend;

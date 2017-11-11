@@ -16,6 +16,8 @@ MiLightClient::MiLightClient(
     currentRemote(NULL),
     numRadios(MiLightRadioConfig::NUM_CONFIGS),
     packetSentHandler(NULL),
+    updateBeginHandler(NULL),
+    updateEndHandler(NULL),
     stateStore(stateStore),
     lastSend(0),
     throttleThreshold(throttleThreshold),
@@ -250,6 +252,15 @@ void MiLightClient::command(uint8_t command, uint8_t arg) {
 }
 
 void MiLightClient::update(const JsonObject& request) {
+  if (this->updateBeginHandler) {
+    this->updateBeginHandler();
+  }
+
+  String bb;
+  request.printTo(bb);
+  Serial.println("processing...");
+  Serial.println(bb);
+
   const uint8_t parsedStatus = this->parseStatus(request);
 
   // Always turn on first
@@ -338,6 +349,10 @@ void MiLightClient::update(const JsonObject& request) {
   if (parsedStatus == OFF) {
     this->updateStatus(OFF);
   }
+
+  if (this->updateEndHandler) {
+    this->updateEndHandler();
+  }
 }
 
 void MiLightClient::handleCommand(const String& command) {
@@ -417,4 +432,12 @@ void MiLightClient::flushPacket() {
 
 void MiLightClient::onPacketSent(PacketSentHandler handler) {
   this->packetSentHandler = handler;
+}
+
+void MiLightClient::onUpdateBegin(EventHandler handler) {
+  this->updateBeginHandler = handler;
+}
+
+void MiLightClient::onUpdateEnd(EventHandler handler) {
+  this->updateEndHandler = handler;
 }

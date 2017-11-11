@@ -124,7 +124,7 @@ void MqttClient::publish(
   MqttClient::bindTopicString(topic, remoteConfig, deviceId, groupId);
 
 #ifdef MQTT_DEBUG
-  printf_P(PSTR("MqttClient - publishing update to %s: %s\n"), topic.c_str(), update);
+  printf("MqttClient - publishing update to %s\n", topic.c_str());
 #endif
 
   mqttClient->publish(topic.c_str(), message, retain);
@@ -139,7 +139,7 @@ void MqttClient::publishCallback(char* topic, byte* payload, int length) {
   memcpy(cstrPayload, payload, sizeof(byte)*length);
 
 #ifdef MQTT_DEBUG
-  printf_P(PSTR("MqttClient - Got message on topic: %s\n%s\n"), topic, cstrPayload);
+  printf("MqttClient - Got message on topic: %s\n%s\n", topic, cstrPayload);
 #endif
 
   char topicPattern[settings.mqttTopicPattern.length()];
@@ -165,7 +165,7 @@ void MqttClient::publishCallback(char* topic, byte* payload, int length) {
   JsonObject& obj = buffer.parseObject(cstrPayload);
 
 #ifdef MQTT_DEBUG
-  printf_P(PSTR("MqttClient - device %04X, group %u\n"), deviceId, groupId);
+  printf("MqttClient - device %04X, group %u\n", deviceId, groupId);
 #endif
 
   milightClient->prepare(config, deviceId, groupId);
