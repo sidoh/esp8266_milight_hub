@@ -10,7 +10,22 @@ var FORM_SETTINGS = [
   "mqtt_topic_pattern", "mqtt_update_topic_pattern", "mqtt_state_topic_pattern",
   "mqtt_username", "mqtt_password", "radio_interface_type", "listen_repeats",
   "state_flush_interval", "mqtt_state_rate_limit", "packet_repeat_throttle_threshold",
-  "packet_repeat_throttle_sensitivity", "packet_repeat_minimum"
+  "packet_repeat_throttle_sensitivity", "packet_repeat_minimum", "group_state_fields"
+];
+
+// TODO: sync this with GroupStateField.h
+var GROUP_STATE_KEYS = [
+  "state",
+  "status",
+  "brightness",
+  "level",
+  "hue",
+  "saturation",
+  "color",
+  "mode",
+  "kelvin",
+  "color_temp",
+  "bulb_mode"
 ];
 
 var FORM_SETTINGS_HELP = {
@@ -175,6 +190,11 @@ var loadSettings = function() {
         selectize.addOption({text: toHex(v), value: v});
       });
       selectize.refreshOptions();
+    }
+
+    if (val.group_state_fields) {
+      var elmt = $('select[name="group_state_fields"]');
+      elmt.selectpicker('val', val.group_state_fields);
     }
 
     var gatewayForm = $('#gateway-server-configs').html('');
@@ -529,7 +549,7 @@ $(function() {
 
     elmt += '</div>';
 
-    if(k === "radio_interface_type") {
+    if (k === "radio_interface_type") {
       elmt += '<div class="btn-group" id="radio_interface_type" data-toggle="buttons">' +
         '<label class="btn btn-secondary active">' +
           '<input type="radio" id="nrf24" name="radio_interface_type" autocomplete="off" value="nRF24" /> nRF24' +
@@ -538,6 +558,12 @@ $(function() {
           '<input type="radio" id="lt8900" name="radio_interface_type" autocomplete="off" value="LT8900" /> PL1167/LT8900' +
         '</label>' +
       '</div>';
+    } else if (k == 'group_state_fields') {
+      elmt += '<select class="selectpicker" name="group_state_fields" multiple>';
+      GROUP_STATE_KEYS.forEach(function(stateKey) {
+        elmt += '<option>' + stateKey + '</option>';
+      });
+      elmt += '</select>';
     } else {
       elmt += '<input type="text" class="form-control" name="' + k + '"/>';
       elmt += '</div>';
@@ -548,17 +574,23 @@ $(function() {
 
   $('#settings').prepend(settings);
   $('#settings').submit(function(e) {
-    var obj = {};
+    e.preventDefault();
 
-    FORM_SETTINGS.forEach(function(k) {
-      var elmt = $('#settings input[name="' + k + '"]');
+    var obj = $('#settings')
+      .serializeArray()
+      .reduce(function(a, x) {
+        var val = a[x.name];
 
-      if (elmt.attr('type') === 'radio') {
-        obj[k] = elmt.filter(':checked').val();
-      } else {
-        obj[k] = elmt.val();
-      }
-    });
+        if (! val) {
+          a[x.name] = x.value;
+        } else if (! Array.isArray(val)) {
+          a[x.name] = [val, x.value];
+        } else {
+          val.push(x.value);
+        }
+
+        return a;
+      }, {});
 
     // pretty hacky. whatever.
     obj.device_ids = _.map(
@@ -567,6 +599,10 @@ $(function() {
         return $(x).data('value')
       }
     );
+
+    // Make sure we're submitting a value for group_state_fields (will be empty
+    // if no values were selected).
+    obj = $.extend({group_state_fields: []}, obj);
 
     $.ajax(
       "/settings",
@@ -577,7 +613,6 @@ $(function() {
       }
     );
 
-    e.preventDefault();
     return false;
   });
 
