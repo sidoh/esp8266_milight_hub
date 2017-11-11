@@ -40,6 +40,7 @@ protected:
     const char* contentType,
     const char* defaultText = NULL);
 
+  void serveStatistics();
   void serveSettings();
   bool serveFile(const char* file, const char* contentType = "text/html");
   ESP8266WebServer::THandlerFunction handleUpdateFile(const char* filename);

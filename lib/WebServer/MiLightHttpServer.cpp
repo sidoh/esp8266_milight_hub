@@ -13,6 +13,7 @@ void MiLightHttpServer::begin() {
 
   server.on("/", HTTP_GET, handleServe_P(index_html_gz, index_html_gz_len));
   server.on("/settings", HTTP_GET, [this]() { serveSettings(); });
+  server.on("/statistics", HTTP_GET, [this]() { serveStatistics(); });
   server.on("/settings", HTTP_PUT, [this]() { handleUpdateSettings(); });
   server.on("/settings", HTTP_POST, [this]() { server.send_P(200, TEXT_PLAIN, PSTR("success.")); }, handleUpdateFile(SETTINGS_FILE));
   server.on("/radio_configs", HTTP_GET, [this]() { handleGetRadioConfigs(); });
@@ -130,6 +131,13 @@ void MiLightHttpServer::handleSystemPost() {
   } else {
     server.send_P(400, TEXT_PLAIN, PSTR("{\"error\":\"Unhandled command\"}"));
   }
+}
+
+
+void MiLightHttpServer::serveStatistics() {
+  // Save first to set defaults
+  settings.save();
+  serveFile(SETTINGS_FILE, APPLICATION_JSON);
 }
 
 void MiLightHttpServer::serveSettings() {
@@ -284,7 +292,7 @@ void MiLightHttpServer::handleListenGateway(const UrlTokenBindings* bindings) {
     packetLen
   );
 
-  char response[200];
+  char response[2000];
   char* responseBuffer = response;
 
   responseBuffer += sprintf_P(
@@ -300,7 +308,7 @@ void MiLightHttpServer::handleListenGateway(const UrlTokenBindings* bindings) {
 
 void MiLightHttpServer::sendGroupState(GroupState &state) {
   String body;
-  StaticJsonBuffer<200> jsonBuffer;
+  StaticJsonBuffer<2000> jsonBuffer;
   JsonObject& obj = jsonBuffer.createObject();
   state.applyState(obj);
   obj.printTo(body);

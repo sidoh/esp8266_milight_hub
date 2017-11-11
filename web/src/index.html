@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"/>
   <link href="https://gitcdn.github.io/bootstrap-toggle/2.2.2/css/bootstrap-toggle.min.css" rel="stylesheet"/>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/9.7.0/css/bootstrap-slider.min.css" rel="stylesheet"/>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.4/css/selectize.bootstrap3.min.css" rel="stylesheet"/>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.12.4/css/bootstrap-select.min.css" rel="stylesheet"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <!--[if lt IE 9]>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv.js"></script>
@@ -23,8 +23,7 @@
   <script src="https://gitcdn.github.io/bootstrap-toggle/2.2.2/js/bootstrap-toggle.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/9.7.0/bootstrap-slider.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.4/js/standalone/selectize.min.js"></script>
-
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.12.4/js/bootstrap-select.min.js"></script>
   <script src="js/rgb2hsv.js" lang="text/javascript"></script>
   <script src="js/script.js" lang="text/javascript"></script>
 
@@ -147,12 +146,9 @@
     <div>&nbsp;</div>
 
     <div class="row">
-      <div class="col-sm-3">
-        <label for="deviceId" id="device-id-label">
-          Device Id
-          <span class="error-info"></span>
-        </label>
-        <select id="deviceId" placeholder="Enter hub ID">
+      <div class="col-sm-4">
+        <label for="deviceId">Device Id</label>
+        <select id="deviceId" class="selectpicker" placeholder="Select hub ID">
 				</select>
       </div>
 
@@ -215,8 +211,10 @@
       </div>
     </div>
 
-    <div class="row"><div class="col-sm-12">
+    <div class="row">
+    <div class="col-sm-12">
     <div class="mode-option" data-for="rgbw,rgb_cct,rgb,fut089">
+
       <div class="row">
         <div class="col-sm-12">
           <h5>Hue</h5>
@@ -224,15 +222,17 @@
       </div>
 
       <div class="row">
-        <div class="col-sm-6">
+        <div class="col-sm-12">
           <span class="hue-picker">
             <span class="hue-picker-inner"></span>
             <span class="hue-value-display"></span>
           </span>
         </div>
       </div>
+
     </div>
-    </div></div>
+    </div>
+    </div>
 
     <div class="mode-option" data-for="rgb_cct,fut089">
       <div class="row">
@@ -241,7 +241,7 @@
         </div>
       </div>
       <div class="row">
-        <div class="col-sm-6">
+        <div class="col-sm-12">
           <input class="slider raw-update" name="saturation"
               data-slider-min="0"
               data-slider-max="100"
@@ -258,7 +258,7 @@
         </div>
       </div>
       <div class="row">
-        <div class="col-sm-6">
+        <div class="col-sm-12">
           <div class="white-temp-picker">
             <input class="slider raw-update" name="temperature"
                 data-slider-min="0"
@@ -288,11 +288,11 @@
 
     <div class="row">
       <div class="col-sm-12">
-        <h5>Commands</h5>
+        <label for="deviceId">Commands</label>
       </div>
     </div>
 
-    <div class="row">
+    <div class="row" id="control_lights">
       <div class="col-sm-12">
         <ul class="command-buttons">
           <li>
@@ -315,9 +315,7 @@
               Unpair
             </button>
           </li>
-        </ul>
-        <p></p>
-        <ul class="command-buttons">
+
           <div class="mode-option inline" data-for="rgb">
             <li>
               <div class="plus-minus-group">
@@ -350,7 +348,7 @@
                 <button type="button" class="btn btn-default btn-number command-btn" data-command="mode_speed_down">
                   <span class="glyphicon glyphicon-minus"></span>
                 </button>
-                <span class="title">Speed</span>
+                <span class="title"> Speed </span>
                 <button type="button" class="btn btn-default btn-number command-btn" data-command="mode_speed_up">
                   <span class="glyphicon glyphicon-plus"></span>
                 </button>
@@ -360,20 +358,41 @@
           </div>
         </ul>
       </div>
+      <button type="button" class="btn btn-success save-ids-btn pull-right"><span class="glyphicon glyphicon-ok"></span> Section Save</button>
+    </div>
+
+
+
+    <div class="row header-row">
+      <div class="col col-sm-12">
+        <h1>Devices</h1>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col col-sm-12">
+        <form id="device-id-form">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Device Id</th>
+                <th>Device Name</th>
+                <th>Options</th>
+              </tr>
+            </thead>
+            <tbody id="device-id-configs">
+            </tbody>
+          </table>
+          <button type="button" class="btn btn-success save-device-btn pull-right"><span class="glyphicon glyphicon-ok"></span> Section Save</button>
+        </form>
+      </div>
     </div>
 
     <div class="row header-row">
-      <div class="col col-sm-10">
+      <div class="col col-sm-12">
         <h1>Gateway Servers</h1>
       </div>
-
-      <div class="col col-sm-2">
-        <button class="btn btn-success header-btn" id="add-server-btn">
-          <i class="glyphicon glyphicon-plus"></i>
-          Add Server
-        </button>
-      </div>
-    </div>
+     </div>
 
     <div class="row">
       <div class="col col-sm-12">
@@ -383,18 +402,34 @@
               <tr>
                 <th>Device ID</th>
                 <th>UDP Port</th>
+                <th>Name</th>
                 <th>Protocol Version</th>
+                <th>Options</th>
               </tr>
             </thead>
             <tbody id="gateway-server-configs">
             </tbody>
           </table>
-          <input type="submit" class="btn btn-success" value="Save" />
+          <button type="button" class="btn btn-success save-gateway-btn pull-right"><span class="glyphicon glyphicon-ok"></span> Section Save</button>
         </form>
       </div>
     </div>
 
+
+    <div class="row header-row">
+      <div class="col-sm-12">
+        <h1>Statistics</h1>
+      </div>
+    </div>
+
     <div>&nbsp;</div>
+
+    <div class="row">
+      <div class="col-sm-12">
+        <form action="#" id="statistics">
+        </form>
+      </div>
+    </div>
 
     <div class="row header-row">
       <div class="col-sm-12">
@@ -406,8 +441,9 @@
 
     <div class="row">
       <div class="col-sm-12">
-        <form action="#" id="settings">
-          <input type="submit" class="btn btn-success" value="Submit" />
+        <form action="#" id="settings"><input type="submit" class="btn btn-success save-btn " value="Save complete settings" />
+
+          <button type="button" class="btn btn-success save-settings-btn pull-right"><span class="glyphicon glyphicon-ok"></span> Section Save</button>
         </form>
       </div>
     </div>

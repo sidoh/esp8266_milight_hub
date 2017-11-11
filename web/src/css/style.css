@@ -18,8 +18,17 @@ label:not(.error) .error-info { display: none; }
   background-color: #fff;
   border: 1px solid #ccc;
 }
+.slider.slider-horizontal{
+  width: 100%;
+}
+.btn.disabled.active{
+  background-color: #ccc;
+
+}
+
 .inline { display: inline-block; }
 .white-temp-picker {
+  width: 100%;
   height: 2em;
   background: linear-gradient(to right,
     rgb(166, 209, 255) 0%,

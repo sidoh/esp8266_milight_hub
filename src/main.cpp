@@ -116,7 +116,7 @@ void initMilightUdpServers() {
  * is read.
  */
 void onPacketSentHandler(uint8_t* packet, const MiLightRemoteConfig& config) {
-  StaticJsonBuffer<200> buffer;
+  StaticJsonBuffer<2000> buffer;
   JsonObject& result = buffer.createObject();
   BulbId bulbId = config.packetFormatter->parsePacket(packet, result, stateStore);
 
@@ -341,6 +341,7 @@ void setup() {
   wifiManager.autoConnect(ssid.c_str(), "milightHub");
 
   SPIFFS.begin();
+  //SPIFFS.format();
   Settings::load(settings);
   applySettings();
 

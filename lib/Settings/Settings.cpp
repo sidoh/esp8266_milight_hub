@@ -33,6 +33,7 @@ void Settings::deserialize(Settings& settings, String json) {
 }
 
 void Settings::updateDeviceIds(JsonArray& arr) {
+  // Serial.println('Settings Load > deviceIds found - updateDeviceIds');
   if (arr.success()) {
     if (this->deviceIds) {
       delete this->deviceIds;
@@ -45,6 +46,7 @@ void Settings::updateDeviceIds(JsonArray& arr) {
 }
 
 void Settings::updateGatewayConfigs(JsonArray& arr) {
+  // Serial.println('Settings Load > gatewayConfigs found - updateGatewayConfigs');
   if (arr.success()) {
     if (this->gatewayConfigs) {
       delete[] this->gatewayConfigs;
@@ -57,6 +59,14 @@ void Settings::updateGatewayConfigs(JsonArray& arr) {
       JsonArray& params = arr[i];
 
       if (params.success() && params.size() == 3) {
+        // Serial.print(F("Settings Load > gatewayConfigs parse > element #"));
+        // Serial.print(i);
+        // Serial.print(" ID ");
+        // Serial.println(parseInt<uint16_t>(params[0]));
+        // Serial.print(" Port ");
+        // Serial.print((params[1]));
+        // Serial.print(" Protocol ");
+        // Serial.println(String(params[2]).c_str());
         this->gatewayConfigs[i] = new GatewayConfig(parseInt<uint16_t>(params[0]), params[1], params[2]);
       } else {
         Serial.print(F("Settings - skipped parsing gateway ports settings for element #"));

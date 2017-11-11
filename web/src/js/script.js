@@ -1,3 +1,4 @@
+var DEBUG_LEVEL = 0 ; // lover = more verbose
 var UNIT_PARAMS = {
   minMireds: 153,
   maxMireds: 370,
@@ -30,8 +31,6 @@ var FORM_SETTINGS_HEADLINES = {
 };
 
 var FORM_SETTINGS_HELP = {
-
-
   hostname : "After the next reboot the device is reachable by ne new hostname.",
   ota_pass : "Password for Over The Air programming update",
   sda_pin : "'SDA' for I2C interface",
@@ -81,10 +80,10 @@ var FORM_SETTINGS_HELP = {
     "of repeated packets.  Defaults to 3."
 }
 
-var UDP_PROTOCOL_VERSIONS = [ 5, 6 ];
+var UDP_PROTOCOL_VERSIONS = [ 2 , 3 , 4 , 5 , 6 ];
 var DEFAULT_UDP_PROTOCL_VERSION = 5;
 
-var selectize;
+
 var sniffing = false;
 
 var webSocket = new WebSocket("ws://" + location.hostname + ":81");
@@ -151,35 +150,130 @@ var sendCommand = _.throttle(
     );
   },
   1000
-)
+);
 
-var gatewayServerRow = function(deviceId, port, version) {
-  var elmt = '<tr>';
-  elmt += '<td>';
-  elmt += '<input name="deviceIds[]" class="form-control" value="' + deviceId + '"/>';
-  elmt += '</td>';
-  elmt += '<td>'
-  elmt += '<input name="ports[]" class="form-control" value="' + port + '"/>';;
-  elmt += '</td>';
-  elmt += '<td>';
-  elmt += '<div class="btn-group" data-toggle="buttons">';
-
-  for (var i = 0; i < UDP_PROTOCOL_VERSIONS.length; i++) {
-    var val = UDP_PROTOCOL_VERSIONS[i]
-      , selected = (version == val || (val == DEFAULT_UDP_PROTOCL_VERSION && !UDP_PROTOCOL_VERSIONS.includes(version)));
-
-    elmt += '<label class="btn btn-secondary' + (selected ? ' active' : '') + '">';
-    elmt += '<input type="radio" name="versions[]" autocomplete="off" data-value="' + val + '" '
-      + (selected ? 'checked' : '') +'> ' + val;
-    elmt += '</label>';
+var gatewayServerRow = function(deviceIdHex, port, version , name) {
+  debug( 5 , 'gatewayServerRow');
+  var elmt = '<tr><td class="col col-sm-2">';
+  elmt += '<div class="form-group  has-feedback">';
+  elmt += '<input name="deviceIds[]" class="form-control" value="' + deviceIdHex + '" placeholder="Enter Device ID" ';
+  if(deviceIdHex){
+    elmt += 'disabled';
   }
-
-  elmt += '</div></td>';
-  elmt += '<td>';
-  elmt += '<button class="btn btn-danger remove-gateway-server">';
-  elmt += '<i class="glyphicon glyphicon-remove"></i>';
-  elmt += '</button>';
+  elmt += ' />';
+  elmt += '<span class="glyphicon form-control-feedback"></span>';
+  elmt += '<span class="help-block"></span>';
+  elmt += '</div>';
   elmt += '</td>';
+
+  elmt += '<td class="col col-sm-2"><div class="form-group  has-feedback">';
+  elmt += '<input name="ports[]" class="form-control" value="' + port + '" placeholder="Enter Port" ';
+  if(deviceIdHex){
+    elmt += 'disabled';
+  }
+  elmt += ' />';
+  elmt += '<span class="glyphicon form-control-feedback"></span>';
+  elmt += '<span class="help-block"></span>';
+  elmt += '</div></td>';
+
+  elmt += '<td class="col col-sm-2">'
+  if(deviceIdHex){
+    debug( 0 , 'gatewayRow containig data');
+    elmt += '<span class="help-block" name="deviceNames[]">' + name + '<span>';
+  }else {
+    debug( 2 , 'gatewayRow empty');
+    elmt += '<input name="deviceNames[]" class="form-control" value="" placeholder="' + name + '"/>';
+  }
+  elmt += '</td>';
+
+
+
+
+    elmt += '<td class="col col-sm-2" ><div class="btn-group' + '" data-toggle="buttons">';
+    for (var i = 0; i < UDP_PROTOCOL_VERSIONS.length; i++) {
+      var val = UDP_PROTOCOL_VERSIONS[i]
+        , selected = (version == val || (val == DEFAULT_UDP_PROTOCL_VERSION && !UDP_PROTOCOL_VERSIONS.includes(version)));
+      elmt += '<label class="btn btn-secondary' + (deviceIdHex ? ' disabled' : '')   + (selected ? ' active' : '') + '">';
+      elmt += '<input type="radio" name="versions[]" autocomplete="off" data-value="' + val + '" '
+      elmt +=  (deviceIdHex ? 'disabled="disabled" ' : '') +  (selected ? 'checked' : '') +'> ' + val;
+      elmt += '</label>';
+    }
+    elmt += '</div></td>';
+
+
+  elmt += '<td class="col col-sm-4">';
+  if(deviceIdHex){
+    elmt += ' <button class="btn btn-warning edit-gateway-btn">';
+    elmt += '<span class="glyphicon glyphicon-pencil"></span> Edit Gateway';
+    elmt += '</button>';
+
+    elmt += ' <button class="btn btn-success update-gateway-btn" style="display: none;" >';
+    elmt += '<span class="glyphicon glyphicon-ok"></span> Save Gateway';
+    elmt += '</button>';
+
+    elmt += ' <button class="btn btn-danger remove-gateway-btn">';
+    elmt += '<span class="glyphicon glyphicon-remove"></span> Delete Gateway';
+    elmt += '</button>';
+}else {
+  elmt += ' <button class="btn btn-success add-gateway-btn" disabled>';
+  elmt += '<span class="glyphicon glyphicon-ok"></span> Add Gateway';
+  elmt += '</button>';
+}
+
+  elmt += '</td>';
+  elmt += '</tr>';
+  return elmt;
+}
+
+
+
+var deviceIdRow = function(deviceIdHex, deviceIdDec , name) {
+  debug( 5 , 'deviceIdRow');
+  var elmt = '<tr>';
+  elmt += '<td class="col col-sm-2">';
+  elmt += '<div class="form-group  has-feedback">';
+  elmt += '<input type="text" class="form-control" name="deviceIds[]" value="' + deviceIdHex + '" placeholder="Enter hub ID" ';
+  if(deviceIdDec){
+    elmt += 'disabled';
+  }
+  elmt += ' />';
+  elmt += '<span class="glyphicon form-control-feedback"></span>';
+  elmt += '<span class="help-block"></span>';
+  elmt += '</div>';
+  elmt += '</td>';
+
+  elmt += '<td class="col col-sm-7">';
+  if(deviceIdDec){
+    debug( 0 , 'deviceRow containig data');
+    elmt += '<span class="help-block" name="deviceNames[]" >' + name +'<span>';
+  }else {
+    debug( 2 , 'deviceRow empty');
+    elmt += '<input name="deviceNames[]" class="form-control" value="" placeholder="Enter hub name ' + name + '"/>';
+  }
+  elmt += '</td>';
+
+  elmt += '<td class="col col-sm-3">';
+  //elmt += '<div class="btn-group">';
+  if(deviceIdDec){
+    elmt += ' <button class="btn btn-warning edit-device-btn">';
+    elmt += '<span class="glyphicon glyphicon-pencil"></span> Edit Device';
+    elmt += '</button>';
+
+    elmt += ' <button class="btn btn-success update-device-btn" style="display: none;" >';
+    elmt += '<span class="glyphicon glyphicon-ok"></span> Save Device';
+    elmt += '</button>';
+
+    elmt += ' <button class="btn btn-danger remove-device-btn">';
+    elmt += '<span class="glyphicon glyphicon-remove"></span> Delete Device';
+    elmt += '</button>';
+}else {
+  elmt += ' <button class="btn btn-success add-device-btn" disabled>';
+  elmt += '<span class="glyphicon glyphicon-ok"></span> Add Device';
+  elmt += '</button>';
+}
+
+  elmt += '</td>';
+
   elmt += '</tr>';
   return elmt;
 }
@@ -187,8 +281,8 @@ var gatewayServerRow = function(deviceId, port, version) {
 var loadSettings = function() {
   $.getJSON('/settings', function(val) {
     Object.keys(val).forEach(function(k) {
-      var field = $('#settings input[name="' + k + '"]');
 
+      var field = $('#settings input[name="' + k + '"]');
       if (field.length > 0) {
         if (field.attr('type') === 'radio') {
           field.filter('[value="' + val[k] + '"]').click();
@@ -205,35 +299,96 @@ var loadSettings = function() {
       }
     });
 
+
     if (val.device_ids) {
-      selectize.clearOptions();
       val.device_ids.forEach(function(v) {
-        selectize.addOption({text: toHex(v), value: v});
+        $('#deviceId').append($('<option>', {
+            value: v,
+            text: toHex(v)
+        }));
       });
-      selectize.refreshOptions();
+      $('#deviceId').selectpicker('refresh');
+      $('#deviceId').selectpicker('render');
     }
 
+    var deviceForm = $('#device-id-configs');
+    if (val.device_configs && Array.isArray(val.device_configs)){
+      val.device_configs.forEach(function(v) {
+        //deviceIdRow( hex , dec , text )
+  //      deviceForm.append(deviceIdRow( v[0] ,  parseInt(v[0] , 16) , v[1]));
+        if(v.length == 3){
+          deviceForm.append(deviceIdRow(toHex(v[0]), v[0] , v[2]));
+        }
+      });
+    }else if (val.device_ids) {
+        val.device_ids.forEach(function(v) {
+            deviceForm.append(deviceIdRow(toHex(v), v , 'unnamed device'));
+        });
+    }
+    deviceForm.append(deviceIdRow('', '' , 'new Device'));
+
+
     var gatewayForm = $('#gateway-server-configs').html('');
-    if (val.gateway_configs) {
+    if (val.gateway_configs && Array.isArray(val.gateway_configs)) {
       val.gateway_configs.forEach(function(v) {
-        gatewayForm.append(gatewayServerRow(toHex(v[0]), v[1], v[2]));
+        //gatewayServerRow( hex , port , protocol , text)
+        if(v.length == 3){
+          gatewayForm.append(gatewayServerRow(toHex(v[0]), v[1], v[2] , 'unnamed gateway' ));
+        }else if(v.length == 4){
+          gatewayForm.append(gatewayServerRow(toHex(v[0]), v[1], v[2] , v[3]));
+        }
       });
     }
+    gatewayForm.append(gatewayServerRow('','' , null , 'new Gateway'));
+
+
+  });
+
+};
+
+var loadStatistics = function() {
+  $.getJSON('/statistics', function(val) {
+  var elmt= '';
+  Object.keys(val).forEach(function(k) {
+    elmt +='<div class="col-sm-12" >' +
+    '<h4 >' + k  +
+    '<input class="form-entry form-control col-sm-xs" name="' + k + '" value="' +val[k] + '" style="width:5em; display:inline;position:absolute;left: 150px" disabled ></div>' +
+    '</h4>';
+  });
+
+
+    $('#statistics').prepend(elmt);
   });
 };
 
-var saveGatewayConfigs = function() {
-  var form = $('#gateway-server-form')
-    , errors = false;
 
-  $('input', form).removeClass('error');
+
+function saveGatewayConfigs( send ) {
+  var form = $('#gateway-server-form');
+  var invalid = {};
+  debug( 5 , 'saveGatewayConfigs');
 
   var deviceIds = $('input[name="deviceIds[]"]', form).map(function(i, v) {
-    var val = $(v).val();
+    var val = parseInt($(v).val() , 16);
+    debug( 0 , 'Gateway ID dec ' + val);
 
     if (isNaN(val)) {
-      errors = true;
-      $(v).addClass('error');
+      debug( 8 , 'ERROR Gateway ID d ' + i );
+      invalid[i] = true;
+      return null;
+    } else {
+      return val;
+    }
+  });
+
+  var names = $('span[name="deviceNames[]"]', form).map(function(i, v) {
+    var val = $(v).text();
+    debug( 0 , 'Gateway Name ' + val);
+
+
+    if (v == undefined ) {
+      debug( 8 , 'ERROR Gateway ID Name ' + i );
+      invalid[i] = true;
       return null;
     } else {
       return val;
@@ -242,10 +397,11 @@ var saveGatewayConfigs = function() {
 
   var ports = $('input[name="ports[]"]', form).map(function(i, v) {
     var val = $(v).val();
+    debug( 0 , 'Gateway Port ' + val);
 
     if (isNaN(val)) {
-      errors = true;
-      $(v).addClass('error');
+      debug( 8 , 'ERROR Gateway Port ' + i );
+      invalid[i] = true;
       return null;
     } else {
       return val;
@@ -253,32 +409,132 @@ var saveGatewayConfigs = function() {
   });
 
   var versions = $('.active input[name="versions[]"]', form).map(function(i, v) {
-    return $(v).data('value');
+    var val = $(v).data('value');
+    debug( 0 , 'Gateway Version ' + val);
+    return val;
   });
 
-  if (!errors) {
+
     var data = [];
-    for (var i = 0; i < deviceIds.length; i++) {
-      data[i] = [deviceIds[i], ports[i], versions[i]];
-    }
-    $.ajax(
-      '/settings',
-      {
-        method: 'put',
-        contentType: 'application/json',
-        data: JSON.stringify({gateway_configs: data})
+    var emerc = false;
+    debug( 3 , 'Gateway ' + deviceIds.length  + ' entrys found');
+    for (var i = 0; i < deviceIds.length ; i++) {
+      if(!invalid[i]){
+        data[i] = [deviceIds[i], ports[i], versions[i]];
+        //TODO new Version needs to be supported by Device
+        // data[i] = [deviceIds[i], ports[i], versions[i] , names[i]];
+        debug( 0 , 'Gateway nr '+i+' : hex ' + deviceIds[i] +' port '+ ports[i] +' version '+ versions[i] +' text '+ names[i] );
+      }else {
+        debug( 9 , 'ERROR @ Gateway nr '+i+' : hex ' + deviceIds[i] +' port '+ ports[i] +' version '+ versions[i] +' text '+ names[i] );
+        if( i < deviceIds.length ){
+          $(v).closest('tr').removeClass('danger');
+          emerc = true;
+        }
       }
-    )
-  }
+    }
+
+    if(emerc){
+      debug( 9 , 'REEORS IN saveGatewayConfigs ');
+      return false;
+    }
+
+    if(send){
+      $.ajax(
+        '/settings',
+        {
+          method: 'put',
+          contentType: 'application/json',
+          data: JSON.stringify({gateway_configs: data})
+        });
+    }else{
+      return data;
+    }
 };
 
-var deviceIdError = function(v) {
-  if (!v) {
-    $('#device-id-label').removeClass('error');
-  } else {
-    $('#device-id-label').addClass('error');
-    $('#device-id-label .error-info').html(v);
-  }
+function debug( level , msg){
+  if(level >= DEBUG_LEVEL )
+  console.log(msg);
+}
+
+function saveDeviceConfigs( send ) {
+  var form = $('#device-id-form');
+  var invalid = {};
+
+  debug( 5 , 'saveDeviceConfigs');
+
+  var deviceIds = $('input[name="deviceIds[]"]', form).map(function(i, v) {
+    var val = $(v).val();
+    debug( 0 , 'Device ID Hex ' + val );
+
+    if (isNaN(val) || val == 0 ) {
+      debug( 8 , 'ERROR Device ID h ' + i );
+      invalid[i] = true;
+      return null;
+    } else {
+      return val;
+    }
+  });
+
+  var deviceNumbs = $('input[name="deviceIds[]"]', form).map(function(i, v) {
+    var val = parseInt($(v).val() , 16);
+    debug( 0 , 'Device ID dec ' + val );
+
+    if (isNaN(val)) {
+      debug( 8 , 'ERROR Device ID d ' + i );
+      invalid[i] = true;
+      return null;
+    } else {
+      return val;
+    }
+  });
+
+  var names = $('span[name="deviceNames[]"]', form).map(function(i, v) {
+    var val = $(v).text();
+    debug( 0 , 'Device Name ' + val );
+
+    if (v == undefined ) {
+        invalid[i] = true;
+        debug( 8 , 'ERROR Device Name ' + i );
+      return null;
+    } else {
+      return val;
+    }
+  });
+
+
+    var data = [];
+    var emerc = false;
+    debug( 3 , 'Device ' + deviceIds.length  + ' entrys found');
+    for (var i = 0; i < deviceIds.length ; i++) {
+      if(!invalid[i]){
+        data[i] = [ deviceNumbs[i] , deviceIds[i] , names[i]];
+        debug( 0 , 'Device nr '+i+' : dec ' + deviceNumbs[i] +' hex '+ deviceIds[i] +' text '+ names[i] );
+      }else {
+        debug( 9 , 'ERROR @ Device nr '+i+' : dec ' + deviceNumbs[i] +' hex '+ deviceIds[i] +' text '+ names[i] );
+        if( i < deviceIds.length ){
+          $(v).closest('tr').removeClass('danger');
+          emerc = true;
+        }
+      }
+    }
+
+    if(emerc){
+      debug( 8 , 'REEORS IN saveDeviceConfigs ');
+      return false;
+    }
+
+    if(send){
+      $.ajax(
+        '/settings',
+        {
+          method: 'put',
+          contentType: 'application/json',
+          data: JSON.stringify({device_configs: data})
+        });
+    }else{
+      return data;
+    }
+
 };
 
 var updateModeOptions = function() {
@@ -313,6 +569,7 @@ var isNewerVersion = function(a, b) {
 };
 
 var handleCheckForUpdates = function() {
+  debug( 5 , 'handleCheckForUpdates');
   var currentVersion = null
     , latestRelease = null;
 
@@ -493,15 +750,262 @@ $(function() {
     }
   });
 
-  $('#add-server-btn').click(function() {
-    $('#gateway-server-configs').append(gatewayServerRow('', ''));
+// remove
+    $('#gateway-server-form').on('click', '.remove-gateway-btn', function() {
+      debug( 5 ,'remove-gateway' );
+      $(this).closest('tr').remove();
+      return false;
+    });
+
+    $('#device-id-form').on('click', '.remove-device-btn', function() {
+      debug( 5 ,'remove-device' );
+      $(this).closest('tr').remove();
+      return false;
+    });
+
+//edit
+    $('#gateway-server-form').on('click', '.edit-gateway-btn', function() {
+      debug( 5 ,'edit-gateway' );
+      var activeTr = $(this).closest('tr');
+      idCheck(activeTr.find('input[name="deviceIds[]"]'));
+      gatewayServerPortCheck(activeTr.find('input[name="ports[]"]'));
+      activeTr.find('input[name="deviceIds[]"]').prop('disabled', false);
+      activeTr.find('input[name="ports[]"]').prop('disabled', false);
+      activeTr.find('input[name="versions[]"]').closest('.btn-group').find('.btn').removeClass('disabled');
+      activeTr.find('.edit-gateway-btn').hide();
+      activeTr.find('.update-gateway-btn').show();
+      var $el = activeTr.find('span[name="deviceNames[]"]');
+      var $input = $('<input name="deviceNames[]" class="form-control" />').val( $el.text() );
+      $el.replaceWith( $input );
+      return false;
+    });
+
+    $('#device-id-form').on('click', '.edit-device-btn', function() {
+      debug( 5 ,'edit-device' );
+      var activeTr = $(this).closest('tr');
+      idCheck(activeTr.find('input[name="deviceIds[]"]'));
+      activeTr.find('input[name="deviceIds[]"]').prop('disabled', false);
+      activeTr.find('.edit-device-btn').hide();
+      activeTr.find('.update-device-btn').show();
+      var $el = activeTr.find('span[name="deviceNames[]"]');
+      var $input = $('<input name="deviceNames[]" class="form-control" />').val( $el.text() );
+      $el.replaceWith( $input );
+      return false;
+    });
+
+//update
+  $('#gateway-server-form').on('click', '.update-gateway-btn', function() {
+      debug( 5 ,'update-gateway' );
+      var activeTr = $(this).closest('tr');
+      activeTr.find('input[name="deviceIds[]"]').prop('disabled', true);
+      activeTr.find('input[name="ports[]"]').prop('disabled', true);
+      activeTr.find('input[name="versions[]"]').closest('.btn-group').find('.btn').addClass('disabled');
+      activeTr.find('.update-gateway-btn').hide();
+      activeTr.find('.edit-gateway-btn').show();
+      var $input = activeTr.find('input[name="deviceNames[]"]');
+      var $el = $('<span class="help-block" name="deviceNames[]" />').text( $input.val() );
+      $input.replaceWith( $el );
+      return false;
+    });
+
+    $('#device-id-form').on('click', '.update-device-btn', function() {
+      debug( 5 ,'update-device' );
+      var activeTr = $(this).closest('tr');
+      activeTr.find('input[name="deviceIds[]"]').prop('disabled', true);
+      activeTr.find('.update-device-btn').hide();
+      activeTr.find('.edit-device-btn').show();
+      var $input = activeTr.find('input[name="deviceNames[]"]');
+      var $el = $('<span class="help-block" name="deviceNames[]" />').text( $input.val() );
+      $input.replaceWith( $el );
+      return false;
+    });
+
+//add
+  $('#gateway-server-form').on('click', '.add-gateway-btn', function() {
+      debug( 5 ,'add-gateway' );
+      var actEntry = $(this).closest('tr');
+      $('#gateway-server-configs').append(gatewayServerRow(
+        actEntry.find('input[name="deviceIds[]"]').val(),
+        actEntry.find('input[name="ports[]"]').val(),
+        actEntry.find('.active input[name="versions[]"]').data('value'),
+        actEntry.find('input[name="deviceNames[]"]').val()
+      ));
+      actEntry.remove();
+    $('#gateway-server-configs').append(gatewayServerRow('', '' , '' , 'next Gateway'));
+    return false;
   });
+
+  $('#device-id-form').on('click', '.add-device-btn', function() {
+    debug( 5 ,'add-device' );
+      var actEntry = $(this).closest('tr');
+      $('#device-id-configs').append(deviceIdRow(
+        actEntry.find('input[name="deviceIds[]"]').val(),
+        parseInt(actEntry.find('input[name="deviceIds[]"]').val() , 16 ),
+        actEntry.find('input[name="deviceNames[]"]').val()
+      ));
+      actEntry.remove();
+    $('#device-id-configs').append(deviceIdRow('', '' , 'next Device'));
+    return false;
+  });
+
+
+  $('#device-id-form').on('click', '.save-device-btn', function() { saveDeviceConfigs(true); });
+  $('#gateway-server-form').on('click', '.save-gateway-btn' , function() { saveGatewayConfigs(true); });
+  $('#settings').on('click', '.save-settings-btn' , function() { saveSettingConfigs(true); });
+  $('#control_lights').on('click', '.save-ids-btn' , function() { saveIDConfigs(true); });
+
+  $('#gateway-server-form').on('input', 'input[name="deviceIds[]"]', gatewayServerCheck );
+  $('#gateway-server-form').on('input', 'input[name="ports[]"]', gatewayServerCheck );
+  $('#device-id-form').on('input', 'input[name="deviceIds[]"]', deviceIdCheck );
+
+  $('body').on('click', '.btn.disabled', function(){ return false; });
+
+
+  function gatewayServerPortCheck(obj){
+    debug( 5 , 'gatewayServerPortCheck');
+    var activeTd = obj.closest('td');
+    var v = activeTd.find('input[name="ports[]"]').val();
+    var fb = activeTd.find('.has-feedback');
+    var gl = activeTd.find('.form-control-feedback');
+    var he =  activeTd.find('.help-block');
+    var ok = true ;
+
+    if(v == undefined  ){
+      ok = false;
+      return false;
+    }
+
+    if( v.length < 1 ){
+      ok = false;
+      he.html("at wich port?");
+      return false;
+    }
+
+    if (v == '') {
+      ok = false;
+      he.html("Connect to which Port?");
+    }
+
+    if (! /^\d+$/.test(v)) {
+      ok = false;
+      he.html("Port should be Numeric");
+    }
+
+    v = parseInt(v);
+    if ( v < 1 || v > 65535 ) {
+      ok = false;
+      he.html("out of Range 1-65535");
+    }
+
+    if(!ok){
+      fb.removeClass('has-success');
+      fb.addClass('has-warning');
+      gl.removeClass('glyphicon-ok');
+      gl.addClass('glyphicon-warning-sign');
+      return false;
+    }else{
+      fb.addClass('has-success');
+      fb.removeClass('has-warning');
+      gl.addClass('glyphicon-ok');
+      gl.removeClass('glyphicon-warning-sign');
+      he.html("");
+      return true;
+    }
+  };
+
+  function gatewayServerCheck(){
+    debug( 5 , 'gatewayServerCheck');
+    var activeTr =  $(this).closest('tr');
+    var ok = true;
+
+    if(!idCheck(activeTr.find('input[name="deviceIds[]"]'))){
+        ok = false;
+    }
+    if(!gatewayServerPortCheck(activeTr.find('input[name="ports[]"]'))){
+        ok = false;
+    }
+    if(!ok){
+      activeTr.find('.add-gateway-btn').prop('disabled', true);
+      activeTr.find('.update-gateway-btn').prop('disabled', true);
+      return false;
+    }else {
+      activeTr.find('.add-gateway-btn').prop('disabled', false);
+      activeTr.find('.update-gateway-btn').prop('disabled', false);
+      return true;
+    }
+
+  };
+
+
+  function deviceIdCheck(){
+    debug( 5 , 'deviceIdCheck');
+    var activeTr =  $(this).closest('tr');
+    var ok = true;
+    if(!idCheck(activeTr.find('input[name="deviceIds[]"]'))){
+      ok = false;
+    }
+    if(!ok){
+      activeTr.find('.add-device-btn').prop('disabled', true);
+      activeTr.find('.update-device-btn').prop('disabled', true);
+      return false;
+    }else{
+      activeTr.find('.add-device-btn').prop('disabled', false);
+      activeTr.find('.update-device-btn').prop('disabled', false);
+      return true;
+    }
+  };
+
+
+  function idCheck(obj){
+    debug( 5 , 'idCheck');
+    var activeTd = obj.closest('td');
+    var v = activeTd.find('input[name="deviceIds[]"]').val();
+    var fb = activeTd.find('.has-feedback');
+    var gl = activeTd.find('.form-control-feedback');
+    var he =  activeTd.find('.help-block');
+    var ok = true ;
+
+    if(v == undefined ){
+      //something went wrong
+      return false;
+    }
+
+    if (! v.match(/^(0x[a-fA-F0-9]{1,4}|[0-9]{1,5})$/)) {
+      ok = false;
+      he.html("needs an integer between 0x0000 and 0xFFFF");
+    }
+
+    var value = parseInt(v);
+    if (! (1 <= v && v <= 0xFFFF)) {
+      ok = false;
+      he.html("integer between 0x0000 and 0xFFFF expected");
+    }
+
+    if(!ok){
+      fb.removeClass('has-success');
+      fb.addClass('has-warning');
+      gl.removeClass('glyphicon-ok');
+      gl.addClass('glyphicon-warning-sign');
+      return false;
+    }else{
+      fb.addClass('has-success');
+      fb.removeClass('has-warning');
+      gl.addClass('glyphicon-ok');
+      gl.removeClass('glyphicon-warning-sign');
+      he.html("");
+      return true;
+    }
+  };
+
+
+
+
+
+
 
   $('#mode').change(updateModeOptions);
 
-  $('body').on('click', '.remove-gateway-server', function() {
-    $(this).closest('tr').remove();
-  });
+
 
   for (var i = 0; i < 9; i++) {
     $('.mode-dropdown').append('<li><a href="#" data-mode-value="' + i + '">' + i + '</a></li>');
@@ -526,31 +1030,7 @@ $(function() {
     }
   });
 
-  selectize = $('#deviceId').selectize({
-    create: true,
-    sortField: 'text',
-    onOptionAdd: function(v, item) {
-      item.value = parseInt(item.value);
-    },
-    createFilter: function(v) {
-      if (! v.match(/^(0x[a-fA-F0-9]{1,4}|[0-9]{1,5})$/)) {
-        deviceIdError("Must be an integer between 0x0000 and 0xFFFF");
-        return false;
-      }
 
-      var value = parseInt(v);
-
-      if (! (0 <= v && v <= 0xFFFF)) {
-        deviceIdError("Must be an integer between 0x0000 and 0xFFFF");
-        return false;
-      }
-
-      deviceIdError(false);
-
-      return true;
-    }
-  });
-  selectize = selectize[0].selectize;
 
   var settings = "";
 
@@ -558,11 +1038,14 @@ $(function() {
     var elmt = '';
 
     if(FORM_SETTINGS_HEADLINES[k]){
-      elmt += ' <div class="row header-row">' +
-        '<div class="col-sm-12">' +
-          '<h3>'+ FORM_SETTINGS_HEADLINES[k] +'</h3>' +
+      elmt += '</div> <div class="row header-row">' +
+        '<div class="col-sm-12" >' +
+        '<h3 data-toggle="collapse" data-target="#setting-part-'+k+'" >'+
+          '<span class="caret"> </span> ' +
+           FORM_SETTINGS_HEADLINES[k] +'</h3>' +
         '</div>' +
-      '</div>';
+      '</div>' +
+      '<div id="setting-part-'+k+'" class="collapse in">' ;
     }
 
     elmt += '<div class="form-entry">';
@@ -590,59 +1073,127 @@ $(function() {
       elmt += '</div>';
     }
 
-
-
-
-    settings += elmt;
+    settings += elmt ;
   });
 
-  $('#settings').prepend(settings);
-  $('#settings').submit(function(e) {
-    var obj = {};
+
+  $('#settings').prepend('<div >' + settings + '</div>');
+
+
+  function saveSettingConfigs( send ){
+    debug( 5 , 'saveSettingConfigs');
+    var device_ids = {};
+    var data = {};
 
     FORM_SETTINGS.forEach(function(k) {
       var elmt = $('#settings input[name="' + k + '"]');
 
       if (elmt.attr('type') === 'radio') {
-        obj[k] = elmt.filter(':checked').val();
+        data[k] = elmt.filter(':checked').val();
+        debug( 0 , 'Setting Radio '+k+' : ' + elmt.filter(':checked').val());
       } else {
-        obj[k] = elmt.val();
-        if(elmt.val().length > 50){
-            elmt.width('40em');
-        }else if(elmt.val().length < 6 && elmt.val().length > 0 ){
-            elmt.width('5em');
-        }else{
-            elmt.width('20em');
-        }
+        data[k] = elmt.val();
+        debug( 0 , 'Setting Normal '+k+' : ' + elmt.val());
       }
     });
 
-    // pretty hacky. whatever.
-    obj.device_ids = _.map(
-      $('.selectize-control .option'),
-      function(x) {
-        return $(x).data('value')
-      }
-    );
+    var form = $('#device-id-configs');
+    device_ids = $('input[name="deviceIds[]"]', form).map(function(i, v) {
+      var dec = parseInt($(v).val() , 16 );
+      debug( 0 , 'Setting Device '+ dec );
+        if(isNaN(dec) || dec == ''){
+          return null;
+        }else {
+          return dec;
+        }
+      }).toArray();
 
-    $.ajax(
-      "/settings",
-      {
-        method: 'put',
-        contentType: 'application/json',
-        data: JSON.stringify(obj)
-      }
-    );
+      data['device_ids'] = device_ids;
+    //  for (var i = 0; i < device_ids.length -1 ; i++) {
+    //    data.device_ids = device_ids;
+    //  }
 
-    e.preventDefault();
-    return false;
+      if(send){
+        $.ajax(
+          '/settings',
+          {
+            method: 'put',
+            contentType: 'application/json',
+            data: JSON.stringify({setting_configs: data})
+          });
+      }else {
+        return data;
+      }
+  }
+
+
+
+  function saveIdConfigs( send ){
+    var data = {};
+    debug( 5 , 'saveIdConfigs');
+    var form = $('#device-id-configs');
+    data = $('input[name="deviceIds[]"]', form).map(function(i, v) {
+      var dec = parseInt($(v).val() , 16 );
+      debug( 0 , 'ID '+ dec );
+        if(isNaN(dec) || dec == ''){
+          return null;
+        }else {
+          return dec;
+        }
+      }).toArray();
+
+      if(send){
+        $.ajax(
+          '/settings',
+          {
+            method: 'put',
+            contentType: 'application/json',
+            data: JSON.stringify({id_configs: data})
+          });
+      }else {
+        return data;
+      }
+  }
+
+
+  $('#settings').submit(function (e){
+      var obj = {};
+
+      //settings in old structure
+      obj = saveSettingConfigs(false);
+
+      //deviceIds dec basic
+      obj.device_ids = saveIdConfigs(false);
+
+      //settings in new structure
+      obj.setting_configs = saveSettingConfigs(false);
+
+      //deviceIds extendet
+      obj.device_configs = saveDeviceConfigs(false);
+      if(obj.device_configs === false ){ // to prevent sending in exeption
+        delete obj.device_configs;
+      }
+
+      //gateways
+      obj.gateway_configs = saveGatewayConfigs(false);
+      if(obj.gateway_configs === false ){ // to prevent sending in exeption
+        delete obj.gateway_configs;
+      }
+
+      $.ajax(
+        "/settings",
+        {
+          method: 'put',
+          contentType: 'application/json',
+          data: JSON.stringify(obj)
+        }
+      );
+
+      e.preventDefault();
+      return false;
+
   });
 
-  $('#gateway-server-form').submit(function(e) {
-    saveGatewayConfigs();
-    e.preventDefault();
-    return false;
-  });
 
   $('.field-help').each(function() {
     var elmt = $('<i></i>')
@@ -658,5 +1209,6 @@ $(function() {
   $('#updates-btn').click(handleCheckForUpdates);
 
   loadSettings();
+  loadStatistics();
   updateModeOptions();
 });
