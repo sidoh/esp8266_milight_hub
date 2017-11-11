@@ -124,11 +124,11 @@ void MiLightClient::write(uint8_t packet[]) {
   }
 
 #ifdef DEBUG_PRINTF
-  printf("Sending packet (%d repeats): ", this->currentResendCount);
+  Serial.printf("Sending packet (%d repeats): \n", this->currentResendCount);
   for (int i = 0; i < currentRemote->packetFormatter->getPacketLength(); i++) {
-    printf("%02X", packet[i]);
+    Serial.printf("%02X ", packet[i]);
   }
-  printf("\n");
+  Serial.println();
   int iStart = millis();
 #endif
 
