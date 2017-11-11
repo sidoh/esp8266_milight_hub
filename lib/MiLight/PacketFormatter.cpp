@@ -117,7 +117,7 @@ void PacketFormatter::pushPacket() {
   }
 
   // Make sure there's enough buffer to add another packet.
-  if ((currentPacket + packetLength) > PACKET_BUFFER + PACKET_FORMATTER_BUFFER_SIZE) {
+  if ((currentPacket + packetLength) >= PACKET_BUFFER + PACKET_FORMATTER_BUFFER_SIZE) {
     Serial.println(F("ERROR: packet buffer full!  Cannot buffer a new packet.  THIS IS A BUG!"));
     return;
   }
