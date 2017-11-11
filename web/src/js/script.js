@@ -64,7 +64,9 @@ var FORM_SETTINGS_HELP = {
     "Higher values cause packets to be throttled up and down faster.  Set to 0 " +
     "to disable throttling.  Defaults to 1.  Maximum value 1000.",
   packet_repeat_minimum : "Controls how far throttling can decrease the number " +
-    "of repeated packets.  Defaults to 3."
+    "of repeated packets.  Defaults to 3.",
+  group_state_fields : "Selects which fields should be included in MQTT state updates and " +
+    "REST responses for bulb state."
 }
 
 var UDP_PROTOCOL_VERSIONS = [ 5, 6 ];
