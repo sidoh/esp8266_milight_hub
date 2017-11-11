@@ -152,7 +152,6 @@ void handleListen() {
  */
 void onUpdateBegin() {
   if (bulbStateUpdater) {
-    Serial.println("Dsiabling state updates");
     bulbStateUpdater->disable();
   }
 }
@@ -163,7 +162,6 @@ void onUpdateBegin() {
  */
 void onUpdateEnd() {
   if (bulbStateUpdater) {
-    Serial.println("Re-enabling state updates");
     bulbStateUpdater->enable();
   }
 }

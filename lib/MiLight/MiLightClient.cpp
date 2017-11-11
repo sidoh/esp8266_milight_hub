@@ -256,11 +256,6 @@ void MiLightClient::update(const JsonObject& request) {
     this->updateBeginHandler();
   }
 
-  String bb;
-  request.printTo(bb);
-  Serial.println("processing...");
-  Serial.println(bb);
-
   const uint8_t parsedStatus = this->parseStatus(request);
 
   // Always turn on first
