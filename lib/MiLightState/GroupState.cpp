@@ -76,6 +76,31 @@ GroupState::GroupState() {
   state.fields._mqttDirty            = 0;
 }
 
+bool GroupState::isSetField(GroupStateField field) const {
+  switch (field) {
+    case GroupStateField::STATE:
+    case GroupStateField::STATUS:
+      return isSetState();
+    case GroupStateField::BRIGHTNESS:
+    case GroupStateField::LEVEL:
+      return isSetBrightness();
+    case GroupStateField::COLOR:
+    case GroupStateField::HUE:
+      return isSetHue();
+    case GroupStateField::SATURATION:
+      return isSetSaturation();
+    case GroupStateField::MODE:
+      return isSetMode();
+    case GroupStateField::KELVIN:
+    case GroupStateField::COLOR_TEMP:
+      return isSetKelvin();
+    case GroupStateField::BULB_MODE:
+      return isSetBulbMode();
+  }
+
+  return false;
+}
+
 bool GroupState::isSetState() const { return state.fields._isSetState; }
 MiLightStatus GroupState::getState() const { return state.fields._state ? ON : OFF; }
 bool GroupState::setState(const MiLightStatus status) {
@@ -287,38 +312,79 @@ bool GroupState::patch(const JsonObject& state) {
   return changes;
 }
 
-void GroupState::applyState(JsonObject& partialState) {
-  if (isSetState()) {
-    partialState["state"] = getState() == ON ? "ON" : "OFF";
-  }
-  if (isSetBrightness()) {
-    partialState["brightness"] = Units::rescale(getBrightness(), 255, 100);
-  }
-  if (isSetBulbMode()) {
-    partialState["bulb_mode"] = BULB_MODE_NAMES[getBulbMode()];
+void GroupState::applyField(JsonObject& partialState, GroupStateField field) {
+  if (isSetField(field)) {
+    switch (field) {
+      case GroupStateField::STATE:
+      case GroupStateField::STATUS:
+        partialState[GroupStateFieldHelpers::getFieldName(field)] = getState() == ON ? "ON" : "OFF";
+        break;
 
-    if (getBulbMode() == BULB_MODE_COLOR) {
-      if (isSetHue() && isSetSaturation()) {
-        uint8_t rgb[3];
-        RGBConverter converter;
-        converter.hsvToRgb(getHue()/360.0, getSaturation()/100.0, 1, rgb);
-        JsonObject& color = partialState.createNestedObject("color");
-        color["r"] = rgb[0];
-        color["g"] = rgb[1];
-        color["b"] = rgb[2];
-      } else if (isSetHue()) {
-        partialState["hue"] = getHue();
-      } else if (isSetSaturation()) {
-        partialState["saturation"] = getSaturation();
-      }
-    } else if (getBulbMode() == BULB_MODE_SCENE) {
-      if (isSetMode()) {
-        partialState["mode"] = getMode();
-      }
-    } else if (getBulbMode() == BULB_MODE_WHITE) {
-      if (isSetKelvin()) {
-        partialState["color_temp"] = getMireds();
-      }
+      case GroupStateField::BRIGHTNESS:
+        partialState["brightness"] = Units::rescale(getBrightness(), 255, 100);
+        break;
+
+      case GroupStateField::LEVEL:
+        partialState["level"] = getBrightness();
+        break;
+
+      case GroupStateField::BULB_MODE:
+        partialState["bulb_mode"] = BULB_MODE_NAMES[getBulbMode()];
+        break;
+
+      case GroupStateField::COLOR:
+        if (getBulbMode() == BULB_MODE_COLOR) {
+          uint8_t rgb[3];
+          RGBConverter converter;
+          converter.hsvToRgb(
+            getHue()/360.0,
+            // Default to fully saturated
+            (isSetSaturation() ? getSaturation() : 100)/100.0,
+            1,
+            rgb
+          );
+          JsonObject& color = partialState.createNestedObject("color");
+          color["r"] = rgb[0];
+          color["g"] = rgb[1];
+          color["b"] = rgb[2];
+        }
+        break;
+
+      case GroupStateField::HUE:
+        if (getBulbMode() == BULB_MODE_COLOR) {
+          partialState["hue"] = getHue();
+        }
+        break;
+
+      case GroupStateField::SATURATION:
+        if (getBulbMode() == BULB_MODE_COLOR) {
+          partialState["saturation"] = getSaturation();
+        }
+        break;
+
+      case GroupStateField::MODE:
+        if (getBulbMode() == BULB_MODE_SCENE) {
+          partialState["mode"] = getMode();
+        }
+        break;
+
+      case GroupStateField::COLOR_TEMP:
+        if (getBulbMode() == BULB_MODE_WHITE) {
+          partialState["color_temp"] = getMireds();
+        }
+        break;
+
+      case GroupStateField::KELVIN:
+        if (getBulbMode() == BULB_MODE_WHITE) {
+          partialState["kelvin"] = getKelvin();
+        }
+        break;
     }
+  }
+}
+
+void GroupState::applyState(JsonObject& partialState, GroupStateField* fields, size_t numFields) {
+  for (size_t i = 0; i < numFields; i++) {
+    applyField(partialState, fields[i]);
   }
 }

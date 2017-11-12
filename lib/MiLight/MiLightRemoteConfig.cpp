@@ -59,7 +59,10 @@ const MiLightRemoteConfig* MiLightRemoteConfig::fromReceivedPacket(
     }
   }
 
+  // This can happen under normal circumstances, so not an error condition
+#ifdef DEBUG_PRINTF
   Serial.println(F("ERROR - tried to fetch remote config for unknown packet"));
+#endif
 
   return NULL;
 }

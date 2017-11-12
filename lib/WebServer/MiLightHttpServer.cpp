@@ -15,7 +15,13 @@ void MiLightHttpServer::begin() {
   server.on("/settings", HTTP_GET, [this]() { serveSettings(); });
   server.on("/statistics", HTTP_GET, [this]() { serveStatistics(); });
   server.on("/settings", HTTP_PUT, [this]() { handleUpdateSettings(); });
-  server.on("/settings", HTTP_POST, [this]() { server.send_P(200, TEXT_PLAIN, PSTR("success.")); }, handleUpdateFile(SETTINGS_FILE));
+  server.on("/settings", HTTP_POST,
+    [this]() {
+      Settings::load(settings);
+      server.send_P(200, TEXT_PLAIN, PSTR("success."));
+    },
+    handleUpdateFile(SETTINGS_FILE)
+  );
   server.on("/radio_configs", HTTP_GET, [this]() { handleGetRadioConfigs(); });
 
   server.on("/gateway_traffic", HTTP_GET, [this]() { handleListenGateway(NULL); });
@@ -255,6 +261,8 @@ void MiLightHttpServer::handleListenGateway(const UrlTokenBindings* bindings) {
   bool listenAll = bindings == NULL;
   size_t configIx = 0;
   const MiLightRadioConfig* radioConfig = NULL;
+  const MiLightRemoteConfig* remoteConfig = NULL;
+  uint8_t packet[MILIGHT_MAX_PACKET_LENGTH];
 
   if (bindings != NULL) {
     String strType(bindings->get("type"));
@@ -268,7 +276,7 @@ void MiLightHttpServer::handleListenGateway(const UrlTokenBindings* bindings) {
     return;
   }
 
-  while (!available) {
+  while (remoteConfig == NULL) {
     if (!server.clientConnected()) {
       return;
     }
@@ -278,12 +286,18 @@ void MiLightHttpServer::handleListenGateway(const UrlTokenBindings* bindings) {
     }
 
     if (milightClient->available()) {
-      available = true;
+      size_t packetLen = milightClient->read(packet);
+      remoteConfig = MiLightRemoteConfig::fromReceivedPacket(
+        *radioConfig,
+        packet,
+        packetLen
+      );
     }
 
     yield();
   }
 
+<<<<<<< HEAD
   uint8_t packet[MILIGHT_MAX_PACKET_LENGTH];
   size_t packetLen = milightClient->read(packet);
   const MiLightRemoteConfig* remoteConfig = MiLightRemoteConfig::fromReceivedPacket(
@@ -293,13 +307,16 @@ void MiLightHttpServer::handleListenGateway(const UrlTokenBindings* bindings) {
   );
 
   char response[2000];
+=======
+  char response[200];
+>>>>>>> fc89ce4eacb6cec29dbdda4a5adeca252723a89c
   char* responseBuffer = response;
 
   responseBuffer += sprintf_P(
     responseBuffer,
     PSTR("\n%s packet received (%d bytes):\n"),
     remoteConfig->name.c_str(),
-    packetLen
+    remoteConfig->packetFormatter->getPacketLength()
   );
   remoteConfig->packetFormatter->format(packet, responseBuffer);
 
@@ -310,7 +327,7 @@ void MiLightHttpServer::sendGroupState(GroupState &state) {
   String body;
   StaticJsonBuffer<2000> jsonBuffer;
   JsonObject& obj = jsonBuffer.createObject();
-  state.applyState(obj);
+  state.applyState(obj, settings.groupStateFields, settings.numGroupStateFields);
   obj.printTo(body);
 
   server.send(200, APPLICATION_JSON, body);
@@ -329,8 +346,8 @@ void MiLightHttpServer::handleGetGroup(const UrlTokenBindings* urlBindings) {
   }
 
   BulbId bulbId(parseInt<uint16_t>(_deviceId), _groupId, _remoteType->type);
-  GroupState& state = stateStore.get(bulbId);
-  sendGroupState(stateStore.get(bulbId));
+  GroupState& state = stateStore->get(bulbId);
+  sendGroupState(stateStore->get(bulbId));
 }
 
 void MiLightHttpServer::handleUpdateGroup(const UrlTokenBindings* urlBindings) {
@@ -391,7 +408,7 @@ void MiLightHttpServer::handleUpdateGroup(const UrlTokenBindings* urlBindings) {
   }
 
   if (groupCount == 1) {
-    sendGroupState(stateStore.get(foundBulbId));
+    sendGroupState(stateStore->get(foundBulbId));
   } else {
     server.send(200, APPLICATION_JSON, "true");
   }

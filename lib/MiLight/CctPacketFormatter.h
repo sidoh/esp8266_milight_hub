@@ -29,6 +29,8 @@ public:
     : PacketFormatter(7, 20)
   { }
 
+  virtual bool canHandle(const uint8_t* packet, const size_t len);
+
   virtual void updateStatus(MiLightStatus status, uint8_t groupId);
   virtual void command(uint8_t command, uint8_t arg);
 

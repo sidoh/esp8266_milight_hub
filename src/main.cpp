@@ -128,11 +128,11 @@ void onPacketSentHandler(uint8_t* packet, const MiLightRemoteConfig& config) {
   const MiLightRemoteConfig& remoteConfig =
     *MiLightRemoteConfig::fromType(bulbId.deviceType);
 
-  if (mqttClient) {
-    GroupState& groupState = stateStore->get(bulbId);
-    groupState.patch(result);
-    stateStore->set(bulbId, groupState);
+  GroupState& groupState = stateStore->get(bulbId);
+  groupState.patch(result);
+  stateStore->set(bulbId, groupState);
 
+  if (mqttClient) {
     // Sends the state delta derived from the raw packet
     char output[200];
     result.printTo(output);
@@ -168,12 +168,35 @@ void handleListen() {
       );
 
       if (remoteConfig == NULL) {
-        Serial.println(F("ERROR: Couldn't find remote for received packet!"));
+        // This can happen under normal circumstances, so not an error condition
+#ifdef DEBUG_PRINTF
+        Serial.println(F("WARNING: Couldn't find remote for received packet"));
+#endif
         return;
       }
 
       onPacketSentHandler(readPacket, *remoteConfig);
     }
+  }
+}
+
+/**
+ * Called when MqttClient#update is first being processed.  Stop sending updates
+ * and aggregate state changes until the update is finished.
+ */
+void onUpdateBegin() {
+  if (bulbStateUpdater) {
+    bulbStateUpdater->disable();
+  }
+}
+
+/**
+ * Called when MqttClient#update is finished processing.  Re-enable state
+ * updates, which will flush accumulated state changes.
+ */
+void onUpdateEnd() {
+  if (bulbStateUpdater) {
+    bulbStateUpdater->enable();
   }
 }
 
@@ -190,6 +213,9 @@ void applySettings() {
   if (mqttClient) {
     delete mqttClient;
     delete bulbStateUpdater;
+
+    mqttClient = NULL;
+    bulbStateUpdater = NULL;
   }
   if (stateStore) {
     delete stateStore;
@@ -212,6 +238,8 @@ void applySettings() {
   );
   milightClient->begin();
   milightClient->onPacketSent(onPacketSentHandler);
+  milightClient->onUpdateBegin(onUpdateBegin);
+  milightClient->onUpdateEnd(onUpdateEnd);
   milightClient->setResendCount(settings.packetRepeats);
 
   if (settings.mqttServer().length() > 0) {
@@ -474,7 +502,7 @@ void setup() {
   SSDP.setDeviceType("upnp:rootdevice");
   SSDP.begin();
 
-  httpServer = new MiLightHttpServer(settings, milightClient, *stateStore);
+  httpServer = new MiLightHttpServer(settings, milightClient, stateStore);
   httpServer->onSettingsSaved(applySettings);
   httpServer->on("/description.xml", HTTP_GET, []() { SSDP.schema(httpServer->client()); });
   httpServer->begin();

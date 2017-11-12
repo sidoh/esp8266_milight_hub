@@ -16,7 +16,22 @@ var FORM_SETTINGS = [
   "mqtt_sensor_topic_pattern", "mqtt_client_id",
   "mqtt_username", "mqtt_password", "radio_interface_type", "listen_repeats",
   "state_flush_interval", "mqtt_state_rate_limit", "packet_repeat_throttle_threshold",
-  "packet_repeat_throttle_sensitivity", "packet_repeat_minimum"
+  "packet_repeat_throttle_sensitivity", "packet_repeat_minimum", "group_state_fields"
+];
+
+// TODO: sync this with GroupStateField.h
+var GROUP_STATE_KEYS = [
+  "state",
+  "status",
+  "brightness",
+  "level",
+  "hue",
+  "saturation",
+  "color",
+  "mode",
+  "kelvin",
+  "color_temp",
+  "bulb_mode"
 ];
 
 var FORM_SETTINGS_HEADLINES = {
@@ -77,7 +92,9 @@ var FORM_SETTINGS_HELP = {
     "Higher values cause packets to be throttled up and down faster.  Set to 0 " +
     "to disable throttling.  Defaults to 1.  Maximum value 1000.",
   packet_repeat_minimum : "Controls how far throttling can decrease the number " +
-    "of repeated packets.  Defaults to 3."
+    "of repeated packets.  Defaults to 3.",
+  group_state_fields : "Selects which fields should be included in MQTT state updates and " +
+    "REST responses for bulb state."
 }
 
 var UDP_PROTOCOL_VERSIONS = [ 2 , 3 , 4 , 5 , 6 ];
@@ -311,6 +328,7 @@ var loadSettings = function() {
       $('#deviceId').selectpicker('render');
     }
 
+<<<<<<< HEAD
     var deviceForm = $('#device-id-configs');
     if (val.device_configs && Array.isArray(val.device_configs)){
       val.device_configs.forEach(function(v) {
@@ -327,6 +345,12 @@ var loadSettings = function() {
     }
     deviceForm.append(deviceIdRow('', '' , 'new Device'));
 
+=======
+    if (val.group_state_fields) {
+      var elmt = $('select[name="group_state_fields"]');
+      elmt.selectpicker('val', val.group_state_fields);
+    }
+>>>>>>> fc89ce4eacb6cec29dbdda4a5adeca252723a89c
 
     var gatewayForm = $('#gateway-server-configs').html('');
     if (val.gateway_configs && Array.isArray(val.gateway_configs)) {
@@ -1058,7 +1082,7 @@ $(function() {
 
     elmt += '</div>';
 
-    if(k === "radio_interface_type") {
+    if (k === "radio_interface_type") {
       elmt += '<div class="btn-group" id="radio_interface_type" data-toggle="buttons">' +
         '<label class="btn btn-secondary active">' +
           '<input type="radio" id="nrf24" name="radio_interface_type" autocomplete="off" value="nRF24" /> nRF24' +
@@ -1067,7 +1091,16 @@ $(function() {
           '<input type="radio" id="lt8900" name="radio_interface_type" autocomplete="off" value="LT8900" /> PL1167/LT8900' +
         '</label>' +
       '</div>';
+<<<<<<< HEAD
       elmt += '</div>';
+=======
+    } else if (k == 'group_state_fields') {
+      elmt += '<select class="selectpicker" name="group_state_fields" multiple>';
+      GROUP_STATE_KEYS.forEach(function(stateKey) {
+        elmt += '<option>' + stateKey + '</option>';
+      });
+      elmt += '</select>';
+>>>>>>> fc89ce4eacb6cec29dbdda4a5adeca252723a89c
     } else {
       elmt += '<input type="text" class="form-control" name="' + k + '"/>';
       elmt += '</div>';
@@ -1076,6 +1109,7 @@ $(function() {
     settings += elmt ;
   });
 
+<<<<<<< HEAD
 
   $('#settings').prepend('<div >' + settings + '</div>');
 
@@ -1084,10 +1118,18 @@ $(function() {
     debug( 5 , 'saveSettingConfigs');
     var device_ids = {};
     var data = {};
+=======
+  $('#settings').prepend(settings);
+  $('#settings').submit(function(e) {
+    e.preventDefault();
+>>>>>>> fc89ce4eacb6cec29dbdda4a5adeca252723a89c
 
-    FORM_SETTINGS.forEach(function(k) {
-      var elmt = $('#settings input[name="' + k + '"]');
+    var obj = $('#settings')
+      .serializeArray()
+      .reduce(function(a, x) {
+        var val = a[x.name];
 
+<<<<<<< HEAD
       if (elmt.attr('type') === 'radio') {
         data[k] = elmt.filter(':checked').val();
         debug( 0 , 'Setting Radio '+k+' : ' + elmt.filter(':checked').val());
@@ -1096,6 +1138,18 @@ $(function() {
         debug( 0 , 'Setting Normal '+k+' : ' + elmt.val());
       }
     });
+=======
+        if (! val) {
+          a[x.name] = x.value;
+        } else if (! Array.isArray(val)) {
+          a[x.name] = [val, x.value];
+        } else {
+          val.push(x.value);
+        }
+
+        return a;
+      }, {});
+>>>>>>> fc89ce4eacb6cec29dbdda4a5adeca252723a89c
 
     var form = $('#device-id-configs');
     device_ids = $('input[name="deviceIds[]"]', form).map(function(i, v) {
@@ -1126,6 +1180,7 @@ $(function() {
       }
   }
 
+<<<<<<< HEAD
 
 
   function saveIdConfigs( send ){
@@ -1152,9 +1207,26 @@ $(function() {
           });
       }else {
         return data;
+=======
+    // Make sure we're submitting a value for group_state_fields (will be empty
+    // if no values were selected).
+    obj = $.extend({group_state_fields: []}, obj);
+
+    $.ajax(
+      "/settings",
+      {
+        method: 'put',
+        contentType: 'application/json',
+        data: JSON.stringify(obj)
+>>>>>>> fc89ce4eacb6cec29dbdda4a5adeca252723a89c
       }
   }
 
+<<<<<<< HEAD
+=======
+    return false;
+  });
+>>>>>>> fc89ce4eacb6cec29dbdda4a5adeca252723a89c
 
   $('#settings').submit(function (e){
       var obj = {};

@@ -76,6 +76,24 @@ void Settings::updateGatewayConfigs(JsonArray& arr) {
   }
 }
 
+void Settings::updateGroupStateFields(JsonArray &arr) {
+  if (arr.success()) {
+    if (this->groupStateFields) {
+      delete this->groupStateFields;
+    }
+
+    this->groupStateFields = new GroupStateField[arr.size()];
+    this->numGroupStateFields = arr.size();
+
+    for (size_t i = 0; i < arr.size(); i++) {
+      String name = arr[i];
+      name.toLowerCase();
+
+      this->groupStateFields[i] = GroupStateFieldHelpers::getFieldByName(name.c_str());
+    }
+  }
+}
+
 void Settings::patch(JsonObject& parsedSettings) {
   if (parsedSettings.success()) {
     this->setIfPresent<String>(parsedSettings, "admin_username", adminUsername);
@@ -127,6 +145,10 @@ void Settings::patch(JsonObject& parsedSettings) {
     if (parsedSettings.containsKey("gateway_configs")) {
       JsonArray& arr = parsedSettings["gateway_configs"];
       updateGatewayConfigs(arr);
+    }
+    if (parsedSettings.containsKey("group_state_fields")) {
+      JsonArray& arr = parsedSettings["group_state_fields"];
+      updateGroupStateFields(arr);
     }
   }
 }
@@ -222,6 +244,15 @@ void Settings::serialize(Stream& stream, const bool prettyPrint) {
     }
 
     root["gateway_configs"] = arr;
+  }
+
+  if (this->groupStateFields) {
+    JsonArray& arr = jsonBuffer.createArray();
+    for (size_t i = 0; i < this->numGroupStateFields; i++) {
+      arr.add(GroupStateFieldHelpers::getFieldName(this->groupStateFields[i]));
+    }
+
+    root["group_state_fields"] = arr;
   }
 
   if (prettyPrint) {

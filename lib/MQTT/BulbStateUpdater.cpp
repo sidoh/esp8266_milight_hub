@@ -4,8 +4,17 @@ BulbStateUpdater::BulbStateUpdater(Settings& settings, MqttClient& mqttClient, G
   : settings(settings),
     mqttClient(mqttClient),
     stateStore(stateStore),
-    lastFlush(0)
+    lastFlush(0),
+    enabled(true)
 { }
+
+void BulbStateUpdater::enable() {
+  this->enabled = true;
+}
+
+void BulbStateUpdater::disable() {
+  this->enabled = false;
+}
 
 void BulbStateUpdater::enqueueUpdate(BulbId bulbId, GroupState& groupState) {
   // If can flush immediately, do so (avoids lookup of group state later).
@@ -32,7 +41,7 @@ inline void BulbStateUpdater::flushGroup(BulbId bulbId, GroupState& state) {
   char buffer[200];
   StaticJsonBuffer<200> jsonBuffer;
   JsonObject& message = jsonBuffer.createObject();
-  state.applyState(message);
+  state.applyState(message, settings.groupStateFields, settings.numGroupStateFields);
   message.printTo(buffer);
 
   mqttClient.sendState(
@@ -46,5 +55,5 @@ inline void BulbStateUpdater::flushGroup(BulbId bulbId, GroupState& state) {
 }
 
 inline bool BulbStateUpdater::canFlush() const {
-  return (millis() > (lastFlush + settings.mqttStateRateLimit));
+  return enabled && (millis() > (lastFlush + settings.mqttStateRateLimit));
 }

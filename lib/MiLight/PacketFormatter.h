@@ -9,7 +9,10 @@
 #ifndef _PACKET_FORMATTER_H
 #define _PACKET_FORMATTER_H
 
-#define PACKET_FORMATTER_BUFFER_SIZE 48
+// Most packets sent is for CCT bulbs, which always includes 10 down commands
+// and can include up to 10 up commands.  CCT packets are 7 bytes.
+//   (10 * 7) + (10 * 7) = 140
+#define PACKET_FORMATTER_BUFFER_SIZE 140
 
 struct PacketStream {
   PacketStream();

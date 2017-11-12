@@ -4,6 +4,8 @@
 //Eigene Includes
 #include <IPAddress.h>
 
+#include <GroupStateField.h>
+#include <Size.h>
 
 #ifndef _SETTINGS_H_INCLUDED
 #define _SETTINGS_H_INCLUDED
@@ -44,6 +46,15 @@ enum RadioInterfaceType {
   LT8900 = 1,
 };
 
+static const GroupStateField DEFAULT_GROUP_STATE_FIELDS[] = {
+  GroupStateField::STATE,
+  GroupStateField::BRIGHTNESS,
+  GroupStateField::COLOR,
+  GroupStateField::MODE,
+  GroupStateField::COLOR_TEMP,
+  GroupStateField::BULB_MODE
+};
+
 class GatewayConfig {
 public:
   GatewayConfig(uint16_t deviceId, uint16_t port, uint8_t protocolVersion)
@@ -80,8 +91,16 @@ public:
     mqttStateRateLimit(500),
     packetRepeatThrottleThreshold(200),
     packetRepeatThrottleSensitivity(0),
-    packetRepeatMinimum(3)
-  { }
+    packetRepeatMinimum(3),
+    groupStateFields(NULL),
+    numGroupStateFields(0)
+  {
+    if (groupStateFields == NULL) {
+      numGroupStateFields = size(DEFAULT_GROUP_STATE_FIELDS);
+      groupStateFields = new GroupStateField[numGroupStateFields];
+      memcpy(groupStateFields, DEFAULT_GROUP_STATE_FIELDS, numGroupStateFields * sizeof(GroupStateField));
+    }
+  }
 
   ~Settings() {
     if (deviceIds) {
@@ -104,6 +123,7 @@ public:
   void serialize(Stream& stream, const bool prettyPrint = false);
   void updateDeviceIds(JsonArray& arr);
   void updateGatewayConfigs(JsonArray& arr);
+  void updateGroupStateFields(JsonArray& arr);
   void patch(JsonObject& obj);
   String mqttServer();
   uint16_t mqttPort();
@@ -126,6 +146,8 @@ public:
   String mqttTopicPattern;
   String mqttUpdateTopicPattern;
   String mqttStateTopicPattern;
+  GroupStateField *groupStateFields;
+  size_t numGroupStateFields;
   uint16_t discoveryPort;
   uint8_t listenRepeats;
   size_t stateFlushInterval;

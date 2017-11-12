@@ -1,6 +1,8 @@
 #include <stddef.h>
 #include <inttypes.h>
 #include <MiLightConstants.h>
+#include <MiLightRadioConfig.h>
+#include <GroupStateField.h>
 #include <ArduinoJson.h>
 
 #ifndef _GROUP_STATE_H
@@ -33,7 +35,10 @@ static const char* BULB_MODE_NAMES[] = {
 
 class GroupState {
 public:
+
   GroupState();
+
+  bool isSetField(GroupStateField field) const;
 
   // 1 bit
   bool isSetState() const;
@@ -81,7 +86,8 @@ public:
   bool clearMqttDirty();
 
   bool patch(const JsonObject& state);
-  void applyState(JsonObject& state);
+  void applyField(JsonObject& state, GroupStateField field);
+  void applyState(JsonObject& state, GroupStateField* fields, size_t numFields);
 
   void load(Stream& stream);
   void dump(Stream& stream) const;

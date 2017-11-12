@@ -29,7 +29,7 @@ GroupState& GroupStateStore::set(const BulbId &id, const GroupState& state) {
     const MiLightRemoteConfig* remote = MiLightRemoteConfig::fromType(id.deviceType);
     BulbId individualBulb(id);
 
-    for (size_t i = 1; i < remote->numGroups; i++) {
+    for (size_t i = 1; i <= remote->numGroups; i++) {
       individualBulb.groupId = i;
       set(individualBulb, state);
     }
