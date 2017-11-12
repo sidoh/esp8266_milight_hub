@@ -165,11 +165,15 @@ To configure your ESP to integrate with MQTT, fill out the following settings:
 
 #### More detail on `mqtt_topic_pattern`
 
-`mqtt_topic_pattern` leverages single-level wildcards (documented [here](https://mosquitto.org/man/mqtt-7.html)). For example, specifying `milight/:device_id/:device_type/:group_id` will cause the ESP to subscribe to the topic `milight/+/+/+`. It will then interpret the second, third, and fourth tokens in topics it receives messages on as `:device_id`, `:device_type`, and `:group_id`, respectively.
+`mqtt_topic_pattern` leverages single-level wildcards (documented [here](https://mosquitto.org/man/mqtt-7.html)). For example, specifying `milight/:device_id/:device_type/:group_id` will cause the ESP to subscribe to the topic `milight/+/+/+`. It will then interpret the second, third, and fourth tokens in topics it receives messages on as `:device_id`, `:device_type`, and `:group_id`, respectively.  The following tokens are available:
+
+1. `:device_id` - Device ID. Can be hexadecimal (e.g. `0x1234`) or decimal (e.g. `4660`).
+1. `:device_type` - Remote type.  `rgbw`, `fut089`, etc.
+1. `:group_id` - Group.  0-4 for most remotes.  The "All" group is group 0.
 
 Messages should be JSON objects using exactly the same schema that the REST gateway uses for the `/gateways/:device_id/:device_type/:group_id` endpoint. Documented above in the _Bulb commands_ section.
 
-##### Example:
+#### Example:
 
 If `mqtt_topic_pattern` is set to `milight/:device_id/:device_type/:group_id`, you could send the following message to it (the below example uses a ruby MQTT client):
 
@@ -184,7 +188,12 @@ This will instruct the ESP to send messages to RGB+CCT bulbs with device ID `0x1
 
 #### Updates
 
-To enable passive listening, make sure that `listen_repeats` is set to something larger than 0 (the default value of 3 is a good choice).
+ESPMH is capable of providing two types of updates:
+
+1. Delta: as packets are received, they are translated into the corresponding command (e.g., "set brightness to 50").  The translated command is sent as an update.
+2. State: When an update is received, the corresponding command is applied to known group state, and the whole state for the group is transmitted.
+
+##### Delta updates
 
 To publish data from intercepted packets to an MQTT topic, configure MQTT server settings, and set the `mqtt_update_topic_pattern` to something of your choice. As with `mqtt_topic_pattern`, the tokens `:device_id`, `:device_type`, and `:group_id` will be substituted with the values from the relevant packet.  `:device_id` will always be substituted with the hexadecimal value of the ID.  You can also use `:hex_device_id`, or `:dec_device_id` if you prefer decimal.
 
@@ -196,10 +205,23 @@ As an example, if `mqtt_update_topic_pattern` is set to `milight/updates/:hex_de
 irb(main):005:0> client.subscribe('milight/updates/+/+/+')
 => 27
 irb(main):006:0> puts client.get.inspect
-["lights/updates/0x1C8E/rgb_cct/1", "{\"device_id\":7310,\"group_id\":1,\"device_type\":\"rgb_cct\",\"status\":\"on\"}"]
+["lights/updates/0x1C8E/rgb_cct/1", "{\"status\":\"on\"}"]
 ```
 
-**Make sure that `mqtt_topic_pattern` and `matt_update_topic_pattern` are different!**  If they are they same you can put your ESP in a loop where its own updates trigger an infinite command loop.
+##### Full state updates
+
+For this mode, `mqtt_state_topic_pattern` should be set to something like `milight/states/:hex_device_id/:device_type/:group_id`.  As an example:
+
+```ruby
+irb(main):005:0> client.subscribe('milight/states/+/+/+')
+=> 27
+irb(main):006:0> puts client.get.inspect
+["lights/states/0x1C8E/rgb_cct/1", "{\"state\":\"ON\",\"brightness\":255,\"color_temp\":370,\"bulb_mode\":\"white\"}"]
+irb(main):007:0> puts client.get.inspect
+["lights/states/0x1C8E/rgb_cct/1", "{\"state\":\"ON\",\"brightness\":100,\"color_temp\":370,\"bulb_mode\":\"white\"}"]
+```
+
+**Make sure that `mqtt_topic_pattern`, `mqtt_state_topic_pattern`, and `matt_update_topic_pattern` are all different!**  If they are they same you can put your ESP in a loop where its own updates trigger an infinite command loop.
 
 ## UDP Gateways
 
