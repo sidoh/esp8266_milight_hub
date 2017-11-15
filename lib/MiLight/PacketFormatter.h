@@ -1,13 +1,18 @@
 #include <Arduino.h>
 #include <inttypes.h>
 #include <functional>
-#include <MiLightButtons.h>
+#include <MiLightConstants.h>
 #include <ArduinoJson.h>
-
-#define PACKET_FORMATTER_BUFFER_SIZE 48
+#include <GroupState.h>
+#include <GroupStateStore.h>
 
 #ifndef _PACKET_FORMATTER_H
 #define _PACKET_FORMATTER_H
+
+// Most packets sent is for CCT bulbs, which always includes 10 down commands
+// and can include up to 10 up commands.  CCT packets are 7 bytes.
+//   (10 * 7) + (10 * 7) = 140
+#define PACKET_FORMATTER_BUFFER_SIZE 140
 
 struct PacketStream {
   PacketStream();
@@ -26,6 +31,8 @@ public:
   PacketFormatter(const size_t packetLength, const size_t maxPackets = 1);
 
   typedef void (PacketFormatter::*StepFunction)();
+
+  virtual bool canHandle(const uint8_t* packet, const size_t len);
 
   void updateStatus(MiLightStatus status);
   virtual void updateStatus(MiLightStatus status, uint8_t groupId);
@@ -67,15 +74,13 @@ public:
   virtual void prepare(uint16_t deviceId, uint8_t groupId);
   virtual void format(uint8_t const* packet, char* buffer);
 
-  virtual void parsePacket(const uint8_t* packet, JsonObject& result);
+  virtual BulbId parsePacket(const uint8_t* packet, JsonObject& result, GroupStateStore* stateStore);
 
   static void formatV1Packet(uint8_t const* packet, char* buffer);
 
   size_t getPacketLength() const;
 
 protected:
-  static uint8_t* PACKET_BUFFER;
-
   uint8_t* currentPacket;
   size_t packetLength;
   uint16_t deviceId;

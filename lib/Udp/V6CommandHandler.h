@@ -16,9 +16,9 @@ public:
   static V6CommandHandler* ALL_HANDLERS[];
   static const size_t NUM_HANDLERS;
 
-  V6CommandHandler(uint16_t commandId, MiLightRadioConfig& radioConfig)
+  V6CommandHandler(uint16_t commandId, const MiLightRemoteConfig& remoteConfig)
     : commandId(commandId),
-      radioConfig(radioConfig)
+      remoteConfig(remoteConfig)
   { }
 
   virtual bool handleCommand(
@@ -31,7 +31,7 @@ public:
   );
 
   const uint16_t commandId;
-  MiLightRadioConfig& radioConfig;
+  const MiLightRemoteConfig& remoteConfig;
 
 protected:
 
@@ -51,7 +51,7 @@ protected:
 class V6CommandDemuxer : public V6CommandHandler {
 public:
   V6CommandDemuxer(V6CommandHandler* handlers[], size_t numHandlers)
-    : V6CommandHandler(0, MilightRgbwConfig),
+    : V6CommandHandler(0, FUT096Config),
       handlers(handlers),
       numHandlers(numHandlers)
   { }

@@ -16,22 +16,15 @@ public:
   }
 
   static uint8_t miredsToWhiteVal(uint16_t mireds, uint8_t maxValue = 255) {
-      uint32_t tempMireds = constrain(mireds, COLOR_TEMP_MIN_MIREDS, COLOR_TEMP_MAX_MIREDS);
-
-      uint8_t scaledTemp = round(
-        maxValue*
-        (tempMireds - COLOR_TEMP_MIN_MIREDS)
-          /
-        static_cast<double>(COLOR_TEMP_MAX_MIREDS - COLOR_TEMP_MIN_MIREDS)
+      return rescale<uint16_t, uint16_t>(
+        constrain(mireds, COLOR_TEMP_MIN_MIREDS, COLOR_TEMP_MAX_MIREDS) - COLOR_TEMP_MIN_MIREDS,
+        maxValue,
+        (COLOR_TEMP_MAX_MIREDS - COLOR_TEMP_MIN_MIREDS)
       );
-
-      return scaledTemp;
   }
 
   static uint16_t whiteValToMireds(uint8_t value, uint8_t maxValue = 255) {
-    uint8_t reverseValue = maxValue - value;
-    uint16_t scaled = rescale<uint16_t, uint16_t>(reverseValue, (COLOR_TEMP_MAX_MIREDS - COLOR_TEMP_MIN_MIREDS), maxValue);
-
+    uint16_t scaled = rescale<uint16_t, uint16_t>(value, (COLOR_TEMP_MAX_MIREDS - COLOR_TEMP_MIN_MIREDS), maxValue);
     return COLOR_TEMP_MIN_MIREDS + scaled;
   }
 };

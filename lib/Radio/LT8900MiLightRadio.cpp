@@ -47,7 +47,7 @@ LT8900MiLightRadio::LT8900MiLightRadio(byte byCSPin, byte byResetPin, byte byPkt
   SPI.setBitOrder(MSBFIRST);
 
   //Initialize transceiver with correct settings
-  vInitRadioModule(config.type);
+  vInitRadioModule();
   delay(50);
 
   // Check if HW is connected
@@ -90,108 +90,48 @@ bool LT8900MiLightRadio::bCheckRadioConnection(void)
 /**************************************************************************/
 // Initialize radio module
 /**************************************************************************/
-void LT8900MiLightRadio::vInitRadioModule(MiLightRadioType type) {
-	if (type == RGB_CCT) {
-		bool bWriteDefaultDefault = true;  // Is it okay to use the default power up values, without setting them
+void LT8900MiLightRadio::vInitRadioModule() {
+	bool bWriteDefaultDefault = true;  // Is it okay to use the default power up values, without setting them
 
-		regWrite16(0x00, 0x6F, 0xE0, 7);  // Recommended value by PMmicro
-		regWrite16(0x02, 0x66, 0x17, 7);  // Recommended value by PMmicro
-		regWrite16(0x04, 0x9C, 0xC9, 7);  // Recommended value by PMmicro
+	regWrite16(0x00, 0x6F, 0xE0, 7);  // Recommended value by PMmicro
+	regWrite16(0x02, 0x66, 0x17, 7);  // Recommended value by PMmicro
+	regWrite16(0x04, 0x9C, 0xC9, 7);  // Recommended value by PMmicro
 
-		regWrite16(0x05, 0x66, 0x37, 7);  // Recommended value by PMmicro
-		regWrite16(0x07, 0x00, 0x4C, 7);  // PL1167's TX/RX Enable and Channel Register, Default channel 76
-		regWrite16(0x08, 0x6C, 0x90, 7);  // Recommended value by PMmicro
-		regWrite16(0x09, 0x48, 0x00, 7);  // PA Control register
+	regWrite16(0x05, 0x66, 0x37, 7);  // Recommended value by PMmicro
+	regWrite16(0x07, 0x00, 0x4C, 7);  // PL1167's TX/RX Enable and Channel Register, Default channel 76
+	regWrite16(0x08, 0x6C, 0x90, 7);  // Recommended value by PMmicro
+	regWrite16(0x09, 0x48, 0x00, 7);  // PA Control register
 
-		regWrite16(0x0B, 0x00, 0x08, 7);  // Recommended value by PMmicro
-		regWrite16(0x0D, 0x48, 0xBD, 7);  // Recommended value by PMmicro
-		regWrite16(0x16, 0x00, 0xFF, 7);  // Recommended value by PMmicro
-		regWrite16(0x18, 0x00, 0x67, 7);  // Recommended value by PMmicro
+	regWrite16(0x0B, 0x00, 0x08, 7);  // Recommended value by PMmicro
+	regWrite16(0x0D, 0x48, 0xBD, 7);  // Recommended value by PMmicro
+	regWrite16(0x16, 0x00, 0xFF, 7);  // Recommended value by PMmicro
+	regWrite16(0x18, 0x00, 0x67, 7);  // Recommended value by PMmicro
 
-		regWrite16(0x1A, 0x19, 0xE0, 7);  // Recommended value by PMmicro
-		regWrite16(0x1B, 0x13, 0x00, 7);  // Recommended value by PMmicro
+	regWrite16(0x1A, 0x19, 0xE0, 7);  // Recommended value by PMmicro
+	regWrite16(0x1B, 0x13, 0x00, 7);  // Recommended value by PMmicro
 
-		regWrite16(0x20, 0x48, 0x00, 7);  // Recommended value by PMmicro
-		regWrite16(0x21, 0x3F, 0xC7, 7);  // Recommended value by PMmicro
-		regWrite16(0x22, 0x20, 0x00, 7);  // Recommended value by PMmicro
-		regWrite16(0x23, 0x03, 0x00, 7);  // Recommended value by PMmicro
+	regWrite16(0x20, 0x48, 0x00, 7);  // Recommended value by PMmicro
+	regWrite16(0x21, 0x3F, 0xC7, 7);  // Recommended value by PMmicro
+	regWrite16(0x22, 0x20, 0x00, 7);  // Recommended value by PMmicro
+	regWrite16(0x23, 0x03, 0x00, 7);  // Recommended value by PMmicro
 
-		regWrite16(0x24, 0x72, 0x36, 7);  // Sync R0
-		regWrite16(0x27, 0x18, 0x09, 7);  // Sync R3
-		regWrite16(0x28, 0x44, 0x02, 7);  // Recommended value by PMmicro
-		regWrite16(0x29, 0xB0, 0x00, 7);  // Recommended value by PMmicro
-		regWrite16(0x2A, 0xFD, 0xB0, 7);  // Recommended value by PMmicro
+	regWrite16(0x24, 0x72, 0x36, 7);  // Sync R0
+	regWrite16(0x27, 0x18, 0x09, 7);  // Sync R3
+	regWrite16(0x28, 0x44, 0x02, 7);  // Recommended value by PMmicro
+	regWrite16(0x29, 0xB0, 0x00, 7);  // Recommended value by PMmicro
+	regWrite16(0x2A, 0xFD, 0xB0, 7);  // Recommended value by PMmicro
 
-		if (bWriteDefaultDefault == true) {
-			regWrite16(0x01, 0x56, 0x81, 7);  // Recommended value by PMmicro
-			regWrite16(0x0A, 0x7F, 0xFD, 7);  // Recommended value by PMmicro
-			regWrite16(0x0C, 0x00, 0x00, 7);  // Recommended value by PMmicro
-			regWrite16(0x17, 0x80, 0x05, 7);  // Recommended value by PMmicro
-			regWrite16(0x19, 0x16, 0x59, 7);  // Recommended value by PMmicro
-			regWrite16(0x1C, 0x18, 0x00, 7);  // Recommended value by PMmicro
+	if (bWriteDefaultDefault == true) {
+		regWrite16(0x01, 0x56, 0x81, 7);  // Recommended value by PMmicro
+		regWrite16(0x0A, 0x7F, 0xFD, 7);  // Recommended value by PMmicro
+		regWrite16(0x0C, 0x00, 0x00, 7);  // Recommended value by PMmicro
+		regWrite16(0x17, 0x80, 0x05, 7);  // Recommended value by PMmicro
+		regWrite16(0x19, 0x16, 0x59, 7);  // Recommended value by PMmicro
+		regWrite16(0x1C, 0x18, 0x00, 7);  // Recommended value by PMmicro
 
-			regWrite16(0x25, 0x00, 0x00, 7);  // Recommended value by PMmicro
-			regWrite16(0x26, 0x00, 0x00, 7);  // Recommended value by PMmicro
-			regWrite16(0x2B, 0x00, 0x0F, 7);  // Recommended value by PMmicro
-		}
-	} else if( (type == RGBW) || (type == CCT) || (type == RGB) ) {
-		regWrite16(0x00, 0x6F, 0xE0, 7);  // Recommended value by PMmicro
-		regWrite16(0x01, 0x56, 0x81, 7);   // Recommended value by PMmicro
-		regWrite16(0x02, 0x66, 0x17, 7);   // Recommended value by PMmicro
-		regWrite16(0x04, 0x9C, 0xC9, 7);  // Recommended value by PMmicro
-		regWrite16(0x05, 0x66, 0x37, 7);   // Recommended value by PMmicro
-		regWrite16(0x07, 0x00, 0x4C, 7);     // PL1167's TX/RX Enable and Channel Register
-		regWrite16(0x08, 0x6C, 0x90, 7);  // Recommended value by PMmicro
-		regWrite16(0x09, 0x48, 0x00, 7);     // PL1167's PA Control Register
-		regWrite16(0x0A, 0x7F, 0xFD, 7); // Recommended value by PMmicro
-		regWrite16(0x0B, 0x00, 0x08, 7);     // PL1167's RSSI OFF Control Register -- ???
-		regWrite16(0x0C, 0x00, 0x00, 7);     // Recommended value by PMmicro
-		regWrite16(0x0D, 0x48, 0xBD, 7);  // Recommended value by PMmicro
-		regWrite16(0x16, 0x00, 0xFF, 7);   // Recommended value by PMmicro
-		regWrite16(0x17, 0x80, 0x05, 7);   // PL1167's VCO Calibration Enable Register
-		regWrite16(0x18, 0x00, 0x67, 7);   // Recommended value by PMmicro
-		regWrite16(0x19, 0x16, 0x59, 7);   // Recommended value by PMmicro
-		regWrite16(0x1A, 0x19, 0xE0, 7);  // Recommended value by PMmicro
-		regWrite16(0x1B, 0x13, 0x00, 7);    // Recommended value by PMmicro
-		regWrite16(0x1C, 0x18, 0x00, 7);    // Recommended value by PMmicro
-		regWrite16(0x20, 0x48, 0x00, 7);    // PL1167's Data Configure Register: LEN_PREAMBLE = 010 -> (0xAAAAAA) 3 bytes, LEN_SYNCWORD = 01 -> 32 bits, LEN_TRAILER = 000 -> (0x05) 4 bits, TYPE_PKT_DAT = 00 -> NRZ law data, TYPE_FEC = 00 -> No FEC
-		regWrite16(0x21, 0x3F, 0xC7, 7);  // PL1167's Delay Time Control Register 0
-		regWrite16(0x22, 0x20, 0x00, 7);    // PL1167's Delay Time Control Register 1
-		regWrite16(0x23, 0x03, 0x00, 7);     // PL1167's Power Management and Miscellaneous Register
-
-		regWrite16(0x28, 0x44, 0x02, 7);    // PL1167's FIFO and SYNCWORD Threshold Register
-		regWrite16(0x29, 0xB0, 0x00, 7);   // PL1167's Miscellaneous Register: CRC_ON = 1 -> ON, SCR_ON = 0 -> OFF, EN_PACK_LEN = 1 -> ON, FW_TERM_TX = 1 -> ON, AUTO_ACK = 0 -> OFF, PKT_LEVEL = 0 -> PKT active high, CRC_INIT_DAT = 0
-		regWrite16(0x2A, 0xFD, 0xB0, 7); // PL1167's SCAN RSSI Register 0
-		regWrite16(0x2B, 0x00, 0x0F, 7);    // PL1167's SCAN RSSI Register 1
-		delay(200);
-		regWrite16(0x80, 0x00, 0x00, 7);
-		regWrite16(0x81, 0xFF, 0xFF, 7);
-		regWrite16(0x82, 0x00, 0x00, 7);
-		regWrite16(0x84, 0x00, 0x00, 7);
-		regWrite16(0x85, 0xFF, 0xFF, 7);
-		regWrite16(0x87, 0xFF, 0xFF, 7);
-		regWrite16(0x88, 0x00, 0x00, 7);
-		regWrite16(0x89, 0xFF, 0xFF, 7);
-		regWrite16(0x8A, 0x00, 0x00, 7);
-		regWrite16(0x8B, 0xFF, 0xFF, 7);
-		regWrite16(0x8C, 0x00, 0x00, 7);
-		regWrite16(0x8D, 0xFF, 0xFF, 7);
-		regWrite16(0x96, 0x00, 0x00, 7);
-		regWrite16(0x97, 0xFF, 0xFF, 7);
-		regWrite16(0x98, 0x00, 0x00, 7);
-		regWrite16(0x99, 0xFF, 0xFF, 7);
-		regWrite16(0x9A, 0x00, 0x00, 7);
-		regWrite16(0x9B, 0xFF, 0xFF, 7);
-		regWrite16(0x9C, 0x00, 0x00, 7);
-		regWrite16(0xA0, 0x00, 0x00, 7);
-		regWrite16(0xA1, 0xFF, 0xFF, 7);
-		regWrite16(0xA2, 0x00, 0x00, 7);
-		regWrite16(0xA3, 0xFF, 0xFF, 7);
-		regWrite16(0xA8, 0x00, 0x00, 7);
-		regWrite16(0xA9, 0xFF, 0xFF, 7);
-		regWrite16(0xAA, 0x00, 0x00, 7);
-		regWrite16(0xAB, 0xFF, 0xFF, 7);
-		regWrite16(0x07, 0x00, 0x00, 7);       // Disable TX/RX and set radio channel to 0
+		regWrite16(0x25, 0x00, 0x00, 7);  // Recommended value by PMmicro
+		regWrite16(0x26, 0x00, 0x00, 7);  // Recommended value by PMmicro
+		regWrite16(0x2B, 0x00, 0x0F, 7);  // Recommended value by PMmicro
 	}
 }
 
@@ -380,7 +320,7 @@ int LT8900MiLightRadio::begin()
 /**************************************************************************/
 int LT8900MiLightRadio::configure()
 {
-  vInitRadioModule(_config.type);
+  vInitRadioModule();
   vSetSyncWord(_config.syncword3, 0,0,_config.syncword0);
   vStartListening(_config.channels[0]);
   return 0;
@@ -412,8 +352,8 @@ int LT8900MiLightRadio::read(uint8_t frame[], size_t &frame_length)
   Serial.println(F("LT8900: Radio was available, reading packet..."));
   #endif
 
-  uint8_t buf[_config.getPacketLength()];
-  int packetSize = iReadRXBuffer(buf, _config.getPacketLength());
+  uint8_t buf[MILIGHT_MAX_PACKET_LENGTH];
+  int packetSize = iReadRXBuffer(buf, MILIGHT_MAX_PACKET_LENGTH);
 
   if (packetSize > 0) {
     frame_length = packetSize;

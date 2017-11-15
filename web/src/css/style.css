@@ -2,7 +2,7 @@
 label { display: block; }
 .radio-option { padding: 0 5px; cursor: pointer; }
 .command-buttons { list-style: none; margin: 0; padding: 0; }
-.command-buttons li { display: inline-block; margin-right: 1em; }
+.command-buttons li { display: inline-block; margin-right: 1em; overflow: auto; }
 .form-entry { margin: 0 0 20px 0; }
 .form-entry .form-control { width: 20em; }
 .form-entry label { display: inline-block; }
@@ -11,6 +11,8 @@ label:not(.error) .error-info { display: none; }
 .error-info:before { content: '('; }
 .error-info:after { content: ')'; }
 .header-btn { margin: 20px; }
+.dropdown { position: initial; overflow: auto; }
+.dropdown-menu li { display: block; }
 #sniffed-traffic { max-height: 50em; overflow-y: auto; }
 .btn-secondary {
   background-color: #fff;

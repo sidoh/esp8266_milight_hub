@@ -1,14 +1,18 @@
 #include <RgbwPacketFormatter.h>
-#include <MiLightButtons.h>
 #include <Units.h>
 
-#define STATUS_COMMAND(status, groupId) ( RGBW_GROUP_1_ON + ((groupId - 1)*2) + status )
-#define GROUP_FOR_STATUS_COMMAND(buttonId) ( (buttonId - 1) / 2 )
+#define STATUS_COMMAND(status, groupId) ( RGBW_GROUP_1_ON + (((groupId) - 1)*2) + (status) )
+#define GROUP_FOR_STATUS_COMMAND(buttonId) ( ((buttonId) - 1) / 2 )
+#define STATUS_FOR_COMMAND(buttonId) ( ((buttonId) % 2) == 0 ? OFF : ON )
+
+bool RgbwPacketFormatter::canHandle(const uint8_t *packet, const size_t len) {
+  return len == packetLength && (packet[0] & 0xF0) == RGBW_PROTOCOL_ID_BYTE;
+}
 
 void RgbwPacketFormatter::initializePacket(uint8_t* packet) {
   size_t packetPtr = 0;
 
-  packet[packetPtr++] = RGBW;
+  packet[packetPtr++] = RGBW_PROTOCOL_ID_BYTE;
   packet[packetPtr++] = deviceId >> 8;
   packet[packetPtr++] = deviceId & 0xFF;
   packet[packetPtr++] = 0;
@@ -42,7 +46,7 @@ void RgbwPacketFormatter::previousMode() {
 
 void RgbwPacketFormatter::updateMode(uint8_t mode) {
   command(RGBW_DISCO_MODE, 0);
-  currentPacket[0] = RGBW | mode;
+  currentPacket[0] = RGBW_PROTOCOL_ID_BYTE | mode;
 }
 
 void RgbwPacketFormatter::updateStatus(MiLightStatus status, uint8_t groupId) {
@@ -87,25 +91,36 @@ void RgbwPacketFormatter::updateColorWhite() {
 }
 
 void RgbwPacketFormatter::enableNightMode() {
-  uint8_t button = STATUS_COMMAND(ON, groupId);
+  uint8_t button = STATUS_COMMAND(OFF, groupId);
 
   command(button, 0);
   command(button | 0x10, 0);
 }
 
-void RgbwPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& result) {
+BulbId RgbwPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& result, GroupStateStore* stateStore) {
   uint8_t command = packet[RGBW_COMMAND_INDEX] & 0x7F;
 
-  result["device_id"] = (packet[1] << 8) | packet[2];
-  result["device_type"] = "rgbw";
-  result["group_id"] = packet[RGBW_BRIGHTNESS_GROUP_INDEX] & 0x7;
+  BulbId bulbId(
+    (packet[1] << 8) | packet[2],
+    packet[RGBW_BRIGHTNESS_GROUP_INDEX] & 0x7,
+    REMOTE_TYPE_RGBW
+  );
 
   if (command >= RGBW_ALL_ON && command <= RGBW_GROUP_4_OFF) {
-    result["state"] = (command % 2) ? "ON" : "OFF";
+    result["state"] = (STATUS_FOR_COMMAND(command) == ON) ? "ON" : "OFF";
+
     // Determine group ID from button ID for on/off. The remote's state is from
     // the last packet sent, not the current one, and that can be wrong for
     // on/off commands.
-    result["group_id"] = GROUP_FOR_STATUS_COMMAND(command);
+    bulbId.groupId = GROUP_FOR_STATUS_COMMAND(command);
+  } else if (command >= RGBW_ALL_MAX_LEVEL && command <= RGBW_GROUP_4_MIN_LEVEL) {
+    if ((command % 2) == 0) {
+      result["state"] = "ON";
+      result["command"] = "night_mode";
+    } else {
+      result["command"] = "white_mode";
+    }
+    bulbId.groupId = GROUP_FOR_STATUS_COMMAND(command & 0xF);
   } else if (command == RGBW_BRIGHTNESS) {
     uint8_t brightness = 31;
     brightness -= packet[RGBW_BRIGHTNESS_GROUP_INDEX] >> 3;
@@ -121,14 +136,12 @@ void RgbwPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& result)
   } else if (command == RGBW_SPEED_UP) {
     result["command"] = "mode_speed_up";
   } else if (command == RGBW_DISCO_MODE) {
-    result["mode"] = packet[0] & ~RGBW;
+    result["mode"] = packet[0] & ~RGBW_PROTOCOL_ID_BYTE;
   } else {
     result["button_id"] = command;
   }
 
-  if (! result.containsKey("state")) {
-    result["state"] = "ON";
-  }
+  return bulbId;
 }
 
 void RgbwPacketFormatter::format(uint8_t const* packet, char* buffer) {

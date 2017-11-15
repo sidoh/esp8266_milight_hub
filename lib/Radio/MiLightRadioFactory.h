@@ -15,7 +15,7 @@ public:
   virtual MiLightRadio* create(const MiLightRadioConfig& config) = 0;
 
   static MiLightRadioFactory* fromSettings(const Settings& settings);
-  
+
 };
 
 class NRF24Factory : public MiLightRadioFactory {

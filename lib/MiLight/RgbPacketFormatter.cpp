@@ -4,7 +4,7 @@
 void RgbPacketFormatter::initializePacket(uint8_t *packet) {
   size_t packetPtr = 0;
 
-  packet[packetPtr++] = RGB;
+  packet[packetPtr++] = 0xA4;
   packet[packetPtr++] = deviceId >> 8;
   packet[packetPtr++] = deviceId & 0xFF;
   packet[packetPtr++] = 0;
@@ -79,12 +79,14 @@ void RgbPacketFormatter::previousMode() {
   command(RGB_MODE_DOWN, 0);
 }
 
-void RgbPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& result) {
+BulbId RgbPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& result, GroupStateStore* stateStore) {
   uint8_t command = packet[RGB_COMMAND_INDEX] & 0x7F;
 
-  result["group_id"] = 0;
-  result["device_id"] = (packet[1] << 8) | packet[2];
-  result["device_type"] = "rgb";
+  BulbId bulbId(
+    (packet[1] << 8) | packet[2],
+    0,
+    REMOTE_TYPE_RGB
+  );
 
   if (command == RGB_ON) {
     result["state"] = "ON";
@@ -106,9 +108,7 @@ void RgbPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& result) 
     result["button_id"] = command;
   }
 
-  if (! result.containsKey("state")) {
-    result["state"] = "ON";
-  }
+  return bulbId;
 }
 
 void RgbPacketFormatter::format(uint8_t const* packet, char* buffer) {

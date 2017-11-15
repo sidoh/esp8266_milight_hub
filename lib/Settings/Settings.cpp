@@ -62,6 +62,24 @@ void Settings::updateGatewayConfigs(JsonArray& arr) {
   }
 }
 
+void Settings::updateGroupStateFields(JsonArray &arr) {
+  if (arr.success()) {
+    if (this->groupStateFields) {
+      delete this->groupStateFields;
+    }
+
+    this->groupStateFields = new GroupStateField[arr.size()];
+    this->numGroupStateFields = arr.size();
+
+    for (size_t i = 0; i < arr.size(); i++) {
+      String name = arr[i];
+      name.toLowerCase();
+
+      this->groupStateFields[i] = GroupStateFieldHelpers::getFieldByName(name.c_str());
+    }
+  }
+}
+
 void Settings::patch(JsonObject& parsedSettings) {
   if (parsedSettings.success()) {
     this->setIfPresent<String>(parsedSettings, "admin_username", adminUsername);
@@ -77,8 +95,14 @@ void Settings::patch(JsonObject& parsedSettings) {
     this->setIfPresent(parsedSettings, "mqtt_password", mqttPassword);
     this->setIfPresent(parsedSettings, "mqtt_topic_pattern", mqttTopicPattern);
     this->setIfPresent(parsedSettings, "mqtt_update_topic_pattern", mqttUpdateTopicPattern);
+    this->setIfPresent(parsedSettings, "mqtt_state_topic_pattern", mqttStateTopicPattern);
     this->setIfPresent(parsedSettings, "discovery_port", discoveryPort);
     this->setIfPresent(parsedSettings, "listen_repeats", listenRepeats);
+    this->setIfPresent(parsedSettings, "state_flush_interval", stateFlushInterval);
+    this->setIfPresent(parsedSettings, "mqtt_state_rate_limit", mqttStateRateLimit);
+    this->setIfPresent(parsedSettings, "packet_repeat_throttle_threshold", packetRepeatThrottleThreshold);
+    this->setIfPresent(parsedSettings, "packet_repeat_throttle_sensitivity", packetRepeatThrottleSensitivity);
+    this->setIfPresent(parsedSettings, "packet_repeat_minimum", packetRepeatMinimum);
 
     if (parsedSettings.containsKey("radio_interface_type")) {
       this->radioInterfaceType = Settings::typeFromString(parsedSettings["radio_interface_type"]);
@@ -91,6 +115,10 @@ void Settings::patch(JsonObject& parsedSettings) {
     if (parsedSettings.containsKey("gateway_configs")) {
       JsonArray& arr = parsedSettings["gateway_configs"];
       updateGatewayConfigs(arr);
+    }
+    if (parsedSettings.containsKey("group_state_fields")) {
+      JsonArray& arr = parsedSettings["group_state_fields"];
+      updateGroupStateFields(arr);
     }
   }
 }
@@ -143,8 +171,14 @@ void Settings::serialize(Stream& stream, const bool prettyPrint) {
   root["mqtt_password"] = this->mqttPassword;
   root["mqtt_topic_pattern"] = this->mqttTopicPattern;
   root["mqtt_update_topic_pattern"] = this->mqttUpdateTopicPattern;
+  root["mqtt_state_topic_pattern"] = this->mqttStateTopicPattern;
   root["discovery_port"] = this->discoveryPort;
   root["listen_repeats"] = this->listenRepeats;
+  root["state_flush_interval"] = this->stateFlushInterval;
+  root["mqtt_state_rate_limit"] = this->mqttStateRateLimit;
+  root["packet_repeat_throttle_sensitivity"] = this->packetRepeatThrottleSensitivity;
+  root["packet_repeat_throttle_threshold"] = this->packetRepeatThrottleThreshold;
+  root["packet_repeat_minimum"] = this->packetRepeatMinimum;
 
   if (this->deviceIds) {
     JsonArray& arr = jsonBuffer.createArray();
@@ -163,6 +197,15 @@ void Settings::serialize(Stream& stream, const bool prettyPrint) {
     }
 
     root["gateway_configs"] = arr;
+  }
+
+  if (this->groupStateFields) {
+    JsonArray& arr = jsonBuffer.createArray();
+    for (size_t i = 0; i < this->numGroupStateFields; i++) {
+      arr.add(GroupStateFieldHelpers::getFieldName(this->groupStateFields[i]));
+    }
+
+    root["group_state_fields"] = arr;
   }
 
   if (prettyPrint) {

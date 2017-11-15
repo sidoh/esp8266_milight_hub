@@ -16,30 +16,28 @@ void V5MiLightUdpServer::handleCommand(uint8_t command, uint8_t commandArg) {
     const MiLightStatus status = (command % 2) == 1 ? ON : OFF;
     const uint8_t groupId = (command - UDP_RGBW_GROUP_1_ON + 2)/2;
 
-    client->prepare(MilightRgbwConfig, deviceId, groupId);
+    client->prepare(&FUT096Config, deviceId, groupId);
     client->updateStatus(status);
 
     this->lastGroup = groupId;
   // Command set_white for RGBW
-  } else if (command >= UDP_RGBW_GROUP_ALL_WHITE && command <= UDP_RGBW_GROUP_4_WHITE) {
+ } else if (command == UDP_RGBW_GROUP_ALL_WHITE || command == UDP_RGBW_GROUP_1_WHITE || command == UDP_RGBW_GROUP_2_WHITE || command == UDP_RGBW_GROUP_3_WHITE || command == UDP_RGBW_GROUP_4_WHITE) {
     const uint8_t groupId = (command - UDP_RGBW_GROUP_ALL_WHITE)/2;
-    client->prepare(MilightRgbwConfig, deviceId, groupId);
+    client->prepare(&FUT096Config, deviceId, groupId);
     client->updateColorWhite();
-    this->lastGroup = groupId;
-    // On/off for CCT
-  } else if (CctPacketFormatter::cctCommandIdToGroup(command) != 255) {
-    uint8_t cctGroup = CctPacketFormatter::cctCommandIdToGroup(command);
-    client->prepare(MilightCctConfig, deviceId, cctGroup);
-    this->lastGroup = cctGroup;
 
-    // Night mode commands are same as off commands with MSB set
-    if ((command & 0x80) == 0x80) {
-      client->enableNightMode();
-    } else {
-      client->updateStatus(CctPacketFormatter::cctCommandToStatus(command));
-    }
-  } else {
-    client->prepare(MilightRgbwConfig, deviceId, lastGroup);
+    this->lastGroup = groupId;
+  // Set night_mode for RGBW
+ } else if (command == UDP_RGBW_GROUP_ALL_NIGHT || command == UDP_RGBW_GROUP_1_NIGHT || command == UDP_RGBW_GROUP_2_NIGHT || command == UDP_RGBW_GROUP_3_NIGHT || command == UDP_RGBW_GROUP_4_NIGHT) {
+    const uint8_t groupId = (command - UDP_RGBW_GROUP_1_NIGHT + 2)/2;
+    if (command == UDP_RGBW_GROUP_ALL_NIGHT) const uint8_t groupId = 0;
+
+    client->prepare(&FUT096Config, deviceId, groupId);
+    client->enableNightMode();
+
+    this->lastGroup = groupId;
+ } else {
+    client->prepare(&FUT096Config, deviceId, lastGroup);
     bool handled = true;
 
     switch (command) {
@@ -84,7 +82,20 @@ void V5MiLightUdpServer::handleCommand(uint8_t command, uint8_t commandArg) {
       return;
     }
 
-    client->prepare(MilightCctConfig, deviceId, lastGroup);
+    uint8_t onOffGroup = CctPacketFormatter::cctCommandIdToGroup(command);
+
+    if (onOffGroup != 255) {
+      client->prepare(&FUT091Config, deviceId, onOffGroup);
+      // Night mode commands are same as off commands with MSB set
+      if ((command & 0x80) == 0x80) {
+        client->enableNightMode();
+      } else {
+        client->updateStatus(CctPacketFormatter::cctCommandToStatus(command));
+      }
+      return;
+    }
+
+    client->prepare(&FUT091Config, deviceId, lastGroup);
 
     switch(command) {
       case UDP_CCT_BRIGHTNESS_DOWN:

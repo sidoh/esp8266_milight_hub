@@ -1,9 +1,9 @@
 #include <PacketFormatter.h>
 
-uint8_t* PacketFormatter::PACKET_BUFFER = new uint8_t[PACKET_FORMATTER_BUFFER_SIZE];
+static uint8_t* PACKET_BUFFER = new uint8_t[PACKET_FORMATTER_BUFFER_SIZE];
 
 PacketStream::PacketStream()
-    : packetStream(NULL),
+    : packetStream(PACKET_BUFFER),
       numPackets(0),
       packetLength(0),
       currentPacket(0)
@@ -26,7 +26,10 @@ PacketFormatter::PacketFormatter(const size_t packetLength, const size_t maxPack
     held(false)
 {
   packetStream.packetLength = packetLength;
-  packetStream.packetStream = PACKET_BUFFER;
+}
+
+bool PacketFormatter::canHandle(const uint8_t *packet, const size_t len) {
+  return len == packetLength;
 }
 
 void PacketFormatter::finalizePacket(uint8_t* packet) { }
@@ -61,7 +64,9 @@ void PacketFormatter::enableNightMode() { }
 void PacketFormatter::updateTemperature(uint8_t value) { }
 void PacketFormatter::updateSaturation(uint8_t value) { }
 
-void PacketFormatter::parsePacket(const uint8_t *packet, JsonObject &result) { }
+BulbId PacketFormatter::parsePacket(const uint8_t *packet, JsonObject &result, GroupStateStore* stateStore) {
+  return DEFAULT_BULB_ID;
+}
 
 void PacketFormatter::pair() {
   for (size_t i = 0; i < 5; i++) {
@@ -109,6 +114,12 @@ void PacketFormatter::reset() {
 void PacketFormatter::pushPacket() {
   if (numPackets > 0) {
     finalizePacket(currentPacket);
+  }
+
+  // Make sure there's enough buffer to add another packet.
+  if ((currentPacket + packetLength) >= PACKET_BUFFER + PACKET_FORMATTER_BUFFER_SIZE) {
+    Serial.println(F("ERROR: packet buffer full!  Cannot buffer a new packet.  THIS IS A BUG!"));
+    return;
   }
 
   currentPacket = PACKET_BUFFER + (numPackets * packetLength);

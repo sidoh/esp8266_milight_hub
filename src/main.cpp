@@ -5,7 +5,10 @@
 #include <FS.h>
 #include <IntParsing.h>
 #include <Size.h>
+#include <LinkedList.h>
+#include <GroupStateStore.h>
 #include <MiLightRadioConfig.h>
+#include <MiLightRemoteConfig.h>
 #include <MiLightHttpServer.h>
 #include <Settings.h>
 #include <MiLightUdpServer.h>
@@ -15,6 +18,7 @@
 #include <RGBConverter.h>
 #include <MiLightDiscoveryServer.h>
 #include <MiLightClient.h>
+#include <BulbStateUpdater.h>
 
 WiFiManager wifiManager;
 
@@ -27,10 +31,17 @@ MqttClient* mqttClient = NULL;
 MiLightDiscoveryServer* discoveryServer = NULL;
 uint8_t currentRadioType = 0;
 
+// For tracking and managing group state
+GroupStateStore* stateStore = NULL;
+BulbStateUpdater* bulbStateUpdater = NULL;
+
 int numUdpServers = 0;
-MiLightUdpServer** udpServers;
+MiLightUdpServer** udpServers = NULL;
 WiFiUDP udpSeder;
 
+/**
+ * Set up UDP servers (both v5 and v6).  Clean up old ones if necessary.
+ */
 void initMilightUdpServers() {
   if (udpServers) {
     for (int i = 0; i < numUdpServers; i++) {
@@ -64,44 +75,100 @@ void initMilightUdpServers() {
   }
 }
 
-void onPacketSentHandler(uint8_t* packet, const MiLightRadioConfig& config) {
+/**
+ * Milight RF packet handler.
+ *
+ * Called both when a packet is sent locally, and when an intercepted packet
+ * is read.
+ */
+void onPacketSentHandler(uint8_t* packet, const MiLightRemoteConfig& config) {
   StaticJsonBuffer<200> buffer;
   JsonObject& result = buffer.createObject();
-  config.packetFormatter->parsePacket(packet, result);
+  BulbId bulbId = config.packetFormatter->parsePacket(packet, result, stateStore);
 
-  uint16_t deviceId = result["device_id"];
-  uint16_t groupId = result["group_id"];
-  MiLightRadioType type = MiLightRadioConfig::fromString(result["device_type"])->type;
+  if (&bulbId == &DEFAULT_BULB_ID) {
+    Serial.println(F("Skipping packet handler because packet was not decoded"));
+    return;
+  }
 
-  char output[200];
-  result.printTo(output);
+  const MiLightRemoteConfig& remoteConfig =
+    *MiLightRemoteConfig::fromType(bulbId.deviceType);
+
+  GroupState& groupState = stateStore->get(bulbId);
+  groupState.patch(result);
+  stateStore->set(bulbId, groupState);
 
   if (mqttClient) {
-    mqttClient->sendUpdate(type, deviceId, groupId, output);
+    // Sends the state delta derived from the raw packet
+    char output[200];
+    result.printTo(output);
+    mqttClient->sendUpdate(remoteConfig, bulbId.deviceId, bulbId.groupId, output);
+
+    // Sends the entire state
+    bulbStateUpdater->enqueueUpdate(bulbId, groupState);
   }
-  httpServer->handlePacketSent(packet, config);
+
+  httpServer->handlePacketSent(packet, remoteConfig);
 }
 
+/**
+ * Listen for packets on one radio config.  Cycles through all configs as its
+ * called.
+ */
 void handleListen() {
   if (! settings.listenRepeats) {
     return;
   }
 
-  MiLightRadioConfig* config = MiLightRadioConfig::ALL_CONFIGS[
-    currentRadioType++ % MiLightRadioConfig::NUM_CONFIGS
-  ];
-  milightClient->prepare(*config);
+  MiLightRadio* radio = milightClient->switchRadio(currentRadioType++ % milightClient->getNumRadios());
 
   for (size_t i = 0; i < settings.listenRepeats; i++) {
     if (milightClient->available()) {
-      uint8_t readPacket[9];
-      milightClient->read(readPacket);
+      uint8_t readPacket[MILIGHT_MAX_PACKET_LENGTH];
+      size_t packetLen = milightClient->read(readPacket);
 
-      onPacketSentHandler(readPacket, *config);
+      const MiLightRemoteConfig* remoteConfig = MiLightRemoteConfig::fromReceivedPacket(
+        radio->config(),
+        readPacket,
+        packetLen
+      );
+
+      if (remoteConfig == NULL) {
+        // This can happen under normal circumstances, so not an error condition
+#ifdef DEBUG_PRINTF
+        Serial.println(F("WARNING: Couldn't find remote for received packet"));
+#endif
+        return;
+      }
+
+      onPacketSentHandler(readPacket, *remoteConfig);
     }
   }
 }
 
+/**
+ * Called when MqttClient#update is first being processed.  Stop sending updates
+ * and aggregate state changes until the update is finished.
+ */
+void onUpdateBegin() {
+  if (bulbStateUpdater) {
+    bulbStateUpdater->disable();
+  }
+}
+
+/**
+ * Called when MqttClient#update is finished processing.  Re-enable state
+ * updates, which will flush accumulated state changes.
+ */
+void onUpdateEnd() {
+  if (bulbStateUpdater) {
+    bulbStateUpdater->enable();
+  }
+}
+
+/**
+ * Apply what's in the Settings object.
+ */
 void applySettings() {
   if (milightClient) {
     delete milightClient;
@@ -111,6 +178,13 @@ void applySettings() {
   }
   if (mqttClient) {
     delete mqttClient;
+    delete bulbStateUpdater;
+
+    mqttClient = NULL;
+    bulbStateUpdater = NULL;
+  }
+  if (stateStore) {
+    delete stateStore;
   }
 
   radioFactory = MiLightRadioFactory::fromSettings(settings);
@@ -119,13 +193,25 @@ void applySettings() {
     Serial.println(F("ERROR: unable to construct radio factory"));
   }
 
-  milightClient = new MiLightClient(radioFactory);
+  stateStore = new GroupStateStore(MILIGHT_MAX_STATE_ITEMS, settings.stateFlushInterval);
+
+  milightClient = new MiLightClient(
+    radioFactory,
+    *stateStore,
+    settings.packetRepeatThrottleThreshold,
+    settings.packetRepeatThrottleSensitivity,
+    settings.packetRepeatMinimum
+  );
   milightClient->begin();
   milightClient->onPacketSent(onPacketSentHandler);
+  milightClient->onUpdateBegin(onUpdateBegin);
+  milightClient->onUpdateEnd(onUpdateEnd);
+  milightClient->setResendCount(settings.packetRepeats);
 
   if (settings.mqttServer().length() > 0) {
     mqttClient = new MqttClient(settings, milightClient);
     mqttClient->begin();
+    bulbStateUpdater = new BulbStateUpdater(settings, *mqttClient, *stateStore);
   }
 
   initMilightUdpServers();
@@ -140,6 +226,9 @@ void applySettings() {
   }
 }
 
+/**
+ *
+ */
 bool shouldRestart() {
   if (! settings.isAutoRestartEnabled()) {
     return false;
@@ -150,7 +239,11 @@ bool shouldRestart() {
 
 void setup() {
   Serial.begin(9600);
-  wifiManager.autoConnect();
+  String ssid = "ESP" + String(ESP.getChipId());
+
+  wifiManager.setConfigPortalTimeout(180);
+  wifiManager.autoConnect(ssid.c_str(), "milightHub");
+
   SPIFFS.begin();
   Settings::load(settings);
   applySettings();
@@ -169,7 +262,7 @@ void setup() {
   SSDP.setDeviceType("upnp:rootdevice");
   SSDP.begin();
 
-  httpServer = new MiLightHttpServer(settings, milightClient);
+  httpServer = new MiLightHttpServer(settings, milightClient, stateStore);
   httpServer->onSettingsSaved(applySettings);
   httpServer->on("/description.xml", HTTP_GET, []() { SSDP.schema(httpServer->client()); });
   httpServer->begin();
@@ -182,6 +275,7 @@ void loop() {
 
   if (mqttClient) {
     mqttClient->handleClient();
+    bulbStateUpdater->loop();
   }
 
   if (udpServers) {
@@ -195,6 +289,8 @@ void loop() {
   }
 
   handleListen();
+
+  stateStore->limitedFlush();
 
   if (shouldRestart()) {
     Serial.println(F("Auto-restart triggered. Restarting..."));

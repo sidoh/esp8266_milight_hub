@@ -23,7 +23,7 @@ enum V2CommandArgIds {
 class V6RgbCctCommandHandler : public V6CommandHandler {
 public:
   V6RgbCctCommandHandler()
-    : V6CommandHandler(0x0800, MilightRgbCctConfig)
+    : V6CommandHandler(0x0800, FUT092Config)
   { }
 
   virtual bool handleCommand(

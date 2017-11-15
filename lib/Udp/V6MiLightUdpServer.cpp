@@ -203,7 +203,7 @@ void V6MiLightUdpServer::handleCommand(
   uint32_t cmdArg = readInt<uint32_t>(cmd+5);
 
 #ifdef MILIGHT_UDP_DEBUG
-  printf_P("Command cmdType: %02X, cmdHeader: %08X, cmdArg: %08X\n", cmdType, cmdHeader, cmdArg);
+  printf("Command cmdType: %02X, cmdHeader: %08X, cmdArg: %08X\n", cmdType, cmdHeader, cmdArg);
 #endif
 
   bool handled = false;
@@ -232,11 +232,11 @@ void V6MiLightUdpServer::handleCommand(
   }
 
 #ifdef MILIGHT_UDP_DEBUG
-  printf_P("V6MiLightUdpServer - Unhandled command: ");
+  printf("V6MiLightUdpServer - Unhandled command: ");
   for (size_t i = 0; i < V6_COMMAND_LEN; i++) {
-    printf_P("%02X ", cmd[i]);
+    printf("%02X ", cmd[i]);
   }
-  printf_P("\n");
+  printf("\n");
 #endif
 }
 
@@ -244,7 +244,7 @@ void V6MiLightUdpServer::handleHeartbeat(uint16_t sessionId) {
   char header[] = { 0xD8, 0x00, 0x00, 0x00, 0x07 };
   memcpy(responseBuffer, header, size(header));
   writeMacAddr(responseBuffer + 5);
-  
+
   responseBuffer[11] = 0;
 
   sendResponse(sessionId, responseBuffer, 12);
@@ -274,7 +274,7 @@ void V6MiLightUdpServer::handlePacket(uint8_t* packet, size_t packetSize) {
     uint8_t checksum = packet[21];
 
 #ifdef MILIGHT_UDP_DEBUG
-    printf_P("session: %04X, sequence: %d, group: %d, checksum: %d\n", sessionId, sequenceNum, group, checksum);
+    printf("session: %04X, sequence: %d, group: %d, checksum: %d\n", sessionId, sequenceNum, group, checksum);
 #endif
 
     handleCommand(sessionId, sequenceNum, cmd, group, checksum);

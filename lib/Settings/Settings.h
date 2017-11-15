@@ -1,6 +1,8 @@
 #include <Arduino.h>
 #include <StringStream.h>
 #include <ArduinoJson.h>
+#include <GroupStateField.h>
+#include <Size.h>
 
 #ifndef _SETTINGS_H_INCLUDED
 #define _SETTINGS_H_INCLUDED
@@ -14,6 +16,14 @@
 
 #ifndef MILIGHT_HUB_VERSION
 #define MILIGHT_HUB_VERSION unknown
+#endif
+
+#ifndef MILIGHT_MAX_STATE_ITEMS
+#define MILIGHT_MAX_STATE_ITEMS 100
+#endif
+
+#ifndef MILIGHT_MAX_STALE_MQTT_GROUPS
+#define MILIGHT_MAX_STALE_MQTT_GROUPS 10
 #endif
 
 #define SETTINGS_FILE  "/config.json"
@@ -31,6 +41,15 @@
 enum RadioInterfaceType {
   nRF24 = 0,
   LT8900 = 1,
+};
+
+static const GroupStateField DEFAULT_GROUP_STATE_FIELDS[] = {
+  GroupStateField::STATE,
+  GroupStateField::BRIGHTNESS,
+  GroupStateField::COLOR,
+  GroupStateField::MODE,
+  GroupStateField::COLOR_TEMP,
+  GroupStateField::BULB_MODE
 };
 
 class GatewayConfig {
@@ -60,12 +79,25 @@ public:
     gatewayConfigs(NULL),
     numDeviceIds(0),
     numGatewayConfigs(0),
-    packetRepeats(10),
-    httpRepeatFactor(5),
+    packetRepeats(50),
+    httpRepeatFactor(1),
     listenRepeats(3),
     _autoRestartPeriod(0),
-    discoveryPort(48899)
-  { }
+    discoveryPort(48899),
+    stateFlushInterval(10000),
+    mqttStateRateLimit(500),
+    packetRepeatThrottleThreshold(200),
+    packetRepeatThrottleSensitivity(0),
+    packetRepeatMinimum(3),
+    groupStateFields(NULL),
+    numGroupStateFields(0)
+  {
+    if (groupStateFields == NULL) {
+      numGroupStateFields = size(DEFAULT_GROUP_STATE_FIELDS);
+      groupStateFields = new GroupStateField[numGroupStateFields];
+      memcpy(groupStateFields, DEFAULT_GROUP_STATE_FIELDS, numGroupStateFields * sizeof(GroupStateField));
+    }
+  }
 
   ~Settings() {
     if (deviceIds) {
@@ -88,6 +120,7 @@ public:
   void serialize(Stream& stream, const bool prettyPrint = false);
   void updateDeviceIds(JsonArray& arr);
   void updateGatewayConfigs(JsonArray& arr);
+  void updateGroupStateFields(JsonArray& arr);
   void patch(JsonObject& obj);
   String mqttServer();
   uint16_t mqttPort();
@@ -109,8 +142,16 @@ public:
   String mqttPassword;
   String mqttTopicPattern;
   String mqttUpdateTopicPattern;
+  String mqttStateTopicPattern;
+  GroupStateField *groupStateFields;
+  size_t numGroupStateFields;
   uint16_t discoveryPort;
   uint8_t listenRepeats;
+  size_t stateFlushInterval;
+  size_t mqttStateRateLimit;
+  size_t packetRepeatThrottleSensitivity;
+  size_t packetRepeatThrottleThreshold;
+  size_t packetRepeatMinimum;
 
 protected:
   size_t _autoRestartPeriod;

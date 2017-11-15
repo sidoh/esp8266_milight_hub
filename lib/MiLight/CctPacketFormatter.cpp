@@ -1,10 +1,15 @@
 #include <CctPacketFormatter.h>
-#include <MiLightButtons.h>
+
+static const uint8_t CCT_PROTOCOL_ID = 0x5A;
+
+bool CctPacketFormatter::canHandle(const uint8_t *packet, const size_t len) {
+  return len == packetLength && packet[0] == CCT_PROTOCOL_ID;
+}
 
 void CctPacketFormatter::initializePacket(uint8_t* packet) {
   size_t packetPtr = 0;
 
-  packet[packetPtr++] = CCT;
+  packet[packetPtr++] = CCT_PROTOCOL_ID;
   packet[packetPtr++] = deviceId >> 8;
   packet[packetPtr++] = deviceId & 0xFF;
   packet[packetPtr++] = groupId;
@@ -146,12 +151,14 @@ MiLightStatus CctPacketFormatter::cctCommandToStatus(uint8_t command) {
   }
 }
 
-void CctPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& result) {
+BulbId CctPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& result, GroupStateStore* stateStore) {
   uint8_t command = packet[CCT_COMMAND_INDEX] & 0x7F;
 
-  result["device_id"] = (packet[1] << 8) | packet[2];
-  result["device_type"] = "cct";
-  result["group_id"] = packet[3];
+  BulbId bulbId(
+    (packet[1] << 8) | packet[2],
+    packet[3],
+    REMOTE_TYPE_CCT
+  );
 
   uint8_t onOffGroupId = cctCommandIdToGroup(command);
   if (onOffGroupId < 255) {
@@ -168,9 +175,7 @@ void CctPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& result) 
     result["button_id"] = command;
   }
 
-  if (! result.containsKey("state")) {
-    result["state"] = "ON";
-  }
+  return bulbId;
 }
 
 void CctPacketFormatter::format(uint8_t const* packet, char* buffer) {

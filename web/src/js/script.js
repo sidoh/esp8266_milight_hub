@@ -1,8 +1,31 @@
+var UNIT_PARAMS = {
+  minMireds: 153,
+  maxMireds: 370,
+  maxBrightness: 255
+};
+
 var FORM_SETTINGS = [
   "admin_username", "admin_password", "ce_pin", "csn_pin", "reset_pin","packet_repeats",
   "http_repeat_factor", "auto_restart_period", "discovery_port", "mqtt_server",
-  "mqtt_topic_pattern", "mqtt_update_topic_pattern", "mqtt_username", "mqtt_password",
-  "radio_interface_type", "listen_repeats"
+  "mqtt_topic_pattern", "mqtt_update_topic_pattern", "mqtt_state_topic_pattern",
+  "mqtt_username", "mqtt_password", "radio_interface_type", "listen_repeats",
+  "state_flush_interval", "mqtt_state_rate_limit", "packet_repeat_throttle_threshold",
+  "packet_repeat_throttle_sensitivity", "packet_repeat_minimum", "group_state_fields"
+];
+
+// TODO: sync this with GroupStateField.h
+var GROUP_STATE_KEYS = [
+  "state",
+  "status",
+  "brightness",
+  "level",
+  "hue",
+  "saturation",
+  "color",
+  "mode",
+  "kelvin",
+  "color_temp",
+  "bulb_mode"
 ];
 
 var FORM_SETTINGS_HELP = {
@@ -22,10 +45,28 @@ var FORM_SETTINGS_HELP = {
   mqtt_update_topic_pattern : "Pattern to publish MQTT updates. Packets that " +
     "are received from other devices, and packets that are sent from this device will " +
     "result in updates being sent.",
+  mqtt_state_topic_pattern : "Pattern for MQTT topic to publish state to. When a group " +
+    "changes state, the full known state of the group will be published to this topic " +
+    "pattern.",
   discovery_port : "UDP port to listen for discovery packets on. Defaults to " +
     "the same port used by MiLight devices, 48899. Use 0 to disable.",
   listen_repeats : "Increasing this increases the amount of time spent listening for " +
-    "packets. Set to 0 to disable listening. Default is 3."
+    "packets. Set to 0 to disable listening. Default is 3.",
+  state_flush_interval : "Minimum number of milliseconds between flushing state to flash. " +
+    "Set to 0 to disable delay and immediately persist state to flash.",
+  mqtt_state_rate_limit : "Minimum number of milliseconds between MQTT updates of bulb state. " +
+    "Defaults to 500.",
+  packet_repeat_throttle_threshold : "Controls how packet repeats are throttled.  Packets sent " +
+    "with less time between them than this value (in milliseconds) will cause " +
+    "packet repeats to be throttled down.  More than this value will unthrottle " +
+    "up.  Defaults to 200ms",
+  packet_repeat_throttle_sensitivity : "Controls how packet repeats are throttled. " +
+    "Higher values cause packets to be throttled up and down faster.  Set to 0 " +
+    "to disable throttling.  Defaults to 1.  Maximum value 1000.",
+  packet_repeat_minimum : "Controls how far throttling can decrease the number " +
+    "of repeated packets.  Defaults to 3.",
+  group_state_fields : "Selects which fields should be included in MQTT state updates and " +
+    "REST responses for bulb state."
 }
 
 var UDP_PROTOCOL_VERSIONS = [ 5, 6 ];
@@ -52,7 +93,6 @@ var activeUrl = function() {
     , mode = getCurrentMode();
 
   if (deviceId == "") {
-    alert("Please enter a device ID.");
     throw "Must enter device ID";
   }
 
@@ -69,14 +109,20 @@ var getCurrentMode = function() {
 
 var updateGroup = _.throttle(
   function(params) {
-    $.ajax(
-      activeUrl(),
-      {
+    try {
+      $.ajax({
+        url: activeUrl(),
         method: 'PUT',
         data: JSON.stringify(params),
-        contentType: 'application/json'
-      }
-    );
+        contentType: 'application/json',
+        success: function(e) {
+          console.log(e);
+          handleStateUpdate(e);
+        }
+      });
+    } catch (e) {
+      alert(e);
+    }
   },
   1000
 );
@@ -146,6 +192,11 @@ var loadSettings = function() {
         selectize.addOption({text: toHex(v), value: v});
       });
       selectize.refreshOptions();
+    }
+
+    if (val.group_state_fields) {
+      var elmt = $('select[name="group_state_fields"]');
+      elmt.selectpicker('val', val.group_state_fields);
     }
 
     var gatewayForm = $('#gateway-server-configs').html('');
@@ -324,6 +375,47 @@ var handleCheckForUpdates = function() {
   );
 };
 
+var handleStateUpdate = function(state) {
+  console.log(state);
+  if (state.state) {
+    // Set without firing an event
+    $('input[name="status"]')
+      .prop('checked', state.state == 'ON')
+      .bootstrapToggle('destroy')
+      .bootstrapToggle();
+  }
+  if (state.color) {
+    // Browsers don't support HSV, but saturation from HSL doesn't match
+    // saturation from bulb state.
+    var hsl = rgbToHsl(state.color.r, state.color.g, state.color.b);
+    var hsv = RGBtoHSV(state.color.r, state.color.g, state.color.b);
+
+    $('input[name="saturation"]').slider('setValue', hsv.s*100);
+    updatePreviewColor(hsl.h*360,hsl.s*100,hsl.l*100);
+  }
+  if (state.color_temp) {
+    var scaledTemp
+      = 100*(state.color_temp - UNIT_PARAMS.minMireds) / (UNIT_PARAMS.maxMireds - UNIT_PARAMS.minMireds);
+    $('input[name="temperature"]').slider('setValue', scaledTemp);
+  }
+  if (state.brightness) {
+    var scaledBrightness = state.brightness * (100 / UNIT_PARAMS.maxBrightness);
+    $('input[name="level"]').slider('setValue', scaledBrightness);
+  }
+};
+
+var updatePreviewColor = function(hue, saturation, lightness) {
+  if (! saturation) {
+    saturation = 100;
+  }
+  if (! lightness) {
+    lightness = 50;
+  }
+  $('.hue-value-display').css({
+    backgroundColor: "hsl(" + hue + "," + saturation + "%," + lightness + "%)"
+  });
+};
+
 $(function() {
   $('.radio-option').click(function() {
     $(this).prev().prop('checked', true);
@@ -336,9 +428,7 @@ $(function() {
       , hue = Math.round(360*pct)
       ;
 
-    $('.hue-value-display').css({
-      backgroundColor: "hsl(" + hue + ",100%,50%)"
-    });
+    updatePreviewColor(hue);
 
     updateGroup({hue: hue});
   };
@@ -399,6 +489,29 @@ $(function() {
     $(this).closest('tr').remove();
   });
 
+  for (var i = 0; i < 9; i++) {
+    $('.mode-dropdown').append('<li><a href="#" data-mode-value="' + i + '">' + i + '</a></li>');
+  }
+
+  $('body').on('click', '.mode-dropdown li a', function(e) {
+    updateGroup({mode: $(this).data('mode-value')});
+    e.preventDefault();
+    return false;
+  });
+
+  $('input[name="mode"],input[name="options"],#deviceId').change(function(e) {
+    try {
+      $.getJSON(
+        activeUrl(),
+        function(e) {
+          handleStateUpdate(e);
+        }
+      );
+    } catch (e) {
+      // Skip
+    }
+  });
+
   selectize = $('#deviceId').selectize({
     create: true,
     sortField: 'text',
@@ -438,7 +551,7 @@ $(function() {
 
     elmt += '</div>';
 
-    if(k === "radio_interface_type") {
+    if (k === "radio_interface_type") {
       elmt += '<div class="btn-group" id="radio_interface_type" data-toggle="buttons">' +
         '<label class="btn btn-secondary active">' +
           '<input type="radio" id="nrf24" name="radio_interface_type" autocomplete="off" value="nRF24" /> nRF24' +
@@ -447,6 +560,12 @@ $(function() {
           '<input type="radio" id="lt8900" name="radio_interface_type" autocomplete="off" value="LT8900" /> PL1167/LT8900' +
         '</label>' +
       '</div>';
+    } else if (k == 'group_state_fields') {
+      elmt += '<select class="selectpicker" name="group_state_fields" multiple>';
+      GROUP_STATE_KEYS.forEach(function(stateKey) {
+        elmt += '<option>' + stateKey + '</option>';
+      });
+      elmt += '</select>';
     } else {
       elmt += '<input type="text" class="form-control" name="' + k + '"/>';
       elmt += '</div>';
@@ -457,17 +576,23 @@ $(function() {
 
   $('#settings').prepend(settings);
   $('#settings').submit(function(e) {
-    var obj = {};
+    e.preventDefault();
 
-    FORM_SETTINGS.forEach(function(k) {
-      var elmt = $('#settings input[name="' + k + '"]');
+    var obj = $('#settings')
+      .serializeArray()
+      .reduce(function(a, x) {
+        var val = a[x.name];
 
-      if (elmt.attr('type') === 'radio') {
-        obj[k] = elmt.filter(':checked').val();
-      } else {
-        obj[k] = elmt.val();
-      }
-    });
+        if (! val) {
+          a[x.name] = x.value;
+        } else if (! Array.isArray(val)) {
+          a[x.name] = [val, x.value];
+        } else {
+          val.push(x.value);
+        }
+
+        return a;
+      }, {});
 
     // pretty hacky. whatever.
     obj.device_ids = _.map(
@@ -476,6 +601,10 @@ $(function() {
         return $(x).data('value')
       }
     );
+
+    // Make sure we're submitting a value for group_state_fields (will be empty
+    // if no values were selected).
+    obj = $.extend({group_state_fields: []}, obj);
 
     $.ajax(
       "/settings",
@@ -486,7 +615,6 @@ $(function() {
       }
     );
 
-    e.preventDefault();
     return false;
   });
 

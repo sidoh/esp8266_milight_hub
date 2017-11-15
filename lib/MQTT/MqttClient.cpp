@@ -1,9 +1,11 @@
+#include <stddef.h>
 #include <MqttClient.h>
 #include <TokenIterator.h>
 #include <UrlTokenBindings.h>
 #include <IntParsing.h>
 #include <ArduinoJson.h>
 #include <WiFiClient.h>
+#include <MiLightRadioConfig.h>
 
 MqttClient::MqttClient(Settings& settings, MiLightClient*& milightClient)
   : milightClient(milightClient),
@@ -85,25 +87,12 @@ void MqttClient::handleClient() {
   mqttClient->loop();
 }
 
-void MqttClient::sendUpdate(MiLightRadioType type, uint16_t deviceId, uint16_t groupId, const char* update) {
-  String topic = settings.mqttUpdateTopicPattern;
+void MqttClient::sendUpdate(const MiLightRemoteConfig& remoteConfig, uint16_t deviceId, uint16_t groupId, const char* update) {
+  publish(settings.mqttUpdateTopicPattern, remoteConfig, deviceId, groupId, update);
+}
 
-  if (topic.length() == 0) {
-    return;
-  }
-
-  String deviceIdStr = String(deviceId, 16);
-  deviceIdStr.toUpperCase();
-
-  topic.replace(":device_id", String("0x") + deviceIdStr);
-  topic.replace(":group_id", String(groupId));
-  topic.replace(":device_type", MiLightRadioConfig::fromType(type)->name);
-
-#ifdef MQTT_DEBUG
-  printf_P(PSTR("MqttClient - publishing update to %s: %s\n"), topic.c_str(), update);
-#endif
-
-  mqttClient->publish(topic.c_str(), update);
+void MqttClient::sendState(const MiLightRemoteConfig& remoteConfig, uint16_t deviceId, uint16_t groupId, const char* update) {
+  publish(settings.mqttStateTopicPattern, remoteConfig, deviceId, groupId, update, true);
 }
 
 void MqttClient::subscribe() {
@@ -120,16 +109,38 @@ void MqttClient::subscribe() {
   mqttClient->subscribe(topic.c_str());
 }
 
+void MqttClient::publish(
+  const String& _topic,
+  const MiLightRemoteConfig &remoteConfig,
+  uint16_t deviceId,
+  uint16_t groupId,
+  const char* message,
+  const bool retain
+) {
+  if (_topic.length() == 0) {
+    return;
+  }
+
+  String topic = _topic;
+  MqttClient::bindTopicString(topic, remoteConfig, deviceId, groupId);
+
+#ifdef MQTT_DEBUG
+  printf("MqttClient - publishing update to %s\n", topic.c_str());
+#endif
+
+  mqttClient->publish(topic.c_str(), message, retain);
+}
+
 void MqttClient::publishCallback(char* topic, byte* payload, int length) {
   uint16_t deviceId = 0;
   uint8_t groupId = 0;
-  MiLightRadioConfig* config = &MilightRgbCctConfig;
+  const MiLightRemoteConfig* config = &FUT092Config;
   char cstrPayload[length + 1];
   cstrPayload[length] = 0;
   memcpy(cstrPayload, payload, sizeof(byte)*length);
 
 #ifdef MQTT_DEBUG
-  printf_P(PSTR("MqttClient - Got message on topic: %s\n%s\n"), topic, cstrPayload);
+  printf("MqttClient - Got message on topic: %s\n%s\n", topic, cstrPayload);
 #endif
 
   char topicPattern[settings.mqttTopicPattern.length()];
@@ -148,16 +159,40 @@ void MqttClient::publishCallback(char* topic, byte* payload, int length) {
   }
 
   if (tokenBindings.hasBinding("device_type")) {
-    config = MiLightRadioConfig::fromString(tokenBindings.get("device_type"));
+    config = MiLightRemoteConfig::fromType(tokenBindings.get("device_type"));
+
+    if (config == NULL) {
+      Serial.println(F("MqttClient - ERROR: could not extract device_type from topic"));
+      return;
+    }
+  } else {
+    Serial.println(F("MqttClient - WARNING: could not find device_type token.  Defaulting to FUT092.\n"));
   }
 
   StaticJsonBuffer<400> buffer;
   JsonObject& obj = buffer.parseObject(cstrPayload);
 
 #ifdef MQTT_DEBUG
-  printf_P(PSTR("MqttClient - device %04X, group %u\n"), deviceId, groupId);
+  printf("MqttClient - device %04X, group %u\n", deviceId, groupId);
 #endif
 
-  milightClient->prepare(*config, deviceId, groupId);
+  milightClient->prepare(config, deviceId, groupId);
   milightClient->update(obj);
+}
+
+inline void MqttClient::bindTopicString(
+  String& topicPattern,
+  const MiLightRemoteConfig& remoteConfig,
+  const uint16_t deviceId,
+  const uint16_t groupId
+) {
+  String deviceIdHex = String(deviceId, 16);
+  deviceIdHex.toUpperCase();
+  deviceIdHex = String("0x") + deviceIdHex;
+
+  topicPattern.replace(":device_id", deviceIdHex);
+  topicPattern.replace(":hex_device_id", deviceIdHex);
+  topicPattern.replace(":dec_device_id", String(deviceId));
+  topicPattern.replace(":group_id", String(groupId));
+  topicPattern.replace(":device_type", remoteConfig.name);
 }

@@ -1,4 +1,3 @@
-dist: precise
 language: python
 python:
 - '2.7'
@@ -11,7 +10,7 @@ env:
 before_install:
   - nvm install $NODE_VERSION
 install:
-- pip install -U platformio
+- pip install -U https://github.com/platformio/platformio-core/archive/develop.zip
 - platformio lib install
 - cd web && npm install && cd ..
 script:
@@ -24,6 +23,7 @@ deploy:
   api_key:
     secure: p1BjM1a/u20EES+pl0+w7B/9600pvpcVYTfMiZhyMOXB0MbNm+uZKYeqiG6Tf3A9duVqMtn0R+ROO+YqL5mlnrVSi74kHMxCIF2GGtK7DIReyEI5JeF5oSi5j9bEsXu8602+1Uez8tInWgzdu2uK2G0FJF/og1Ygnk/L3haYIldIo6kL+Yd6Anlu8L2zqiovC3j3r3eO8oB6Ig6sirN+tnK0ah3dn028k+nHQIMtcc/hE7dQjglp4cGOu+NumUolhdwLdFyW7vfAafxwf9z/SL6M14pg0N8qOmT4KEg4AZQDaKn0wT7VhAvPDHjt4CgPE7QsZhEKFmW7J9LGlcWN4X3ORMkBNPnmqrkVeZEE4Vlcm3CF5kvt59ks0qwEgjpvrqxdZZxa/h9ZLEBBEXMIekA4TSAzP/e/opfry11N1lvqXQ562Jc6oEKS+xWerWSALXyZI4K1T+fkgHTZCWGH4EI3weZY/zSCAZ6a7OpgFQWU9uHlJLMkaWrp78fSPqy6zcjxhXoJnBt8BT1BMRdmZum2YX91hfJ9aRvlEmhtxKgAcPgpJ0ITwB317lKh5VqAfMNZW7pXJEYdLCmUEKXv/beTvNmRIGgu1OjZ3BWchOgh/TwX46+Lrx1zL69sfE+6cBFbC+T2QIv4dxxSQNC1K0JnRVhbD1cOpSXz+amsLS0=
   file_glob: true
+  skip_cleanup: true
   file: dist/*.bin
   on:
     repo: sidoh/esp8266_milight_hub
