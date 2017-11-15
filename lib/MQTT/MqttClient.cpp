@@ -1,3 +1,4 @@
+#include <stddef.h>
 #include <MqttClient.h>
 #include <TokenIterator.h>
 #include <UrlTokenBindings.h>
@@ -159,6 +160,13 @@ void MqttClient::publishCallback(char* topic, byte* payload, int length) {
 
   if (tokenBindings.hasBinding("device_type")) {
     config = MiLightRemoteConfig::fromType(tokenBindings.get("device_type"));
+
+    if (config == NULL) {
+      Serial.println(F("MqttClient - ERROR: could not extract device_type from topic"));
+      return;
+    }
+  } else {
+    Serial.println(F("MqttClient - WARNING: could not find device_type token.  Defaulting to FUT092.\n"));
   }
 
   StaticJsonBuffer<400> buffer;
