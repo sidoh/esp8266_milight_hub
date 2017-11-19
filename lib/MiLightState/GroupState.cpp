@@ -78,6 +78,9 @@ GroupState::GroupState() {
 
 bool GroupState::isSetField(GroupStateField field) const {
   switch (field) {
+    case GroupStateField::COMPUTED_COLOR:
+      // Always set -- either send RGB color or white
+      return true;
     case GroupStateField::STATE:
     case GroupStateField::STATUS:
       return isSetState();
@@ -97,6 +100,9 @@ bool GroupState::isSetField(GroupStateField field) const {
     case GroupStateField::BULB_MODE:
       return isSetBulbMode();
   }
+
+  Serial.print(F("WARNING: tried to check if unknown field was set: "));
+  Serial.println(static_cast<unsigned int>(field));
 
   return false;
 }
@@ -312,6 +318,26 @@ bool GroupState::patch(const JsonObject& state) {
   return changes;
 }
 
+void GroupState::applyColor(ArduinoJson::JsonObject& state) {
+  uint8_t rgb[3];
+  RGBConverter converter;
+  converter.hsvToRgb(
+    getHue()/360.0,
+    // Default to fully saturated
+    (isSetSaturation() ? getSaturation() : 100)/100.0,
+    1,
+    rgb
+  );
+  applyColor(state, rgb[0], rgb[1], rgb[2]);
+}
+
+void GroupState::applyColor(ArduinoJson::JsonObject& state, uint8_t r, uint8_t g, uint8_t b) {
+  JsonObject& color = state.createNestedObject("color");
+  color["r"] = r;
+  color["g"] = g;
+  color["b"] = b;
+}
+
 void GroupState::applyField(JsonObject& partialState, GroupStateField field) {
   if (isSetField(field)) {
     switch (field) {
@@ -334,19 +360,15 @@ void GroupState::applyField(JsonObject& partialState, GroupStateField field) {
 
       case GroupStateField::COLOR:
         if (getBulbMode() == BULB_MODE_COLOR) {
-          uint8_t rgb[3];
-          RGBConverter converter;
-          converter.hsvToRgb(
-            getHue()/360.0,
-            // Default to fully saturated
-            (isSetSaturation() ? getSaturation() : 100)/100.0,
-            1,
-            rgb
-          );
-          JsonObject& color = partialState.createNestedObject("color");
-          color["r"] = rgb[0];
-          color["g"] = rgb[1];
-          color["b"] = rgb[2];
+          applyColor(partialState);
+        }
+        break;
+
+      case GroupStateField::COMPUTED_COLOR:
+        if (getBulbMode() == BULB_MODE_COLOR) {
+          applyColor(partialState);
+        } else {
+          applyColor(partialState, 255, 255, 255);
         }
         break;
 

@@ -126,6 +126,9 @@ private:
   };
 
   Data state;
+
+  void applyColor(JsonObject& state, uint8_t r, uint8_t g, uint8_t b);
+  void applyColor(JsonObject& state);
 };
 
 extern const BulbId DEFAULT_BULB_ID;
