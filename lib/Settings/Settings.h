@@ -46,7 +46,7 @@ enum RadioInterfaceType {
 static const GroupStateField DEFAULT_GROUP_STATE_FIELDS[] = {
   GroupStateField::STATE,
   GroupStateField::BRIGHTNESS,
-  GroupStateField::COLOR,
+  GroupStateField::COMPUTED_COLOR,
   GroupStateField::MODE,
   GroupStateField::COLOR_TEMP,
   GroupStateField::BULB_MODE

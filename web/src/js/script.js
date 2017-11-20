@@ -25,7 +25,8 @@ var GROUP_STATE_KEYS = [
   "mode",
   "kelvin",
   "color_temp",
-  "bulb_mode"
+  "bulb_mode",
+  "computed_color"
 ];
 
 var FORM_SETTINGS_HELP = {
