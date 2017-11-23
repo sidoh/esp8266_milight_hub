@@ -381,8 +381,10 @@ void MiLightClient::handleCommand(const String& command) {
 void MiLightClient::handleEffect(const String& effect) {
   if (effect == "night_mode") {
     this->enableNightMode();
-  } else if (effect == "white") {
+  } else if (effect == "white" || effect == "white_mode") {
     this->updateColorWhite();
+  } else { // assume we're trying to set mode
+    this->updateMode(effect.toInt());
   }
 }
 
