@@ -74,6 +74,8 @@ GroupState::GroupState() {
   state.fields._isSetBulbMode        = 0;
   state.fields._dirty                = 1;
   state.fields._mqttDirty            = 0;
+  state.fields._isSetNightMode       = 0;
+  state.fields._isNightMode          = 0;
 }
 
 bool GroupState::isSetField(GroupStateField field) const {
@@ -245,15 +247,46 @@ bool GroupState::setMireds(uint16_t mireds) {
 }
 
 bool GroupState::isSetBulbMode() const { return state.fields._isSetBulbMode; }
-BulbMode GroupState::getBulbMode() const { return static_cast<BulbMode>(state.fields._bulbMode); }
+BulbMode GroupState::getBulbMode() const {
+  BulbMode mode;
+
+  // Night mode is a transient state.  When power is toggled, the bulb returns
+  // to the state it was last in.  To handle this case, night mode state is
+  // stored separately.
+  if (isSetNightMode() && isNightMode()) {
+    return BULB_MODE_NIGHT;
+  } else {
+    return static_cast<BulbMode>(state.fields._bulbMode);
+  }
+}
 bool GroupState::setBulbMode(BulbMode bulbMode) {
   if (isSetBulbMode() && getBulbMode() == bulbMode) {
     return false;
   }
 
   setDirty();
-  state.fields._isSetBulbMode = 1;
-  state.fields._bulbMode = bulbMode;
+
+  // As mentioned in isSetBulbMode, NIGHT_MODE is stored separately.
+  if (bulbMode == BULB_MODE_NIGHT) {
+    setNightMode(true);
+  } else {
+    state.fields._isSetBulbMode = 1;
+    state.fields._bulbMode = bulbMode;
+  }
+
+  return true;
+}
+
+bool GroupState::isSetNightMode() const { return state.fields._isSetNightMode; }
+bool GroupState::isNightMode() const { return state.fields._isNightMode; }
+bool GroupState::setNightMode(bool nightMode) {
+  if (isSetNightMode() && isNightMode() == nightMode) {
+    return false;
+  }
+
+  setDirty();
+  state.fields._isSetNightMode = 1;
+  state.fields._isNightMode = nightMode;
 
   return true;
 }
@@ -305,11 +338,19 @@ bool GroupState::patch(const JsonObject& state) {
     changes |= setMireds(state["color_temp"]);
     changes |= setBulbMode(BULB_MODE_WHITE);
   }
+
+  // Any changes other than setting mode to night should take device out of
+  // night mode.
+  if (changes && getBulbMode() == BULB_MODE_NIGHT) {
+    setNightMode(false);
+  }
+
   if (state.containsKey("command")) {
     const String& command = state["command"];
 
     if (command == "white_mode") {
       changes |= setBulbMode(BULB_MODE_WHITE);
+      setNightMode(false);
     } else if (command == "night_mode") {
       changes |= setBulbMode(BULB_MODE_NIGHT);
     }

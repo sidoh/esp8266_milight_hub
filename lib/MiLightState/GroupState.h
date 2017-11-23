@@ -77,6 +77,11 @@ public:
   BulbMode getBulbMode() const;
   bool setBulbMode(BulbMode mode);
 
+  // 1 bit
+  bool isSetNightMode() const;
+  bool isNightMode() const;
+  bool setNightMode(bool nightMode);
+
   bool isDirty() const;
   inline bool setDirty();
   bool clearDirty();
@@ -121,7 +126,9 @@ private:
         _isSetBrightnessMode  : 1,
         _dirty                : 1,
         _mqttDirty            : 1,
-                              : 4;
+        _isSetNightMode       : 1,
+        _isNightMode          : 1,
+                              : 2;
     } fields;
   };
 

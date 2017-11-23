@@ -78,7 +78,9 @@ BulbId RgbCctPacketFormatter::parsePacket(const uint8_t *packet, JsonObject& res
   uint8_t arg = packetCopy[V2_ARGUMENT_INDEX];
 
   if (command == RGB_CCT_ON) {
-    if (arg == RGB_CCT_MODE_SPEED_DOWN) {
+    if ((packetCopy[V2_COMMAND_INDEX] & 0x80) == 0x80) {
+      result["command"] = "night_mode";
+    } else if (arg == RGB_CCT_MODE_SPEED_DOWN) {
       result["command"] = "mode_speed_down";
     } else if (arg == RGB_CCT_MODE_SPEED_UP) {
       result["command"] = "mode_speed_up";
