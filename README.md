@@ -89,7 +89,7 @@ The HTTP endpoints (shown below) will be fully functional at this point. You sho
 
 ## REST endpoints
 
-1. `GET /`. Opens web UI. You'll need to upload it first.
+1. `GET /`. Opens web UI. 
 1. `GET /about`. Return information about current firmware version.
 1. `POST /system`. Post commands in the form `{"comamnd": <command>}`. Currently supports the commands: `restart`.
 1. `POST /firmware`. OTA firmware update.
