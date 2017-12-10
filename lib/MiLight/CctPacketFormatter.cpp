@@ -9,13 +9,42 @@ bool CctPacketFormatter::canHandle(const uint8_t *packet, const size_t len) {
 void CctPacketFormatter::initializePacket(uint8_t* packet) {
   size_t packetPtr = 0;
 
+  // Byte 0: Packet length = 7 bytes
+
+  // Byte 1: CCT protocol
   packet[packetPtr++] = CCT_PROTOCOL_ID;
+
+  // Byte 2 and 3: Device ID
   packet[packetPtr++] = deviceId >> 8;
   packet[packetPtr++] = deviceId & 0xFF;
+
+  // Byte 4: Zone
   packet[packetPtr++] = groupId;
+
+  // Byte 5: Bulb command, filled in later
   packet[packetPtr++] = 0;
-  packet[packetPtr++] = sequenceNum;
+
+  // Byte 6: Packet sequence number 0..255
   packet[packetPtr++] = sequenceNum++;
+
+  // Byte 7: Checksum over previous bytes, including packet length = 7
+  // The checksum will be calculated when setting the command field
+  packet[packetPtr++] = 0;
+
+  // Byte 8: CRC LSB
+  // Byte 9: CRC MSB
+}
+
+void CctPacketFormatter::finalizePacket(uint8_t* packet) {
+  uint8_t checksum;
+
+  // Calculate checksum over packet length .. sequenceNum
+  checksum = 7; // Packet length is not part of packet
+  for (uint8_t i = 0; i < 6; i++) {
+    checksum += currentPacket[i];
+  }
+  // Store the checksum in the sixth byte
+  currentPacket[6] = checksum;
 }
 
 void CctPacketFormatter::updateBrightness(uint8_t value) {
