@@ -35,6 +35,18 @@ void CctPacketFormatter::initializePacket(uint8_t* packet) {
   // Byte 9: CRC MSB
 }
 
+void CctPacketFormatter::finalizePacket(uint8_t* packet) {
+  uint8_t checksum;
+
+  // Calculate checksum over packet length .. sequenceNum
+  checksum = 7; // Packet length is not part of packet
+  for (uint8_t i = 0; i < 6; i++) {
+    checksum += currentPacket[i];
+  }
+  // Store the checksum in the sixth byte
+  currentPacket[6] = checksum;
+}
+
 void CctPacketFormatter::updateBrightness(uint8_t value) {
   valueByStepFunction(
     &PacketFormatter::increaseBrightness,
@@ -54,21 +66,11 @@ void CctPacketFormatter::updateTemperature(uint8_t value) {
 }
 
 void CctPacketFormatter::command(uint8_t command, uint8_t arg) {
-  uint8_t checksum;
-
   pushPacket();
   if (held) {
     command |= 0x80;
   }
   currentPacket[CCT_COMMAND_INDEX] = command;
-
-  // Calculate checksum over packet length .. sequenceNum
-  checksum = 7; // Packet length is not part of packet
-  for (uint8_t i = 0; i < 6; i++) {
-    checksum += currentPacket[i];
-  }
-  // Store the checksum in the sixth byte
-  currentPacket[6] = checksum;
 }
 
 void CctPacketFormatter::updateStatus(MiLightStatus status, uint8_t groupId) {
