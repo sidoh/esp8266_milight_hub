@@ -70,8 +70,6 @@ void CctPacketFormatter::command(uint8_t command, uint8_t arg) {
   }
   // Store the checksum in the sixth byte
   currentPacket[6] = checksum;
-
-  Serial.println(checksum, HEX);
 }
 
 void CctPacketFormatter::updateStatus(MiLightStatus status, uint8_t groupId) {
