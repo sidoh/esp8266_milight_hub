@@ -71,8 +71,8 @@ public:
     adminUsername(""),
     adminPassword(""),
     // CE and CSN pins from nrf24l01
-    cePin(D0),
-    csnPin(D8),
+    cePin(16),
+    csnPin(15),
     resetPin(0),
     radioInterfaceType(nRF24),
     deviceIds(NULL),
