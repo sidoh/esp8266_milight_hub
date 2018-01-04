@@ -55,7 +55,7 @@ void RgbCctPacketFormatter::updateSaturation(uint8_t value) {
 }
 
 void RgbCctPacketFormatter::updateColorWhite() {
-  updateTemperature(0);
+  updateTemperature(100);
 }
 
 void RgbCctPacketFormatter::enableNightMode() {
