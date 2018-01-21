@@ -1,4 +1,5 @@
-# esp8266_milight_hub
+# esp8266_milight_hub [![Build Status](https://travis-ci.org/sidoh/esp8266_milight_hub.svg?branch=master)](https://travis-ci.org/sidoh/esp8266_milight_hub) [![release](https://github-release-version.herokuapp.com/github/sidoh/esp8266_milight_hub/release.svg?style=flat)](https://github.com/sidoh/esp8266_milight_hub/releases/latest) [![License][shield-license]][info-license]
+
 This is a replacement for a Milight/LimitlessLED remote/gateway hosted on an ESP8266. Leverages [Henryk Plötz's awesome reverse-engineering work](https://hackaday.io/project/5888-reverse-engineering-the-milight-on-air-protocol).
 
 [Milight bulbs](https://www.amazon.com/Mi-light-Dimmable-RGBWW-Spotlight-Smart/dp/B01LPRQ4BK/r) are cheap smart bulbs that are controllable with an undocumented 2.4 GHz protocol. In order to control them, you either need a [remote](https://www.amazon.com/Mi-light-Dimmable-RGBWW-Spotlight-Smart/dp/B01LCSALV6/r?th=1) ($13), which allows you to control them directly, or a [WiFi gateway](https://www.amazon.com/BTF-LIGHTING-Mi-Light-WiFi-Bridge-Controller/dp/B01H87DYR8/ref=sr_1_7?ie=UTF8&qid=1485715984&sr=8-7&keywords=milight) ($30), which allows you to control them with a mobile app or a [UDP protocol](http://www.limitlessled.com/dev/).
@@ -242,3 +243,8 @@ You can select between versions 5 and 6 of the UDP protocol (documented [here](h
 ## Acknowledgements
 
 * @WoodsterDK added support for LT8900 radios.
+
+
+
+[info-license]:   https://github.com/sidoh/esp8266_milight_hub/blob/master/LICENSE
+[shield-license]: https://img.shields.io/badge/license-MIT-blue.svg
