@@ -96,6 +96,8 @@ bool GroupState::isSetField(GroupStateField field) const {
       return isSetSaturation();
     case GroupStateField::MODE:
       return isSetMode();
+    case GroupStateField::EFFECT:
+      return isSetEffect();
     case GroupStateField::KELVIN:
     case GroupStateField::COLOR_TEMP:
       return isSetKelvin();
@@ -213,6 +215,10 @@ bool GroupState::setSaturation(uint8_t saturation) {
 }
 
 bool GroupState::isSetMode() const { return state.fields._isSetMode; }
+bool GroupState::isSetEffect() const {
+  // only BULB_MODE_COLOR does not have an effect.
+  return isSetBulbMode() && getBulbMode() != BULB_MODE_COLOR;
+}
 uint8_t GroupState::getMode() const { return state.fields._mode; }
 bool GroupState::setMode(uint8_t mode) {
   if (isSetMode() && getMode() == mode) {
@@ -428,6 +434,16 @@ void GroupState::applyField(JsonObject& partialState, GroupStateField field) {
       case GroupStateField::MODE:
         if (getBulbMode() == BULB_MODE_SCENE) {
           partialState["mode"] = getMode();
+        }
+        break;
+
+      case GroupStateField::EFFECT:
+        if (getBulbMode() == BULB_MODE_SCENE) {
+          partialState["effect"] = String(getMode());
+        } else if (getBulbMode() == BULB_MODE_WHITE) {
+          partialState["effect"] = "white_mode";
+        } else if (getBulbMode() == BULB_MODE_NIGHT) {
+          partialState["effect"] = "night_mode";
         }
         break;
 

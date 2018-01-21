@@ -62,6 +62,7 @@ public:
 
   // 5 bits
   bool isSetMode() const;
+  bool isSetEffect() const;
   uint8_t getMode() const;
   bool setMode(uint8_t mode);
 
