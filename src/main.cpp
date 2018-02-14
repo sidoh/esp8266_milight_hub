@@ -94,6 +94,7 @@ void onPacketSentHandler(uint8_t* packet, const MiLightRemoteConfig& config) {
   const MiLightRemoteConfig& remoteConfig =
     *MiLightRemoteConfig::fromType(bulbId.deviceType);
 
+  // update state to reflect changes from this packet
   GroupState& groupState = stateStore->get(bulbId);
   groupState.patch(result);
   stateStore->set(bulbId, groupState);
@@ -141,6 +142,7 @@ void handleListen() {
         return;
       }
 
+      // update state to reflect this packet
       onPacketSentHandler(readPacket, *remoteConfig);
     }
   }
