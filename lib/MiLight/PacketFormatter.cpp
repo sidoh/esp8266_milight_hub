@@ -99,9 +99,10 @@ void PacketFormatter::valueByStepFunction(StepFunction increase, StepFunction de
   }
 }
 
-void PacketFormatter::prepare(uint16_t deviceId, uint8_t groupId) {
+void PacketFormatter::prepare(uint16_t deviceId, uint8_t groupId, GroupStateStore* stateStore) {
   this->deviceId = deviceId;
   this->groupId = groupId;
+  this->stateStore = stateStore;
   reset();
 }
 
