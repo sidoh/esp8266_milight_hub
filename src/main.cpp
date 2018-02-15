@@ -89,6 +89,10 @@ void onPacketSentHandler(uint8_t* packet, const MiLightRemoteConfig& config) {
   JsonObject& result = buffer.createObject();
   BulbId bulbId = config.packetFormatter->parsePacket(packet, result, stateStore);
 
+
+  // blip LED to indicate we saw a packet (send or receive)
+  ledStatus->oneshot(LEDStatus::LEDMode::Flicker, 3);
+
   if (&bulbId == &DEFAULT_BULB_ID) {
     Serial.println(F("Skipping packet handler because packet was not decoded"));
     return;
@@ -229,6 +233,10 @@ void applySettings() {
     discoveryServer = new MiLightDiscoveryServer(settings);
     discoveryServer->begin();
   }
+
+  // update LED pin
+  if (ledStatus)
+    ledStatus->changePin(settings.ledPin);
 }
 
 /**
@@ -258,6 +266,7 @@ void setup() {
 
   // set up the LED status
   ledStatus = new LEDStatus(settings.ledPin);
+  ledStatus->continuous(LEDStatus::LEDMode::FastToggle);
 
   // start up the wifi manager
   if (! MDNS.begin("milight-hub")) {
@@ -270,7 +279,13 @@ void setup() {
   // that is merged and ready.
   wifiManager.setSetupLoopCallback(handleLED);
   wifiManager.setConfigPortalTimeout(180);
-  wifiManager.autoConnect(ssid.c_str(), "milightHub");
+  if (wifiManager.autoConnect(ssid.c_str(), "milightHub")) {
+    ledStatus->continuous(LEDStatus::LEDMode::SlowBlip);
+    Serial.printf("Wifi connected succesfully\n");
+  } else {
+    ledStatus->continuous(LEDStatus::LEDMode::On);
+    Serial.printf("Wifi failed.  Oh well.\n");
+  }
 
 
   MDNS.addService("http", "tcp", 80);
@@ -312,6 +327,9 @@ void loop() {
   handleListen();
 
   stateStore->limitedFlush();
+
+  // update LED with status
+  ledStatus->handle();
 
   if (shouldRestart()) {
     Serial.println(F("Auto-restart triggered. Restarting..."));
