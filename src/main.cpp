@@ -19,8 +19,11 @@
 #include <MiLightDiscoveryServer.h>
 #include <MiLightClient.h>
 #include <BulbStateUpdater.h>
+#include <LEDStatus.h>
 
 WiFiManager wifiManager;
+
+static LEDStatus *ledStatus;
 
 Settings settings;
 
@@ -239,20 +242,36 @@ bool shouldRestart() {
   return settings.getAutoRestartPeriod()*60*1000 < millis();
 }
 
+// give a bit of time to update the status LED
+void handleLED() {
+  ledStatus->handle();
+}
+
 void setup() {
   Serial.begin(9600);
   String ssid = "ESP" + String(ESP.getChipId());
-
-  wifiManager.setConfigPortalTimeout(180);
-  wifiManager.autoConnect(ssid.c_str(), "milightHub");
-
+  
+  // load up our persistent settings from the file system
   SPIFFS.begin();
   Settings::load(settings);
   applySettings();
 
+  // set up the LED status
+  ledStatus = new LEDStatus(settings.ledPin);
+
+  // start up the wifi manager
   if (! MDNS.begin("milight-hub")) {
     Serial.println(F("Error setting up MDNS responder"));
   }
+  // tell Wifi manager to call us during the setup.  Note that this "setSetupLoopCallback" is an addition
+  // made to Wifi manager in a private fork.  As of this writing, WifiManager has a new feature coming that
+  // allows the "autoConnect" method to be non-blocking which can implement this same functionality.  However,
+  // that change is only on the development branch so we are going to continue to use this fork until
+  // that is merged and ready.
+  wifiManager.setSetupLoopCallback(handleLED);
+  wifiManager.setConfigPortalTimeout(180);
+  wifiManager.autoConnect(ssid.c_str(), "milightHub");
+
 
   MDNS.addService("http", "tcp", 80);
 
