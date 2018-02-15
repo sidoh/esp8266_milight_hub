@@ -10,6 +10,7 @@
 #define _MILIGHTCLIENT_H
 
 //#define DEBUG_PRINTF
+//#define DEBUG_CLIENT_COMMANDS     // enable to show each individual change command (like hue, brightness, etc)
 
 #define MILIGHT_DEFAULT_RESEND_COUNT 10
 //Used to determine close to white

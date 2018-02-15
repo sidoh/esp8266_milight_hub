@@ -11,8 +11,8 @@ enum MiLightFUT089Command {
   FUT089_COLOR = 0x02,
   FUT089_BRIGHTNESS = 0x05,
   FUT089_MODE = 0x06,
-  FUT089_KELVIN = 0x07,
-  FUT089_SATURATION = 0x07
+  FUT089_KELVIN = 0x07,     // Controls Kelvin when in White mode
+  FUT089_SATURATION = 0x07  // Controls Saturation when in Color mode
 };
 
 enum MiLightFUT089Arguments {
@@ -24,7 +24,7 @@ enum MiLightFUT089Arguments {
 class FUT089PacketFormatter : public V2PacketFormatter {
 public:
   FUT089PacketFormatter()
-    : V2PacketFormatter(0x25, 8)
+    : V2PacketFormatter(0x25, 8)    // protocol is 0x25, and there are 8 groups
   { }
 
   virtual void updateBrightness(uint8_t value);
