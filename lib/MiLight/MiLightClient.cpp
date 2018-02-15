@@ -82,7 +82,7 @@ void MiLightClient::prepare(const MiLightRemoteConfig* config,
   this->currentRemote = config;
 
   if (deviceId >= 0 && groupId >= 0) {
-    currentRemote->packetFormatter->prepare(deviceId, groupId);
+    currentRemote->packetFormatter->prepare(deviceId, groupId, &stateStore);
   }
 }
 
@@ -132,10 +132,13 @@ void MiLightClient::write(uint8_t packet[]) {
   int iStart = millis();
 #endif
 
+  // send the packet out (multiple times for "reliability")
   for (int i = 0; i < this->currentResendCount; i++) {
     currentRadio->write(packet, currentRemote->packetFormatter->getPacketLength());
   }
 
+  // if we have a packetSendHandler defined (see MiLightClient::onPacketSent), call it now that
+  // the packet has been dispatched
   if (this->packetSentHandler) {
     this->packetSentHandler(packet, *currentRemote);
   }
@@ -148,105 +151,168 @@ void MiLightClient::write(uint8_t packet[]) {
 }
 
 void MiLightClient::updateColorRaw(const uint8_t color) {
+#ifdef DEBUG_CLIENT_COMMANDS
+  Serial.printf("MiLightClient::updateColorRaw: Change color to %d\n", color);
+#endif
   currentRemote->packetFormatter->updateColorRaw(color);
   flushPacket();
 }
 
 void MiLightClient::updateHue(const uint16_t hue) {
+#ifdef DEBUG_CLIENT_COMMANDS
+  Serial.printf("MiLightClient::updateHue: Change hue to %d\n", hue);
+#endif
   currentRemote->packetFormatter->updateHue(hue);
   flushPacket();
 }
 
 void MiLightClient::updateBrightness(const uint8_t brightness) {
+#ifdef DEBUG_CLIENT_COMMANDS
+  Serial.printf("MiLightClient::updateBrightness: Change brightness to %d\n", brightness);
+#endif
   currentRemote->packetFormatter->updateBrightness(brightness);
   flushPacket();
 }
 
 void MiLightClient::updateMode(uint8_t mode) {
+#ifdef DEBUG_CLIENT_COMMANDS
+  Serial.printf("MiLightClient::updateMode: Change mode to %d\n", mode);
+#endif
   currentRemote->packetFormatter->updateMode(mode);
   flushPacket();
 }
 
 void MiLightClient::nextMode() {
+#ifdef DEBUG_CLIENT_COMMANDS
+  Serial.printf("MiLightClient::nextMode: Switch to next mode\n");
+#endif
   currentRemote->packetFormatter->nextMode();
   flushPacket();
 }
 
 void MiLightClient::previousMode() {
+#ifdef DEBUG_CLIENT_COMMANDS
+  Serial.printf("MiLightClient::previousMode: Switch to previous mode\n");
+#endif
   currentRemote->packetFormatter->previousMode();
   flushPacket();
 }
 
 void MiLightClient::modeSpeedDown() {
+#ifdef DEBUG_CLIENT_COMMANDS
+  Serial.printf("MiLightClient::modeSpeedDown: Speed down\n");
+#endif
   currentRemote->packetFormatter->modeSpeedDown();
   flushPacket();
 }
 void MiLightClient::modeSpeedUp() {
+#ifdef DEBUG_CLIENT_COMMANDS
+  Serial.printf("MiLightClient::modeSpeedUp: Speed up\n");
+#endif
   currentRemote->packetFormatter->modeSpeedUp();
   flushPacket();
 }
 
 void MiLightClient::updateStatus(MiLightStatus status, uint8_t groupId) {
+#ifdef DEBUG_CLIENT_COMMANDS
+  Serial.printf("MiLightClient::updateStatus: Status %s, groupId %d\n", status == MiLightStatus::OFF ? "OFF" : "ON", groupId);
+#endif
   currentRemote->packetFormatter->updateStatus(status, groupId);
   flushPacket();
 }
 
 void MiLightClient::updateStatus(MiLightStatus status) {
+#ifdef DEBUG_CLIENT_COMMANDS
+  Serial.printf("MiLightClient::updateStatus: Status %s\n", status == MiLightStatus::OFF ? "OFF" : "ON");
+#endif
   currentRemote->packetFormatter->updateStatus(status);
   flushPacket();
 }
 
 void MiLightClient::updateSaturation(const uint8_t value) {
+#ifdef DEBUG_CLIENT_COMMANDS
+  Serial.printf("MiLightClient::updateSaturation: Saturation %d\n", value);
+#endif
   currentRemote->packetFormatter->updateSaturation(value);
   flushPacket();
 }
 
 void MiLightClient::updateColorWhite() {
+#ifdef DEBUG_CLIENT_COMMANDS
+  Serial.printf("MiLightClient::updateColorWhite: Color white\n");
+#endif
   currentRemote->packetFormatter->updateColorWhite();
   flushPacket();
 }
 
 void MiLightClient::enableNightMode() {
+#ifdef DEBUG_CLIENT_COMMANDS
+  Serial.printf("MiLightClient::enableNightMode: Night mode\n");
+#endif
   currentRemote->packetFormatter->enableNightMode();
   flushPacket();
 }
 
 void MiLightClient::pair() {
+#ifdef DEBUG_CLIENT_COMMANDS
+  Serial.printf("MiLightClient::pair: Pair\n");
+#endif
   currentRemote->packetFormatter->pair();
   flushPacket();
 }
 
 void MiLightClient::unpair() {
+#ifdef DEBUG_CLIENT_COMMANDS
+  Serial.printf("MiLightClient::unpair: Unpair\n");
+#endif
   currentRemote->packetFormatter->unpair();
   flushPacket();
 }
 
 void MiLightClient::increaseBrightness() {
+#ifdef DEBUG_CLIENT_COMMANDS
+  Serial.printf("MiLightClient::increaseBrightness: Increase brightness\n");
+#endif
   currentRemote->packetFormatter->increaseBrightness();
   flushPacket();
 }
 
 void MiLightClient::decreaseBrightness() {
+#ifdef DEBUG_CLIENT_COMMANDS
+  Serial.printf("MiLightClient::decreaseBrightness: Decrease brightness\n");
+#endif
   currentRemote->packetFormatter->decreaseBrightness();
   flushPacket();
 }
 
 void MiLightClient::increaseTemperature() {
+#ifdef DEBUG_CLIENT_COMMANDS
+  Serial.printf("MiLightClient::increaseTemperature: Increase temperature\n");
+#endif
   currentRemote->packetFormatter->increaseTemperature();
   flushPacket();
 }
 
 void MiLightClient::decreaseTemperature() {
+#ifdef DEBUG_CLIENT_COMMANDS
+  Serial.printf("MiLightClient::decreaseTemperature: Decrease temperature\n");
+#endif
   currentRemote->packetFormatter->decreaseTemperature();
   flushPacket();
 }
 
 void MiLightClient::updateTemperature(const uint8_t temperature) {
+#ifdef DEBUG_CLIENT_COMMANDS
+  Serial.printf("MiLightClient::updateTemperature: Set temperature to %d\n", temperature);
+#endif
   currentRemote->packetFormatter->updateTemperature(temperature);
   flushPacket();
 }
 
 void MiLightClient::command(uint8_t command, uint8_t arg) {
+#ifdef DEBUG_CLIENT_COMMANDS
+  Serial.printf("MiLightClient::command: Execute command %d, argument %d\n", command, arg);
+#endif
   currentRemote->packetFormatter->command(command, arg);
   flushPacket();
 }
@@ -427,6 +493,9 @@ void MiLightClient::flushPacket() {
   currentRemote->packetFormatter->reset();
 }
 
+/*
+  Register a callback for when packets are sent
+*/
 void MiLightClient::onPacketSent(PacketSentHandler handler) {
   this->packetSentHandler = handler;
 }
