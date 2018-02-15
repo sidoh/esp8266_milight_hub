@@ -27,13 +27,73 @@ void FUT089PacketFormatter::updateColorRaw(uint8_t value) {
   command(FUT089_COLOR, FUT089_COLOR_OFFSET + value);
 }
 
+// change the temperature (kelvin).  Note that temperature and saturation share the same command 
+// number (7), and they change which they do based on the mode of the lamp (white vs. color mode).
+// To make this command work, we need to switch to white mode, make the change, and then flip
+// back to the original mode.
 void FUT089PacketFormatter::updateTemperature(uint8_t value) {
-  updateColorWhite();
+  // look up our current mode 
+  BulbId* ourBulb = new BulbId(this->deviceId, this->groupId, REMOTE_TYPE_FUT089);
+  GroupState ourState = this->stateStore->get(*ourBulb);
+  BulbMode originalBulbMode = ourState.getBulbMode();
+
+  // are we already in white?  If not, change to white
+  if (originalBulbMode != BulbMode::BULB_MODE_WHITE) {
+    updateColorWhite();
+  }
+
+  // now make the temperature change
   command(FUT089_KELVIN, 100 - value);
+
+  // revert back to the prior mode
+  switch (originalBulbMode) {
+    case BulbMode::BULB_MODE_COLOR:
+      updateHue(ourState.getHue());
+      break;
+    case BulbMode::BULB_MODE_NIGHT:
+      enableNightMode();
+      break;
+    case BulbMode::BULB_MODE_SCENE:
+      updateMode(ourState.getMode());
+      break;
+    case BulbMode::BULB_MODE_WHITE:
+      // no need to do anything, as we are wanting to stay in white
+      break;
+  }
 }
 
+// change the saturation.  Note that temperature and saturation share the same command 
+// number (7), and they change which they do based on the mode of the lamp (white vs. color mode).
+// To make this command work, we need to switch to color mode, make the change, and then flip
+// back to the original mode.
 void FUT089PacketFormatter::updateSaturation(uint8_t value) {
+  // look up our current mode 
+  BulbId* ourBulb = new BulbId(this->deviceId, this->groupId, REMOTE_TYPE_FUT089);
+  GroupState ourState = this->stateStore->get(*ourBulb);
+  BulbMode originalBulbMode = ourState.getBulbMode();
+
+  // are we already in white?  If not, change to white
+  if (originalBulbMode != BulbMode::BULB_MODE_COLOR)
+    updateHue(ourState.getHue());
+
+  // now make the saturation change
   command(FUT089_SATURATION, 100 - value);
+
+  // revert back to the prior mode
+  switch (originalBulbMode) {
+    case BulbMode::BULB_MODE_COLOR:
+      // no need to do anything, as we are wanting to stay in hue
+      break;
+    case BulbMode::BULB_MODE_NIGHT:
+      enableNightMode();
+      break;
+    case BulbMode::BULB_MODE_SCENE:
+      updateMode(ourState.getMode());
+      break;
+    case BulbMode::BULB_MODE_WHITE:
+      updateColorWhite();
+      break;
+  }
 }
 
 void FUT089PacketFormatter::updateColorWhite() {

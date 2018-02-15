@@ -1,7 +1,11 @@
 {
   "name": "esp8266-milight-hub-web",
   "version": "1.0.0",
-  "description": "",
+  "description": "Replacement for a Milight/LimitlessLED hub hosted on an ESP8266",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/sidoh/esp8266_milight_hub.git"
+  },
   "main": "gulpfile.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
