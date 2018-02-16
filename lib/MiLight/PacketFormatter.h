@@ -71,7 +71,7 @@ public:
   virtual void reset();
 
   virtual PacketStream& buildPackets();
-  virtual void prepare(uint16_t deviceId, uint8_t groupId);
+  virtual void prepare(uint16_t deviceId, uint8_t groupId, GroupStateStore* stateStore);
   virtual void format(uint8_t const* packet, char* buffer);
 
   virtual BulbId parsePacket(const uint8_t* packet, JsonObject& result, GroupStateStore* stateStore);
@@ -89,6 +89,7 @@ protected:
   size_t numPackets;
   bool held;
   PacketStream packetStream;
+  GroupStateStore* stateStore;
 
   void pushPacket();
   void valueByStepFunction(StepFunction increase, StepFunction decrease, uint8_t numSteps, uint8_t value);
