@@ -5,7 +5,7 @@ var UNIT_PARAMS = {
 };
 
 var FORM_SETTINGS = [
-  "admin_username", "admin_password", "ce_pin", "csn_pin", "reset_pin","packet_repeats",
+  "admin_username", "admin_password", "ce_pin", "csn_pin", "reset_pin","led_pin", "packet_repeats",
   "http_repeat_factor", "auto_restart_period", "discovery_port", "mqtt_server",
   "mqtt_topic_pattern", "mqtt_update_topic_pattern", "mqtt_state_topic_pattern",
   "mqtt_username", "mqtt_password", "radio_interface_type", "listen_repeats",
@@ -32,6 +32,7 @@ var GROUP_STATE_KEYS = [
 
 var FORM_SETTINGS_HELP = {
   ce_pin : "'CE' for NRF24L01 interface, and 'PKT' for 'PL1167/LT8900' interface",
+  led_pin : "Pin to use for LED status display (0=disabled); negative inverses signal (recommend -2 for on-board LED)",
   packet_repeats : "The number of times to repeat RF packets sent to bulbs",
   http_repeat_factor : "Multiplicative factor on packet_repeats for " +
     "requests initiated by the HTTP API. UDP API typically receives " +
