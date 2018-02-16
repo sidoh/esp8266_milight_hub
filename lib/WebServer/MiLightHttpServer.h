@@ -17,7 +17,7 @@ const char APPLICATION_JSON[] = "application/json";
 class MiLightHttpServer {
 public:
   MiLightHttpServer(Settings& settings, MiLightClient*& milightClient, GroupStateStore*& stateStore)
-    : server(WebServer(80)),
+    : server(80),
       wsServer(WebSocketsServer(81)),
       numWsClients(0),
       milightClient(milightClient),
@@ -48,9 +48,12 @@ protected:
   void sendGroupState(GroupState& state);
 
   void handleUpdateSettings();
+  void handleUpdateSettingsPost();
   void handleGetRadioConfigs();
   void handleAbout();
   void handleSystemPost();
+  void handleFirmwareUpload();
+  void handleFirmwarePost();
   void handleListenGateway(const UrlTokenBindings* urlBindings);
   void handleSendRaw(const UrlTokenBindings* urlBindings);
   void handleUpdateGroup(const UrlTokenBindings* urlBindings);
@@ -68,6 +71,7 @@ protected:
   GroupStateStore*& stateStore;
   SettingsSavedHandler settingsSavedHandler;
   size_t numWsClients;
+  ESP8266WebServer::THandlerFunction _handleRootPage;
 
 };
 
