@@ -281,10 +281,10 @@ void setup() {
   wifiManager.setConfigPortalTimeout(180);
   if (wifiManager.autoConnect(ssid.c_str(), "milightHub")) {
     ledStatus->continuous(LEDStatus::LEDMode::SlowBlip);
-    Serial.printf("Wifi connected succesfully\n");
+    Serial.println(F("Wifi connected succesfully\n"));
   } else {
     ledStatus->continuous(LEDStatus::LEDMode::On);
-    Serial.printf("Wifi failed.  Oh well.\n");
+    Serial.println(F("Wifi failed.  Oh well.\n"));
   }
 
 
