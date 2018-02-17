@@ -33,8 +33,8 @@ void FUT089PacketFormatter::updateColorRaw(uint8_t value) {
 // back to the original mode.
 void FUT089PacketFormatter::updateTemperature(uint8_t value) {
   // look up our current mode 
-  BulbId* ourBulb = new BulbId(this->deviceId, this->groupId, REMOTE_TYPE_FUT089);
-  GroupState ourState = this->stateStore->get(*ourBulb);
+  BulbId ourBulb(this->deviceId, this->groupId, REMOTE_TYPE_FUT089);
+  GroupState ourState = this->stateStore->get(ourBulb);
   BulbMode originalBulbMode = ourState.getBulbMode();
 
   // are we already in white?  If not, change to white
@@ -68,8 +68,8 @@ void FUT089PacketFormatter::updateTemperature(uint8_t value) {
 // back to the original mode.
 void FUT089PacketFormatter::updateSaturation(uint8_t value) {
   // look up our current mode 
-  BulbId* ourBulb = new BulbId(this->deviceId, this->groupId, REMOTE_TYPE_FUT089);
-  GroupState ourState = this->stateStore->get(*ourBulb);
+  BulbId ourBulb(this->deviceId, this->groupId, REMOTE_TYPE_FUT089);
+  GroupState ourState = this->stateStore->get(ourBulb);
   BulbMode originalBulbMode = ourState.getBulbMode();
 
   // are we already in white?  If not, change to white
