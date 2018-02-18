@@ -27,9 +27,24 @@ void RgbCctPacketFormatter::updateBrightness(uint8_t brightness) {
   command(RGB_CCT_BRIGHTNESS, RGB_CCT_BRIGHTNESS_OFFSET + brightness);
 }
 
+// change the hue (which may also change to color mode).  Also change saturation
+// if this was pending.
 void RgbCctPacketFormatter::updateHue(uint16_t value) {
   uint8_t remapped = Units::rescale(value, 255, 360);
   updateColorRaw(remapped);
+
+  // look up our current mode 
+  GroupState ourState = this->stateStore->get(this->deviceId, this->groupId, REMOTE_TYPE_RGB_CCT);
+
+  // do we have a saturation pending?
+  if (ourState.isPendingSaturation()) {
+    // now make the saturation change
+    uint8_t remapped = value + RGB_CCT_SATURATION_OFFSET;
+    command(RGB_CCT_SATURATION, remapped);
+    // clear pending status
+    ourState.setPendingSaturation(false);
+    this->stateStore->set(this->deviceId, this->groupId, REMOTE_TYPE_RGB_CCT, ourState);
+  }
 }
 
 void RgbCctPacketFormatter::updateColorRaw(uint8_t value) {
@@ -43,77 +58,48 @@ void RgbCctPacketFormatter::updateTemperature(uint8_t value) {
   //   * Multiply by 2
   //   * Reverse direction (increasing values should be cool -> warm)
   //   * Start scale at 0xCC
-
-  value = ((100 - value) * 2) + RGB_CCT_KELVIN_REMOTE_END;
+  uint8_t cmdValue = ((100 - value) * 2) + RGB_CCT_KELVIN_REMOTE_END;
 
   // when updating temperature, the bulb switches to white.  If we are not already
   // in white mode, that makes changing temperature annoying because the current hue/mode
   // is lost.  So lookup our current bulb mode, and if needed, reset the hue/mode after
   // changing the temperature
-  BulbId ourBulb(this->deviceId, this->groupId, REMOTE_TYPE_FUT089);
-  GroupState ourState = this->stateStore->get(ourBulb);
+  GroupState ourState = this->stateStore->get(this->deviceId, this->groupId, REMOTE_TYPE_RGB_CCT);
   BulbMode originalBulbMode = ourState.getBulbMode();
 
   // now make the temperature change
-  command(RGB_CCT_KELVIN, value);
+  command(RGB_CCT_KELVIN, cmdValue);
 
-  // revert back to the prior mode
-  switch (originalBulbMode) {
-    case BulbMode::BULB_MODE_COLOR:
-      updateHue(ourState.getHue());
-      break;
-    case BulbMode::BULB_MODE_NIGHT:
-      enableNightMode();
-      break;
-    case BulbMode::BULB_MODE_SCENE:
-      updateMode(ourState.getMode());
-      break;
-    case BulbMode::BULB_MODE_WHITE:
-      // no need to do anything, as we are wanting to stay in white
-      break;
+  // and return to our original mode
+  if (originalBulbMode != BulbMode::BULB_MODE_WHITE) {
+    switchMode(ourState, originalBulbMode);
   }
 }
 
-// update saturation.  This only works when in Color mode, so this will switch to
-// Color temporarally if needed to make the change and then switch back to the current
-// mode
+// update saturation.  This only works when in Color mode, so if not in color we save the
+// saturation and apply it next time we enter color mode (hue)
 void RgbCctPacketFormatter::updateSaturation(uint8_t value) {
    // look up our current mode 
-  BulbId ourBulb(this->deviceId, this->groupId, REMOTE_TYPE_FUT089);
-  GroupState ourState = this->stateStore->get(ourBulb);
+  GroupState ourState = this->stateStore->get(this->deviceId, this->groupId, REMOTE_TYPE_RGB_CCT);
   BulbMode originalBulbMode = ourState.getBulbMode();
 
   // are we already in white?  If not, change to white
-  if (originalBulbMode != BulbMode::BULB_MODE_COLOR)
-    updateHue(ourState.getHue());
+  if (originalBulbMode != BulbMode::BULB_MODE_COLOR) {
+    ourState.setPendingSaturation(true);
+    ourState.setSaturation(value);
+    this->stateStore->set(this->deviceId, this->groupId, REMOTE_TYPE_RGB_CCT, ourState);
+    return;
+  }
 
   // now make the saturation change
   uint8_t remapped = value + RGB_CCT_SATURATION_OFFSET;
   command(RGB_CCT_SATURATION, remapped);
-
-  // revert back to the prior mode
-  switch (originalBulbMode) {
-    case BulbMode::BULB_MODE_COLOR:
-      // no need to do anything, as we are wanting to stay in hue
-      break;
-    case BulbMode::BULB_MODE_NIGHT:
-      enableNightMode();
-      break;
-    case BulbMode::BULB_MODE_SCENE:
-      updateMode(ourState.getMode());
-      break;
-    case BulbMode::BULB_MODE_WHITE:
-      updateColorWhite();
-      break;
-  }
- 
 }
 
 void RgbCctPacketFormatter::updateColorWhite() {
   // there is no direct white command, so let's look up our prior temperature and set that, which
   // causes the bulb to go white 
-  BulbId ourBulb(this->deviceId, this->groupId, REMOTE_TYPE_FUT089);
-  GroupState ourState = this->stateStore->get(ourBulb);
+  GroupState ourState = this->stateStore->get(this->deviceId, this->groupId, REMOTE_TYPE_RGB_CCT);
   uint8_t value = ((100 - ourState.getKelvin()) * 2) + RGB_CCT_KELVIN_REMOTE_END;
 
   // issue command to set kelvin to prior value, which will drive to white

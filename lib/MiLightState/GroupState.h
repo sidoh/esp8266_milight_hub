@@ -83,6 +83,10 @@ public:
   bool isNightMode() const;
   bool setNightMode(bool nightMode);
 
+  // 1 bit
+  bool isPendingSaturation() const;
+  bool setPendingSaturation(bool pending);
+
   bool isDirty() const;
   inline bool setDirty();
   bool clearDirty();
@@ -101,9 +105,9 @@ public:
   static const GroupState& defaultState(MiLightRemoteType remoteType);
 
 private:
-  static const size_t DATA_BYTES = 2;
-  union Data {
-    uint32_t data[DATA_BYTES];
+  static const size_t DATA_LONGS = 3;
+  union StateData {
+    uint32_t rawData[DATA_LONGS];
     struct Fields {
       uint32_t
         _state                : 1,
@@ -115,6 +119,7 @@ private:
         _isSetState           : 1,
         _isSetHue             : 1;
       uint32_t
+        _isNightMode          : 1,
         _kelvin               : 7,
         _isSetBrightness      : 1,
         _isSetSaturation      : 1,
@@ -127,13 +132,14 @@ private:
         _isSetBrightnessMode  : 1,
         _dirty                : 1,
         _mqttDirty            : 1,
-        _isSetNightMode       : 1,
-        _isNightMode          : 1,
-                              : 2;
+        _isSetNightMode       : 1;
+      uint32_t
+        _isPendingSaturation  : 1,
+                             : 31;
     } fields;
   };
 
-  Data state;
+  StateData state;
 
   void applyColor(JsonObject& state, uint8_t r, uint8_t g, uint8_t b);
   void applyColor(JsonObject& state);
