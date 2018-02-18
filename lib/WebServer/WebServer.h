@@ -14,8 +14,12 @@ class WebServer : public ESP8266WebServer {
 public:
   WebServer(int port) : ESP8266WebServer(port) { }
 
-  bool matchesPattern(const String& pattern, const String& url);
+  void onAuthenticated(const String &uri, THandlerFunction handler);
+  void onAuthenticated(const String &uri, HTTPMethod method, THandlerFunction fn);
+  void onAuthenticated(const String &uri, HTTPMethod method, THandlerFunction fn, THandlerFunction ufn);
   void onPattern(const String& pattern, const HTTPMethod method, PatternHandler::TPatternHandlerFn fn);
+  void onPatternAuthenticated(const String& pattern, const HTTPMethod method, PatternHandler::TPatternHandlerFn handler);
+  bool matchesPattern(const String& pattern, const String& url);
   void requireAuthentication(const String& username, const String& password);
   void disableAuthentication();
   bool validateAuthentiation();

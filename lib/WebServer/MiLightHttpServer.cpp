@@ -14,25 +14,25 @@ void MiLightHttpServer::begin() {
   // set up HTTP end points to serve
 
   _handleRootPage = handleServe_P(index_html_gz, index_html_gz_len);
-  server.on("/", HTTP_GET, [this]() { if (server.validateAuthentiation()) _handleRootPage(); });
-  server.on("/settings", HTTP_GET, [this]() { if (server.validateAuthentiation()) serveSettings(); });
-  server.on("/settings", HTTP_PUT, [this]() { if (server.validateAuthentiation()) handleUpdateSettings(); });
-  server.on("/settings", HTTP_POST, [this]() { if (server.validateAuthentiation()) handleUpdateSettingsPost(); }, handleUpdateFile(SETTINGS_FILE));
-  server.on("/radio_configs", HTTP_GET, [this]() { if (server.validateAuthentiation()) handleGetRadioConfigs(); });
+  server.onAuthenticated("/", HTTP_GET, [this]() { _handleRootPage(); });
+  server.onAuthenticated("/settings", HTTP_GET, [this]() { serveSettings(); });
+  server.onAuthenticated("/settings", HTTP_PUT, [this]() { handleUpdateSettings(); });
+  server.onAuthenticated("/settings", HTTP_POST, [this]() { handleUpdateSettingsPost(); }, handleUpdateFile(SETTINGS_FILE));
+  server.onAuthenticated("/radio_configs", HTTP_GET, [this]() { handleGetRadioConfigs(); });
 
-  server.on("/gateway_traffic", HTTP_GET, [this]() { if (server.validateAuthentiation()) handleListenGateway(NULL); });
-  server.onPattern("/gateway_traffic/:type", HTTP_GET, [this](const UrlTokenBindings* b) { if (server.validateAuthentiation()) handleListenGateway(b); });
+  server.onAuthenticated("/gateway_traffic", HTTP_GET, [this]() { handleListenGateway(NULL); });
+  server.onPatternAuthenticated("/gateway_traffic/:type", HTTP_GET, [this](const UrlTokenBindings* b) { handleListenGateway(b); });
 
   const char groupPattern[] = "/gateways/:device_id/:type/:group_id";
-  server.onPattern(groupPattern, HTTP_PUT, [this](const UrlTokenBindings* b) { if (server.validateAuthentiation()) handleUpdateGroup(b); });
-  server.onPattern(groupPattern, HTTP_POST, [this](const UrlTokenBindings* b) { if (server.validateAuthentiation()) handleUpdateGroup(b); });
-  server.onPattern(groupPattern, HTTP_GET, [this](const UrlTokenBindings* b) { if (server.validateAuthentiation()) handleGetGroup(b); });
+  server.onPatternAuthenticated(groupPattern, HTTP_PUT, [this](const UrlTokenBindings* b) { handleUpdateGroup(b); });
+  server.onPatternAuthenticated(groupPattern, HTTP_POST, [this](const UrlTokenBindings* b) { handleUpdateGroup(b); });
+  server.onPatternAuthenticated(groupPattern, HTTP_GET, [this](const UrlTokenBindings* b) { handleGetGroup(b); });
 
-  server.onPattern("/raw_commands/:type", HTTP_ANY, [this](const UrlTokenBindings* b) { if (server.validateAuthentiation()) handleSendRaw(b); });
-  server.on("/web", HTTP_POST, [this]() { if (server.validateAuthentiation()) server.send_P(200, TEXT_PLAIN, PSTR("success")); }, handleUpdateFile(WEB_INDEX_FILENAME));
+  server.onPatternAuthenticated("/raw_commands/:type", HTTP_ANY, [this](const UrlTokenBindings* b) { handleSendRaw(b); });
+  server.onAuthenticated("/web", HTTP_POST, [this]() { server.send_P(200, TEXT_PLAIN, PSTR("success")); }, handleUpdateFile(WEB_INDEX_FILENAME));
   server.on("/about", HTTP_GET, [this]() { handleAbout(); });
-  server.on("/system", HTTP_POST, [this]() { if (server.validateAuthentiation()) handleSystemPost(); });
-  server.on("/firmware", HTTP_POST, [this]() { if (server.validateAuthentiation()) handleFirmwarePost(); }, [this]() { handleFirmwareUpload(); });
+  server.onAuthenticated("/system", HTTP_POST, [this]() { handleSystemPost(); });
+  server.onAuthenticated("/firmware", HTTP_POST, [this]() { handleFirmwarePost(); }, [this]() { handleFirmwareUpload(); });
 
 
   // set up web socket server
@@ -198,8 +198,9 @@ void MiLightHttpServer::handleUpdateSettings() {
 
     this->applySettings(settings);
 
-    if (this->settingsSavedHandler)
+    if (this->settingsSavedHandler) {
       this->settingsSavedHandler();
+    }
 
     server.send(200, APPLICATION_JSON, "true");
   } else
