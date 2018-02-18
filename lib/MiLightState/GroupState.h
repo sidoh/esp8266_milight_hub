@@ -9,7 +9,7 @@
 #define _GROUP_STATE_H
 
 // enable to add debugging on state
-//#define DEBUG_PRINTF
+#define DEBUG_STATE
 
 struct BulbId {
   uint16_t deviceId;

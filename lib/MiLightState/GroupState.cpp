@@ -490,10 +490,9 @@ void GroupState::applyField(JsonObject& partialState, GroupStateField field) {
 
 // helper function to debug the current state (in JSON) to the serial port
 void GroupState::debugState(char const *debugMessage) {
-#ifdef DEBUG_PRINTF
+#ifdef DEBUG_STATE
   // using static to keep large buffers off the call stack
-  static char buffer[1000];
-  static StaticJsonBuffer<1000> jsonBuffer;
+  static StaticJsonBuffer<500> jsonBuffer;
 
   // define fields to show (if count changes, make sure to update count to applyState below)
   GroupStateField fields[] { 
@@ -518,8 +517,9 @@ void GroupState::debugState(char const *debugMessage) {
   // use applyState to build JSON of all fields (from above)
   applyState(jsonState, fields, 13);
   // convert to string and print
-  jsonState.printTo(buffer);
-  Serial.printf("%s: %s\n", debugMessage, buffer);
+  Serial.printf("%s: ", debugMessage);
+  jsonState.printTo(Serial);
+  Serial.println("");
 #endif
 }
 
