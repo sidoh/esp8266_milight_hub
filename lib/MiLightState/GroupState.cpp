@@ -52,10 +52,8 @@ void BulbId::operator=(const BulbId &other) {
 // (type of controller/remote) as this doesn't directly affect the identity of the bulb
 bool BulbId::operator==(const BulbId &other) {
   return deviceId == other.deviceId
-    && groupId == other.groupId;
-    // used to contain this test below for deviceType, removed as it does not identify the bulb, but instead
-    // identifies which remote is being used
-//    && deviceType == other.deviceType;
+    && groupId == other.groupId
+    && deviceType == other.deviceType;
 }
 
 GroupState::GroupState() {
