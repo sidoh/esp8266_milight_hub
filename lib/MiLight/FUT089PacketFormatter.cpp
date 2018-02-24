@@ -55,7 +55,7 @@ void FUT089PacketFormatter::updateTemperature(uint8_t value) {
   BulbMode originalBulbMode = ourState.getBulbMode();
 
   // are we already in white?  If not, change to white
-  if ((settings->enableAutomaticModeSwitching) && (originalBulbMode != BulbMode::BULB_MODE_WHITE)) {
+  if (originalBulbMode != BulbMode::BULB_MODE_WHITE) {
     updateColorWhite();
   }
 
