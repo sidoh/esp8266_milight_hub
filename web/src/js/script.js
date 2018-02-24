@@ -71,7 +71,7 @@ var FORM_SETTINGS_HELP = {
   group_state_fields : "Selects which fields should be included in MQTT state updates and " +
     "REST responses for bulb state.",
   enable_automatic_mode_switching: "For RGBWW bulbs (using RGB+CCT or FUT089), enables automatic switching between modes in order to affect changes to " +
-    "temperature and saturation when otherwise it would not work (true or 1 enables, false or 0 disables)."
+    "temperature and saturation when otherwise it would not work."
 }
 
 var UDP_PROTOCOL_VERSIONS = [ 5, 6 ];
@@ -571,6 +571,15 @@ $(function() {
         elmt += '<option>' + stateKey + '</option>';
       });
       elmt += '</select>';
+    } else if (k == 'enable_automatic_mode_switching') {
+      elmt += '<div class="btn-group" id="enable_automatic_mode_switching" data-toggle="buttons">' +
+        '<label class="btn btn-secondary active">' +
+          '<input type="radio" id="enable_mode_switching" name="enable_automatic_mode_switching" autocomplete="off" value="true" /> Enable' +
+        '</label>'+
+        '<label class="btn btn-secondary">' +
+          '<input type="radio" id="disable_mode_switching" name="enable_automatic_mode_switching" autocomplete="off" value="false" /> Disable' +
+        '</label>' +
+      '</div>';
     } else {
       elmt += '<input type="text" class="form-control" name="' + k + '"/>';
       elmt += '</div>';
