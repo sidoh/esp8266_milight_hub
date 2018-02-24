@@ -64,7 +64,7 @@ void PacketFormatter::enableNightMode() { }
 void PacketFormatter::updateTemperature(uint8_t value) { }
 void PacketFormatter::updateSaturation(uint8_t value) { }
 
-BulbId PacketFormatter::parsePacket(const uint8_t *packet, JsonObject &result, GroupStateStore* stateStore) {
+BulbId PacketFormatter::parsePacket(const uint8_t *packet, JsonObject &result) {
   return DEFAULT_BULB_ID;
 }
 
@@ -99,10 +99,11 @@ void PacketFormatter::valueByStepFunction(StepFunction increase, StepFunction de
   }
 }
 
-void PacketFormatter::prepare(uint16_t deviceId, uint8_t groupId, GroupStateStore* stateStore) {
+void PacketFormatter::prepare(uint16_t deviceId, uint8_t groupId, GroupStateStore* stateStore, const Settings* settings) {
   this->deviceId = deviceId;
   this->groupId = groupId;
   this->stateStore = stateStore;
+  this->settings = settings;
   reset();
 }
 

@@ -10,7 +10,8 @@ var FORM_SETTINGS = [
   "mqtt_topic_pattern", "mqtt_update_topic_pattern", "mqtt_state_topic_pattern",
   "mqtt_username", "mqtt_password", "radio_interface_type", "listen_repeats",
   "state_flush_interval", "mqtt_state_rate_limit", "packet_repeat_throttle_threshold",
-  "packet_repeat_throttle_sensitivity", "packet_repeat_minimum", "group_state_fields"
+  "packet_repeat_throttle_sensitivity", "packet_repeat_minimum", "group_state_fields",
+  "enable_automatic_mode_switching"
 ];
 
 // TODO: sync this with GroupStateField.h
@@ -68,7 +69,9 @@ var FORM_SETTINGS_HELP = {
   packet_repeat_minimum : "Controls how far throttling can decrease the number " +
     "of repeated packets.  Defaults to 3.",
   group_state_fields : "Selects which fields should be included in MQTT state updates and " +
-    "REST responses for bulb state."
+    "REST responses for bulb state.",
+  enable_automatic_mode_switching: "For RGBWW bulbs (using RGB+CCT or FUT089), enables automatic switching between modes in order to affect changes to " +
+    "temperature and saturation when otherwise it would not work (true or 1 enables, false or 0 disables)."
 }
 
 var UDP_PROTOCOL_VERSIONS = [ 5, 6 ];

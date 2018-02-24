@@ -5,6 +5,7 @@
 #include <ArduinoJson.h>
 #include <GroupState.h>
 #include <GroupStateStore.h>
+#include <Settings.h>
 
 #ifndef _PACKET_FORMATTER_H
 #define _PACKET_FORMATTER_H
@@ -71,10 +72,10 @@ public:
   virtual void reset();
 
   virtual PacketStream& buildPackets();
-  virtual void prepare(uint16_t deviceId, uint8_t groupId, GroupStateStore* stateStore);
+  virtual void prepare(uint16_t deviceId, uint8_t groupId, GroupStateStore* stateStore, const Settings* settings);
   virtual void format(uint8_t const* packet, char* buffer);
 
-  virtual BulbId parsePacket(const uint8_t* packet, JsonObject& result, GroupStateStore* stateStore);
+  virtual BulbId parsePacket(const uint8_t* packet, JsonObject& result);
 
   static void formatV1Packet(uint8_t const* packet, char* buffer);
 
@@ -89,7 +90,8 @@ protected:
   size_t numPackets;
   bool held;
   PacketStream packetStream;
-  GroupStateStore* stateStore;
+  GroupStateStore* stateStore = NULL;
+  const Settings* settings = NULL;
 
   void pushPacket();
   void valueByStepFunction(StepFunction increase, StepFunction decrease, uint8_t numSteps, uint8_t value);

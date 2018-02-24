@@ -103,6 +103,7 @@ void Settings::patch(JsonObject& parsedSettings) {
     this->setIfPresent(parsedSettings, "packet_repeat_throttle_threshold", packetRepeatThrottleThreshold);
     this->setIfPresent(parsedSettings, "packet_repeat_throttle_sensitivity", packetRepeatThrottleSensitivity);
     this->setIfPresent(parsedSettings, "packet_repeat_minimum", packetRepeatMinimum);
+    this->setIfPresent(parsedSettings, "enable_automatic_mode_switching", enableAutomaticModeSwitching);
 
     if (parsedSettings.containsKey("radio_interface_type")) {
       this->radioInterfaceType = Settings::typeFromString(parsedSettings["radio_interface_type"]);
@@ -179,6 +180,7 @@ void Settings::serialize(Stream& stream, const bool prettyPrint) {
   root["packet_repeat_throttle_sensitivity"] = this->packetRepeatThrottleSensitivity;
   root["packet_repeat_throttle_threshold"] = this->packetRepeatThrottleThreshold;
   root["packet_repeat_minimum"] = this->packetRepeatMinimum;
+  root["enable_automatic_mode_switching"] = this->enableAutomaticModeSwitching;
 
   if (this->deviceIds) {
     JsonArray& arr = jsonBuffer.createArray();

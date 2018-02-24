@@ -84,7 +84,7 @@ void initMilightUdpServers() {
 void onPacketSentHandler(uint8_t* packet, const MiLightRemoteConfig& config) {
   StaticJsonBuffer<200> buffer;
   JsonObject& result = buffer.createObject();
-  BulbId bulbId = config.packetFormatter->parsePacket(packet, result, stateStore);
+  BulbId bulbId = config.packetFormatter->parsePacket(packet, result);
 
   if (&bulbId == &DEFAULT_BULB_ID) {
     Serial.println(F("Skipping packet handler because packet was not decoded"));
@@ -197,10 +197,8 @@ void applySettings() {
 
   milightClient = new MiLightClient(
     radioFactory,
-    *stateStore,
-    settings.packetRepeatThrottleThreshold,
-    settings.packetRepeatThrottleSensitivity,
-    settings.packetRepeatMinimum
+    stateStore,
+    &settings
   );
   milightClient->begin();
   milightClient->onPacketSent(onPacketSentHandler);

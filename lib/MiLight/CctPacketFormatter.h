@@ -46,7 +46,7 @@ public:
   virtual void format(uint8_t const* packet, char* buffer);
   virtual void initializePacket(uint8_t* packet);
   virtual void finalizePacket(uint8_t* packet);
-  virtual BulbId parsePacket(const uint8_t* packet, JsonObject& result, GroupStateStore* stateStore);
+  virtual BulbId parsePacket(const uint8_t* packet, JsonObject& result);
 
   static uint8_t getCctStatusButton(uint8_t groupId, MiLightStatus status);
   static uint8_t cctCommandIdToGroup(uint8_t command);

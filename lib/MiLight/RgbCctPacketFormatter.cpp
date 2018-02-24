@@ -33,17 +33,19 @@ void RgbCctPacketFormatter::updateHue(uint16_t value) {
   uint8_t remapped = Units::rescale(value, 255, 360);
   updateColorRaw(remapped);
 
-  // look up our current mode 
-  GroupState ourState = this->stateStore->get(this->deviceId, this->groupId, REMOTE_TYPE_RGB_CCT);
+  if (settings->enableAutomaticModeSwitching) {
+    // look up our current mode 
+    GroupState ourState = this->stateStore->get(this->deviceId, this->groupId, REMOTE_TYPE_RGB_CCT);
 
-  // do we have a saturation pending?
-  if (ourState.isPendingSaturation()) {
-    // now make the saturation change
-    uint8_t remapped = value + RGB_CCT_SATURATION_OFFSET;
-    command(RGB_CCT_SATURATION, remapped);
-    // clear pending status
-    ourState.setPendingSaturation(false);
-    this->stateStore->set(this->deviceId, this->groupId, REMOTE_TYPE_RGB_CCT, ourState);
+    // do we have a saturation pending?
+    if (ourState.isPendingSaturation()) {
+      // now make the saturation change
+      uint8_t remapped = value + RGB_CCT_SATURATION_OFFSET;
+      command(RGB_CCT_SATURATION, remapped);
+      // clear pending status
+      ourState.setPendingSaturation(false);
+      this->stateStore->set(this->deviceId, this->groupId, REMOTE_TYPE_RGB_CCT, ourState);
+    }
   }
 }
 
@@ -71,7 +73,7 @@ void RgbCctPacketFormatter::updateTemperature(uint8_t value) {
   command(RGB_CCT_KELVIN, cmdValue);
 
   // and return to our original mode
-  if (originalBulbMode != BulbMode::BULB_MODE_WHITE) {
+  if ((settings->enableAutomaticModeSwitching) && (originalBulbMode != BulbMode::BULB_MODE_WHITE)) {
     switchMode(ourState, originalBulbMode);
   }
 }
@@ -84,7 +86,7 @@ void RgbCctPacketFormatter::updateSaturation(uint8_t value) {
   BulbMode originalBulbMode = ourState.getBulbMode();
 
   // are we already in white?  If not, change to white
-  if (originalBulbMode != BulbMode::BULB_MODE_COLOR) {
+  if ((settings->enableAutomaticModeSwitching) && (originalBulbMode != BulbMode::BULB_MODE_COLOR)) {
     ourState.setPendingSaturation(true);
     ourState.setSaturation(value);
     this->stateStore->set(this->deviceId, this->groupId, REMOTE_TYPE_RGB_CCT, ourState);
@@ -111,7 +113,7 @@ void RgbCctPacketFormatter::enableNightMode() {
   command(RGB_CCT_ON | 0x80, arg);
 }
 
-BulbId RgbCctPacketFormatter::parsePacket(const uint8_t *packet, JsonObject& result, GroupStateStore* stateStore) {
+BulbId RgbCctPacketFormatter::parsePacket(const uint8_t *packet, JsonObject& result) {
   uint8_t packetCopy[V2_PACKET_LEN];
   memcpy(packetCopy, packet, V2_PACKET_LEN);
   V2RFEncoding::decodeV2Packet(packetCopy);

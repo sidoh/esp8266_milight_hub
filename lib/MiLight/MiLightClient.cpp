@@ -6,10 +6,8 @@
 
 MiLightClient::MiLightClient(
   MiLightRadioFactory* radioFactory,
-  GroupStateStore& stateStore,
-  size_t throttleThreshold,
-  size_t throttleSensitivity,
-  size_t packetRepeatMinimum
+  GroupStateStore* stateStore,
+  Settings* settings
 )
   : baseResendCount(MILIGHT_DEFAULT_RESEND_COUNT),
     currentRadio(NULL),
@@ -19,10 +17,8 @@ MiLightClient::MiLightClient(
     updateBeginHandler(NULL),
     updateEndHandler(NULL),
     stateStore(stateStore),
-    lastSend(0),
-    throttleThreshold(throttleThreshold),
-    throttleSensitivity(throttleSensitivity),
-    packetRepeatMinimum(packetRepeatMinimum)
+    settings(settings),
+    lastSend(0)
 {
   radios = new MiLightRadio*[numRadios];
 
@@ -82,7 +78,7 @@ void MiLightClient::prepare(const MiLightRemoteConfig* config,
   this->currentRemote = config;
 
   if (deviceId >= 0 && groupId >= 0) {
-    currentRemote->packetFormatter->prepare(deviceId, groupId, &stateStore);
+    currentRemote->packetFormatter->prepare(deviceId, groupId, stateStore, settings);
   }
 }
 
@@ -96,7 +92,7 @@ void MiLightClient::prepare(const MiLightRemoteType type,
 void MiLightClient::setResendCount(const unsigned int resendCount) {
   this->baseResendCount = resendCount;
   this->currentResendCount = resendCount;
-  this->throttleMultiplier = ceil((throttleSensitivity / 1000.0) * this->baseResendCount);
+  this->throttleMultiplier = ceil((settings->packetRepeatThrottleSensitivity / 1000.0) * this->baseResendCount);
 }
 
 bool MiLightClient::available() {
@@ -471,10 +467,10 @@ uint8_t MiLightClient::parseStatus(const JsonObject& object) {
 void MiLightClient::updateResendCount() {
   unsigned long now = millis();
   long millisSinceLastSend = now - lastSend;
-  long x = (millisSinceLastSend - throttleThreshold);
+  long x = (millisSinceLastSend - settings->packetRepeatThrottleThreshold);
   long delta = x * throttleMultiplier;
 
-  this->currentResendCount = constrain(this->currentResendCount + delta, packetRepeatMinimum, this->baseResendCount);
+  this->currentResendCount = constrain(this->currentResendCount + delta, settings->packetRepeatMinimum, this->baseResendCount);
   this->lastSend = now;
 }
 

@@ -24,18 +24,20 @@ void FUT089PacketFormatter::updateHue(uint16_t value) {
   uint8_t remapped = Units::rescale(value, 255, 360);
   updateColorRaw(remapped);
 
-  // look up our current mode 
-  GroupState ourState = this->stateStore->get(this->deviceId, this->groupId, REMOTE_TYPE_FUT089);
+  if (settings->enableAutomaticModeSwitching) {
+    // look up our current mode 
+    GroupState ourState = this->stateStore->get(this->deviceId, this->groupId, REMOTE_TYPE_FUT089);
 
-  // do we have a saturation pending?
-  if (ourState.isPendingSaturation()) {
-    // now make the saturation change
-    command(FUT089_SATURATION, 100 - ourState.getSaturation());
-    ourState.setPendingSaturation(false);
+    // do we have a saturation pending?
+    if (ourState.isPendingSaturation()) {
+      // now make the saturation change
+      command(FUT089_SATURATION, 100 - ourState.getSaturation());
+      ourState.setPendingSaturation(false);
 
-    // clear pending status
-    ourState.setPendingSaturation(false);
-    this->stateStore->set(this->deviceId, this->groupId, REMOTE_TYPE_FUT089, ourState);
+      // clear pending status
+      ourState.setPendingSaturation(false);
+      this->stateStore->set(this->deviceId, this->groupId, REMOTE_TYPE_FUT089, ourState);
+    }
   }
 }
 
@@ -53,7 +55,7 @@ void FUT089PacketFormatter::updateTemperature(uint8_t value) {
   BulbMode originalBulbMode = ourState.getBulbMode();
 
   // are we already in white?  If not, change to white
-  if (originalBulbMode != BulbMode::BULB_MODE_WHITE) {
+  if ((settings->enableAutomaticModeSwitching) && (originalBulbMode != BulbMode::BULB_MODE_WHITE)) {
     updateColorWhite();
   }
 
@@ -61,7 +63,7 @@ void FUT089PacketFormatter::updateTemperature(uint8_t value) {
   command(FUT089_KELVIN, 100 - value);
 
   // and return to our original mode
-  if (originalBulbMode != BulbMode::BULB_MODE_WHITE) {
+  if ((settings->enableAutomaticModeSwitching) && (originalBulbMode != BulbMode::BULB_MODE_WHITE)) {
     switchMode(ourState, originalBulbMode);
   }
 }
@@ -77,7 +79,7 @@ void FUT089PacketFormatter::updateSaturation(uint8_t value) {
 
   // are we already in color?  If not, we can't make the change yet, so store the value
   // so we can make it later
-  if (originalBulbMode != BulbMode::BULB_MODE_COLOR) {
+  if ((settings->enableAutomaticModeSwitching) && (originalBulbMode != BulbMode::BULB_MODE_COLOR)) {
     ourState.setPendingSaturation(true);
     ourState.setSaturation(value);
     this->stateStore->set(this->deviceId, this->groupId, REMOTE_TYPE_FUT089, ourState);
@@ -96,7 +98,7 @@ void FUT089PacketFormatter::enableNightMode() {
   command(FUT089_ON | 0x80, arg);
 }
 
-BulbId FUT089PacketFormatter::parsePacket(const uint8_t *packet, JsonObject& result, GroupStateStore* stateStore) {
+BulbId FUT089PacketFormatter::parsePacket(const uint8_t *packet, JsonObject& result) {
   uint8_t packetCopy[V2_PACKET_LEN];
   memcpy(packetCopy, packet, V2_PACKET_LEN);
   V2RFEncoding::decodeV2Packet(packetCopy);
