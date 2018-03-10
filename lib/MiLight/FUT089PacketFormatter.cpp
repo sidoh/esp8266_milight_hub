@@ -18,27 +18,10 @@ void FUT089PacketFormatter::updateBrightness(uint8_t brightness) {
   command(FUT089_BRIGHTNESS, brightness);
 }
 
-// change the hue (which may also change to color mode).  Also change saturation
-// if this was pending.
+// change the hue (which may also change to color mode).
 void FUT089PacketFormatter::updateHue(uint16_t value) {
   uint8_t remapped = Units::rescale(value, 255, 360);
   updateColorRaw(remapped);
-
-  if (settings->enableAutomaticModeSwitching) {
-    // look up our current mode 
-    GroupState ourState = this->stateStore->get(this->deviceId, this->groupId, REMOTE_TYPE_FUT089);
-
-    // do we have a saturation pending?
-    if (ourState.isPendingSaturation()) {
-      // now make the saturation change
-      command(FUT089_SATURATION, 100 - ourState.getSaturation());
-      ourState.setPendingSaturation(false);
-
-      // clear pending status
-      ourState.setPendingSaturation(false);
-      this->stateStore->set(this->deviceId, this->groupId, REMOTE_TYPE_FUT089, ourState);
-    }
-  }
 }
 
 void FUT089PacketFormatter::updateColorRaw(uint8_t value) {
@@ -70,23 +53,25 @@ void FUT089PacketFormatter::updateTemperature(uint8_t value) {
 
 // change the saturation.  Note that temperature and saturation share the same command 
 // number (7), and they change which they do based on the mode of the lamp (white vs. color mode).
-// Therefore, if we are not in color mode, we save the saturation and wait until we do a
-// mode change to color (hue) and then change the saturation.
+// Therefore, if we are not in color mode, we need to switch to color mode, make the change,
+// and switch back to the original mode.
 void FUT089PacketFormatter::updateSaturation(uint8_t value) {
   // look up our current mode 
   GroupState ourState = this->stateStore->get(this->deviceId, this->groupId, REMOTE_TYPE_FUT089);
   BulbMode originalBulbMode = ourState.getBulbMode();
 
-  // are we already in color?  If not, we can't make the change yet, so store the value
-  // so we can make it later
+  // are we already in color?  If not, we need to flip modes
   if ((settings->enableAutomaticModeSwitching) && (originalBulbMode != BulbMode::BULB_MODE_COLOR)) {
-    ourState.setPendingSaturation(true);
-    ourState.setSaturation(value);
-    this->stateStore->set(this->deviceId, this->groupId, REMOTE_TYPE_FUT089, ourState);
-    return;
+    updateHue(ourState.getHue());
   }
+
   // now make the saturation change
   command(FUT089_SATURATION, 100 - value);
+
+  // and revert back if necessary
+  if ((settings->enableAutomaticModeSwitching) && (originalBulbMode != BulbMode::BULB_MODE_COLOR)) {
+    switchMode(ourState, originalBulbMode);
+  }
 }
 
 void FUT089PacketFormatter::updateColorWhite() {

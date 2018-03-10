@@ -120,9 +120,9 @@ void MiLightClient::write(uint8_t packet[]) {
   }
 
 #ifdef DEBUG_PRINTF
-  Serial.printf("Sending packet (%d repeats): \n", this->currentResendCount);
+  Serial.printf_P(PSTR("Sending packet (%d repeats): \n"), this->currentResendCount);
   for (int i = 0; i < currentRemote->packetFormatter->getPacketLength(); i++) {
-    Serial.printf("%02X ", packet[i]);
+    Serial.printf_P(PSTR("%02X "), packet[i]);
   }
   Serial.println();
   int iStart = millis();
@@ -148,7 +148,7 @@ void MiLightClient::write(uint8_t packet[]) {
 
 void MiLightClient::updateColorRaw(const uint8_t color) {
 #ifdef DEBUG_CLIENT_COMMANDS
-  Serial.printf("MiLightClient::updateColorRaw: Change color to %d\n", color);
+  Serial.printf_P(PSTR("MiLightClient::updateColorRaw: Change color to %d\n"), color);
 #endif
   currentRemote->packetFormatter->updateColorRaw(color);
   flushPacket();
@@ -156,7 +156,7 @@ void MiLightClient::updateColorRaw(const uint8_t color) {
 
 void MiLightClient::updateHue(const uint16_t hue) {
 #ifdef DEBUG_CLIENT_COMMANDS
-  Serial.printf("MiLightClient::updateHue: Change hue to %d\n", hue);
+  Serial.printf_P(PSTR("MiLightClient::updateHue: Change hue to %d\n"), hue);
 #endif
   currentRemote->packetFormatter->updateHue(hue);
   flushPacket();
@@ -164,7 +164,7 @@ void MiLightClient::updateHue(const uint16_t hue) {
 
 void MiLightClient::updateBrightness(const uint8_t brightness) {
 #ifdef DEBUG_CLIENT_COMMANDS
-  Serial.printf("MiLightClient::updateBrightness: Change brightness to %d\n", brightness);
+  Serial.printf_P(PSTR("MiLightClient::updateBrightness: Change brightness to %d\n"), brightness);
 #endif
   currentRemote->packetFormatter->updateBrightness(brightness);
   flushPacket();
@@ -172,7 +172,7 @@ void MiLightClient::updateBrightness(const uint8_t brightness) {
 
 void MiLightClient::updateMode(uint8_t mode) {
 #ifdef DEBUG_CLIENT_COMMANDS
-  Serial.printf("MiLightClient::updateMode: Change mode to %d\n", mode);
+  Serial.printf_P(PSTR("MiLightClient::updateMode: Change mode to %d\n"), mode);
 #endif
   currentRemote->packetFormatter->updateMode(mode);
   flushPacket();
@@ -180,7 +180,7 @@ void MiLightClient::updateMode(uint8_t mode) {
 
 void MiLightClient::nextMode() {
 #ifdef DEBUG_CLIENT_COMMANDS
-  Serial.printf("MiLightClient::nextMode: Switch to next mode\n");
+  Serial.println(F("MiLightClient::nextMode: Switch to next mode"));
 #endif
   currentRemote->packetFormatter->nextMode();
   flushPacket();
@@ -188,7 +188,7 @@ void MiLightClient::nextMode() {
 
 void MiLightClient::previousMode() {
 #ifdef DEBUG_CLIENT_COMMANDS
-  Serial.printf("MiLightClient::previousMode: Switch to previous mode\n");
+  Serial.println(F("MiLightClient::previousMode: Switch to previous mode"));
 #endif
   currentRemote->packetFormatter->previousMode();
   flushPacket();
@@ -196,14 +196,14 @@ void MiLightClient::previousMode() {
 
 void MiLightClient::modeSpeedDown() {
 #ifdef DEBUG_CLIENT_COMMANDS
-  Serial.printf("MiLightClient::modeSpeedDown: Speed down\n");
+  Serial.println(F("MiLightClient::modeSpeedDown: Speed down\n"));
 #endif
   currentRemote->packetFormatter->modeSpeedDown();
   flushPacket();
 }
 void MiLightClient::modeSpeedUp() {
 #ifdef DEBUG_CLIENT_COMMANDS
-  Serial.printf("MiLightClient::modeSpeedUp: Speed up\n");
+  Serial.println(F("MiLightClient::modeSpeedUp: Speed up"));
 #endif
   currentRemote->packetFormatter->modeSpeedUp();
   flushPacket();
@@ -211,7 +211,7 @@ void MiLightClient::modeSpeedUp() {
 
 void MiLightClient::updateStatus(MiLightStatus status, uint8_t groupId) {
 #ifdef DEBUG_CLIENT_COMMANDS
-  Serial.printf("MiLightClient::updateStatus: Status %s, groupId %d\n", status == MiLightStatus::OFF ? "OFF" : "ON", groupId);
+  Serial.printf_P(PSTR("MiLightClient::updateStatus: Status %s, groupId %d\n"), status == MiLightStatus::OFF ? "OFF" : "ON", groupId);
 #endif
   currentRemote->packetFormatter->updateStatus(status, groupId);
   flushPacket();
@@ -219,7 +219,7 @@ void MiLightClient::updateStatus(MiLightStatus status, uint8_t groupId) {
 
 void MiLightClient::updateStatus(MiLightStatus status) {
 #ifdef DEBUG_CLIENT_COMMANDS
-  Serial.printf("MiLightClient::updateStatus: Status %s\n", status == MiLightStatus::OFF ? "OFF" : "ON");
+  Serial.printf_P(PSTR("MiLightClient::updateStatus: Status %s\n"), status == MiLightStatus::OFF ? "OFF" : "ON");
 #endif
   currentRemote->packetFormatter->updateStatus(status);
   flushPacket();
@@ -227,7 +227,7 @@ void MiLightClient::updateStatus(MiLightStatus status) {
 
 void MiLightClient::updateSaturation(const uint8_t value) {
 #ifdef DEBUG_CLIENT_COMMANDS
-  Serial.printf("MiLightClient::updateSaturation: Saturation %d\n", value);
+  Serial.printf_P(PSTR("MiLightClient::updateSaturation: Saturation %d\n"), value);
 #endif
   currentRemote->packetFormatter->updateSaturation(value);
   flushPacket();
@@ -235,7 +235,7 @@ void MiLightClient::updateSaturation(const uint8_t value) {
 
 void MiLightClient::updateColorWhite() {
 #ifdef DEBUG_CLIENT_COMMANDS
-  Serial.printf("MiLightClient::updateColorWhite: Color white\n");
+  Serial.println(F("MiLightClient::updateColorWhite: Color white"));
 #endif
   currentRemote->packetFormatter->updateColorWhite();
   flushPacket();
@@ -243,7 +243,7 @@ void MiLightClient::updateColorWhite() {
 
 void MiLightClient::enableNightMode() {
 #ifdef DEBUG_CLIENT_COMMANDS
-  Serial.printf("MiLightClient::enableNightMode: Night mode\n");
+  Serial.println(F("MiLightClient::enableNightMode: Night mode"));
 #endif
   currentRemote->packetFormatter->enableNightMode();
   flushPacket();
@@ -251,7 +251,7 @@ void MiLightClient::enableNightMode() {
 
 void MiLightClient::pair() {
 #ifdef DEBUG_CLIENT_COMMANDS
-  Serial.printf("MiLightClient::pair: Pair\n");
+  Serial.println(F("MiLightClient::pair: Pair"));
 #endif
   currentRemote->packetFormatter->pair();
   flushPacket();
@@ -259,7 +259,7 @@ void MiLightClient::pair() {
 
 void MiLightClient::unpair() {
 #ifdef DEBUG_CLIENT_COMMANDS
-  Serial.printf("MiLightClient::unpair: Unpair\n");
+  Serial.println(F("MiLightClient::unpair: Unpair"));
 #endif
   currentRemote->packetFormatter->unpair();
   flushPacket();
@@ -267,7 +267,7 @@ void MiLightClient::unpair() {
 
 void MiLightClient::increaseBrightness() {
 #ifdef DEBUG_CLIENT_COMMANDS
-  Serial.printf("MiLightClient::increaseBrightness: Increase brightness\n");
+  Serial.println(F("MiLightClient::increaseBrightness: Increase brightness"));
 #endif
   currentRemote->packetFormatter->increaseBrightness();
   flushPacket();
@@ -275,7 +275,7 @@ void MiLightClient::increaseBrightness() {
 
 void MiLightClient::decreaseBrightness() {
 #ifdef DEBUG_CLIENT_COMMANDS
-  Serial.printf("MiLightClient::decreaseBrightness: Decrease brightness\n");
+  Serial.println(F("MiLightClient::decreaseBrightness: Decrease brightness"));
 #endif
   currentRemote->packetFormatter->decreaseBrightness();
   flushPacket();
@@ -283,7 +283,7 @@ void MiLightClient::decreaseBrightness() {
 
 void MiLightClient::increaseTemperature() {
 #ifdef DEBUG_CLIENT_COMMANDS
-  Serial.printf("MiLightClient::increaseTemperature: Increase temperature\n");
+  Serial.println(F("MiLightClient::increaseTemperature: Increase temperature"));
 #endif
   currentRemote->packetFormatter->increaseTemperature();
   flushPacket();
@@ -291,7 +291,7 @@ void MiLightClient::increaseTemperature() {
 
 void MiLightClient::decreaseTemperature() {
 #ifdef DEBUG_CLIENT_COMMANDS
-  Serial.printf("MiLightClient::decreaseTemperature: Decrease temperature\n");
+  Serial.println(F("MiLightClient::decreaseTemperature: Decrease temperature"));
 #endif
   currentRemote->packetFormatter->decreaseTemperature();
   flushPacket();
@@ -299,7 +299,7 @@ void MiLightClient::decreaseTemperature() {
 
 void MiLightClient::updateTemperature(const uint8_t temperature) {
 #ifdef DEBUG_CLIENT_COMMANDS
-  Serial.printf("MiLightClient::updateTemperature: Set temperature to %d\n", temperature);
+  Serial.printf_P(PSTR("MiLightClient::updateTemperature: Set temperature to %d\n"), temperature);
 #endif
   currentRemote->packetFormatter->updateTemperature(temperature);
   flushPacket();
@@ -307,7 +307,7 @@ void MiLightClient::updateTemperature(const uint8_t temperature) {
 
 void MiLightClient::command(uint8_t command, uint8_t arg) {
 #ifdef DEBUG_CLIENT_COMMANDS
-  Serial.printf("MiLightClient::command: Execute command %d, argument %d\n", command, arg);
+  Serial.printf_P(PSTR("MiLightClient::command: Execute command %d, argument %d\n"), command, arg);
 #endif
   currentRemote->packetFormatter->command(command, arg);
   flushPacket();

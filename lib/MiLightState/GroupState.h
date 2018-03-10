@@ -83,10 +83,6 @@ public:
   bool isNightMode() const;
   bool setNightMode(bool nightMode);
 
-  // 1 bit
-  bool isPendingSaturation() const;
-  bool setPendingSaturation(bool pending);
-
   bool isDirty() const;
   inline bool setDirty();
   bool clearDirty();
@@ -133,9 +129,6 @@ private:
         _dirty                : 1,
         _mqttDirty            : 1,
         _isSetNightMode       : 1;
-      uint32_t
-        _isPendingSaturation  : 1,
-                             : 31;
     } fields;
   };
 

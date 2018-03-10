@@ -76,7 +76,6 @@ GroupState::GroupState() {
   state.fields._mqttDirty            = 0;
   state.fields._isSetNightMode       = 0;
   state.fields._isNightMode          = 0;
-  state.fields._isPendingSaturation  = 0;
 }
 
 bool GroupState::isSetField(GroupStateField field) const {
@@ -298,17 +297,6 @@ bool GroupState::setNightMode(bool nightMode) {
   return true;
 }
 
-bool GroupState::isPendingSaturation() const { return state.fields._isPendingSaturation; }
-bool GroupState::setPendingSaturation(bool pending) {
-  if (isPendingSaturation() == pending) {
-    return false;
-  }
-  
-  setDirty();
-  state.fields._isPendingSaturation = pending;
-  return true;
-}
-
 bool GroupState::isDirty() const { return state.fields._dirty; }
 inline bool GroupState::setDirty() {
   state.fields._dirty = 1;
@@ -323,9 +311,6 @@ void GroupState::load(Stream& stream) {
   for (size_t i = 0; i < DATA_LONGS; i++) {
     stream.readBytes(reinterpret_cast<uint8_t*>(&state.rawData[i]), 4);
   }
-  // ignore whatever value is read on pending saturation, as that field is not persisted and should
-  // always be false when starting
-  state.fields._isPendingSaturation = false;
   clearDirty();
 }
 

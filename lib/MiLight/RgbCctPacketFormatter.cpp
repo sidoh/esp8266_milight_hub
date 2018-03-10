@@ -27,26 +27,10 @@ void RgbCctPacketFormatter::updateBrightness(uint8_t brightness) {
   command(RGB_CCT_BRIGHTNESS, RGB_CCT_BRIGHTNESS_OFFSET + brightness);
 }
 
-// change the hue (which may also change to color mode).  Also change saturation
-// if this was pending.
+// change the hue (which may also change to color mode).
 void RgbCctPacketFormatter::updateHue(uint16_t value) {
   uint8_t remapped = Units::rescale(value, 255, 360);
   updateColorRaw(remapped);
-
-  if (settings->enableAutomaticModeSwitching) {
-    // look up our current mode 
-    GroupState ourState = this->stateStore->get(this->deviceId, this->groupId, REMOTE_TYPE_RGB_CCT);
-
-    // do we have a saturation pending?
-    if (ourState.isPendingSaturation()) {
-      // now make the saturation change
-      uint8_t remapped = value + RGB_CCT_SATURATION_OFFSET;
-      command(RGB_CCT_SATURATION, remapped);
-      // clear pending status
-      ourState.setPendingSaturation(false);
-      this->stateStore->set(this->deviceId, this->groupId, REMOTE_TYPE_RGB_CCT, ourState);
-    }
-  }
 }
 
 void RgbCctPacketFormatter::updateColorRaw(uint8_t value) {
@@ -78,8 +62,8 @@ void RgbCctPacketFormatter::updateTemperature(uint8_t value) {
   }
 }
 
-// update saturation.  This only works when in Color mode, so if not in color we save the
-// saturation and apply it next time we enter color mode (hue)
+// update saturation.  This only works when in Color mode, so if not in color we switch to color,
+// make the change, and switch back again.
 void RgbCctPacketFormatter::updateSaturation(uint8_t value) {
    // look up our current mode 
   GroupState ourState = this->stateStore->get(this->deviceId, this->groupId, REMOTE_TYPE_RGB_CCT);
@@ -87,15 +71,16 @@ void RgbCctPacketFormatter::updateSaturation(uint8_t value) {
 
   // are we already in white?  If not, change to white
   if ((settings->enableAutomaticModeSwitching) && (originalBulbMode != BulbMode::BULB_MODE_COLOR)) {
-    ourState.setPendingSaturation(true);
-    ourState.setSaturation(value);
-    this->stateStore->set(this->deviceId, this->groupId, REMOTE_TYPE_RGB_CCT, ourState);
-    return;
+    updateHue(ourState.getHue());
   }
 
   // now make the saturation change
   uint8_t remapped = value + RGB_CCT_SATURATION_OFFSET;
   command(RGB_CCT_SATURATION, remapped);
+
+  if ((settings->enableAutomaticModeSwitching) && (originalBulbMode != BulbMode::BULB_MODE_COLOR)) {
+    switchMode(ourState, originalBulbMode);
+  }
 }
 
 void RgbCctPacketFormatter::updateColorWhite() {
