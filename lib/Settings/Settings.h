@@ -74,7 +74,6 @@ public:
     cePin(16),
     csnPin(15),
     resetPin(0),
-    ledPin(-2),
     radioInterfaceType(nRF24),
     deviceIds(NULL),
     gatewayConfigs(NULL),
@@ -131,7 +130,6 @@ public:
   uint8_t cePin;
   uint8_t csnPin;
   uint8_t resetPin;
-  int8_t ledPin;
   RadioInterfaceType radioInterfaceType;
   uint16_t *deviceIds;
   GatewayConfig **gatewayConfigs;
