@@ -83,10 +83,6 @@ uint8_t V2PacketFormatter::groupCommandArg(MiLightStatus status, uint8_t groupId
 
 // helper method to return a bulb to the prior state
 void V2PacketFormatter::switchMode(GroupState currentState, BulbMode desiredMode) {
-  // if already in the correct mode, don't bother switching
-  if (currentState.getBulbMode() == desiredMode) {
-    return;
-  }
   // revert back to the prior mode
   switch (desiredMode) {
     case BulbMode::BULB_MODE_COLOR:
