@@ -87,6 +87,7 @@ void Settings::patch(JsonObject& parsedSettings) {
     this->setIfPresent(parsedSettings, "ce_pin", cePin);
     this->setIfPresent(parsedSettings, "csn_pin", csnPin);
     this->setIfPresent(parsedSettings, "reset_pin", resetPin);
+    this->setIfPresent(parsedSettings, "led_pin", ledPin);
     this->setIfPresent(parsedSettings, "packet_repeats", packetRepeats);
     this->setIfPresent(parsedSettings, "http_repeat_factor", httpRepeatFactor);
     this->setIfPresent(parsedSettings, "auto_restart_period", _autoRestartPeriod);
@@ -162,6 +163,7 @@ void Settings::serialize(Stream& stream, const bool prettyPrint) {
   root["ce_pin"] = this->cePin;
   root["csn_pin"] = this->csnPin;
   root["reset_pin"] = this->resetPin;
+  root["led_pin"] = this->ledPin;
   root["radio_interface_type"] = typeToString(this->radioInterfaceType);
   root["packet_repeats"] = this->packetRepeats;
   root["http_repeat_factor"] = this->httpRepeatFactor;
