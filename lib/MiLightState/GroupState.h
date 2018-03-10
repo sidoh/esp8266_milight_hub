@@ -8,6 +8,9 @@
 #ifndef _GROUP_STATE_H
 #define _GROUP_STATE_H
 
+// enable to add debugging on state
+#define DEBUG_STATE
+
 struct BulbId {
   uint16_t deviceId;
   uint8_t groupId;
@@ -97,6 +100,8 @@ public:
 
   void load(Stream& stream);
   void dump(Stream& stream) const;
+
+  void debugState(char const *debugMessage);
 
   static const GroupState& defaultState(MiLightRemoteType remoteType);
 

@@ -47,6 +47,9 @@ void BulbId::operator=(const BulbId &other) {
   deviceType = other.deviceType;
 }
 
+// determine if now BulbId's are the same.  This compared deviceID (the controller/remote ID) and
+// groupId (the group number on the controller, 1-4 or 1-8 depending), but ignores the deviceType
+// (type of controller/remote) as this doesn't directly affect the identity of the bulb
 bool BulbId::operator==(const BulbId &other) {
   return deviceId == other.deviceId
     && groupId == other.groupId
@@ -319,15 +322,32 @@ void GroupState::dump(Stream& stream) const {
     stream.write(reinterpret_cast<const uint8_t*>(&state.data[i]), 4);
   }
 }
+/*
+  Update group state to reflect a packet state
 
+  Called both when a packet is sent locally, and when an intercepted packet is read 
+  (see main.cpp onPacketSentHandler)
+
+  Returns true if the packet changes affects a state change
+*/
 bool GroupState::patch(const JsonObject& state) {
   bool changes = false;
 
   if (state.containsKey("state")) {
-    changes |= setState(state["state"] == "ON" ? ON : OFF);
+    bool stateChange = setState(state["state"] == "ON" ? ON : OFF);
+#ifdef DEBUG_PRINTF
+    //if (stateChange)
+    //  Serial.printf("State changed to %s", state["state"]);
+#endif
+    changes |= stateChange;
   }
   if (state.containsKey("brightness")) {
-    changes |= setBrightness(Units::rescale(state.get<uint8_t>("brightness"), 100, 255));
+    bool stateChange = setBrightness(Units::rescale(state.get<uint8_t>("brightness"), 100, 255));
+#ifdef DEBUG_PRINTF
+    //if (stateChange)
+    //  Serial.printf("Brightness changed to %d", state.get<uint8_t>("brightness"));
+#endif
+    changes |= stateChange;
   }
   if (state.containsKey("hue")) {
     changes |= setHue(state["hue"]);
@@ -362,6 +382,11 @@ bool GroupState::patch(const JsonObject& state) {
     }
   }
 
+  if (changes)
+    debugState("GroupState::patch: State changed");
+  else
+    debugState("GroupState::patch: State not changed");
+    
   return changes;
 }
 
@@ -385,6 +410,7 @@ void GroupState::applyColor(ArduinoJson::JsonObject& state, uint8_t r, uint8_t g
   color["b"] = b;
 }
 
+// gather partial state for a single field; see GroupState::applyState to gather many fields
 void GroupState::applyField(JsonObject& partialState, GroupStateField field) {
   if (isSetField(field)) {
     switch (field) {
@@ -462,6 +488,43 @@ void GroupState::applyField(JsonObject& partialState, GroupStateField field) {
   }
 }
 
+// helper function to debug the current state (in JSON) to the serial port
+void GroupState::debugState(char const *debugMessage) {
+#ifdef DEBUG_STATE
+  // using static to keep large buffers off the call stack
+  static StaticJsonBuffer<500> jsonBuffer;
+
+  // define fields to show (if count changes, make sure to update count to applyState below)
+  GroupStateField fields[] { 
+      GroupStateField::BRIGHTNESS, 
+      GroupStateField::BULB_MODE,
+      GroupStateField::COLOR,
+      GroupStateField::COLOR_TEMP,
+      GroupStateField::COMPUTED_COLOR,
+      GroupStateField::EFFECT,
+      GroupStateField::HUE,
+      GroupStateField::KELVIN,
+      GroupStateField::LEVEL,
+      GroupStateField::MODE,
+      GroupStateField::SATURATION,
+      GroupStateField::STATE,
+      GroupStateField::STATUS };
+
+  // since our buffer is reused, make sure to clear it every time  
+  jsonBuffer.clear();
+  JsonObject& jsonState = jsonBuffer.createObject();
+
+  // use applyState to build JSON of all fields (from above)
+  applyState(jsonState, fields, 13);
+  // convert to string and print
+  Serial.printf("%s: ", debugMessage);
+  jsonState.printTo(Serial);
+  Serial.println("");
+#endif
+}
+
+// build up a partial state representation based on the specified GrouipStateField array.  Used
+// to gather a subset of states (configurable in the UI) for sending to MQTT and web responses.
 void GroupState::applyState(JsonObject& partialState, GroupStateField* fields, size_t numFields) {
   for (size_t i = 0; i < numFields; i++) {
     applyField(partialState, fields[i]);
