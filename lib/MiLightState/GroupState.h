@@ -103,7 +103,7 @@ public:
 private:
   static const size_t DATA_LONGS = 3;
   union StateData {
-    uint32_t rawData[DATA_LONGS];
+    uint32_t data[DATA_LONGS];
     struct Fields {
       uint32_t
         _state                : 1,
@@ -115,7 +115,6 @@ private:
         _isSetState           : 1,
         _isSetHue             : 1;
       uint32_t
-        _isNightMode          : 1,
         _kelvin               : 7,
         _isSetBrightness      : 1,
         _isSetSaturation      : 1,
@@ -128,7 +127,8 @@ private:
         _isSetBrightnessMode  : 1,
         _dirty                : 1,
         _mqttDirty            : 1,
-        _isSetNightMode       : 1;
+        _isSetNightMode       : 1,
+        _isNightMode          : 1;
     } fields;
   };
 
