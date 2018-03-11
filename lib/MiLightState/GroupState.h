@@ -103,7 +103,7 @@ public:
 private:
   static const size_t DATA_LONGS = 3;
   union StateData {
-    uint32_t data[DATA_LONGS];
+    uint32_t rawData[DATA_LONGS];
     struct Fields {
       uint32_t
         _state                : 1,
