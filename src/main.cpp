@@ -87,7 +87,7 @@ void initMilightUdpServers() {
 void onPacketSentHandler(uint8_t* packet, const MiLightRemoteConfig& config) {
   StaticJsonBuffer<200> buffer;
   JsonObject& result = buffer.createObject();
-  BulbId bulbId = config.packetFormatter->parsePacket(packet, result, stateStore);
+  BulbId bulbId = config.packetFormatter->parsePacket(packet, result);
 
 
   // blip LED to indicate we saw a packet (send or receive)
@@ -206,10 +206,8 @@ void applySettings() {
 
   milightClient = new MiLightClient(
     radioFactory,
-    *stateStore,
-    settings.packetRepeatThrottleThreshold,
-    settings.packetRepeatThrottleSensitivity,
-    settings.packetRepeatMinimum
+    stateStore,
+    &settings
   );
   milightClient->begin();
   milightClient->onPacketSent(onPacketSentHandler);
@@ -303,7 +301,7 @@ void setup() {
   httpServer->on("/description.xml", HTTP_GET, []() { SSDP.schema(httpServer->client()); });
   httpServer->begin();
 
-  Serial.println(F("Setup complete"));
+  Serial.printf_P(PSTR("Setup complete (version %s)\n"), QUOTE(MILIGHT_HUB_VERSION));
 }
 
 void loop() {

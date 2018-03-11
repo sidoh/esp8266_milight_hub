@@ -311,15 +311,15 @@ bool GroupState::isMqttDirty() const { return state.fields._mqttDirty; }
 bool GroupState::clearMqttDirty() { state.fields._mqttDirty = 0; }
 
 void GroupState::load(Stream& stream) {
-  for (size_t i = 0; i < DATA_BYTES; i++) {
-    stream.readBytes(reinterpret_cast<uint8_t*>(&state.data[i]), 4);
+  for (size_t i = 0; i < DATA_LONGS; i++) {
+    stream.readBytes(reinterpret_cast<uint8_t*>(&state.rawData[i]), 4);
   }
   clearDirty();
 }
 
 void GroupState::dump(Stream& stream) const {
-  for (size_t i = 0; i < DATA_BYTES; i++) {
-    stream.write(reinterpret_cast<const uint8_t*>(&state.data[i]), 4);
+  for (size_t i = 0; i < DATA_LONGS; i++) {
+    stream.write(reinterpret_cast<const uint8_t*>(&state.rawData[i]), 4);
   }
 }
 /*

@@ -91,7 +91,8 @@ public:
     packetRepeatThrottleSensitivity(0),
     packetRepeatMinimum(3),
     groupStateFields(NULL),
-    numGroupStateFields(0)
+    numGroupStateFields(0),
+    enableAutomaticModeSwitching(false)
   {
     if (groupStateFields == NULL) {
       numGroupStateFields = size(DEFAULT_GROUP_STATE_FIELDS);
@@ -154,6 +155,7 @@ public:
   size_t packetRepeatThrottleSensitivity;
   size_t packetRepeatThrottleThreshold;
   size_t packetRepeatMinimum;
+  bool enableAutomaticModeSwitching;
 
 protected:
   size_t _autoRestartPeriod;
