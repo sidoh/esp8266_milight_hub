@@ -325,7 +325,7 @@ void GroupState::dump(Stream& stream) const {
 /*
   Update group state to reflect a packet state
 
-  Called both when a packet is sent locally, and when an intercepted packet is read 
+  Called both when a packet is sent locally, and when an intercepted packet is read
   (see main.cpp onPacketSentHandler)
 
   Returns true if the packet changes affects a state change
@@ -335,18 +335,10 @@ bool GroupState::patch(const JsonObject& state) {
 
   if (state.containsKey("state")) {
     bool stateChange = setState(state["state"] == "ON" ? ON : OFF);
-#ifdef DEBUG_PRINTF
-    //if (stateChange)
-    //  Serial.printf("State changed to %s", state["state"]);
-#endif
     changes |= stateChange;
   }
   if (state.containsKey("brightness")) {
     bool stateChange = setBrightness(Units::rescale(state.get<uint8_t>("brightness"), 100, 255));
-#ifdef DEBUG_PRINTF
-    //if (stateChange)
-    //  Serial.printf("Brightness changed to %d", state.get<uint8_t>("brightness"));
-#endif
     changes |= stateChange;
   }
   if (state.containsKey("hue")) {
@@ -386,7 +378,7 @@ bool GroupState::patch(const JsonObject& state) {
     debugState("GroupState::patch: State changed");
   else
     debugState("GroupState::patch: State not changed");
-    
+
   return changes;
 }
 
@@ -495,8 +487,8 @@ void GroupState::debugState(char const *debugMessage) {
   static StaticJsonBuffer<500> jsonBuffer;
 
   // define fields to show (if count changes, make sure to update count to applyState below)
-  GroupStateField fields[] { 
-      GroupStateField::BRIGHTNESS, 
+  GroupStateField fields[] {
+      GroupStateField::BRIGHTNESS,
       GroupStateField::BULB_MODE,
       GroupStateField::COLOR,
       GroupStateField::COLOR_TEMP,
@@ -510,7 +502,7 @@ void GroupState::debugState(char const *debugMessage) {
       GroupStateField::STATE,
       GroupStateField::STATUS };
 
-  // since our buffer is reused, make sure to clear it every time  
+  // since our buffer is reused, make sure to clear it every time
   jsonBuffer.clear();
   JsonObject& jsonState = jsonBuffer.createObject();
 
