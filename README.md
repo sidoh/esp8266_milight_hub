@@ -97,7 +97,7 @@ If you want to wire up your own LED on a pin, such as on D2/GPIO4, put a wire fr
 
 ## REST endpoints
 
-1. `GET /`. Opens web UI. 
+1. `GET /`. Opens web UI.
 1. `GET /about`. Return information about current firmware version.
 1. `POST /system`. Post commands in the form `{"comamnd": <command>}`. Currently supports the commands: `restart`.
 1. `POST /firmware`. OTA firmware update.
