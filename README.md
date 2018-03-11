@@ -58,12 +58,6 @@ platformio run -e $ESP_BOARD --target upload
 
 Of course make sure to substitute `nodemcuv2` with the board that you're using.
 
-**Note that currently you'll need to use the beta version of PlatformIO.**  To install with pip:
-
-```
-pip install -U https://github.com/platformio/platformio-core/archive/develop.zip
-```
-
 You can find pre-compiled firmware images on the [releases](https://github.com/sidoh/esp8266_milight_hub/releases).
 
 #### Configure WiFi
