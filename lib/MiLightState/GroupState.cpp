@@ -373,18 +373,11 @@ bool GroupState::patch(const JsonObject& state) {
     changes |= setBulbMode(BULB_MODE_WHITE);
   }
 
-  // Any changes other than setting mode to night should take device out of
-  // night mode.
-  if (changes && getBulbMode() == BULB_MODE_NIGHT) {
-    setNightMode(false);
-  }
-
   if (state.containsKey("command")) {
     const String& command = state["command"];
 
     if (isOn() && command == "set_white") {
       changes |= setBulbMode(BULB_MODE_WHITE);
-      setNightMode(false);
     } else if (command == "night_mode") {
       changes |= setBulbMode(BULB_MODE_NIGHT);
     }
