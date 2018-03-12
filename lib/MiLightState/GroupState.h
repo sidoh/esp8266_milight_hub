@@ -47,6 +47,8 @@ public:
   bool isSetState() const;
   MiLightStatus getState() const;
   bool setState(const MiLightStatus on);
+  // Return true if status is ON or if the field is unset (i.e., defaults to ON)
+  bool isOn() const;
 
   // 7 bits
   bool isSetBrightness() const;

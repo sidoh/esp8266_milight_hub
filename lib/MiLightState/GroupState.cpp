@@ -116,6 +116,9 @@ bool GroupState::isSetField(GroupStateField field) const {
 
 bool GroupState::isSetState() const { return state.fields._isSetState; }
 MiLightStatus GroupState::getState() const { return state.fields._state ? ON : OFF; }
+bool GroupState::isOn() const {
+  return !isNightMode() && (!isSetState() || getState() == MiLightStatus::ON);
+}
 bool GroupState::setState(const MiLightStatus status) {
   if (isSetState() && getState() == status) {
     return false;
