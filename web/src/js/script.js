@@ -28,7 +28,10 @@ var GROUP_STATE_KEYS = [
   "color_temp",
   "bulb_mode",
   "computed_color",
-  "effect"
+  "effect",
+  "device_id",
+  "group_id",
+  "device_type"
 ];
 
 var FORM_SETTINGS_HELP = {

@@ -97,8 +97,13 @@ public:
   bool clearMqttDirty();
 
   bool patch(const JsonObject& state);
-  void applyField(JsonObject& state, GroupStateField field);
-  void applyState(JsonObject& state, GroupStateField* fields, size_t numFields);
+
+  // It's a little weird to need to pass in a BulbId here.  The purpose is to
+  // support fields like DEVICE_ID, which aren't otherweise available to the
+  // state in this class.  The alternative is to have every GroupState object
+  // keep a reference to its BulbId, which feels too heavy-weight.
+  void applyField(JsonObject& state, const BulbId& bulbId, GroupStateField field);
+  void applyState(JsonObject& state, const BulbId& bulbId, GroupStateField* fields, size_t numFields);
 
   void load(Stream& stream);
   void dump(Stream& stream) const;

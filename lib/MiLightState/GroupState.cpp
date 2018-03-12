@@ -86,6 +86,11 @@ bool GroupState::isSetField(GroupStateField field) const {
     case GroupStateField::COMPUTED_COLOR:
       // Always set -- either send RGB color or white
       return true;
+    case GroupStateField::DEVICE_ID:
+    case GroupStateField::GROUP_ID:
+    case GroupStateField::DEVICE_TYPE:
+      // These are always defined
+      return true;
     case GroupStateField::STATE:
     case GroupStateField::STATUS:
       return isSetState();
@@ -412,7 +417,7 @@ void GroupState::applyColor(ArduinoJson::JsonObject& state, uint8_t r, uint8_t g
 }
 
 // gather partial state for a single field; see GroupState::applyState to gather many fields
-void GroupState::applyField(JsonObject& partialState, GroupStateField field) {
+void GroupState::applyField(JsonObject& partialState, const BulbId& bulbId, GroupStateField field) {
   if (isSetField(field)) {
     switch (field) {
       case GroupStateField::STATE:
@@ -485,6 +490,21 @@ void GroupState::applyField(JsonObject& partialState, GroupStateField field) {
           partialState["kelvin"] = getKelvin();
         }
         break;
+
+      case GroupStateField::DEVICE_ID:
+        partialState["device_id"] = bulbId.deviceId;
+        break;
+
+      case GroupStateField::GROUP_ID:
+        partialState["group_id"] = bulbId.groupId;
+        break;
+
+      case GroupStateField::DEVICE_TYPE:
+        const MiLightRemoteConfig* remoteConfig = MiLightRemoteConfig::fromType(bulbId.deviceType);
+        if (remoteConfig) {
+          partialState["device_type"] = remoteConfig->name;
+        }
+        break;
     }
   }
 }
@@ -526,8 +546,8 @@ void GroupState::debugState(char const *debugMessage) {
 
 // build up a partial state representation based on the specified GrouipStateField array.  Used
 // to gather a subset of states (configurable in the UI) for sending to MQTT and web responses.
-void GroupState::applyState(JsonObject& partialState, GroupStateField* fields, size_t numFields) {
+void GroupState::applyState(JsonObject& partialState, const BulbId& bulbId, GroupStateField* fields, size_t numFields) {
   for (size_t i = 0; i < numFields; i++) {
-    applyField(partialState, fields[i]);
+    applyField(partialState, bulbId, fields[i]);
   }
 }
