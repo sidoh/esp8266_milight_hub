@@ -109,7 +109,7 @@ void PacketFormatter::prepare(uint16_t deviceId, uint8_t groupId, GroupStateStor
 
 void PacketFormatter::reset() {
   this->numPackets = 0;
-  this->currentPacket = currentPacket;
+  this->currentPacket = PACKET_BUFFER;
   this->held = false;
 }
 
