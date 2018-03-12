@@ -120,13 +120,16 @@ bool GroupState::isOn() const {
   return !isNightMode() && (!isSetState() || getState() == MiLightStatus::ON);
 }
 bool GroupState::setState(const MiLightStatus status) {
-  if (isSetState() && getState() == status) {
+  if (!isNightMode() && isSetState() && getState() == status) {
     return false;
   }
 
   setDirty();
   state.fields._isSetState = 1;
   state.fields._state = status == ON ? 1 : 0;
+
+  // Changing status will clear night mode
+  setNightMode(false);
 
   return true;
 }
