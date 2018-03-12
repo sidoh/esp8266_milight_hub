@@ -58,12 +58,6 @@ platformio run -e $ESP_BOARD --target upload
 
 Of course make sure to substitute `nodemcuv2` with the board that you're using.
 
-**Note that currently you'll need to use the beta version of PlatformIO.**  To install with pip:
-
-```
-pip install -U https://github.com/platformio/platformio-core/archive/develop.zip
-```
-
 You can find pre-compiled firmware images on the [releases](https://github.com/sidoh/esp8266_milight_hub/releases).
 
 #### Configure WiFi
@@ -103,7 +97,7 @@ If you want to wire up your own LED on a pin, such as on D2/GPIO4, put a wire fr
 
 ## REST endpoints
 
-1. `GET /`. Opens web UI. 
+1. `GET /`. Opens web UI.
 1. `GET /about`. Return information about current firmware version.
 1. `POST /system`. Post commands in the form `{"comamnd": <command>}`. Currently supports the commands: `restart`.
 1. `POST /firmware`. OTA firmware update.
