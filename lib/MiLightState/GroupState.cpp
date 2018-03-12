@@ -482,7 +482,7 @@ void GroupState::applyField(JsonObject& partialState, GroupStateField field) {
 
 // helper function to debug the current state (in JSON) to the serial port
 void GroupState::debugState(char const *debugMessage) {
-#ifdef DEBUG_STATE
+#ifdef STATE_DEBUG
   // using static to keep large buffers off the call stack
   static StaticJsonBuffer<500> jsonBuffer;
 
