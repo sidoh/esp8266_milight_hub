@@ -349,22 +349,26 @@ bool GroupState::patch(const JsonObject& state) {
     bool stateChange = setState(state["state"] == "ON" ? ON : OFF);
     changes |= stateChange;
   }
-  if (state.containsKey("brightness")) {
+
+  // Devices do not support changing their state while off, so don't apply state
+  // changes to devices we know are off.
+
+  if (isOn() && state.containsKey("brightness")) {
     bool stateChange = setBrightness(Units::rescale(state.get<uint8_t>("brightness"), 100, 255));
     changes |= stateChange;
   }
-  if (state.containsKey("hue")) {
+  if (isOn() && state.containsKey("hue")) {
     changes |= setHue(state["hue"]);
     changes |= setBulbMode(BULB_MODE_COLOR);
   }
-  if (state.containsKey("saturation")) {
+  if (isOn() && state.containsKey("saturation")) {
     changes |= setSaturation(state["saturation"]);
   }
-  if (state.containsKey("mode")) {
+  if (isOn() && state.containsKey("mode")) {
     changes |= setMode(state["mode"]);
     changes |= setBulbMode(BULB_MODE_SCENE);
   }
-  if (state.containsKey("color_temp")) {
+  if (isOn() && state.containsKey("color_temp")) {
     changes |= setMireds(state["color_temp"]);
     changes |= setBulbMode(BULB_MODE_WHITE);
   }
@@ -378,7 +382,7 @@ bool GroupState::patch(const JsonObject& state) {
   if (state.containsKey("command")) {
     const String& command = state["command"];
 
-    if (command == "white_mode") {
+    if (isOn() && command == "set_white") {
       changes |= setBulbMode(BULB_MODE_WHITE);
       setNightMode(false);
     } else if (command == "night_mode") {
