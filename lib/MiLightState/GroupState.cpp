@@ -339,6 +339,12 @@ void GroupState::dump(Stream& stream) const {
 bool GroupState::patch(const JsonObject& state) {
   bool changes = false;
 
+#ifdef STATE_DEBUG
+  Serial.print(F("Patching existing state with: "));
+  state.printTo(Serial);
+  Serial.println();
+#endif
+
   if (state.containsKey("state")) {
     bool stateChange = setState(state["state"] == "ON" ? ON : OFF);
     changes |= stateChange;
