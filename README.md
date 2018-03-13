@@ -250,8 +250,7 @@ You can select between versions 5 and 6 of the UDP protocol (documented [here](h
 ## Acknowledgements
 
 * @WoodsterDK added support for LT8900 radios.
-
-
+* @cmidgley contributed many substantial features to the 1.7 release.
 
 [info-license]:   https://github.com/sidoh/esp8266_milight_hub/blob/master/LICENSE
 [shield-license]: https://img.shields.io/badge/license-MIT-blue.svg
