@@ -278,10 +278,12 @@ void setup() {
   wifiManager.setSetupLoopCallback(handleLED);
   wifiManager.setConfigPortalTimeout(180);
   if (wifiManager.autoConnect(ssid.c_str(), "milightHub")) {
-    ledStatus->continuous(LEDStatus::LEDMode::SlowBlip);
+    // indicate we are operating successfully, which is a slow blink in blink mode, or solid ON in solid mode
+    ledStatus->continuous(settings.enableSolidLED ? LEDStatus::LEDMode::On : LEDStatus::LEDMode::SlowBlip);
     Serial.println(F("Wifi connected succesfully\n"));
   } else {
-    ledStatus->continuous(LEDStatus::LEDMode::On);
+    // indicate failure. In blink LED that is solid ON, in solid LED that is solid OFF
+    ledStatus->continuous(settings.enableSolidLED ? LEDStatus::LEDMode::Off : LEDStatus::LEDMode::On);
     Serial.println(F("Wifi failed.  Oh well.\n"));
   }
 
