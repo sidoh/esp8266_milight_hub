@@ -92,7 +92,8 @@ public:
     packetRepeatMinimum(3),
     groupStateFields(NULL),
     numGroupStateFields(0),
-    enableAutomaticModeSwitching(false)
+    enableAutomaticModeSwitching(false),
+    enableSolidLED(false)
   {
     if (groupStateFields == NULL) {
       numGroupStateFields = size(DEFAULT_GROUP_STATE_FIELDS);
@@ -156,6 +157,7 @@ public:
   size_t packetRepeatThrottleThreshold;
   size_t packetRepeatMinimum;
   bool enableAutomaticModeSwitching;
+  bool enableSolidLED;
 
 protected:
   size_t _autoRestartPeriod;
