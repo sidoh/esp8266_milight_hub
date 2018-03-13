@@ -47,6 +47,9 @@ void BulbId::operator=(const BulbId &other) {
   deviceType = other.deviceType;
 }
 
+// determine if now BulbId's are the same.  This compared deviceID (the controller/remote ID) and
+// groupId (the group number on the controller, 1-4 or 1-8 depending), but ignores the deviceType
+// (type of controller/remote) as this doesn't directly affect the identity of the bulb
 bool BulbId::operator==(const BulbId &other) {
   return deviceId == other.deviceId
     && groupId == other.groupId
@@ -83,6 +86,11 @@ bool GroupState::isSetField(GroupStateField field) const {
     case GroupStateField::COMPUTED_COLOR:
       // Always set -- either send RGB color or white
       return true;
+    case GroupStateField::DEVICE_ID:
+    case GroupStateField::GROUP_ID:
+    case GroupStateField::DEVICE_TYPE:
+      // These are always defined
+      return true;
     case GroupStateField::STATE:
     case GroupStateField::STATUS:
       return isSetState();
@@ -113,14 +121,20 @@ bool GroupState::isSetField(GroupStateField field) const {
 
 bool GroupState::isSetState() const { return state.fields._isSetState; }
 MiLightStatus GroupState::getState() const { return state.fields._state ? ON : OFF; }
+bool GroupState::isOn() const {
+  return !isNightMode() && (!isSetState() || getState() == MiLightStatus::ON);
+}
 bool GroupState::setState(const MiLightStatus status) {
-  if (isSetState() && getState() == status) {
+  if (!isNightMode() && isSetState() && getState() == status) {
     return false;
   }
 
   setDirty();
   state.fields._isSetState = 1;
   state.fields._state = status == ON ? 1 : 0;
+
+  // Changing status will clear night mode
+  setNightMode(false);
 
   return true;
 }
@@ -308,59 +322,76 @@ bool GroupState::isMqttDirty() const { return state.fields._mqttDirty; }
 bool GroupState::clearMqttDirty() { state.fields._mqttDirty = 0; }
 
 void GroupState::load(Stream& stream) {
-  for (size_t i = 0; i < DATA_BYTES; i++) {
-    stream.readBytes(reinterpret_cast<uint8_t*>(&state.data[i]), 4);
+  for (size_t i = 0; i < DATA_LONGS; i++) {
+    stream.readBytes(reinterpret_cast<uint8_t*>(&state.rawData[i]), 4);
   }
   clearDirty();
 }
 
 void GroupState::dump(Stream& stream) const {
-  for (size_t i = 0; i < DATA_BYTES; i++) {
-    stream.write(reinterpret_cast<const uint8_t*>(&state.data[i]), 4);
+  for (size_t i = 0; i < DATA_LONGS; i++) {
+    stream.write(reinterpret_cast<const uint8_t*>(&state.rawData[i]), 4);
   }
 }
+/*
+  Update group state to reflect a packet state
 
+  Called both when a packet is sent locally, and when an intercepted packet is read
+  (see main.cpp onPacketSentHandler)
+
+  Returns true if the packet changes affects a state change
+*/
 bool GroupState::patch(const JsonObject& state) {
   bool changes = false;
 
+#ifdef STATE_DEBUG
+  Serial.print(F("Patching existing state with: "));
+  state.printTo(Serial);
+  Serial.println();
+#endif
+
   if (state.containsKey("state")) {
-    changes |= setState(state["state"] == "ON" ? ON : OFF);
+    bool stateChange = setState(state["state"] == "ON" ? ON : OFF);
+    changes |= stateChange;
   }
-  if (state.containsKey("brightness")) {
-    changes |= setBrightness(Units::rescale(state.get<uint8_t>("brightness"), 100, 255));
+
+  // Devices do not support changing their state while off, so don't apply state
+  // changes to devices we know are off.
+
+  if (isOn() && state.containsKey("brightness")) {
+    bool stateChange = setBrightness(Units::rescale(state.get<uint8_t>("brightness"), 100, 255));
+    changes |= stateChange;
   }
-  if (state.containsKey("hue")) {
+  if (isOn() && state.containsKey("hue")) {
     changes |= setHue(state["hue"]);
     changes |= setBulbMode(BULB_MODE_COLOR);
   }
-  if (state.containsKey("saturation")) {
+  if (isOn() && state.containsKey("saturation")) {
     changes |= setSaturation(state["saturation"]);
   }
-  if (state.containsKey("mode")) {
+  if (isOn() && state.containsKey("mode")) {
     changes |= setMode(state["mode"]);
     changes |= setBulbMode(BULB_MODE_SCENE);
   }
-  if (state.containsKey("color_temp")) {
+  if (isOn() && state.containsKey("color_temp")) {
     changes |= setMireds(state["color_temp"]);
     changes |= setBulbMode(BULB_MODE_WHITE);
-  }
-
-  // Any changes other than setting mode to night should take device out of
-  // night mode.
-  if (changes && getBulbMode() == BULB_MODE_NIGHT) {
-    setNightMode(false);
   }
 
   if (state.containsKey("command")) {
     const String& command = state["command"];
 
-    if (command == "white_mode") {
+    if (isOn() && command == "set_white") {
       changes |= setBulbMode(BULB_MODE_WHITE);
-      setNightMode(false);
     } else if (command == "night_mode") {
       changes |= setBulbMode(BULB_MODE_NIGHT);
     }
   }
+
+  if (changes)
+    debugState("GroupState::patch: State changed");
+  else
+    debugState("GroupState::patch: State not changed");
 
   return changes;
 }
@@ -385,7 +416,8 @@ void GroupState::applyColor(ArduinoJson::JsonObject& state, uint8_t r, uint8_t g
   color["b"] = b;
 }
 
-void GroupState::applyField(JsonObject& partialState, GroupStateField field) {
+// gather partial state for a single field; see GroupState::applyState to gather many fields
+void GroupState::applyField(JsonObject& partialState, const BulbId& bulbId, GroupStateField field) {
   if (isSetField(field)) {
     switch (field) {
       case GroupStateField::STATE:
@@ -458,12 +490,64 @@ void GroupState::applyField(JsonObject& partialState, GroupStateField field) {
           partialState["kelvin"] = getKelvin();
         }
         break;
+
+      case GroupStateField::DEVICE_ID:
+        partialState["device_id"] = bulbId.deviceId;
+        break;
+
+      case GroupStateField::GROUP_ID:
+        partialState["group_id"] = bulbId.groupId;
+        break;
+
+      case GroupStateField::DEVICE_TYPE:
+        const MiLightRemoteConfig* remoteConfig = MiLightRemoteConfig::fromType(bulbId.deviceType);
+        if (remoteConfig) {
+          partialState["device_type"] = remoteConfig->name;
+        }
+        break;
     }
   }
 }
 
-void GroupState::applyState(JsonObject& partialState, GroupStateField* fields, size_t numFields) {
+// helper function to debug the current state (in JSON) to the serial port
+void GroupState::debugState(char const *debugMessage) {
+#ifdef STATE_DEBUG
+  // using static to keep large buffers off the call stack
+  static StaticJsonBuffer<500> jsonBuffer;
+
+  // define fields to show (if count changes, make sure to update count to applyState below)
+  GroupStateField fields[] {
+      GroupStateField::BRIGHTNESS,
+      GroupStateField::BULB_MODE,
+      GroupStateField::COLOR,
+      GroupStateField::COLOR_TEMP,
+      GroupStateField::COMPUTED_COLOR,
+      GroupStateField::EFFECT,
+      GroupStateField::HUE,
+      GroupStateField::KELVIN,
+      GroupStateField::LEVEL,
+      GroupStateField::MODE,
+      GroupStateField::SATURATION,
+      GroupStateField::STATE,
+      GroupStateField::STATUS };
+
+  // since our buffer is reused, make sure to clear it every time
+  jsonBuffer.clear();
+  JsonObject& jsonState = jsonBuffer.createObject();
+
+  // use applyState to build JSON of all fields (from above)
+  applyState(jsonState, fields, 13);
+  // convert to string and print
+  Serial.printf("%s: ", debugMessage);
+  jsonState.printTo(Serial);
+  Serial.println("");
+#endif
+}
+
+// build up a partial state representation based on the specified GrouipStateField array.  Used
+// to gather a subset of states (configurable in the UI) for sending to MQTT and web responses.
+void GroupState::applyState(JsonObject& partialState, const BulbId& bulbId, GroupStateField* fields, size_t numFields) {
   for (size_t i = 0; i < numFields; i++) {
-    applyField(partialState, fields[i]);
+    applyField(partialState, bulbId, fields[i]);
   }
 }
