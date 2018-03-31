@@ -105,7 +105,7 @@ BulbId FUT089PacketFormatter::parsePacket(const uint8_t *packet, JsonObject& res
     } else if (arg == FUT089_MODE_SPEED_UP) {
       result["command"] = "mode_speed_up";
     } else if (arg == FUT089_WHITE_MODE) {
-      result["command"] = "white_mode";
+      result["command"] = "set_white";
     } else if (arg <= 8) { // Group is not reliably encoded in group byte. Extract from arg byte
       result["state"] = "ON";
       bulbId.groupId = arg;
