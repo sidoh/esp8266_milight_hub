@@ -35,13 +35,16 @@ void RgbwPacketFormatter::modeSpeedUp() {
 }
 
 void RgbwPacketFormatter::nextMode() {
-  lastMode = (lastMode + 1) % RGBW_NUM_MODES;
-  updateMode(lastMode);
+  updateMode((currentMode() + 1) % RGBW_NUM_MODES);
 }
 
 void RgbwPacketFormatter::previousMode() {
-  lastMode = (lastMode - 1) % RGBW_NUM_MODES;
-  updateMode(lastMode);
+  updateMode((currentMode() + RGBW_NUM_MODES - 1) % RGBW_NUM_MODES);
+}
+
+uint8_t RgbwPacketFormatter::currentMode() {
+  GroupState& state = stateStore->get(deviceId, groupId, REMOTE_TYPE_RGBW);
+  return state.getMode();
 }
 
 void RgbwPacketFormatter::updateMode(uint8_t mode) {

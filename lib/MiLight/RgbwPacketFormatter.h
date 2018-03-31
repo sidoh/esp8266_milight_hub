@@ -52,8 +52,7 @@ enum MiLightRgbwButton {
 class RgbwPacketFormatter : public PacketFormatter {
 public:
   RgbwPacketFormatter()
-    : PacketFormatter(7),
-      lastMode(0)
+    : PacketFormatter(7)
   { }
 
   virtual bool canHandle(const uint8_t* packet, const size_t len);
@@ -76,9 +75,8 @@ public:
   virtual void initializePacket(uint8_t* packet);
 
 protected:
-  uint8_t lastMode;
-
   static bool isStatusCommand(const uint8_t command);
+  uint8_t currentMode();
 };
 
 #endif
