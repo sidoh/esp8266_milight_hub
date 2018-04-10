@@ -388,10 +388,12 @@ bool GroupState::patch(const JsonObject& state) {
     }
   }
 
-  if (changes)
+  if (changes) {
     debugState("GroupState::patch: State changed");
-  else
+  }
+  else {
     debugState("GroupState::patch: State not changed");
+  }
 
   return changes;
 }
