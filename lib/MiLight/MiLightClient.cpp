@@ -355,11 +355,13 @@ void MiLightClient::update(const JsonObject& request) {
   if (request.containsKey("color")) {
     JsonObject& color = request["color"];
 
-    uint8_t r = color["r"];
-    uint8_t g = color["g"];
-    uint8_t b = color["b"];
-    //If close to white
-    if( r > 256 - RGB_WHITE_BOUNDARY && g > 256 - RGB_WHITE_BOUNDARY && b > 256 - RGB_WHITE_BOUNDARY) {
+    int16_t r = color["r"];
+    int16_t g = color["g"];
+    int16_t b = color["b"];
+
+    // We consider an RGB color "white" if all color intensities are roughly the
+    // same value.  An unscientific value of 10 (~4%) is chosen.
+    if ( abs(r - g) < RGB_WHITE_THRESHOLD && abs(g - b) < RGB_WHITE_THRESHOLD ) {
         this->updateColorWhite();
     } else {
       double hsv[3];

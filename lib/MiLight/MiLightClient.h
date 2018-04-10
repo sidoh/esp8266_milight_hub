@@ -13,8 +13,9 @@
 //#define DEBUG_CLIENT_COMMANDS     // enable to show each individual change command (like hue, brightness, etc)
 
 #define MILIGHT_DEFAULT_RESEND_COUNT 10
-//Used to determine close to white
-#define RGB_WHITE_BOUNDARY 40
+
+// Used to determine RGB colros that are approximately white
+#define RGB_WHITE_THRESHOLD 10
 
 class MiLightClient {
 public:
