@@ -361,7 +361,9 @@ void MiLightClient::update(const JsonObject& request) {
 
     // We consider an RGB color "white" if all color intensities are roughly the
     // same value.  An unscientific value of 10 (~4%) is chosen.
-    if ( abs(r - g) < RGB_WHITE_THRESHOLD && abs(g - b) < RGB_WHITE_THRESHOLD ) {
+    if ( abs(r - g) < RGB_WHITE_THRESHOLD
+      && abs(g - b) < RGB_WHITE_THRESHOLD
+      && abs(r - b) < RGB_WHITE_THRESHOLD) {
         this->updateColorWhite();
     } else {
       double hsv[3];
