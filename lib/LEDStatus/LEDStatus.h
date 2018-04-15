@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <string.h>
 
 #ifndef _LED_STATUS_H
 #define _LED_STATUS_H
@@ -12,7 +13,8 @@ class LEDStatus {
       SlowBlip,
       FastBlip,
       Flicker,
-      On
+      On,
+      Unknown
     };
     LEDStatus(int8_t ledPin);
     void changePin(int8_t ledPin);
@@ -20,6 +22,9 @@ class LEDStatus {
     void continuous(uint16_t ledOffMs, uint16_t ledOnMs);
     void oneshot(LEDMode mode, uint8_t count = 1);
     void oneshot(uint16_t ledOffMs, uint16_t ledOnMs, uint8_t count = 1);
+
+    static String LEDModeToString(LEDMode mode);
+    static LEDMode stringToLEDMode(String mode);
 
     void handle();
 

@@ -11,9 +11,13 @@ label:not(.error) .error-info { display: none; }
 .error-info:before { content: '('; }
 .error-info:after { content: ')'; }
 .header-btn { margin: 20px; }
+.gateway-add-btn { float: right; }
 .dropdown { position: initial; overflow: auto; }
 .dropdown-menu li { display: block; }
+#traffic-sniff { display: none; }
 #sniffed-traffic { max-height: 50em; overflow-y: auto; }
+.navbar { background-color: rgba(41,41,45,.9) !important; border-radius: 0 }
+.navbar-brand, .navbar-brand:hover { color: white; }
 .btn-secondary {
   background-color: #fff;
   border: 1px solid #ccc;
@@ -92,6 +96,59 @@ label:not(.error) .error-info { display: none; }
 .glyphicon.spinning {
   animation: spin 1s infinite linear;
   -webkit-animation: spin2 1s infinite linear;
+}
+
+html {
+  position: relative;
+  min-height: 100%;
+}
+body {
+  margin-bottom: 200px;
+}
+footer {
+  height: 200px;
+}
+@media only screen and (min-width : 320px) {
+  body {
+    margin-bottom: 250px;
+  }
+  footer {
+    height: 250px;
+  }
+}
+@media only screen and (min-width : 480px) {
+  body {
+    margin-bottom: 200px;
+  }
+  footer {
+    height: 200px;
+  }
+}
+@media only screen and (min-width : 768px) {
+  body {
+    margin-bottom: 158px;
+  }
+  footer {
+    height: 158px;
+  }
+}
+@media only screen and (min-width : 992px) {
+  body {
+    margin-bottom: 116px;
+  }
+  footer {
+    height: 116px;
+  }
+}
+footer {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  background-color: rgba(41,41,45,.9);
+  padding-top: 20px;
+}
+footer .btn {
+  margin-bottom: 10px
 }
 
 @keyframes spin {

@@ -3,6 +3,7 @@
 #include <ArduinoJson.h>
 #include <GroupStateField.h>
 #include <Size.h>
+#include <LEDStatus.h>
 
 #ifndef _SETTINGS_H_INCLUDED
 #define _SETTINGS_H_INCLUDED
@@ -93,7 +94,11 @@ public:
     groupStateFields(NULL),
     numGroupStateFields(0),
     enableAutomaticModeSwitching(false),
-    enableSolidLED(false)
+    ledModeWifiConfig(LEDStatus::LEDMode::FastToggle),
+    ledModeWifiFailed(LEDStatus::LEDMode::On),
+    ledModeOperating(LEDStatus::LEDMode::SlowBlip),
+    ledModePacket(LEDStatus::LEDMode::Flicker),
+    ledModePacketCount(3)
   {
     if (groupStateFields == NULL) {
       numGroupStateFields = size(DEFAULT_GROUP_STATE_FIELDS);
@@ -157,7 +162,12 @@ public:
   size_t packetRepeatThrottleThreshold;
   size_t packetRepeatMinimum;
   bool enableAutomaticModeSwitching;
-  bool enableSolidLED;
+  LEDStatus::LEDMode ledModeWifiConfig;
+  LEDStatus::LEDMode ledModeWifiFailed;
+  LEDStatus::LEDMode ledModeOperating;
+  LEDStatus::LEDMode ledModePacket;
+  size_t ledModePacketCount;
+
 
 protected:
   size_t _autoRestartPeriod;

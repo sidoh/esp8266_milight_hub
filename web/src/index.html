@@ -25,7 +25,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/9.7.0/bootstrap-slider.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.4/js/standalone/selectize.min.js"></script>
-  <script src="//cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.12.4/js/bootstrap-select.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.12.4/js/bootstrap-select.min.js"></script>
 
   <script src="js/rgb2hsv.js" lang="text/javascript"></script>
   <script src="js/script.js" lang="text/javascript"></script>
@@ -137,14 +137,11 @@
     </div>
   </div>
 
+  <nav class="navbar navbar-expand-lg">
+    <a class="navbar-brand" href="https://github.com/sidoh/esp8266_milight_hub">MiLight Hub</a>
+  </nav>
+
   <div class="container">
-    <div class="row header-row">
-      <div class="col-sm-12">
-        <h1>
-          Control Lights
-        </h1>
-      </div>
-    </div>
 
     <div>&nbsp;</div>
 
@@ -367,107 +364,120 @@
       </div>
     </div>
 
-    <div class="row header-row">
-      <div class="col col-sm-10">
-        <h1>Gateway Servers</h1>
-      </div>
+    <div id="gateway-servers-modal" class="modal fade" role="dialog">
+      <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal">&times;</button>
+            <h2 class="modal-title">Gateway Servers</h2>
+          </div>
+          <div class="modal-body">
 
-      <div class="col col-sm-2">
-        <button class="btn btn-success header-btn" id="add-server-btn">
-          <i class="glyphicon glyphicon-plus"></i>
-          Add Server
-        </button>
-      </div>
-    </div>
-
-    <div class="row">
-      <div class="col col-sm-12">
-        <form id="gateway-server-form">
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Device ID</th>
-                <th>UDP Port</th>
-                <th>Protocol Version</th>
-              </tr>
-            </thead>
-            <tbody id="gateway-server-configs">
-            </tbody>
-          </table>
-          <input type="submit" class="btn btn-success" value="Save" />
-        </form>
-      </div>
-    </div>
-
-    <div>&nbsp;</div>
-
-    <div class="row header-row">
-      <div class="col-sm-12">
-        <h1>Settings</h1>
+            <div class="row">
+              <div class="col col-sm-12">
+                <form id="gateway-server-form">
+                  <table class="table">
+                    <thead>
+                      <tr>
+                        <th>Device ID</th>
+                        <th>UDP Port</th>
+                        <th>Protocol Version</th>
+                        <th>
+                          <button class="btn btn-success gateway-add-btn" id="add-server-btn">
+                            <i class="glyphicon glyphicon-plus"></i>
+                          </button>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody id="gateway-server-configs">
+                    </tbody>
+                  </table>
+                  <input type="submit" class="btn btn-success" value="Save" />
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
     <div>&nbsp;</div>
 
-    <div class="row">
-      <div class="col-sm-12">
-        <form action="#" id="settings">
-          <input type="submit" class="btn btn-success" value="Submit" />
-        </form>
+    <div id="settings-modal" class="modal fade" role="dialog">
+      <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal">&times;</button>
+            <h2 class="modal-title">Settings</h2>
+          </div>
+          <div class="modal-body">
+
+            <div>&nbsp;</div>
+
+            <div class="row">
+              <div class="col-sm-12">
+                <form action="#" id="settings">
+                  <input type="submit" class="btn btn-success" value="Submit" />
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <div class="row header-row">
-      <div class="col-sm-12">
-        <h1>Sniff Traffic</h1>
-      </div>
-    </div>
-
-    <div>&nbsp;</div>
-
-    <div class="row">
-      <div class="col-sm-12">
-        <button type="button" id="sniff" class="btn btn-primary">Start Sniffing</button>
-
-        <div> &nbsp; </div>
-
-        <div id="sniffed-traffic"></div>
-      </div>
-    </div>
-
-    <div class="row header-row">
-      <div class="col-sm-12">
-        <h1>Admin</h1>
-      </div>
-    </div>
-
-    <div>&nbsp;</div>
-
-    <div class="row">
-      <div class="col-sm-12">
-        <button type="button" class="btn btn-danger system-btn" data-command="restart">
-          Restart
-        </button>
-
-        <button type="button" class="btn btn-danger system-btn" data-command="clear_wifi_config">
-          Clear Wifi Config
-        </button>
-
-        <button type="button" id="updates-btn" class="btn btn-primary">
-          Check for Updates
-        </button>
-
-        <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#update-firmware-modal">
-          Update Firmware
-        </button>
-
-        <a href="/settings" download="settings.json" class="btn btn-primary">Backup Settings</a>
-
-        <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#restore-settings-modal">
-          Restore Settings
-        </button>
-      </div>
+    <div class="alert alert-warning alert-block" id="traffic-sniff">
+      <button type="button" class="close" id="traffic-sniff-close">&times;</button>
+      <h4>Traffic sniffed (sent and received)</h4>
+      <div id="sniffed-traffic"></div>
     </div>
   </div>
+
+  <footer>
+    <div class="container">
+      <div class="row">
+        <div class="col-sm-12">
+          <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#settings-modal">
+            Settings
+          </button>
+
+          <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#gateway-servers-modal">
+            Gateway Servers
+          </button>
+
+          <button type="button" id="sniff" class="btn btn-primary">
+            Start Sniffing
+          </button>
+          
+          <button type="button" id="updates-btn" class="btn btn-primary">
+            Check for Updates
+          </button>
+
+          <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#update-firmware-modal">
+            Update Firmware
+          </button>
+
+          <a href="/settings" download="settings.json" class="btn btn-primary">Backup Settings</a>
+
+          <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#restore-settings-modal">
+            Restore Settings
+          </button>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-sm-12">
+          <button type="button" class="btn btn-danger system-btn" data-command="restart">
+            Restart
+          </button>
+
+          <button type="button" class="btn btn-danger system-btn" data-command="clear_wifi_config">
+            Clear Wifi Config
+          </button>
+        </div>
+      </div>
+    </div>
+  </footer>
 </body>
 </html>

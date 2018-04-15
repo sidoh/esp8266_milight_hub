@@ -105,7 +105,23 @@ void Settings::patch(JsonObject& parsedSettings) {
     this->setIfPresent(parsedSettings, "packet_repeat_throttle_sensitivity", packetRepeatThrottleSensitivity);
     this->setIfPresent(parsedSettings, "packet_repeat_minimum", packetRepeatMinimum);
     this->setIfPresent(parsedSettings, "enable_automatic_mode_switching", enableAutomaticModeSwitching);
-    this->setIfPresent(parsedSettings, "enable_solid_led", enableSolidLED);
+    this->setIfPresent(parsedSettings, "led_mode_packet_count", ledModePacketCount);
+
+    if (parsedSettings.containsKey("led_mode_wifi_config")) {
+      this->ledModeWifiConfig = LEDStatus::stringToLEDMode(parsedSettings["led_mode_wifi_config"]);
+    }
+
+    if (parsedSettings.containsKey("led_mode_wifi_failed")) {
+      this->ledModeWifiFailed = LEDStatus::stringToLEDMode(parsedSettings["led_mode_wifi_failed"]);
+    }
+
+    if (parsedSettings.containsKey("led_mode_operating")) {
+      this->ledModeOperating = LEDStatus::stringToLEDMode(parsedSettings["led_mode_operating"]);
+    }
+
+    if (parsedSettings.containsKey("led_mode_packet")) {
+      this->ledModePacket = LEDStatus::stringToLEDMode(parsedSettings["led_mode_packet"]);
+    }
 
     if (parsedSettings.containsKey("radio_interface_type")) {
       this->radioInterfaceType = Settings::typeFromString(parsedSettings["radio_interface_type"]);
@@ -184,7 +200,11 @@ void Settings::serialize(Stream& stream, const bool prettyPrint) {
   root["packet_repeat_throttle_threshold"] = this->packetRepeatThrottleThreshold;
   root["packet_repeat_minimum"] = this->packetRepeatMinimum;
   root["enable_automatic_mode_switching"] = this->enableAutomaticModeSwitching;
-  root["enable_solid_led"] = this->enableSolidLED;
+  root["led_mode_wifi_config"] = LEDStatus::LEDModeToString(this->ledModeWifiConfig);
+  root["led_mode_wifi_failed"] = LEDStatus::LEDModeToString(this->ledModeWifiFailed);
+  root["led_mode_operating"] = LEDStatus::LEDModeToString(this->ledModeOperating);
+  root["led_mode_packet"] = LEDStatus::LEDModeToString(this->ledModePacket);
+  root["led_mode_packet_count"] = this->ledModePacketCount;
 
   if (this->deviceIds) {
     JsonArray& arr = jsonBuffer.createArray();
