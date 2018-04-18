@@ -121,7 +121,7 @@ BulbId RgbwPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& resul
       result["state"] = "ON";
       result["command"] = "night_mode";
     } else {
-      result["command"] = "white_mode";
+      result["command"] = "set_white";
     }
     bulbId.groupId = GROUP_FOR_STATUS_COMMAND(command & 0xF);
   } else if (command == RGBW_BRIGHTNESS) {
