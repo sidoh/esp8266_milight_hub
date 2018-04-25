@@ -17,8 +17,8 @@ var UI_TABS = [ {
     tag: "tab-radio",
     friendly: "Radio",
   }, {
-    tag: "tab-mqqt",
-    friendly: "MQQT"
+    tag: "tab-MQTT",
+    friendly: "MQTT"
   }
 ];
 
@@ -85,41 +85,41 @@ var UI_FIELDS = [ {
     tab: "tab-wifi"
   }, {
     tag: "mqtt_server",
-    friendly: "MQQT server",
-    help: "Domain or IP address of MQTT broker. Optionally specify a port with (example) mymqqtbroker.com:1884",
+    friendly: "MQTT server",
+    help: "Domain or IP address of MQTT broker. Optionally specify a port with (example) myMQTTbroker.com:1884",
     type: "string",
-    tab: "tab-mqqt"
+    tab: "tab-MQTT"
   }, {
     tag: "mqtt_topic_pattern", 
-    friendly: "MQQT topic pattern",
+    friendly: "MQTT topic pattern",
     help: "Pattern for MQTT topics to listen on. Example: lights/:device_id/:device_type/:group_id. See README for further details",
     type: "string",
-    tab: "tab-mqqt"
+    tab: "tab-MQTT"
   }, {
     tag:   "mqtt_update_topic_pattern", 
     friendly: "MQTT update topic pattern",
     help: "Pattern to publish MQTT updates. Packets that are received from other devices, and packets that are sent from this device will " +
     "result in updates being sent",
     type: "string",
-    tab: "tab-mqqt"
+    tab: "tab-MQTT"
   }, {
     tag:   "mqtt_state_topic_pattern",
-    friendly: "MQQT state topic pattern",
+    friendly: "MQTT state topic pattern",
     help: "Pattern for MQTT topic to publish state to. When a group changes state, the full known state of the group will be published to this topic pattern",
     type: "string",
-    tab: "tab-mqqt"
+    tab: "tab-MQTT"
   }, {
     tag:   "mqtt_username", 
-    friendly: "MQQT user name",
-    help: "User name to log in to MQQT server",
+    friendly: "MQTT user name",
+    help: "User name to log in to MQTT server",
     type: "string",
-    tab: "tab-mqqt"
+    tab: "tab-MQTT"
   }, {
     tag:   "mqtt_password", 
-    friendly: "MQQT password",
-    help: "Password to log into MQQT server",
+    friendly: "MQTT password",
+    help: "Password to log into MQTT server",
     type: "string",
-    tab: "tab-mqqt"
+    tab: "tab-MQTT"
   }, {
     tag:   "radio_interface_type", 
     friendly: "Radio interface type",
@@ -142,10 +142,10 @@ var UI_FIELDS = [ {
     tab: "tab-setup"
   }, {
     tag:   "mqtt_state_rate_limit", 
-    friendly: "MQQT state rate limit",
+    friendly: "MQTT state rate limit",
     help: "Minimum number of milliseconds between MQTT updates of bulb state (defaults to 500)",
     type: "string",
-    tab: "tab-mqqt"
+    tab: "tab-MQTT"
   }, {
     tag:   "packet_repeat_throttle_threshold",
     friendly: "Packet repeat throttle threshold",
@@ -175,7 +175,7 @@ var UI_FIELDS = [ {
     friendly: "Group state fields",
     help: "Selects which fields should be included in MQTT state updates and REST responses for bulb state",
     type: "group_state_fields",
-    tab: "tab-mqqt"
+    tab: "tab-MQTT"
   }, {
     tag:   "enable_automatic_mode_switching", 
     friendly: "Enable automatic mode switching",
@@ -216,7 +216,6 @@ var UI_FIELDS = [ {
   }
 ];
 
-
 // TODO: sync this with GroupStateField.h
 var GROUP_STATE_KEYS = [
   "state",
@@ -253,14 +252,15 @@ var DEFAULT_UDP_PROTOCL_VERSION = 5;
 var selectize;
 var sniffing = false;
 
+// don't attempt websocket if we are debugging locally
 if (location.hostname != "") {
-var webSocket = new WebSocket("ws://" + location.hostname + ":81");
-webSocket.onmessage = function(e) {
-  if (sniffing) {
-    var message = e.data;
-    $('#sniffed-traffic').prepend('<pre>' + message + '</pre>');
+  var webSocket = new WebSocket("ws://" + location.hostname + ":81");
+  webSocket.onmessage = function(e) {
+    if (sniffing) {
+      var message = e.data;
+      $('#sniffed-traffic').prepend('<pre>' + message + '</pre>');
+    }
   }
-}
 }
 
 var toHex = function(v) {
@@ -354,6 +354,7 @@ var gatewayServerRow = function(deviceId, port, version) {
 var loadSettings = function() {
   $('select.select-init').selectpicker();
   if (location.hostname == "") {
+    // if deugging locally, don't try get settings
     return;
   }
   $.getJSON('/settings', function(val) {
