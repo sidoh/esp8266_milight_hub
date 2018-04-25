@@ -17,7 +17,7 @@ var UI_TABS = [ {
     tag: "tab-radio",
     friendly: "Radio",
   }, {
-    tag: "tab-MQTT",
+    tag: "tab-mqtt",
     friendly: "MQTT"
   }
 ];
@@ -88,38 +88,38 @@ var UI_FIELDS = [ {
     friendly: "MQTT server",
     help: "Domain or IP address of MQTT broker. Optionally specify a port with (example) myMQTTbroker.com:1884",
     type: "string",
-    tab: "tab-MQTT"
+    tab: "tab-mqtt"
   }, {
     tag: "mqtt_topic_pattern", 
     friendly: "MQTT topic pattern",
     help: "Pattern for MQTT topics to listen on. Example: lights/:device_id/:device_type/:group_id. See README for further details",
     type: "string",
-    tab: "tab-MQTT"
+    tab: "tab-mqtt"
   }, {
     tag:   "mqtt_update_topic_pattern", 
     friendly: "MQTT update topic pattern",
     help: "Pattern to publish MQTT updates. Packets that are received from other devices, and packets that are sent from this device will " +
     "result in updates being sent",
     type: "string",
-    tab: "tab-MQTT"
+    tab: "tab-mqtt"
   }, {
     tag:   "mqtt_state_topic_pattern",
     friendly: "MQTT state topic pattern",
     help: "Pattern for MQTT topic to publish state to. When a group changes state, the full known state of the group will be published to this topic pattern",
     type: "string",
-    tab: "tab-MQTT"
+    tab: "tab-mqtt"
   }, {
     tag:   "mqtt_username", 
     friendly: "MQTT user name",
     help: "User name to log in to MQTT server",
     type: "string",
-    tab: "tab-MQTT"
+    tab: "tab-mqtt"
   }, {
     tag:   "mqtt_password", 
     friendly: "MQTT password",
     help: "Password to log into MQTT server",
     type: "string",
-    tab: "tab-MQTT"
+    tab: "tab-mqtt"
   }, {
     tag:   "radio_interface_type", 
     friendly: "Radio interface type",
@@ -145,7 +145,7 @@ var UI_FIELDS = [ {
     friendly: "MQTT state rate limit",
     help: "Minimum number of milliseconds between MQTT updates of bulb state (defaults to 500)",
     type: "string",
-    tab: "tab-MQTT"
+    tab: "tab-mqtt"
   }, {
     tag:   "packet_repeat_throttle_threshold",
     friendly: "Packet repeat throttle threshold",
@@ -175,7 +175,7 @@ var UI_FIELDS = [ {
     friendly: "Group state fields",
     help: "Selects which fields should be included in MQTT state updates and REST responses for bulb state",
     type: "group_state_fields",
-    tab: "tab-MQTT"
+    tab: "tab-mqtt"
   }, {
     tag:   "enable_automatic_mode_switching", 
     friendly: "Enable automatic mode switching",
