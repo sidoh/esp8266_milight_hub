@@ -133,6 +133,48 @@ void LEDStatus::LEDStatus::handle() {
   }
 }
 
+// helper function to convert an LEDMode enum to a string
+String LEDStatus::LEDModeToString(LEDStatus::LEDMode mode) {
+  switch (mode) {
+    case LEDStatus::LEDMode::Off:
+      return "Off";
+    case LEDStatus::LEDMode::SlowToggle:
+      return "Slow toggle";
+    case LEDStatus::LEDMode::FastToggle:
+      return "Fast toggle";
+    case LEDStatus::LEDMode::SlowBlip:
+      return "Slow blip";
+    case LEDStatus::LEDMode::FastBlip:
+      return "Fast blip";
+    case LEDStatus::LEDMode::Flicker:
+      return "Flicker";
+    case LEDStatus::LEDMode::On:
+      return "On";
+    default:
+      return "Unknown";
+  }
+}
+
+// helper function to convert a string to an LEDMode enum (note, mismatch returns LedMode::Unknown)
+LEDStatus::LEDMode LEDStatus::stringToLEDMode(String mode) {
+  if (mode == "Off")
+    return LEDStatus::LEDMode::Off;
+  if (mode == "Slow toggle")
+    return LEDStatus::LEDMode::SlowToggle;
+  if (mode == "Fast toggle")
+    return LEDStatus::LEDMode::FastToggle;
+  if (mode == "Slow blip")
+    return LEDStatus::LEDMode::SlowBlip;
+  if (mode == "Fast blip")
+    return LEDStatus::LEDMode::FastBlip;
+  if (mode == "Flicker")
+    return LEDStatus::LEDMode::Flicker;
+  if (mode == "On")
+    return LEDStatus::LEDMode::On;
+  // unable to match...
+  return LEDStatus::LEDMode::Unknown;
+}
+
 
 // private helper converts mode to on/off times in ms
 void LEDStatus::_modeToTime(LEDStatus::LEDMode mode, uint16_t& ledOffMs, uint16_t& ledOnMs) {

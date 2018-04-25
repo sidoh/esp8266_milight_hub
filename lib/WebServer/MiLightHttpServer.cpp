@@ -203,8 +203,11 @@ void MiLightHttpServer::handleUpdateSettings() {
     }
 
     server.send(200, APPLICATION_JSON, "true");
-  } else
+    Serial.println(F("Settings successfully updated"));
+  } else {
     server.send(400, APPLICATION_JSON, "\"Invalid JSON\"");
+    Serial.println(F("Settings failed to update; invalid JSON"));
+  }
 }
 
 void MiLightHttpServer::handleUpdateSettingsPost() {

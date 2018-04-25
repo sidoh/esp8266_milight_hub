@@ -90,8 +90,8 @@ void onPacketSentHandler(uint8_t* packet, const MiLightRemoteConfig& config) {
   BulbId bulbId = config.packetFormatter->parsePacket(packet, result);
 
 
-  // blip LED to indicate we saw a packet (send or receive)
-  ledStatus->oneshot(LEDStatus::LEDMode::Flicker, 3);
+  // set LED mode for a packet movement
+  ledStatus->oneshot(settings.ledModePacket, settings.ledModePacketCount);
 
   if (&bulbId == &DEFAULT_BULB_ID) {
     Serial.println(F("Skipping packet handler because packet was not decoded"));
@@ -232,9 +232,11 @@ void applySettings() {
     discoveryServer->begin();
   }
 
-  // update LED pin
-  if (ledStatus)
+  // update LED pin and operating mode
+  if (ledStatus) {
     ledStatus->changePin(settings.ledPin);
+    ledStatus->continuous(settings.ledModeOperating);
+  }
 }
 
 /**
@@ -262,9 +264,9 @@ void setup() {
   Settings::load(settings);
   applySettings();
 
-  // set up the LED status
+  // set up the LED status for wifi configuration
   ledStatus = new LEDStatus(settings.ledPin);
-  ledStatus->continuous(LEDStatus::LEDMode::FastToggle);
+  ledStatus->continuous(settings.ledModeWifiConfig);
 
   // start up the wifi manager
   if (! MDNS.begin("milight-hub")) {
@@ -278,10 +280,12 @@ void setup() {
   wifiManager.setSetupLoopCallback(handleLED);
   wifiManager.setConfigPortalTimeout(180);
   if (wifiManager.autoConnect(ssid.c_str(), "milightHub")) {
-    ledStatus->continuous(LEDStatus::LEDMode::SlowBlip);
+    // set LED mode for successful operation
+    ledStatus->continuous(settings.ledModeOperating);
     Serial.println(F("Wifi connected succesfully\n"));
   } else {
-    ledStatus->continuous(LEDStatus::LEDMode::On);
+    // set LED mode for Wifi failed
+    ledStatus->continuous(settings.ledModeWifiFailed);
     Serial.println(F("Wifi failed.  Oh well.\n"));
   }
 

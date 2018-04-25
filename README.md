@@ -86,12 +86,19 @@ The HTTP endpoints (shown below) will be fully functional at this point. You sho
 
 Some ESP boards have a built-in LED, on pin #2.  This LED will flash to indicate the current status of the hub:
 
-* Fast flash (on/off once per second) means the Wifi is not configured.  See [Configure Wifi](#configure-wifi) to configure the hub.
-* Occasional blips of light (a flicker of light every 1.5 seconds) means the hub is on wifi and ready to operate.
-* Rapid blips of light for brief periods (three rapid flashes) means packets are either detected from a device or are being sent to a device.
-* Solid light means the Wifi waited to be configured and gave up, or something went wrong with wifi configuration.
+* Wifi not configured: Fast flash (on/off once per second).  See [Configure Wifi](#configure-wifi) to configure the hub.
+* Wifi connected and ready: Occasional blips of light (a flicker of light every 1.5 seconds).
+* Packets sending/receiving: Rapid blips of light for brief periods (three rapid flashes).
+* Wifi failed to configure: Solid light.
 
-You can configure the LED pin from the web console.  Note that pin means the GPIO number, not the D number ... for example, D2 is actually GPIO4 and therefore its pin 4.  If you specify the pin as a negative number, it will reverse the LED (the built-in LED on pin 2 is reversed, so the default is -2).
+In the setup UI, you can turn on "enable_solid_led" to change the LED behavior to:
+
+* Wifi connected and ready: Solid LED light
+* Wifi failed to configure: Light off
+
+Note that you must restart the hub to affect the change in "enable_solid_led".
+
+You can configure the LED pin from the web console.  Note that pin means the GPIO number, not the D number ... for example, D2 is actually GPIO4 and therefore its pin 4.  If you specify the pin as a negative number, it will invert the LED signal (the built-in LED on pin 2 is inverted, so the default is -2).
 
 If you want to wire up your own LED on a pin, such as on D2/GPIO4, put a wire from D2 to one side of a 220 ohm resister.  On the other side, connect it to the positive side (the longer wire) of a 3.3V LED.  Then connect the negative side of the LED (the shorter wire) to ground.  If you use a different voltage LED, or a high current LED, you will need to add a driver circuit.
 
