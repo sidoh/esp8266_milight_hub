@@ -417,7 +417,7 @@ var loadSettings = function() {
 };
 
 var saveGatewayConfigs = function() {
-  var form = $('#gateway-server-form')
+  var form = $('#tab-udp-gateways')
     , errors = false;
 
   $('input', form).removeClass('error');
@@ -561,7 +561,6 @@ var handleCheckForUpdates = function() {
   $('#current-version,#latest-version .status').html('<i class="spinning glyphicon glyphicon-refresh"></i>');
   $('#version-summary').html('');
   $('#latest-version-info').hide();
-  $('#updates-modal').modal();
 
   $.ajax(
     '/about',
@@ -626,6 +625,27 @@ var updatePreviewColor = function(hue, saturation, lightness) {
   });
 };
 
+var stopSniffing = function() {
+  var elmt = $('#sniff');
+
+  sniffing = false;
+  $('i', elmt)
+    .removeClass('glyphicon-stop')
+    .addClass('glyphicon-play');
+  $('span', elmt).html('Start Sniffing');
+};
+
+var startSniffing = function() {
+  var elmt = $('#sniff');
+
+  sniffing = true;
+  $('i', elmt)
+    .removeClass('glyphicon-play')
+    .addClass('glyphicon-stop');
+  $('span', elmt).html('Stop Sniffing');
+  $("#traffic-sniff").show();
+};
+
 $(function() {
   $('.radio-option').click(function() {
     $(this).prev().prop('checked', true);
@@ -679,24 +699,24 @@ $(function() {
     sendCommand({command: $(this).data('command')});
   });
 
-  $('#sniff').click(function() {
+  $('#sniff').click(function(e) {
+    e.preventDefault();
+
     if (sniffing) {
-      sniffing = false;
-      $(this).html('Start Sniffing');
+      stopSniffing();
     } else {
-      sniffing = true;
-      $(this).html('Stop Sniffing');
-      $("#traffic-sniff").show();
+      startSniffing();
     }
   });
 
   $('#traffic-sniff-close').click(function() {
-    $("#traffic-sniff").hide();
-    sniffing = false;
-    $('#sniff').html('Start Sniffing');
+    stopSniffing();
+    $('#traffic-sniff').hide();
   });
 
-  $('#add-server-btn').click(function() {
+  $('body').on('click', '#add-server-btn', function(e) {
+    e.preventDefault();
+    console.log('hi');
     $('#gateway-server-configs').append(gatewayServerRow('', ''));
   });
 
@@ -761,6 +781,7 @@ $(function() {
     settings += '<li class="' + tabClass + '"><a href="#' + t.tag + '" data-toggle="tab">' + t.friendly + '</a></li>';
     tabClass = '';
   });
+  settings += '<li><a href="#tab-udp-gateways" data-toggle="tab">UDP Gateways</a></li>';
   settings += "</ul>";
 
   settings += '<div class="tab-content">';
@@ -822,6 +843,12 @@ $(function() {
     });
     settings += "</div>";
   });
+  
+  // UDP gateways tab
+  settings += '<div class="tab-pane fade ' + tabClass + '" id="tab-udp-gateways">';
+  settings += $('#gateway-servers-modal .modal-body').remove().html();
+  settings += '</div>';
+
   settings += "</div>";
 
   $('#settings').prepend(settings);
@@ -829,42 +856,47 @@ $(function() {
   $('#settings').submit(function(e) {
     e.preventDefault();
 
-    var obj = $('#settings')
-      .serializeArray()
-      .reduce(function(a, x) {
-        var val = a[x.name];
+    // Save UDP settings separately from the rest of the stuff since input is handled differently
+    if ($('#tab-udp-gateways').hasClass('active')) {
+      saveGatewayConfigs();
+    } else {
+      var obj = $('#settings')
+        .serializeArray()
+        .reduce(function(a, x) {
+          var val = a[x.name];
 
-        if (! val) {
-          a[x.name] = x.value;
-        } else if (! Array.isArray(val)) {
-          a[x.name] = [val, x.value];
-        } else {
-          val.push(x.value);
+          if (! val) {
+            a[x.name] = x.value;
+          } else if (! Array.isArray(val)) {
+            a[x.name] = [val, x.value];
+          } else {
+            val.push(x.value);
+          }
+
+          return a;
+        }, {});
+
+      // pretty hacky. whatever.
+      obj.device_ids = _.map(
+        $('.selectize-control .option'),
+        function(x) {
+          return $(x).data('value')
         }
+      );
 
-        return a;
-      }, {});
+      // Make sure we're submitting a value for group_state_fields (will be empty
+      // if no values were selected).
+      obj = $.extend({group_state_fields: []}, obj);
 
-    // pretty hacky. whatever.
-    obj.device_ids = _.map(
-      $('.selectize-control .option'),
-      function(x) {
-        return $(x).data('value')
-      }
-    );
-
-    // Make sure we're submitting a value for group_state_fields (will be empty
-    // if no values were selected).
-    obj = $.extend({group_state_fields: []}, obj);
-
-    $.ajax(
-      "/settings",
-      {
-        method: 'put',
-        contentType: 'application/json',
-        data: JSON.stringify(obj)
-      }
-    );
+      $.ajax(
+        "/settings",
+        {
+          method: 'put',
+          contentType: 'application/json',
+          data: JSON.stringify(obj)
+        }
+      );
+    }
 
     $('#settings-modal').modal('hide');
     
