@@ -781,7 +781,7 @@ $(function() {
     settings += '<li class="' + tabClass + '"><a href="#' + t.tag + '" data-toggle="tab">' + t.friendly + '</a></li>';
     tabClass = '';
   });
-  settings += '<li><a href="#tab-udp-gateways" data-toggle="tab">UDP Gateways</a></li>';
+  settings += '<li><a href="#tab-udp-gateways" data-toggle="tab">UDP</a></li>';
   settings += "</ul>";
 
   settings += '<div class="tab-content">';
