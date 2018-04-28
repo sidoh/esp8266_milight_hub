@@ -280,6 +280,10 @@ var activeUrl = function() {
     groupId = 0;
   }
 
+  if (typeof groupId === "undefined") {
+    throw "Must enter group ID";
+  }
+
   return "/gateways/" + deviceId + "/" + mode + "/" + groupId;
 }
 
