@@ -160,7 +160,7 @@ var UI_FIELDS = [ {
     friendly: "Packet repeat throttle sensitivity",
     help: "Controls how packet repeats are throttled. " +
     "Higher values cause packets to be throttled up and down faster " +
-    "(defaults to 1, maximum value 1000, 0 disables)",
+    "(defaults to 0, maximum value 1000, 0 disables)",
     type: "string",
     tab: "tab-radio"
   }, {
