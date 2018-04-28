@@ -478,7 +478,10 @@ var updateModeOptions = function() {
     if ($(this).data('for').split(',').includes(currentMode)) {
       $(this).show();
     } else {
-      $(this).hide();
+      $(this)
+        // De-select unselectable group
+        .removeClass('active')
+        .hide();
     }
   });
 };
