@@ -5,6 +5,9 @@
 
 const BulbId DEFAULT_BULB_ID;
 
+// Number of units each increment command counts for
+static const uint8_t INCREMENT_COMMAND_VALUE = 10;
+
 const GroupState& GroupState::defaultState(MiLightRemoteType remoteType) {
   static GroupState instances[MiLightRemoteConfig::NUM_REMOTES];
   GroupState& state = instances[remoteType];
@@ -79,6 +82,11 @@ GroupState::GroupState() {
   state.fields._mqttDirty            = 0;
   state.fields._isSetNightMode       = 0;
   state.fields._isNightMode          = 0;
+
+  scratchpad.fields._isSetBrightnessScratch = 0;
+  scratchpad.fields._brightnessScratch      = 0;
+  scratchpad.fields._isSetKelvinScratch     = 0;
+  scratchpad.fields._kelvinScratch          = 0;
 }
 
 bool GroupState::isSetField(GroupStateField field) const {
@@ -117,6 +125,107 @@ bool GroupState::isSetField(GroupStateField field) const {
   Serial.println(static_cast<unsigned int>(field));
 
   return false;
+}
+
+bool GroupState::isSetScratchField(GroupStateField field) const {
+  switch (field) {
+    case GroupStateField::BRIGHTNESS:
+      return scratchpad.fields._isSetBrightnessScratch;
+    case GroupStateField::KELVIN:
+      return scratchpad.fields._isSetKelvinScratch;
+  }
+
+  Serial.print(F("WARNING: tried to check if unknown scratch field was set: "));
+  Serial.println(static_cast<unsigned int>(field));
+
+  return false;
+}
+
+uint16_t GroupState::getFieldValue(GroupStateField field) const {
+  switch (field) {
+    case GroupStateField::STATE:
+    case GroupStateField::STATUS:
+      return getState();
+    case GroupStateField::BRIGHTNESS:
+      return getBrightness();
+    case GroupStateField::HUE:
+      return getHue();
+    case GroupStateField::SATURATION:
+      return getSaturation();
+    case GroupStateField::MODE:
+      return getMode();
+    case GroupStateField::KELVIN:
+      return getKelvin();
+    case GroupStateField::BULB_MODE:
+      return getBulbMode();
+  }
+
+  Serial.print(F("WARNING: tried to fetch value for unknown field: "));
+  Serial.println(static_cast<unsigned int>(field));
+
+  return 0;
+}
+
+uint16_t GroupState::getScratchFieldValue(GroupStateField field) const {
+  switch (field) {
+    case GroupStateField::BRIGHTNESS:
+      return scratchpad.fields._brightnessScratch;
+    case GroupStateField::KELVIN:
+      return scratchpad.fields._kelvinScratch;
+  }
+
+  Serial.print(F("WARNING: tried to fetch value for unknown scratch field: "));
+  Serial.println(static_cast<unsigned int>(field));
+
+  return 0;
+}
+
+void GroupState::setFieldValue(GroupStateField field, uint16_t value) {
+  switch (field) {
+    case GroupStateField::STATE:
+    case GroupStateField::STATUS:
+      setState(static_cast<MiLightStatus>(value));
+      break;
+    case GroupStateField::BRIGHTNESS:
+      setBrightness(value);
+      break;
+    case GroupStateField::HUE:
+      setHue(value);
+      break;
+    case GroupStateField::SATURATION:
+      setSaturation(value);
+      break;
+    case GroupStateField::MODE:
+      setMode(value);
+      break;
+    case GroupStateField::KELVIN:
+      setKelvin(value);
+      break;
+    case GroupStateField::BULB_MODE:
+      setBulbMode(static_cast<BulbMode>(value));
+      break;
+    default:
+      Serial.print(F("WARNING: tried to set value for unknown field: "));
+      Serial.println(static_cast<unsigned int>(field));
+      break;
+  }
+}
+
+void GroupState::setScratchFieldValue(GroupStateField field, uint16_t value) {
+  switch (field) {
+    case GroupStateField::BRIGHTNESS:
+      scratchpad.fields._isSetBrightnessScratch = 1;
+      scratchpad.fields._brightnessScratch = value;
+      break;
+    case GroupStateField::KELVIN:
+      scratchpad.fields._isSetKelvinScratch = 1;
+      scratchpad.fields._kelvinScratch = value;
+      break;
+    default:
+      Serial.print(F("WARNING: tried to set value for unknown scratch field: "));
+      Serial.println(static_cast<unsigned int>(field));
+      break;
+  }
 }
 
 bool GroupState::isSetState() const { return state.fields._isSetState; }
@@ -333,6 +442,56 @@ void GroupState::dump(Stream& stream) const {
     stream.write(reinterpret_cast<const uint8_t*>(&state.rawData[i]), 4);
   }
 }
+
+bool GroupState::applyIncrementCommand(GroupStateField field, IncrementDirection dir) {
+  if (field != GroupStateField::KELVIN && field != GroupStateField::BRIGHTNESS) {
+    Serial.print(F("WARNING: tried to apply increment for unsupported field: "));
+    Serial.println(static_cast<uint8_t>(field));
+    return false;
+  }
+
+  int8_t dirValue = static_cast<int8_t>(dir);
+
+  // If there's already a known value, update it
+  if (isSetField(field)) {
+    int8_t currentValue = static_cast<int8_t>(getFieldValue(field));
+    int8_t newValue = currentValue + (dirValue * INCREMENT_COMMAND_VALUE);
+
+#ifdef STATE_DEBUG
+    debugState("Updating field from increment command");
+#endif
+
+    // For now, assume range for both brightness and kelvin is [0, 100]
+    setFieldValue(field, constrain(newValue, 0, 100));
+    return true;
+  // Otherwise start or update scratch state
+  } else {
+    if (isSetScratchField(field)) {
+      int8_t newValue = static_cast<int8_t>(getScratchFieldValue(field)) + dirValue;
+
+      if (newValue == 0 || newValue == 10) {
+        setFieldValue(field, newValue * INCREMENT_COMMAND_VALUE);
+        return true;
+      } else {
+        setScratchFieldValue(field, newValue);
+      }
+    } else if (dir == IncrementDirection::DECREASE) {
+      setScratchFieldValue(field, 9);
+    } else {
+      setScratchFieldValue(field, 1);
+    }
+
+#ifdef STATE_DEBUG
+    Serial.print(F("Updated scratch field: "));
+    Serial.print(static_cast<int8_t>(field));
+    Serial.print(F(" to: "));
+    Serial.println(getScratchFieldValue(field));
+#endif
+  }
+
+  return false;
+}
+
 /*
   Update group state to reflect a packet state
 
@@ -385,6 +544,14 @@ bool GroupState::patch(const JsonObject& state) {
       changes |= setBulbMode(BULB_MODE_WHITE);
     } else if (command == "night_mode") {
       changes |= setBulbMode(BULB_MODE_NIGHT);
+    } else if (isOn() && command == "brightness_up") {
+      changes |= applyIncrementCommand(GroupStateField::BRIGHTNESS, IncrementDirection::INCREASE);
+    } else if (isOn() && command == "brightness_down") {
+      changes |= applyIncrementCommand(GroupStateField::BRIGHTNESS, IncrementDirection::DECREASE);
+    } else if (isOn() && command == "temperature_up") {
+      changes |= applyIncrementCommand(GroupStateField::KELVIN, IncrementDirection::INCREASE);
+    } else if (isOn() && command == "temperature_down") {
+      changes |= applyIncrementCommand(GroupStateField::KELVIN, IncrementDirection::DECREASE);
     }
   }
 
@@ -537,8 +704,11 @@ void GroupState::debugState(char const *debugMessage) {
   jsonBuffer.clear();
   JsonObject& jsonState = jsonBuffer.createObject();
 
+  // Fake id
+  BulbId id;
+
   // use applyState to build JSON of all fields (from above)
-  applyState(jsonState, fields, 13);
+  applyState(jsonState, id, fields, 13);
   // convert to string and print
   Serial.printf("%s: ", debugMessage);
   jsonState.printTo(Serial);

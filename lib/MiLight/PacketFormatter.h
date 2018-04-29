@@ -94,7 +94,14 @@ protected:
   const Settings* settings = NULL;
 
   void pushPacket();
-  void valueByStepFunction(StepFunction increase, StepFunction decrease, uint8_t numSteps, uint8_t value);
+
+  // Get field into a desired state using only increment/decrement commands.  Do this by:
+  //   1. Driving it down to its minimum value
+  //   2. Applying the appropriate number of increase commands to get it to the desired
+  //      value.
+  // If the current state is already known, take that into account and apply the exact
+  // number of rpeeats for the appropriate command.
+  void valueByStepFunction(StepFunction increase, StepFunction decrease, uint8_t numSteps, uint8_t targetValue, int8_t knownValue = -1);
 
   virtual void initializePacket(uint8_t* packetStart) = 0;
   virtual void finalizePacket(uint8_t* packet);
