@@ -94,7 +94,7 @@ protected:
   const Settings* settings = NULL;
 
   void pushPacket();
-  void valueByStepFunction(StepFunction increase, StepFunction decrease, uint8_t numSteps, uint8_t value);
+  void valueByStepFunction(StepFunction increase, StepFunction decrease, uint8_t numSteps, uint8_t targetValue, int8_t knownValue = -1);
 
   virtual void initializePacket(uint8_t* packetStart) = 0;
   virtual void finalizePacket(uint8_t* packet);

@@ -29,6 +29,12 @@ enum BulbMode {
   BULB_MODE_SCENE,
   BULB_MODE_NIGHT
 };
+
+enum class IncrementDirection : unsigned {
+  INCREASE = 1, 
+  DECREASE = -1U
+};
+
 static const char* BULB_MODE_NAMES[] = {
   "white",
   "color",
@@ -42,6 +48,12 @@ public:
   GroupState();
 
   bool isSetField(GroupStateField field) const;
+  uint16_t getFieldValue(GroupStateField field) const;
+  void setFieldValue(GroupStateField field, uint16_t value);
+
+  bool isSetScratchField(GroupStateField field) const;
+  uint16_t getScratchFieldValue(GroupStateField field) const;
+  void setScratchFieldValue(GroupStateField field, uint16_t value);
 
   // 1 bit
   bool isSetState() const;
@@ -105,6 +117,22 @@ public:
   void applyField(JsonObject& state, const BulbId& bulbId, GroupStateField field);
   void applyState(JsonObject& state, const BulbId& bulbId, GroupStateField* fields, size_t numFields);
 
+  // Attempt to keep track of increment commands in such a way that we can
+  // know what state it's in.  When we get an increment command (like "increase 
+  // brightness"):
+  //   1. If there is no value in the scratch state: assume real state is in 
+  //      the furthest value from the direction of the command.  For example, 
+  //      if we get "increase," assume the value was 0.
+  //   2. If there is a value in the scratch state, apply the command to it.
+  //      For example, if we get "decrease," subtract 1 from the scratch.
+  //   3. When scratch reaches a known extreme (either min or max), set the
+  //      persistent field to that value
+  //   4. If there is already a known value for the state, apply it rather
+  //      than messing with scratch state.
+  // 
+  // returns true if a (real, not scratch) state change was made
+  bool applyIncrementCommand(GroupStateField field, IncrementDirection dir);
+
   void load(Stream& stream);
   void dump(Stream& stream) const;
 
@@ -144,7 +172,21 @@ private:
     } fields;
   };
 
+  // Transient scratchpad that is never persisted.  Used to track and compute state for
+  // protocols that only have increment commands (like CCT).
+  union TransientData {
+    uint16_t rawData;
+    struct Fields {
+      uint16_t 
+        _isSetKelvinScratch     : 1,
+        _kelvinScratch          : 7,
+        _isSetBrightnessScratch : 1,
+        _brightnessScratch      : 8;
+    } fields;
+  };
+
   StateData state;
+  TransientData scratchpad;
 
   void applyColor(JsonObject& state, uint8_t r, uint8_t g, uint8_t b);
   void applyColor(JsonObject& state);
