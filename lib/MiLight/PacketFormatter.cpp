@@ -93,6 +93,8 @@ void PacketFormatter::valueByStepFunction(StepFunction increase, StepFunction de
   StepFunction fn;
   size_t numCommands = 0;
 
+  // If current value is not known, drive down to minimum value.  Then we can assume that we
+  // know the state (it'll be 0).
   if (knownValue == -1) {
     for (size_t i = 0; i < numSteps; i++) {
       (this->*decrease)();
@@ -108,6 +110,7 @@ void PacketFormatter::valueByStepFunction(StepFunction increase, StepFunction de
     numCommands = (targetValue - knownValue);
   }
 
+  // Get to the desired value
   for (size_t i = 0; i < numCommands; i++) {
     (this->*fn)();
   }
