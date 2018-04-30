@@ -481,7 +481,6 @@ ESP8266WebServer::THandlerFunction MiLightHttpServer::handleServe_P(const char* 
     server.sendHeader("Content-Length", String(length));
     server.setContentLength(CONTENT_LENGTH_UNKNOWN);
     server.send(200, "text/html", "");
-    server.setContentLength(length);
     server.sendContent_P(data, length);
     server.client().stop();
   };
