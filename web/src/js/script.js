@@ -24,14 +24,14 @@ var UI_TABS = [ {
 
 var UI_FIELDS = [ {
     tag: "admin_username",
-    friendly: "User name",
-    help: "Name of admin user when logging into wifi",
+    friendly: "Admin username",
+    help: "Username for logging into this webpage",
     type: "string",
     tab: "tab-wifi"
   }, {
     tag: "admin_password",
     friendly: "Password",
-    help: "Wifi password",
+    help: "Password for logging into this webpage",
     type: "string",
     tab: "tab-wifi"
   }, {
