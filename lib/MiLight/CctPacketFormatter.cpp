@@ -183,13 +183,13 @@ MiLightStatus CctPacketFormatter::cctCommandToStatus(uint8_t command) {
 BulbId CctPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& result, GroupStateStore* stateStore) {
   uint8_t command = packet[CCT_COMMAND_INDEX] & 0x7F;
 
+  uint8_t onOffGroupId = cctCommandIdToGroup(command);
   BulbId bulbId(
     (packet[1] << 8) | packet[2],
-    packet[3],
+    onOffGroupId < 255 ? onOffGroupId : packet[3],
     REMOTE_TYPE_CCT
   );
 
-  uint8_t onOffGroupId = cctCommandIdToGroup(command);
   if (onOffGroupId < 255) {
     result["state"] = cctCommandToStatus(command) == ON ? "ON" : "OFF";
   } else if (command == CCT_BRIGHTNESS_DOWN) {
