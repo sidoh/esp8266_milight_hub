@@ -80,7 +80,7 @@ Both mDNS and SSDP are supported.
 
 The HTTP endpoints (shown below) will be fully functional at this point. You should also be able to navigate to `http://<ip_of_esp>`, or `http://milight-hub.local` if your client supports mDNS. The UI should look like this:
 
-![Web UI](http://imgur.com/XNNigvL.png)
+![Web UI](https://user-images.githubusercontent.com/589893/39412360-0d95ab2e-4bd0-11e8-915c-7fef7ee38761.png)
 
 ## LED Status
 
