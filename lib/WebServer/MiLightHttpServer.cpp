@@ -478,10 +478,11 @@ void MiLightHttpServer::handlePacketSent(uint8_t *packet, const MiLightRemoteCon
 ESP8266WebServer::THandlerFunction MiLightHttpServer::handleServe_P(const char* data, size_t length) {
   return [this, data, length]() {
     server.sendHeader("Content-Encoding", "gzip");
-    server.sendHeader("Content-Length", String(length));
     server.setContentLength(CONTENT_LENGTH_UNKNOWN);
     server.send(200, "text/html", "");
     server.sendContent_P(data, length);
+    server.sendContent("");
     server.client().stop();
   };
 }
+
