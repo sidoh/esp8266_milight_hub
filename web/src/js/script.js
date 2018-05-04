@@ -4,13 +4,216 @@ var UNIT_PARAMS = {
   maxBrightness: 255
 };
 
-var FORM_SETTINGS = [
-  "admin_username", "admin_password", "ce_pin", "csn_pin", "reset_pin","packet_repeats",
-  "http_repeat_factor", "auto_restart_period", "discovery_port", "mqtt_server",
-  "mqtt_topic_pattern", "mqtt_update_topic_pattern", "mqtt_state_topic_pattern",
-  "mqtt_username", "mqtt_password", "radio_interface_type", "listen_repeats",
-  "state_flush_interval", "mqtt_state_rate_limit", "packet_repeat_throttle_threshold",
-  "packet_repeat_throttle_sensitivity", "packet_repeat_minimum", "group_state_fields"
+var UI_TABS = [ {
+    tag: "tab-wifi",
+    friendly: "Wifi",
+  }, {
+    tag: "tab-setup",
+    friendly: "Setup",
+  }, {
+    tag: "tab-led",
+    friendly: "LED",
+  }, {
+    tag: "tab-radio",
+    friendly: "Radio",
+  }, {
+    tag: "tab-mqtt",
+    friendly: "MQTT"
+  }
+];
+
+var UI_FIELDS = [ {
+    tag: "admin_username",
+    friendly: "Admin username",
+    help: "Username for logging into this webpage",
+    type: "string",
+    tab: "tab-wifi"
+  }, {
+    tag: "admin_password",
+    friendly: "Password",
+    help: "Password for logging into this webpage",
+    type: "string",
+    tab: "tab-wifi"
+  }, {
+    tag: "ce_pin",
+    friendly: "CE / PKT pin",
+    help: "Pin on ESP8266 used for 'CE' (for NRF24L01 interface) or 'PKT' (for 'PL1167/LT8900' interface)",
+    type: "string",
+    tab: "tab-setup"
+  }, {
+    tag: "csn_pin",
+    friendly: "CSN pin",
+    help: "Pin on ESP8266 used for 'CSN'",
+    type: "string",
+    tab: "tab-setup"
+  }, {
+    tag: "reset_pin",
+    friendly: "RESET pin",
+    help: "Pin on ESP8266 used for 'RESET'",
+    type: "string",
+    tab: "tab-setup"
+  }, {
+    tag: "led_pin",
+    friendly: "LED pin",
+    help: "Pin to use for LED status display (0=disabled); negative inverses signal (recommend -2 for on-board LED)",
+    type: "string",
+    tab: "tab-setup"
+  }, {
+    tag: "packet_repeats",
+    friendly: "Packet repeats",
+    help: "The number of times to repeat RF packets sent to bulbs",
+    type: "string",
+    tab: "tab-radio"
+  }, {
+    tag: "http_repeat_factor",
+    friendly: "HTTP repeat factor",
+    help: "Multiplicative factor on packet_repeats for requests initiated by the HTTP API. UDP API typically receives " +
+    "duplicate packets, so more repeats should be used for HTTP",
+    type: "string",
+    tab: "tab-wifi"
+  }, {
+    tag: "auto_restart_period",
+    friendly: "Auto-restart period",
+    help: "Automatically restart the device every number of minutes specified. Use 0 for disabled",
+    type: "string",
+    tab: "tab-setup"
+  }, {
+    tag: "discovery_port",
+    friendly: "Discovery port",
+    help: "UDP port to listen for discovery packets on. Defaults to the same port used by MiLight devices, 48899. Use 0 to disable",
+    type: "string",
+    tab: "tab-wifi"
+  }, {
+    tag: "mqtt_server",
+    friendly: "MQTT server",
+    help: "Domain or IP address of MQTT broker. Optionally specify a port with (example) myMQTTbroker.com:1884",
+    type: "string",
+    tab: "tab-mqtt"
+  }, {
+    tag: "mqtt_topic_pattern", 
+    friendly: "MQTT topic pattern",
+    help: "Pattern for MQTT topics to listen on. Example: lights/:device_id/:device_type/:group_id. See README for further details",
+    type: "string",
+    tab: "tab-mqtt"
+  }, {
+    tag:   "mqtt_update_topic_pattern", 
+    friendly: "MQTT update topic pattern",
+    help: "Pattern to publish MQTT updates. Packets that are received from other devices, and packets that are sent from this device will " +
+    "result in updates being sent",
+    type: "string",
+    tab: "tab-mqtt"
+  }, {
+    tag:   "mqtt_state_topic_pattern",
+    friendly: "MQTT state topic pattern",
+    help: "Pattern for MQTT topic to publish state to. When a group changes state, the full known state of the group will be published to this topic pattern",
+    type: "string",
+    tab: "tab-mqtt"
+  }, {
+    tag:   "mqtt_username", 
+    friendly: "MQTT user name",
+    help: "User name to log in to MQTT server",
+    type: "string",
+    tab: "tab-mqtt"
+  }, {
+    tag:   "mqtt_password", 
+    friendly: "MQTT password",
+    help: "Password to log into MQTT server",
+    type: "string",
+    tab: "tab-mqtt"
+  }, {
+    tag:   "radio_interface_type", 
+    friendly: "Radio interface type",
+    help: "2.4 GHz radio model. Only change this if you know you're not using an NRF24L01!",
+    type: "radio_interface_type",
+    tab: "tab-radio"
+  }, {
+    tag:   "listen_repeats",
+    friendly: "Listen repeats",
+    help: "Increasing this increases the amount of time spent listening for " +
+    "packets. Set to 0 to disable listening. Default is 3.",
+    type: "string",
+    tab: "tab-wifi"
+  }, {
+    tag:   "state_flush_interval", 
+    friendly: "State flush interval",
+    help: "Minimum number of milliseconds between flushing state to flash. " +
+    "Set to 0 to disable delay and immediately persist state to flash",
+    type: "string",
+    tab: "tab-setup"
+  }, {
+    tag:   "mqtt_state_rate_limit", 
+    friendly: "MQTT state rate limit",
+    help: "Minimum number of milliseconds between MQTT updates of bulb state (defaults to 500)",
+    type: "string",
+    tab: "tab-mqtt"
+  }, {
+    tag:   "packet_repeat_throttle_threshold",
+    friendly: "Packet repeat throttle threshold",
+    help: "Controls how packet repeats are throttled.  Packets sent " +
+    "with less time between them than this value (in milliseconds) will cause " +
+    "packet repeats to be throttled down.  More than this value will unthrottle " +
+    "up.  Defaults to 200ms",
+    type: "string",
+    tab: "tab-radio"
+  }, {
+    tag:   "packet_repeat_throttle_sensitivity", 
+    friendly: "Packet repeat throttle sensitivity",
+    help: "Controls how packet repeats are throttled. " +
+    "Higher values cause packets to be throttled up and down faster " +
+    "(defaults to 0, maximum value 1000, 0 disables)",
+    type: "string",
+    tab: "tab-radio"
+  }, {
+    tag:   "packet_repeat_minimum", 
+    friendly: "Packet repeat minimum",
+    help: "Controls how far throttling can decrease the number " +
+    "of repeated packets (defaults to 3)",
+    type: "string",
+    tab: "tab-radio"
+  }, {
+    tag:   "group_state_fields",
+    friendly: "Group state fields",
+    help: "Selects which fields should be included in MQTT state updates and REST responses for bulb state",
+    type: "group_state_fields",
+    tab: "tab-mqtt"
+  }, {
+    tag:   "enable_automatic_mode_switching", 
+    friendly: "Enable automatic mode switching",
+    help: "For RGBWW bulbs (using RGB+CCT or FUT089), enables automatic switching between modes in order to affect changes to " +
+    "temperature and saturation when otherwise it would not work",
+    type: "enable_automatic_mode_switching",
+    tab: "tab-radio"
+  }, {
+    tag:   "led_mode_wifi_config",
+    friendly: "LED mode during wifi config",
+    help: "LED mode when the device is in Access Point mode waiting to configure Wifi",
+    type: "led_mode",
+    tab: "tab-led"
+  }, {
+    tag:   "led_mode_wifi_failed",
+    friendly: "LED mode when wifi failed to connect",
+    help: "LED mode when the device has failed to connect to the wifi network",
+    type: "led_mode",
+    tab: "tab-led"
+  }, {
+    tag:   "led_mode_operating",
+    friendly: "LED mode when operating",
+    help: "LED mode when the device is in successfully running",
+    type: "led_mode",
+    tab: "tab-led"
+  }, {
+    tag:   "led_mode_packet",
+    friendly: "LED mode on packets",
+    help: "LED mode when the device is sending or receiving packets",
+    type: "led_mode",
+    tab: "tab-led"
+  }, {
+    tag:   "led_mode_packet_count",
+    friendly: "Flash count on packets",
+    help: "Number of times the LED will flash when packets are changing",
+    type: "string",
+    tab: "tab-led"    
+  }
 ];
 
 // TODO: sync this with GroupStateField.h
@@ -27,49 +230,21 @@ var GROUP_STATE_KEYS = [
   "color_temp",
   "bulb_mode",
   "computed_color",
-  "effect"
+  "effect",
+  "device_id",
+  "group_id",
+  "device_type"
 ];
 
-var FORM_SETTINGS_HELP = {
-  ce_pin : "'CE' for NRF24L01 interface, and 'PKT' for 'PL1167/LT8900' interface",
-  packet_repeats : "The number of times to repeat RF packets sent to bulbs",
-  http_repeat_factor : "Multiplicative factor on packet_repeats for " +
-    "requests initiated by the HTTP API. UDP API typically receives " +
-    "duplicate packets, so more repeats should be used for HTTP.",
-  auto_restart_period : "Automatically restart the device every number of " +
-    "minutes specified. Use 0 for disabled.",
-  radio_interface_type : "2.4 GHz radio model. Only change this if you know " +
-    "You're not using an NRF24L01!",
-  mqtt_server : "Domain or IP address of MQTT broker. Optionally specify a port " +
-    "with (example) mymqqtbroker.com:1884.",
-  mqtt_topic_pattern : "Pattern for MQTT topics to listen on. Example: " +
-    "lights/:device_id/:device_type/:group_id. See README for further details.",
-  mqtt_update_topic_pattern : "Pattern to publish MQTT updates. Packets that " +
-    "are received from other devices, and packets that are sent from this device will " +
-    "result in updates being sent.",
-  mqtt_state_topic_pattern : "Pattern for MQTT topic to publish state to. When a group " +
-    "changes state, the full known state of the group will be published to this topic " +
-    "pattern.",
-  discovery_port : "UDP port to listen for discovery packets on. Defaults to " +
-    "the same port used by MiLight devices, 48899. Use 0 to disable.",
-  listen_repeats : "Increasing this increases the amount of time spent listening for " +
-    "packets. Set to 0 to disable listening. Default is 3.",
-  state_flush_interval : "Minimum number of milliseconds between flushing state to flash. " +
-    "Set to 0 to disable delay and immediately persist state to flash.",
-  mqtt_state_rate_limit : "Minimum number of milliseconds between MQTT updates of bulb state. " +
-    "Defaults to 500.",
-  packet_repeat_throttle_threshold : "Controls how packet repeats are throttled.  Packets sent " +
-    "with less time between them than this value (in milliseconds) will cause " +
-    "packet repeats to be throttled down.  More than this value will unthrottle " +
-    "up.  Defaults to 200ms",
-  packet_repeat_throttle_sensitivity : "Controls how packet repeats are throttled. " +
-    "Higher values cause packets to be throttled up and down faster.  Set to 0 " +
-    "to disable throttling.  Defaults to 1.  Maximum value 1000.",
-  packet_repeat_minimum : "Controls how far throttling can decrease the number " +
-    "of repeated packets.  Defaults to 3.",
-  group_state_fields : "Selects which fields should be included in MQTT state updates and " +
-    "REST responses for bulb state."
-}
+var LED_MODES = [
+  "Off",
+  "Slow toggle",
+  "Fast toggle",
+  "Slow blip",
+  "Fast blip",
+  "Flicker",
+  "On"
+];
 
 var UDP_PROTOCOL_VERSIONS = [ 5, 6 ];
 var DEFAULT_UDP_PROTOCL_VERSION = 5;
@@ -77,11 +252,14 @@ var DEFAULT_UDP_PROTOCL_VERSION = 5;
 var selectize;
 var sniffing = false;
 
-var webSocket = new WebSocket("ws://" + location.hostname + ":81");
-webSocket.onmessage = function(e) {
-  if (sniffing) {
-    var message = e.data;
-    $('#sniffed-traffic').prepend('<pre>' + message + '</pre>');
+// don't attempt websocket if we are debugging locally
+if (location.hostname != "") {
+  var webSocket = new WebSocket("ws://" + location.hostname + ":81");
+  webSocket.onmessage = function(e) {
+    if (sniffing) {
+      var message = e.data;
+      $('#sniffed-traffic').prepend('<pre>' + message + '</pre>');
+    }
   }
 }
 
@@ -102,6 +280,10 @@ var activeUrl = function() {
     groupId = 0;
   }
 
+  if (typeof groupId === "undefined") {
+    throw "Must enter group ID";
+  }
+
   return "/gateways/" + deviceId + "/" + mode + "/" + groupId;
 }
 
@@ -118,7 +300,6 @@ var updateGroup = _.throttle(
         data: JSON.stringify(params),
         contentType: 'application/json',
         success: function(e) {
-          console.log(e);
           handleStateUpdate(e);
         }
       });
@@ -175,6 +356,11 @@ var gatewayServerRow = function(deviceId, port, version) {
 }
 
 var loadSettings = function() {
+  $('select.select-init').selectpicker();
+  if (location.hostname == "") {
+    // if deugging locally, don't try get settings
+    return;
+  }
   $.getJSON('/settings', function(val) {
     Object.keys(val).forEach(function(k) {
       var field = $('#settings input[name="' + k + '"]');
@@ -201,6 +387,26 @@ var loadSettings = function() {
       elmt.selectpicker('val', val.group_state_fields);
     }
 
+    if (val.led_mode_wifi_config) {
+      var elmt = $('select[name="led_mode_wifi_config"]');
+      elmt.selectpicker('val', val.led_mode_wifi_config);
+    }
+
+    if (val.led_mode_wifi_failed) {
+      var elmt = $('select[name="led_mode_wifi_failed"]');
+      elmt.selectpicker('val', val.led_mode_wifi_failed);
+    }
+
+    if (val.led_mode_operating) {
+      var elmt = $('select[name="led_mode_operating"]');
+      elmt.selectpicker('val', val.led_mode_operating);
+    }
+
+    if (val.led_mode_packet) {
+      var elmt = $('select[name="led_mode_packet"]');
+      elmt.selectpicker('val', val.led_mode_packet);
+    }
+
     var gatewayForm = $('#gateway-server-configs').html('');
     if (val.gateway_configs) {
       val.gateway_configs.forEach(function(v) {
@@ -211,7 +417,7 @@ var loadSettings = function() {
 };
 
 var saveGatewayConfigs = function() {
-  var form = $('#gateway-server-form')
+  var form = $('#tab-udp-gateways')
     , errors = false;
 
   $('input', form).removeClass('error');
@@ -276,7 +482,10 @@ var updateModeOptions = function() {
     if ($(this).data('for').split(',').includes(currentMode)) {
       $(this).show();
     } else {
-      $(this).hide();
+      $(this)
+        // De-select unselectable group
+        .removeClass('active')
+        .hide();
     }
   });
 };
@@ -352,7 +561,6 @@ var handleCheckForUpdates = function() {
   $('#current-version,#latest-version .status').html('<i class="spinning glyphicon glyphicon-refresh"></i>');
   $('#version-summary').html('');
   $('#latest-version-info').hide();
-  $('#updates-modal').modal();
 
   $.ajax(
     '/about',
@@ -378,7 +586,6 @@ var handleCheckForUpdates = function() {
 };
 
 var handleStateUpdate = function(state) {
-  console.log(state);
   if (state.state) {
     // Set without firing an event
     $('input[name="status"]')
@@ -416,6 +623,27 @@ var updatePreviewColor = function(hue, saturation, lightness) {
   $('.hue-value-display').css({
     backgroundColor: "hsl(" + hue + "," + saturation + "%," + lightness + "%)"
   });
+};
+
+var stopSniffing = function() {
+  var elmt = $('#sniff');
+
+  sniffing = false;
+  $('i', elmt)
+    .removeClass('glyphicon-stop')
+    .addClass('glyphicon-play');
+  $('span', elmt).html('Start Sniffing');
+};
+
+var startSniffing = function() {
+  var elmt = $('#sniff');
+
+  sniffing = true;
+  $('i', elmt)
+    .removeClass('glyphicon-play')
+    .addClass('glyphicon-stop');
+  $('span', elmt).html('Stop Sniffing');
+  $("#traffic-sniff").show();
 };
 
 $(function() {
@@ -471,17 +699,24 @@ $(function() {
     sendCommand({command: $(this).data('command')});
   });
 
-  $('#sniff').click(function() {
+  $('#sniff').click(function(e) {
+    e.preventDefault();
+
     if (sniffing) {
-      sniffing = false;
-      $(this).html('Start Sniffing');
+      stopSniffing();
     } else {
-      sniffing = true;
-      $(this).html('Stop Sniffing');
+      startSniffing();
     }
   });
 
-  $('#add-server-btn').click(function() {
+  $('#traffic-sniff-close').click(function() {
+    stopSniffing();
+    $('#traffic-sniff').hide();
+  });
+
+  $('body').on('click', '#add-server-btn', function(e) {
+    e.preventDefault();
+    console.log('hi');
     $('#gateway-server-configs').append(gatewayServerRow('', ''));
   });
 
@@ -540,89 +775,138 @@ $(function() {
   });
   selectize = selectize[0].selectize;
 
-  var settings = "";
-
-  FORM_SETTINGS.forEach(function(k) {
-    var elmt = '<div class="form-entry">';
-    elmt += '<div>';
-    elmt += '<label for="' + k + '">' + k + '</label>';
-
-    if (FORM_SETTINGS_HELP[k]) {
-      elmt += '<div class="field-help" data-help-text="' + FORM_SETTINGS_HELP[k] + '"></div>';
-    }
-
-    elmt += '</div>';
-
-    if (k === "radio_interface_type") {
-      elmt += '<div class="btn-group" id="radio_interface_type" data-toggle="buttons">' +
-        '<label class="btn btn-secondary active">' +
-          '<input type="radio" id="nrf24" name="radio_interface_type" autocomplete="off" value="nRF24" /> nRF24' +
-        '</label>'+
-        '<label class="btn btn-secondary">' +
-          '<input type="radio" id="lt8900" name="radio_interface_type" autocomplete="off" value="LT8900" /> PL1167/LT8900' +
-        '</label>' +
-      '</div>';
-    } else if (k == 'group_state_fields') {
-      elmt += '<select class="selectpicker" name="group_state_fields" multiple>';
-      GROUP_STATE_KEYS.forEach(function(stateKey) {
-        elmt += '<option>' + stateKey + '</option>';
-      });
-      elmt += '</select>';
-    } else {
-      elmt += '<input type="text" class="form-control" name="' + k + '"/>';
-      elmt += '</div>';
-    }
-
-    settings += elmt;
+  var settings = '<ul class="nav nav-tabs" id="setupTabs">';
+  var tabClass = 'active';
+  UI_TABS.forEach(function(t) {
+    settings += '<li class="' + tabClass + '"><a href="#' + t.tag + '" data-toggle="tab">' + t.friendly + '</a></li>';
+    tabClass = '';
   });
+  settings += '<li><a href="#tab-udp-gateways" data-toggle="tab">UDP</a></li>';
+  settings += "</ul>";
+
+  settings += '<div class="tab-content">';
+
+  tabClass = 'active in';
+
+  UI_TABS.forEach(function(t) {
+    settings += '<div class="tab-pane fade ' + tabClass + '" id="' + t.tag + '">';
+    tabClass = '';
+    UI_FIELDS.forEach(function(k) {
+      if (k.tab == t.tag) {
+        var elmt = '<div class="form-entry">';
+        elmt += '<div>';
+        elmt += '<label for="' + k.tag + '">' + k.friendly + '</label>';
+
+        if (k.help) {
+          elmt += '<div class="field-help" data-help-text="' + k.help + '"></div>';
+        }
+
+        elmt += '</div>';
+
+        if (k.type === "radio_interface_type") {
+          elmt += '<div class="btn-group" id="radio_interface_type" data-toggle="buttons">' +
+            '<label class="btn btn-secondary active">' +
+              '<input type="radio" id="nrf24" name="radio_interface_type" autocomplete="off" value="nRF24" /> nRF24' +
+            '</label>'+
+            '<label class="btn btn-secondary">' +
+              '<input type="radio" id="lt8900" name="radio_interface_type" autocomplete="off" value="LT8900" /> PL1167/LT8900' +
+            '</label>' +
+          '</div>';
+        } else if (k.type == 'group_state_fields') {
+          elmt += '<select class="selectpicker select-init" name="group_state_fields" multiple>';
+          GROUP_STATE_KEYS.forEach(function(stateKey) {
+            elmt += '<option>' + stateKey + '</option>';
+          });
+          elmt += '</select>';
+        } else if (k.type == 'led_mode') {
+          elmt += '<select class="selectpicker select-init" name="' + k.tag + '">';
+          LED_MODES.forEach(function(stateKey) {
+            elmt += '<option>' + stateKey + '</option>';
+          });
+          elmt += '</select>';
+        } else if (k.type == 'enable_automatic_mode_switching') {
+          elmt += '<div class="btn-group" id="enable_automatic_mode_switching" data-toggle="buttons">' +
+            '<label class="btn btn-secondary active">' +
+              '<input type="radio" id="enable_mode_switching" name="enable_automatic_mode_switching" autocomplete="off" value="true" /> Enable' +
+            '</label>'+
+            '<label class="btn btn-secondary">' +
+              '<input type="radio" id="disable_mode_switching" name="enable_automatic_mode_switching" autocomplete="off" value="false" /> Disable' +
+            '</label>' +
+          '</div>';
+        } else {
+          elmt += '<input type="text" class="form-control" name="' + k.tag + '"/>';
+        }
+        elmt += '</div>';
+
+        settings += elmt;
+      }
+    });
+    settings += "</div>";
+  });
+  
+  // UDP gateways tab
+  settings += '<div class="tab-pane fade ' + tabClass + '" id="tab-udp-gateways">';
+  settings += $('#gateway-servers-modal .modal-body').remove().html();
+  settings += '</div>';
+
+  settings += "</div>";
 
   $('#settings').prepend(settings);
+
   $('#settings').submit(function(e) {
     e.preventDefault();
 
-    var obj = $('#settings')
-      .serializeArray()
-      .reduce(function(a, x) {
-        var val = a[x.name];
+    // Save UDP settings separately from the rest of the stuff since input is handled differently
+    if ($('#tab-udp-gateways').hasClass('active')) {
+      saveGatewayConfigs();
+    } else {
+      var obj = $('#settings')
+        .serializeArray()
+        .reduce(function(a, x) {
+          var val = a[x.name];
 
-        if (! val) {
-          a[x.name] = x.value;
-        } else if (! Array.isArray(val)) {
-          a[x.name] = [val, x.value];
-        } else {
-          val.push(x.value);
+          if (! val) {
+            a[x.name] = x.value;
+          } else if (! Array.isArray(val)) {
+            a[x.name] = [val, x.value];
+          } else {
+            val.push(x.value);
+          }
+
+          return a;
+        }, {});
+
+      // pretty hacky. whatever.
+      obj.device_ids = _.map(
+        $('.selectize-control .option'),
+        function(x) {
+          return $(x).data('value')
         }
+      );
 
-        return a;
-      }, {});
+      // Make sure we're submitting a value for group_state_fields (will be empty
+      // if no values were selected).
+      obj = $.extend({group_state_fields: []}, obj);
 
-    // pretty hacky. whatever.
-    obj.device_ids = _.map(
-      $('.selectize-control .option'),
-      function(x) {
-        return $(x).data('value')
-      }
-    );
+      $.ajax(
+        "/settings",
+        {
+          method: 'put',
+          contentType: 'application/json',
+          data: JSON.stringify(obj)
+        }
+      );
+    }
 
-    // Make sure we're submitting a value for group_state_fields (will be empty
-    // if no values were selected).
-    obj = $.extend({group_state_fields: []}, obj);
-
-    $.ajax(
-      "/settings",
-      {
-        method: 'put',
-        contentType: 'application/json',
-        data: JSON.stringify(obj)
-      }
-    );
-
+    $('#settings-modal').modal('hide');
+    
     return false;
   });
 
   $('#gateway-server-form').submit(function(e) {
     saveGatewayConfigs();
     e.preventDefault();
+    $('#gateway-servers-modal').modal('hide');
     return false;
   });
 

@@ -14,12 +14,14 @@ public:
    * default state will be returned.
    */
   GroupState& get(const BulbId& id);
+  GroupState& get(const uint16_t deviceId, const uint8_t groupId, const MiLightRemoteType deviceType);
 
   /*
    * Sets the state for the given BulbId.  State will be marked as dirty and
    * flushed to persistent storage.
    */
   GroupState& set(const BulbId& id, const GroupState& state);
+  GroupState& set(const uint16_t deviceId, const uint8_t groupId, const MiLightRemoteType deviceType, const GroupState& state);
 
   /*
    * Flushes all states to persistent storage.  Returns true iff anything was

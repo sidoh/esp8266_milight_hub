@@ -21,6 +21,13 @@ GroupState& GroupStateStore::get(const BulbId& id) {
   return *state;
 }
 
+GroupState& GroupStateStore::get(const uint16_t deviceId, const uint8_t groupId, const MiLightRemoteType deviceType) {
+  BulbId bulbId(deviceId, groupId, deviceType);
+  return get(bulbId);
+}
+
+// save state for a bulb.  If id.groupId == 0, will iternate across all groups
+// and individually save each group (recursively)
 GroupState& GroupStateStore::set(const BulbId &id, const GroupState& state) {
   GroupState& storedState = get(id);
   storedState = state;
@@ -34,8 +41,13 @@ GroupState& GroupStateStore::set(const BulbId &id, const GroupState& state) {
       set(individualBulb, state);
     }
   }
-
+  
   return storedState;
+}
+
+GroupState& GroupStateStore::set(const uint16_t deviceId, const uint8_t groupId, const MiLightRemoteType deviceType, const GroupState& state) {
+  BulbId bulbId(deviceId, groupId, deviceType);
+  return set(bulbId, state);
 }
 
 void GroupStateStore::trackEviction() {

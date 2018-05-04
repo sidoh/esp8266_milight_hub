@@ -10,19 +10,19 @@
 #define _MILIGHTCLIENT_H
 
 //#define DEBUG_PRINTF
+//#define DEBUG_CLIENT_COMMANDS     // enable to show each individual change command (like hue, brightness, etc)
 
 #define MILIGHT_DEFAULT_RESEND_COUNT 10
-//Used to determine close to white
-#define RGB_WHITE_BOUNDARY 40
+
+// Used to determine RGB colros that are approximately white
+#define RGB_WHITE_THRESHOLD 10
 
 class MiLightClient {
 public:
   MiLightClient(
     MiLightRadioFactory* radioFactory,
-    GroupStateStore& stateStore,
-    size_t throttleThreshold,
-    size_t throttleSensitivity,
-    size_t packetRepeatMinimum
+    GroupStateStore* stateStore,
+    Settings* settings
   );
 
   ~MiLightClient() {
@@ -89,7 +89,8 @@ protected:
   MiLightRadio* currentRadio;
   const MiLightRemoteConfig* currentRemote;
   const size_t numRadios;
-  GroupStateStore& stateStore;
+  GroupStateStore* stateStore;
+  const Settings* settings;
 
   PacketSentHandler packetSentHandler;
   EventHandler updateBeginHandler;
@@ -99,9 +100,6 @@ protected:
   unsigned long lastSend;
   int currentResendCount;
   unsigned int baseResendCount;
-  int packetRepeatMinimum;
-  size_t throttleThreshold;
-  size_t throttleSensitivity;
 
   // This will be pre-computed, but is simply:
   //

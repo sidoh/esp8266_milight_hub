@@ -5,6 +5,7 @@
 #include <ArduinoJson.h>
 #include <GroupState.h>
 #include <GroupStateStore.h>
+#include <Settings.h>
 
 #ifndef _PACKET_FORMATTER_H
 #define _PACKET_FORMATTER_H
@@ -71,10 +72,10 @@ public:
   virtual void reset();
 
   virtual PacketStream& buildPackets();
-  virtual void prepare(uint16_t deviceId, uint8_t groupId);
+  virtual void prepare(uint16_t deviceId, uint8_t groupId, GroupStateStore* stateStore, const Settings* settings);
   virtual void format(uint8_t const* packet, char* buffer);
 
-  virtual BulbId parsePacket(const uint8_t* packet, JsonObject& result, GroupStateStore* stateStore);
+  virtual BulbId parsePacket(const uint8_t* packet, JsonObject& result);
 
   static void formatV1Packet(uint8_t const* packet, char* buffer);
 
@@ -89,9 +90,18 @@ protected:
   size_t numPackets;
   bool held;
   PacketStream packetStream;
+  GroupStateStore* stateStore = NULL;
+  const Settings* settings = NULL;
 
   void pushPacket();
-  void valueByStepFunction(StepFunction increase, StepFunction decrease, uint8_t numSteps, uint8_t value);
+
+  // Get field into a desired state using only increment/decrement commands.  Do this by:
+  //   1. Driving it down to its minimum value
+  //   2. Applying the appropriate number of increase commands to get it to the desired
+  //      value.
+  // If the current state is already known, take that into account and apply the exact
+  // number of rpeeats for the appropriate command.
+  void valueByStepFunction(StepFunction increase, StepFunction decrease, uint8_t numSteps, uint8_t targetValue, int8_t knownValue = -1);
 
   virtual void initializePacket(uint8_t* packetStart) = 0;
   virtual void finalizePacket(uint8_t* packet);

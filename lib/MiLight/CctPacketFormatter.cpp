@@ -48,20 +48,28 @@ void CctPacketFormatter::finalizePacket(uint8_t* packet) {
 }
 
 void CctPacketFormatter::updateBrightness(uint8_t value) {
+  const GroupState& state = this->stateStore->get(deviceId, groupId, MiLightRemoteType::REMOTE_TYPE_CCT);
+  int8_t knownValue = state.isSetBrightness() ? state.getBrightness() : -1;
+
   valueByStepFunction(
     &PacketFormatter::increaseBrightness,
     &PacketFormatter::decreaseBrightness,
     CCT_INTERVALS,
-    value / CCT_INTERVALS
+    value / CCT_INTERVALS,
+    knownValue / CCT_INTERVALS
   );
 }
 
 void CctPacketFormatter::updateTemperature(uint8_t value) {
+  const GroupState& state = this->stateStore->get(deviceId, groupId, MiLightRemoteType::REMOTE_TYPE_CCT);
+  int8_t knownValue = state.isSetKelvin() ? state.getKelvin() : -1;
+
   valueByStepFunction(
     &PacketFormatter::increaseTemperature,
     &PacketFormatter::decreaseTemperature,
     CCT_INTERVALS,
-    value / CCT_INTERVALS
+    value / CCT_INTERVALS,
+    knownValue / CCT_INTERVALS
   );
 }
 
@@ -180,16 +188,16 @@ MiLightStatus CctPacketFormatter::cctCommandToStatus(uint8_t command) {
   }
 }
 
-BulbId CctPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& result, GroupStateStore* stateStore) {
+BulbId CctPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& result) {
   uint8_t command = packet[CCT_COMMAND_INDEX] & 0x7F;
 
+  uint8_t onOffGroupId = cctCommandIdToGroup(command);
   BulbId bulbId(
     (packet[1] << 8) | packet[2],
-    packet[3],
+    onOffGroupId < 255 ? onOffGroupId : packet[3],
     REMOTE_TYPE_CCT
   );
 
-  uint8_t onOffGroupId = cctCommandIdToGroup(command);
   if (onOffGroupId < 255) {
     result["state"] = cctCommandToStatus(command) == ON ? "ON" : "OFF";
   } else if (command == CCT_BRIGHTNESS_DOWN) {

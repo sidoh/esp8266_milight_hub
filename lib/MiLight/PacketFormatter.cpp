@@ -64,7 +64,7 @@ void PacketFormatter::enableNightMode() { }
 void PacketFormatter::updateTemperature(uint8_t value) { }
 void PacketFormatter::updateSaturation(uint8_t value) { }
 
-BulbId PacketFormatter::parsePacket(const uint8_t *packet, JsonObject &result, GroupStateStore* stateStore) {
+BulbId PacketFormatter::parsePacket(const uint8_t *packet, JsonObject &result) {
   return DEFAULT_BULB_ID;
 }
 
@@ -89,25 +89,44 @@ PacketStream& PacketFormatter::buildPackets() {
   return packetStream;
 }
 
-void PacketFormatter::valueByStepFunction(StepFunction increase, StepFunction decrease, uint8_t numSteps, uint8_t value) {
-  for (size_t i = 0; i < numSteps; i++) {
-    (this->*decrease)();
+void PacketFormatter::valueByStepFunction(StepFunction increase, StepFunction decrease, uint8_t numSteps, uint8_t targetValue, int8_t knownValue) {
+  StepFunction fn;
+  size_t numCommands = 0;
+
+  // If current value is not known, drive down to minimum value.  Then we can assume that we
+  // know the state (it'll be 0).
+  if (knownValue == -1) {
+    for (size_t i = 0; i < numSteps; i++) {
+      (this->*decrease)();
+    }
+
+    fn = increase;
+    numCommands = targetValue;
+  } else if (targetValue < knownValue) {
+    fn = decrease;
+    numCommands = (knownValue - targetValue);
+  } else if (targetValue > knownValue) {
+    fn = increase;
+    numCommands = (targetValue - knownValue);
   }
 
-  for (size_t i = 0; i < value; i++) {
-    (this->*increase)();
+  // Get to the desired value
+  for (size_t i = 0; i < numCommands; i++) {
+    (this->*fn)();
   }
 }
 
-void PacketFormatter::prepare(uint16_t deviceId, uint8_t groupId) {
+void PacketFormatter::prepare(uint16_t deviceId, uint8_t groupId, GroupStateStore* stateStore, const Settings* settings) {
   this->deviceId = deviceId;
   this->groupId = groupId;
+  this->stateStore = stateStore;
+  this->settings = settings;
   reset();
 }
 
 void PacketFormatter::reset() {
   this->numPackets = 0;
-  this->currentPacket = currentPacket;
+  this->currentPacket = PACKET_BUFFER;
   this->held = false;
 }
 

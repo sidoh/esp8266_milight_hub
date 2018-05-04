@@ -25,129 +25,47 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/9.7.0/bootstrap-slider.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.4/js/standalone/selectize.min.js"></script>
-  <script src="//cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.12.4/js/bootstrap-select.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.12.4/js/bootstrap-select.min.js"></script>
 
   <script src="js/rgb2hsv.js" lang="text/javascript"></script>
   <script src="js/script.js" lang="text/javascript"></script>
 
-  <div id="update-firmware-modal" class="modal fade" role="dialog">
-    <div class="modal-dialog">
-      <!-- Modal content-->
-      <div class="modal-content">
-        <div class="modal-header">
-          <button type="button" class="close" data-dismiss="modal">&times;</button>
-          <h2 class="modal-title">Update Firmware</h2>
-        </div>
-        <div class="modal-body">
-          <div class="alert alert-warning">
-            <p>
-            Download firmware binaries from the
-            <a href="https://github.com/sidoh/esp8266_milight_hub/releases">GitHub releases page</a>.
-            Check for a new version by clicking on the "Check for Updates" button.
-            </p>
-
-            <p>
-              <b>Make sure the binary you're uploading was compiled for your board!</b>
-              Firmware with incompatible settings could prevent boots. If this happens,
-              reflash the board with USB.
-            </p>
-          </div>
-          <form action="/firmware" method="post" enctype="multipart/form-data">
-            <input type="file" name="file"/>
-            <p>&nbsp;</p>
-            <input type="submit" name="submit" class="btn btn-success"/>
-          </form>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-        </div>
+  <nav class="navbar navbar-inverse">
+    <div class="container">
+      <div class="navbar-header">
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+          <span class="sr-only">Toggle navigation</span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="/">MiLight Hub</a>
       </div>
-
-    </div>
-  </div>
-
-  <div id="updates-modal" class="modal fade" role="dialog">
-   <div class="modal-dialog">
-     <!-- Modal content-->
-     <div class="modal-content">
-       <div class="modal-header">
-         <button type="button" class="close" data-dismiss="modal">&times;</button>
-         <h2 class="modal-title">Update</h2>
-       </div>
-       <div class="modal-body">
-         <div id="version-summary"></div>
-
-         <hr />
-
-         <h4>Current Version</h4>
-         <div id="current-version"></div>
-
-         <div id="latest-version">
-           <h4>Latest Version</h4>
-
-           <div class="status"></div>
-           <div id="latest-version-info">
-             <label>Version</label>
-             <div class="info-key" data-key="tag_name"></div>
-
-             <label>Release Date</label>
-             <div class="info-key" data-key="published_at"></div>
-
-             <label>Release Notes</label>
-             <pre class="info-key" data-key="body"></pre>
-
-             <div>
-               <a class="info-key" data-prop="href" data-key="html_url">View on GitHub</a>
-             </div>
-
-             <div>
-               <a class="info-key" id="firmware-link">Download Firmware</a>
-             </div>
-           </div>
-         </div>
-       </div>
-       <div class="modal-footer">
-         <a href="/download_update/web" class="btn btn-primary">Update Web UI</a>
-         <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-       </div>
-     </div>
-   </div>
-  </div>
-
-  <div id="restore-settings-modal" class="modal fade" role="dialog">
-    <div class="modal-dialog">
-      <!-- Modal content-->
-      <div class="modal-content">
-        <div class="modal-header">
-          <button type="button" class="close" data-dismiss="modal">&times;</button>
-          <h2 class="modal-title">Restore Settings</h2>
-        </div>
-        <div class="modal-body">
-          <form action="/settings" method="post" enctype="multipart/form-data">
-            <input type="file" name="file"/>
-            <p>&nbsp;</p>
-            <input type="submit" name="submit" class="btn btn-success"/>
-          </form>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-        </div>
-      </div>
-
-    </div>
-  </div>
-
-  <div class="container">
-    <div class="row header-row">
-      <div class="col-sm-12">
-        <h1>
-          Control Lights
-        </h1>
+      <div class="collapse navbar-collapse">
+        <ul class="nav navbar-nav">
+          <li><a href="#settings" data-toggle="modal" data-target="#settings-modal">Settings</a></li>
+          <li>
+            <a href="#sniff" id="sniff">
+              <i class="glyphicon glyphicon-play"></i>
+              <span>Start Sniffing</span>
+            </a>
+          </li>
+          <li class="dropdown">
+            <a href="#admin" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Admin <span class="caret"></span></a>
+            <ul class="dropdown-menu">
+              <li><a href="#admin-actions" data-toggle="modal" data-target="#admin-actions-modal">Actions</a></li>
+              <li role="separator" class="divider"></li>
+              <li><a href="#check-updates" id="updates-btn" data-toggle="modal" data-target="#updates-modal">Check for Updates</a></li>
+              <li><a href="#updates" data-toggle="modal" data-target="#update-firmware-modal">Update Firmware</a></li>
+              <li><a href="#backup" data-toggle="modal" data-target="#backup-settings-modal">Backup</a></li>
+            </ul>
+          </li>
+        </ul>
       </div>
     </div>
+  </nav>
 
-    <div>&nbsp;</div>
-
+  <div class="container" id="content">
     <div class="row">
       <div class="col-sm-3">
         <label for="deviceId" id="device-id-label">
@@ -306,6 +224,9 @@
             </li>
           </div>
           <li>
+            <button type="button" class="btn btn-info command-btn" data-command="night_mode">Night</button>
+          </li>
+          <li>
             <button type="button" class="btn btn-success command-btn" data-command="pair">
               <i class="glyphicon glyphicon-plus"></i>
               Pair
@@ -364,106 +285,216 @@
       </div>
     </div>
 
-    <div class="row header-row">
-      <div class="col col-sm-10">
-        <h1>Gateway Servers</h1>
-      </div>
+    <!-- The content of this modal is dynamically injected into the settings modal -->
+    <div id="gateway-servers-modal" class="modal fade" role="dialog">
+      <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal">&times;</button>
+            <h2 class="modal-title">Gateway Servers</h2>
+          </div>
+          <div class="modal-body">
 
-      <div class="col col-sm-2">
-        <button class="btn btn-success header-btn" id="add-server-btn">
-          <i class="glyphicon glyphicon-plus"></i>
-          Add Server
-        </button>
-      </div>
-    </div>
-
-    <div class="row">
-      <div class="col col-sm-12">
-        <form id="gateway-server-form">
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Device ID</th>
-                <th>UDP Port</th>
-                <th>Protocol Version</th>
-              </tr>
-            </thead>
-            <tbody id="gateway-server-configs">
-            </tbody>
-          </table>
-          <input type="submit" class="btn btn-success" value="Save" />
-        </form>
-      </div>
-    </div>
-
-    <div>&nbsp;</div>
-
-    <div class="row header-row">
-      <div class="col-sm-12">
-        <h1>Settings</h1>
+            <div class="row">
+              <div class="col col-sm-12">
+                <form id="gateway-server-form">
+                  <table class="table">
+                    <thead>
+                      <tr>
+                        <th>Device ID</th>
+                        <th>UDP Port</th>
+                        <th>Protocol Version</th>
+                        <th>
+                          <a class="btn btn-success gateway-add-btn" id="add-server-btn">
+                            <i class="glyphicon glyphicon-plus"></i>
+                          </a>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody id="gateway-server-configs">
+                    </tbody>
+                  </table>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
     <div>&nbsp;</div>
 
-    <div class="row">
-      <div class="col-sm-12">
-        <form action="#" id="settings">
-          <input type="submit" class="btn btn-success" value="Submit" />
-        </form>
+    <div id="settings-modal" class="modal fade" role="dialog">
+      <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal">&times;</button>
+            <h2 class="modal-title">Settings</h2>
+          </div>
+          <div class="modal-body">
+
+            <div>&nbsp;</div>
+
+            <div class="row">
+              <div class="col-sm-12">
+                <form action="#" id="settings">
+                  <input type="submit" class="btn btn-success" value="Submit" />
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <div class="row header-row">
-      <div class="col-sm-12">
-        <h1>Sniff Traffic</h1>
-      </div>
+    <div class="alert alert-warning alert-block" id="traffic-sniff">
+      <button type="button" class="close" id="traffic-sniff-close">&times;</button>
+      <h4>Traffic sniffed (sent and received)</h4>
+      <div id="sniffed-traffic"></div>
     </div>
+  </div>
 
-    <div>&nbsp;</div>
+  <div id="update-firmware-modal" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+      <!-- Modal content-->
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal">&times;</button>
+          <h2 class="modal-title">Update Firmware</h2>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-warning">
+            <p>
+            Download firmware binaries from the
+            <a href="https://github.com/sidoh/esp8266_milight_hub/releases">GitHub releases page</a>.
+            Check for a new version by clicking on the "Check for Updates" button.
+            </p>
 
-    <div class="row">
-      <div class="col-sm-12">
-        <button type="button" id="sniff" class="btn btn-primary">Start Sniffing</button>
-
-        <div> &nbsp; </div>
-
-        <div id="sniffed-traffic"></div>
+            <p>
+              <b>Make sure the binary you're uploading was compiled for your board!</b>
+              Firmware with incompatible settings could prevent boots. If this happens,
+              reflash the board with USB.
+            </p>
+          </div>
+          <form action="/firmware" method="post" enctype="multipart/form-data">
+            <input type="file" name="file"/>
+            <p>&nbsp;</p>
+            <input type="submit" name="submit" class="btn btn-success"/>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+        </div>
       </div>
+
     </div>
+  </div>
 
-    <div class="row header-row">
-      <div class="col-sm-12">
-        <h1>Admin</h1>
+  <div id="updates-modal" class="modal fade" role="dialog">
+   <div class="modal-dialog">
+     <!-- Modal content-->
+     <div class="modal-content">
+       <div class="modal-header">
+         <button type="button" class="close" data-dismiss="modal">&times;</button>
+         <h2 class="modal-title">Update</h2>
+       </div>
+       <div class="modal-body">
+         <div id="version-summary"></div>
+
+         <hr />
+
+         <h4>Current Version</h4>
+         <div id="current-version"></div>
+
+         <div id="latest-version">
+           <h4>Latest Version</h4>
+
+           <div class="status"></div>
+           <div id="latest-version-info">
+             <label>Version</label>
+             <div class="info-key" data-key="tag_name"></div>
+
+             <label>Release Date</label>
+             <div class="info-key" data-key="published_at"></div>
+
+             <label>Release Notes</label>
+             <pre class="info-key" data-key="body"></pre>
+
+             <div>
+               <a class="info-key" data-prop="href" data-key="html_url">View on GitHub</a>
+             </div>
+
+             <div>
+               <a class="info-key" id="firmware-link">Download Firmware</a>
+             </div>
+           </div>
+         </div>
+       </div>
+       <div class="modal-footer">
+         <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+       </div>
+     </div>
+   </div>
+  </div>
+
+  <div id="backup-settings-modal" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+      <!-- Modal content-->
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div>
+            <h3 class="section-title">Backup Settings</h3>
+            <a href="/settings" download="settings.json" class="btn btn-primary">Backup Settings</a>
+          </div>
+
+          <div>
+            <h3 class="section-title">Restore Settings</h3>
+            <form action="/settings" method="post" enctype="multipart/form-data">
+              <p>
+                <input type="file" name="file"/>
+              </p>
+              <p>
+                <input type="submit" name="submit" class="btn btn-success"/>
+              </p>
+            </form>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+        </div>
       </div>
+
     </div>
+  </div>
 
-    <div>&nbsp;</div>
-
-    <div class="row">
-      <div class="col-sm-12">
-        <button type="button" class="btn btn-danger system-btn" data-command="restart">
-          Restart
-        </button>
-
-        <button type="button" class="btn btn-danger system-btn" data-command="clear_wifi_config">
-          Clear Wifi Config
-        </button>
-
-        <button type="button" id="updates-btn" class="btn btn-primary">
-          Check for Updates
-        </button>
-
-        <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#update-firmware-modal">
-          Update Firmware
-        </button>
-
-        <a href="/settings" download="settings.json" class="btn btn-primary">Backup Settings</a>
-
-        <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#restore-settings-modal">
-          Restore Settings
-        </button>
+  <div id="admin-actions-modal" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+      <!-- Modal content-->
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal">&times;</button>
+         <h2 class="modal-title">Admin Actions</h2>
+        </div>
+        <div class="modal-body">
+          <ul class="action-buttons">
+            <li>
+              <button class="btn btn-danger btn-sm system-btn" data-command="restart">Restart</button>
+            </li>
+            <li>
+              <button class="btn btn-danger btn-sm system-btn" data-command="clear_wifi_config">Clear Wifi Config</button>
+            </li>
+          </ul>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+        </div>
       </div>
+
     </div>
   </div>
 </body>

@@ -19,8 +19,11 @@
 #include <MiLightDiscoveryServer.h>
 #include <MiLightClient.h>
 #include <BulbStateUpdater.h>
+#include <LEDStatus.h>
 
 WiFiManager wifiManager;
+
+static LEDStatus *ledStatus;
 
 Settings settings;
 
@@ -84,7 +87,11 @@ void initMilightUdpServers() {
 void onPacketSentHandler(uint8_t* packet, const MiLightRemoteConfig& config) {
   StaticJsonBuffer<200> buffer;
   JsonObject& result = buffer.createObject();
-  BulbId bulbId = config.packetFormatter->parsePacket(packet, result, stateStore);
+  BulbId bulbId = config.packetFormatter->parsePacket(packet, result);
+
+
+  // set LED mode for a packet movement
+  ledStatus->oneshot(settings.ledModePacket, settings.ledModePacketCount);
 
   if (&bulbId == &DEFAULT_BULB_ID) {
     Serial.println(F("Skipping packet handler because packet was not decoded"));
@@ -94,6 +101,7 @@ void onPacketSentHandler(uint8_t* packet, const MiLightRemoteConfig& config) {
   const MiLightRemoteConfig& remoteConfig =
     *MiLightRemoteConfig::fromType(bulbId.deviceType);
 
+  // update state to reflect changes from this packet
   GroupState& groupState = stateStore->get(bulbId);
   groupState.patch(result);
   stateStore->set(bulbId, groupState);
@@ -141,6 +149,7 @@ void handleListen() {
         return;
       }
 
+      // update state to reflect this packet
       onPacketSentHandler(readPacket, *remoteConfig);
     }
   }
@@ -197,10 +206,8 @@ void applySettings() {
 
   milightClient = new MiLightClient(
     radioFactory,
-    *stateStore,
-    settings.packetRepeatThrottleThreshold,
-    settings.packetRepeatThrottleSensitivity,
-    settings.packetRepeatMinimum
+    stateStore,
+    &settings
   );
   milightClient->begin();
   milightClient->onPacketSent(onPacketSentHandler);
@@ -224,6 +231,12 @@ void applySettings() {
     discoveryServer = new MiLightDiscoveryServer(settings);
     discoveryServer->begin();
   }
+
+  // update LED pin and operating mode
+  if (ledStatus) {
+    ledStatus->changePin(settings.ledPin);
+    ledStatus->continuous(settings.ledModeOperating);
+  }
 }
 
 /**
@@ -237,20 +250,45 @@ bool shouldRestart() {
   return settings.getAutoRestartPeriod()*60*1000 < millis();
 }
 
+// give a bit of time to update the status LED
+void handleLED() {
+  ledStatus->handle();
+}
+
 void setup() {
   Serial.begin(9600);
   String ssid = "ESP" + String(ESP.getChipId());
-
-  wifiManager.setConfigPortalTimeout(180);
-  wifiManager.autoConnect(ssid.c_str(), "milightHub");
-
+  
+  // load up our persistent settings from the file system
   SPIFFS.begin();
   Settings::load(settings);
   applySettings();
 
+  // set up the LED status for wifi configuration
+  ledStatus = new LEDStatus(settings.ledPin);
+  ledStatus->continuous(settings.ledModeWifiConfig);
+
+  // start up the wifi manager
   if (! MDNS.begin("milight-hub")) {
     Serial.println(F("Error setting up MDNS responder"));
   }
+  // tell Wifi manager to call us during the setup.  Note that this "setSetupLoopCallback" is an addition
+  // made to Wifi manager in a private fork.  As of this writing, WifiManager has a new feature coming that
+  // allows the "autoConnect" method to be non-blocking which can implement this same functionality.  However,
+  // that change is only on the development branch so we are going to continue to use this fork until
+  // that is merged and ready.
+  wifiManager.setSetupLoopCallback(handleLED);
+  wifiManager.setConfigPortalTimeout(180);
+  if (wifiManager.autoConnect(ssid.c_str(), "milightHub")) {
+    // set LED mode for successful operation
+    ledStatus->continuous(settings.ledModeOperating);
+    Serial.println(F("Wifi connected succesfully\n"));
+  } else {
+    // set LED mode for Wifi failed
+    ledStatus->continuous(settings.ledModeWifiFailed);
+    Serial.println(F("Wifi failed.  Oh well.\n"));
+  }
+
 
   MDNS.addService("http", "tcp", 80);
 
@@ -267,7 +305,7 @@ void setup() {
   httpServer->on("/description.xml", HTTP_GET, []() { SSDP.schema(httpServer->client()); });
   httpServer->begin();
 
-  Serial.println(F("Setup complete"));
+  Serial.printf_P(PSTR("Setup complete (version %s)\n"), QUOTE(MILIGHT_HUB_VERSION));
 }
 
 void loop() {
@@ -291,6 +329,9 @@ void loop() {
   handleListen();
 
   stateStore->limitedFlush();
+
+  // update LED with status
+  ledStatus->handle();
 
   if (shouldRestart()) {
     Serial.println(F("Auto-restart triggered. Restarting..."));

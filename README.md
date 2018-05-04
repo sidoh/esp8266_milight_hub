@@ -58,19 +58,13 @@ platformio run -e $ESP_BOARD --target upload
 
 Of course make sure to substitute `nodemcuv2` with the board that you're using.
 
-**Note that currently you'll need to use the beta version of PlatformIO.**  To install with pip:
-
-```
-pip install -U https://github.com/platformio/platformio-core/archive/develop.zip
-```
-
 You can find pre-compiled firmware images on the [releases](https://github.com/sidoh/esp8266_milight_hub/releases).
 
 #### Configure WiFi
 
 This project uses [WiFiManager](https://github.com/tzapu/WiFiManager) to avoid the need to hardcode AP credentials in the firmware.
 
-When the ESP powers on, you should be able to see a network named "ESPXXXXX", with XXXXX being an identifier for your ESP. Connect to this AP and a window should pop up prompting you to enter WiFi credentials.
+When the ESP powers on, you should be able to see a network named "ESPXXXXX", with XXXXX being an identifier for your ESP. Connect to this AP and a window should pop up prompting you to enter WiFi credentials.  If your board has a built-in LED (or you wire up an LED), it will [flash to indicate the status](#led-status).
 
 The network password is "**milightHub**".
 
@@ -86,11 +80,31 @@ Both mDNS and SSDP are supported.
 
 The HTTP endpoints (shown below) will be fully functional at this point. You should also be able to navigate to `http://<ip_of_esp>`, or `http://milight-hub.local` if your client supports mDNS. The UI should look like this:
 
-![Web UI](http://imgur.com/XNNigvL.png)
+![Web UI](https://user-images.githubusercontent.com/589893/39412360-0d95ab2e-4bd0-11e8-915c-7fef7ee38761.png)
+
+## LED Status
+
+Some ESP boards have a built-in LED, on pin #2.  This LED will flash to indicate the current status of the hub:
+
+* Wifi not configured: Fast flash (on/off once per second).  See [Configure Wifi](#configure-wifi) to configure the hub.
+* Wifi connected and ready: Occasional blips of light (a flicker of light every 1.5 seconds).
+* Packets sending/receiving: Rapid blips of light for brief periods (three rapid flashes).
+* Wifi failed to configure: Solid light.
+
+In the setup UI, you can turn on "enable_solid_led" to change the LED behavior to:
+
+* Wifi connected and ready: Solid LED light
+* Wifi failed to configure: Light off
+
+Note that you must restart the hub to affect the change in "enable_solid_led".
+
+You can configure the LED pin from the web console.  Note that pin means the GPIO number, not the D number ... for example, D2 is actually GPIO4 and therefore its pin 4.  If you specify the pin as a negative number, it will invert the LED signal (the built-in LED on pin 2 is inverted, so the default is -2).
+
+If you want to wire up your own LED on a pin, such as on D2/GPIO4, put a wire from D2 to one side of a 220 ohm resister.  On the other side, connect it to the positive side (the longer wire) of a 3.3V LED.  Then connect the negative side of the LED (the shorter wire) to ground.  If you use a different voltage LED, or a high current LED, you will need to add a driver circuit.
 
 ## REST endpoints
 
-1. `GET /`. Opens web UI. 
+1. `GET /`. Opens web UI.
 1. `GET /about`. Return information about current firmware version.
 1. `POST /system`. Post commands in the form `{"comamnd": <command>}`. Currently supports the commands: `restart`.
 1. `POST /firmware`. OTA firmware update.
@@ -233,6 +247,7 @@ You can select which fields should be included in state updates by configuring t
 1. `kelvin / color_temp` - [0, 100] and [153, 370] scales for the same value.  The later's unit is mireds.
 1. `bulb_mode` - what mode the bulb is in: white, rgb, etc.
 1. `color` / `computed_color` - behaves the same when bulb is in rgb mode.  `computed_color` will send RGB = 255,255,255 when in white mode.  This is useful for HomeAssistant where it always expects the color to be set.
+1. `device_id` / `device_type` / `group_id` - this information is in the MQTT topic or REST route, but can be included in the payload in the case that processing the topic or route is more difficult.
 
 ## UDP Gateways
 
@@ -243,8 +258,7 @@ You can select between versions 5 and 6 of the UDP protocol (documented [here](h
 ## Acknowledgements
 
 * @WoodsterDK added support for LT8900 radios.
-
-
+* @cmidgley contributed many substantial features to the 1.7 release.
 
 [info-license]:   https://github.com/sidoh/esp8266_milight_hub/blob/master/LICENSE
 [shield-license]: https://img.shields.io/badge/license-MIT-blue.svg

@@ -1,9 +1,51 @@
 #include <WebServer.h>
 #include <PatternHandler.h>
 
-void WebServer::onPattern(const String& pattern, const HTTPMethod method, PatternHandler::TPatternHandlerFn fn) {
-  addHandler(new PatternHandler(pattern, method, fn));
+void WebServer::onAuthenticated(const String &uri, THandlerFunction handler) {
+  THandlerFunction authHandler = [this, handler]() {
+    if (this->validateAuthentiation()) {
+      handler();
+    }
+  };
+
+  ESP8266WebServer::on(uri, authHandler);
 }
+
+void WebServer::onAuthenticated(const String &uri, HTTPMethod method, THandlerFunction handler) {
+  THandlerFunction authHandler = [this, handler]() {
+    if (this->validateAuthentiation()) {
+      handler();
+    }
+  };
+
+  ESP8266WebServer::on(uri, method, authHandler);
+}
+
+void WebServer::onAuthenticated(const String &uri, HTTPMethod method, THandlerFunction handler, THandlerFunction ufn) {
+  THandlerFunction authHandler = [this, handler]() {
+    if (this->validateAuthentiation()) {
+      handler();
+    }
+  };
+
+  ESP8266WebServer::on(uri, method, authHandler, ufn);
+}
+
+void WebServer::onPattern(const String& pattern, const HTTPMethod method, PatternHandler::TPatternHandlerFn handler) {
+  addHandler(new PatternHandler(pattern, method, handler));
+}
+
+void WebServer::onPatternAuthenticated(const String& pattern, const HTTPMethod method, PatternHandler::TPatternHandlerFn fn) {
+  PatternHandler::TPatternHandlerFn authHandler = [this, fn](UrlTokenBindings* bindings) {
+    if (this->validateAuthentiation()) {
+      fn(bindings);
+    }
+  };
+
+  addHandler(new PatternHandler(pattern, method, authHandler));
+}
+
+
 
 void WebServer::requireAuthentication(const String& username, const String& password) {
   this->username = String(username);
@@ -15,71 +57,12 @@ void WebServer::disableAuthentication() {
   this->authEnabled = false;
 }
 
-void WebServer::_handleRequest() {
-  if (this->authEnabled
-    && !this->authenticate(this->username.c_str(), this->password.c_str())) {
-    this->requestAuthentication();
-  } else {
-    ESP8266WebServer::_handleRequest();
-  }
+bool WebServer::validateAuthentiation() {
+  if (this->authEnabled && 
+    !authenticate(this->username.c_str(), this->password.c_str())) {
+      requestAuthentication();
+      return false;
+    }
+    return true;
 }
 
-void WebServer::handleClient() {
-  if (_currentStatus == HC_NONE) {
-    WiFiClient client = _server.available();
-    if (!client) {
-      return;
-    }
-
-    _currentClient = client;
-    _currentStatus = HC_WAIT_READ;
-    _statusChange = millis();
-  }
-
-  if (!_currentClient.connected()) {
-    _currentClient = WiFiClient();
-    _currentStatus = HC_NONE;
-    return;
-  }
-
-  // Wait for data from client to become available
-  if (_currentStatus == HC_WAIT_READ) {
-    if (!_currentClient.available()) {
-      if (millis() - _statusChange > HTTP_MAX_DATA_WAIT) {
-        _currentClient = WiFiClient();
-        _currentStatus = HC_NONE;
-      }
-      yield();
-      return;
-    }
-
-    if (!_parseRequest(_currentClient)) {
-      _currentClient = WiFiClient();
-      _currentStatus = HC_NONE;
-      return;
-    }
-    _currentClient.setTimeout(HTTP_MAX_SEND_WAIT);
-    _contentLength = CONTENT_LENGTH_NOT_SET;
-    _handleRequest();
-
-    if (!_currentClient.connected()) {
-      _currentClient = WiFiClient();
-      _currentStatus = HC_NONE;
-      return;
-    } else {
-      _currentStatus = HC_WAIT_CLOSE;
-      _statusChange = millis();
-      return;
-    }
-  }
-
-  if (_currentStatus == HC_WAIT_CLOSE) {
-    if (millis() - _statusChange > HTTP_MAX_CLOSE_WAIT) {
-      _currentClient = WiFiClient();
-      _currentStatus = HC_NONE;
-    } else {
-      yield();
-      return;
-    }
-  }
-}

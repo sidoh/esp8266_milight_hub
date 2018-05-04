@@ -11,74 +11,31 @@
 void MiLightHttpServer::begin() {
   applySettings(settings);
 
-  server.on("/", HTTP_GET, handleServe_P(index_html_gz, index_html_gz_len));
-  server.on("/settings", HTTP_GET, [this]() { serveSettings(); });
-  server.on("/settings", HTTP_PUT, [this]() { handleUpdateSettings(); });
-  server.on("/settings", HTTP_POST,
-    [this]() {
-      Settings::load(settings);
-      server.send_P(200, TEXT_PLAIN, PSTR("success."));
-    },
-    handleUpdateFile(SETTINGS_FILE)
-  );
-  server.on("/radio_configs", HTTP_GET, [this]() { handleGetRadioConfigs(); });
+  // set up HTTP end points to serve
 
-  server.on("/gateway_traffic", HTTP_GET, [this]() { handleListenGateway(NULL); });
-  server.onPattern("/gateway_traffic/:type", HTTP_GET, [this](const UrlTokenBindings* b) { handleListenGateway(b); });
+  _handleRootPage = handleServe_P(index_html_gz, index_html_gz_len);
+  server.onAuthenticated("/", HTTP_GET, [this]() { _handleRootPage(); });
+  server.onAuthenticated("/settings", HTTP_GET, [this]() { serveSettings(); });
+  server.onAuthenticated("/settings", HTTP_PUT, [this]() { handleUpdateSettings(); });
+  server.onAuthenticated("/settings", HTTP_POST, [this]() { handleUpdateSettingsPost(); }, handleUpdateFile(SETTINGS_FILE));
+  server.onAuthenticated("/radio_configs", HTTP_GET, [this]() { handleGetRadioConfigs(); });
+
+  server.onAuthenticated("/gateway_traffic", HTTP_GET, [this]() { handleListenGateway(NULL); });
+  server.onPatternAuthenticated("/gateway_traffic/:type", HTTP_GET, [this](const UrlTokenBindings* b) { handleListenGateway(b); });
 
   const char groupPattern[] = "/gateways/:device_id/:type/:group_id";
-  server.onPattern(groupPattern, HTTP_PUT, [this](const UrlTokenBindings* b) { handleUpdateGroup(b); });
-  server.onPattern(groupPattern, HTTP_POST, [this](const UrlTokenBindings* b) { handleUpdateGroup(b); });
-  server.onPattern(groupPattern, HTTP_GET, [this](const UrlTokenBindings* b) { handleGetGroup(b); });
+  server.onPatternAuthenticated(groupPattern, HTTP_PUT, [this](const UrlTokenBindings* b) { handleUpdateGroup(b); });
+  server.onPatternAuthenticated(groupPattern, HTTP_POST, [this](const UrlTokenBindings* b) { handleUpdateGroup(b); });
+  server.onPatternAuthenticated(groupPattern, HTTP_GET, [this](const UrlTokenBindings* b) { handleGetGroup(b); });
 
-  server.onPattern("/raw_commands/:type", HTTP_ANY, [this](const UrlTokenBindings* b) { handleSendRaw(b); });
-  server.on("/web", HTTP_POST, [this]() { server.send_P(200, TEXT_PLAIN, PSTR("success")); }, handleUpdateFile(WEB_INDEX_FILENAME));
+  server.onPatternAuthenticated("/raw_commands/:type", HTTP_ANY, [this](const UrlTokenBindings* b) { handleSendRaw(b); });
+  server.onAuthenticated("/web", HTTP_POST, [this]() { server.send_P(200, TEXT_PLAIN, PSTR("success")); }, handleUpdateFile(WEB_INDEX_FILENAME));
   server.on("/about", HTTP_GET, [this]() { handleAbout(); });
-  server.on("/system", HTTP_POST, [this]() { handleSystemPost(); });
-  server.on("/firmware", HTTP_POST,
-    [this](){
-      server.sendHeader("Connection", "close");
-      server.sendHeader("Access-Control-Allow-Origin", "*");
+  server.onAuthenticated("/system", HTTP_POST, [this]() { handleSystemPost(); });
+  server.onAuthenticated("/firmware", HTTP_POST, [this]() { handleFirmwarePost(); }, [this]() { handleFirmwareUpload(); });
 
-      if (Update.hasError()) {
-        server.send_P(
-          500,
-          TEXT_PLAIN,
-          PSTR("Failed updating firmware. Check serial logs for more information. You may need to re-flash the device.")
-        );
-      } else {
-        server.send_P(
-          200,
-          TEXT_PLAIN,
-          PSTR("Success. Device will now reboot.")
-        );
-      }
 
-      delay(1000);
-
-      ESP.restart();
-    },
-    [this](){
-      HTTPUpload& upload = server.upload();
-      if(upload.status == UPLOAD_FILE_START){
-        WiFiUDP::stopAll();
-        uint32_t maxSketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
-        if(!Update.begin(maxSketchSpace)){//start with max available size
-          Update.printError(Serial);
-        }
-      } else if(upload.status == UPLOAD_FILE_WRITE){
-        if(Update.write(upload.buf, upload.currentSize) != upload.currentSize){
-          Update.printError(Serial);
-        }
-      } else if(upload.status == UPLOAD_FILE_END){
-        if(Update.end(true)){ //true to set the size to the current progress
-        } else {
-          Update.printError(Serial);
-        }
-      }
-      yield();
-    }
-  );
+  // set up web socket server
   wsServer.onEvent(
     [this](uint8_t num, WStype_t type, uint8_t * payload, size_t length) {
       handleWsEvent(num, type, payload, length);
@@ -240,13 +197,68 @@ void MiLightHttpServer::handleUpdateSettings() {
     settings.save();
 
     this->applySettings(settings);
-    this->settingsSavedHandler();
+
+    if (this->settingsSavedHandler) {
+      this->settingsSavedHandler();
+    }
 
     server.send(200, APPLICATION_JSON, "true");
+    Serial.println(F("Settings successfully updated"));
   } else {
     server.send(400, APPLICATION_JSON, "\"Invalid JSON\"");
+    Serial.println(F("Settings failed to update; invalid JSON"));
   }
 }
+
+void MiLightHttpServer::handleUpdateSettingsPost() {
+  Settings::load(settings);
+  server.send_P(200, TEXT_PLAIN, PSTR("success."));
+}
+
+void MiLightHttpServer::handleFirmwarePost() {
+  server.sendHeader("Connection", "close");
+  server.sendHeader("Access-Control-Allow-Origin", "*");
+
+  if (Update.hasError()) {
+    server.send_P(
+      500,
+      TEXT_PLAIN,
+      PSTR("Failed updating firmware. Check serial logs for more information. You may need to re-flash the device.")
+    );
+  } else {
+    server.send_P(
+      200,
+      TEXT_PLAIN,
+      PSTR("Success. Device will now reboot.")
+    );
+  }
+
+  delay(1000);
+
+  ESP.restart();
+}
+
+void MiLightHttpServer::handleFirmwareUpload() {
+  HTTPUpload& upload = server.upload();
+  if(upload.status == UPLOAD_FILE_START){
+    WiFiUDP::stopAll();
+    uint32_t maxSketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
+    if(!Update.begin(maxSketchSpace)){//start with max available size
+      Update.printError(Serial);
+    }
+  } else if(upload.status == UPLOAD_FILE_WRITE){
+    if(Update.write(upload.buf, upload.currentSize) != upload.currentSize){
+      Update.printError(Serial);
+    }
+  } else if(upload.status == UPLOAD_FILE_END){
+    if(Update.end(true)){ //true to set the size to the current progress
+    } else {
+      Update.printError(Serial);
+    }
+  }
+  yield();
+}
+
 
 void MiLightHttpServer::handleListenGateway(const UrlTokenBindings* bindings) {
   bool available = false;
@@ -303,11 +315,11 @@ void MiLightHttpServer::handleListenGateway(const UrlTokenBindings* bindings) {
   server.send(200, "text/plain", response);
 }
 
-void MiLightHttpServer::sendGroupState(GroupState &state) {
+void MiLightHttpServer::sendGroupState(BulbId& bulbId, GroupState &state) {
   String body;
   StaticJsonBuffer<200> jsonBuffer;
   JsonObject& obj = jsonBuffer.createObject();
-  state.applyState(obj, settings.groupStateFields, settings.numGroupStateFields);
+  state.applyState(obj, bulbId, settings.groupStateFields, settings.numGroupStateFields);
   obj.printTo(body);
 
   server.send(200, APPLICATION_JSON, body);
@@ -327,7 +339,7 @@ void MiLightHttpServer::handleGetGroup(const UrlTokenBindings* urlBindings) {
 
   BulbId bulbId(parseInt<uint16_t>(_deviceId), _groupId, _remoteType->type);
   GroupState& state = stateStore->get(bulbId);
-  sendGroupState(stateStore->get(bulbId));
+  sendGroupState(bulbId, stateStore->get(bulbId));
 }
 
 void MiLightHttpServer::handleUpdateGroup(const UrlTokenBindings* urlBindings) {
@@ -388,7 +400,7 @@ void MiLightHttpServer::handleUpdateGroup(const UrlTokenBindings* urlBindings) {
   }
 
   if (groupCount == 1) {
-    sendGroupState(stateStore->get(foundBulbId));
+    sendGroupState(foundBulbId, stateStore->get(foundBulbId));
   } else {
     server.send(200, APPLICATION_JSON, "true");
   }
@@ -459,7 +471,6 @@ void MiLightHttpServer::handlePacketSent(uint8_t *packet, const MiLightRemoteCon
       packetLen,
       formattedPacket
     );
-
     wsServer.broadcastTXT(reinterpret_cast<uint8_t*>(responseBuffer));
   }
 }
@@ -467,11 +478,11 @@ void MiLightHttpServer::handlePacketSent(uint8_t *packet, const MiLightRemoteCon
 ESP8266WebServer::THandlerFunction MiLightHttpServer::handleServe_P(const char* data, size_t length) {
   return [this, data, length]() {
     server.sendHeader("Content-Encoding", "gzip");
-    server.sendHeader("Content-Length", String(length));
     server.setContentLength(CONTENT_LENGTH_UNKNOWN);
     server.send(200, "text/html", "");
-    server.setContentLength(length);
     server.sendContent_P(data, length);
+    server.sendContent("");
     server.client().stop();
   };
 }
+

@@ -52,8 +52,7 @@ enum MiLightRgbwButton {
 class RgbwPacketFormatter : public PacketFormatter {
 public:
   RgbwPacketFormatter()
-    : PacketFormatter(7),
-      lastMode(0)
+    : PacketFormatter(7)
   { }
 
   virtual bool canHandle(const uint8_t* packet, const size_t len);
@@ -71,14 +70,13 @@ public:
   virtual void previousMode();
   virtual void updateMode(uint8_t mode);
   virtual void enableNightMode();
-  virtual BulbId parsePacket(const uint8_t* packet, JsonObject& result, GroupStateStore* stateStore);
+  virtual BulbId parsePacket(const uint8_t* packet, JsonObject& result);
 
   virtual void initializePacket(uint8_t* packet);
 
 protected:
-  uint8_t lastMode;
-
   static bool isStatusCommand(const uint8_t command);
+  uint8_t currentMode();
 };
 
 #endif

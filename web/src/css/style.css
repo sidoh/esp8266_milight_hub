@@ -11,9 +11,13 @@ label:not(.error) .error-info { display: none; }
 .error-info:before { content: '('; }
 .error-info:after { content: ')'; }
 .header-btn { margin: 20px; }
-.dropdown { position: initial; overflow: auto; }
-.dropdown-menu li { display: block; }
+.gateway-add-btn { float: right; }
+#content .dropdown { position: initial; overflow: auto; }
+#content .dropdown-menu li { display: block; }
+#traffic-sniff { display: none; }
 #sniffed-traffic { max-height: 50em; overflow-y: auto; }
+.navbar { background-color: rgba(41,41,45,.9) !important; border-radius: 0 }
+.navbar-brand, .navbar-brand:hover { color: white; }
 .btn-secondary {
   background-color: #fff;
   border: 1px solid #ccc;
@@ -92,6 +96,63 @@ label:not(.error) .error-info { display: none; }
 .glyphicon.spinning {
   animation: spin 1s infinite linear;
   -webkit-animation: spin2 1s infinite linear;
+}
+
+html {
+  position: relative;
+  min-height: 100%;
+}
+body {
+  margin-bottom: 200px;
+}
+footer {
+  height: 200px;
+}
+@media only screen and (min-width : 320px) {
+  body {
+    margin-bottom: 250px;
+  }
+}
+@media only screen and (min-width : 480px) {
+  body {
+    margin-bottom: 200px;
+  }
+}
+@media only screen and (min-width : 768px) {
+  body {
+    margin-bottom: 158px;
+  }
+}
+@media only screen and (min-width : 992px) {
+  body {
+    margin-bottom: 116px;
+  }
+}
+
+.modal-body .section-title {
+  border-bottom: 1px solid #eee;
+  padding-bottom: 0.2em;
+}
+
+#sniff .glyphicon-play {
+  color: #6f6;
+}
+
+#sniff .glyphicon-stop {
+  color: #f66;
+}
+
+ul.action-buttons {
+  list-style: none;
+  padding: 0;
+}
+
+.action-buttons li {
+  display: inline-block;
+}
+
+.action-buttons li:not(:first-child) {
+  margin-left: 0.5em;
 }
 
 @keyframes spin {

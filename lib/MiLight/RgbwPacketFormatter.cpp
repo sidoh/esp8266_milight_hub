@@ -35,13 +35,16 @@ void RgbwPacketFormatter::modeSpeedUp() {
 }
 
 void RgbwPacketFormatter::nextMode() {
-  lastMode = (lastMode + 1) % RGBW_NUM_MODES;
-  updateMode(lastMode);
+  updateMode((currentMode() + 1) % RGBW_NUM_MODES);
 }
 
 void RgbwPacketFormatter::previousMode() {
-  lastMode = (lastMode - 1) % RGBW_NUM_MODES;
-  updateMode(lastMode);
+  updateMode((currentMode() + RGBW_NUM_MODES - 1) % RGBW_NUM_MODES);
+}
+
+uint8_t RgbwPacketFormatter::currentMode() {
+  GroupState& state = stateStore->get(deviceId, groupId, REMOTE_TYPE_RGBW);
+  return state.getMode();
 }
 
 void RgbwPacketFormatter::updateMode(uint8_t mode) {
@@ -97,7 +100,7 @@ void RgbwPacketFormatter::enableNightMode() {
   command(button | 0x10, 0);
 }
 
-BulbId RgbwPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& result, GroupStateStore* stateStore) {
+BulbId RgbwPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& result) {
   uint8_t command = packet[RGBW_COMMAND_INDEX] & 0x7F;
 
   BulbId bulbId(
@@ -118,7 +121,7 @@ BulbId RgbwPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& resul
       result["state"] = "ON";
       result["command"] = "night_mode";
     } else {
-      result["command"] = "white_mode";
+      result["command"] = "set_white";
     }
     bulbId.groupId = GROUP_FOR_STATUS_COMMAND(command & 0xF);
   } else if (command == RGBW_BRIGHTNESS) {

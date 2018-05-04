@@ -15,7 +15,10 @@ static const char* STATE_NAMES[] = {
   "color_temp",
   "bulb_mode",
   "computed_color",
-  "effect"
+  "effect",
+  "device_id",
+  "group_id",
+  "device_type"
 };
 
 enum class GroupStateField {
@@ -32,7 +35,10 @@ enum class GroupStateField {
   COLOR_TEMP,
   BULB_MODE,
   COMPUTED_COLOR,
-  EFFECT
+  EFFECT,
+  DEVICE_ID,
+  GROUP_ID,
+  DEVICE_TYPE
 };
 
 class GroupStateFieldHelpers {

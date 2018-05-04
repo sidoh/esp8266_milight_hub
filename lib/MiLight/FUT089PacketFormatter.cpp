@@ -18,6 +18,7 @@ void FUT089PacketFormatter::updateBrightness(uint8_t brightness) {
   command(FUT089_BRIGHTNESS, brightness);
 }
 
+// change the hue (which may also change to color mode).
 void FUT089PacketFormatter::updateHue(uint16_t value) {
   uint8_t remapped = Units::rescale(value, 255, 360);
   updateColorRaw(remapped);
@@ -27,13 +28,50 @@ void FUT089PacketFormatter::updateColorRaw(uint8_t value) {
   command(FUT089_COLOR, FUT089_COLOR_OFFSET + value);
 }
 
+// change the temperature (kelvin).  Note that temperature and saturation share the same command 
+// number (7), and they change which they do based on the mode of the lamp (white vs. color mode).
+// To make this command work, we need to switch to white mode, make the change, and then flip
+// back to the original mode.
 void FUT089PacketFormatter::updateTemperature(uint8_t value) {
-  updateColorWhite();
+  // look up our current mode 
+  GroupState ourState = this->stateStore->get(this->deviceId, this->groupId, REMOTE_TYPE_FUT089);
+  BulbMode originalBulbMode = ourState.getBulbMode();
+
+  // are we already in white?  If not, change to white
+  if (originalBulbMode != BulbMode::BULB_MODE_WHITE) {
+    updateColorWhite();
+  }
+
+  // now make the temperature change
   command(FUT089_KELVIN, 100 - value);
+
+  // and return to our original mode
+  if ((settings->enableAutomaticModeSwitching) && (originalBulbMode != BulbMode::BULB_MODE_WHITE)) {
+    switchMode(ourState, originalBulbMode);
+  }
 }
 
+// change the saturation.  Note that temperature and saturation share the same command 
+// number (7), and they change which they do based on the mode of the lamp (white vs. color mode).
+// Therefore, if we are not in color mode, we need to switch to color mode, make the change,
+// and switch back to the original mode.
 void FUT089PacketFormatter::updateSaturation(uint8_t value) {
+  // look up our current mode 
+  GroupState ourState = this->stateStore->get(this->deviceId, this->groupId, REMOTE_TYPE_FUT089);
+  BulbMode originalBulbMode = ourState.getBulbMode();
+
+  // are we already in color?  If not, we need to flip modes
+  if ((settings->enableAutomaticModeSwitching) && (originalBulbMode != BulbMode::BULB_MODE_COLOR)) {
+    updateHue(ourState.getHue());
+  }
+
+  // now make the saturation change
   command(FUT089_SATURATION, 100 - value);
+
+  // and revert back if necessary
+  if ((settings->enableAutomaticModeSwitching) && (originalBulbMode != BulbMode::BULB_MODE_COLOR)) {
+    switchMode(ourState, originalBulbMode);
+  }
 }
 
 void FUT089PacketFormatter::updateColorWhite() {
@@ -45,7 +83,7 @@ void FUT089PacketFormatter::enableNightMode() {
   command(FUT089_ON | 0x80, arg);
 }
 
-BulbId FUT089PacketFormatter::parsePacket(const uint8_t *packet, JsonObject& result, GroupStateStore* stateStore) {
+BulbId FUT089PacketFormatter::parsePacket(const uint8_t *packet, JsonObject& result) {
   uint8_t packetCopy[V2_PACKET_LEN];
   memcpy(packetCopy, packet, V2_PACKET_LEN);
   V2RFEncoding::decodeV2Packet(packetCopy);
@@ -67,7 +105,7 @@ BulbId FUT089PacketFormatter::parsePacket(const uint8_t *packet, JsonObject& res
     } else if (arg == FUT089_MODE_SPEED_UP) {
       result["command"] = "mode_speed_up";
     } else if (arg == FUT089_WHITE_MODE) {
-      result["command"] = "white_mode";
+      result["command"] = "set_white";
     } else if (arg <= 8) { // Group is not reliably encoded in group byte. Extract from arg byte
       result["state"] = "ON";
       bulbId.groupId = arg;
