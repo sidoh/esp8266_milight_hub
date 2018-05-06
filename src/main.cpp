@@ -286,7 +286,10 @@ void setup() {
   } else {
     // set LED mode for Wifi failed
     ledStatus->continuous(settings.ledModeWifiFailed);
-    Serial.println(F("Wifi failed.  Oh well.\n"));
+    Serial.println(F("Wifi failed.  Restarting in 10 seconds.\n"));
+
+    delay(10000);
+    ESP.restart();
   }
 
 
