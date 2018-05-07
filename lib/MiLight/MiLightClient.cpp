@@ -351,7 +351,7 @@ void MiLightClient::update(const JsonObject& request) {
     this->updateSaturation(request["saturation"]);
   }
 
-  // Convert RGB to HSV
+  // Convert RGB to HSL
   if (request.containsKey("color")) {
     JsonObject& color = request["color"];
 
@@ -366,12 +366,12 @@ void MiLightClient::update(const JsonObject& request) {
       && abs(r - b) < RGB_WHITE_THRESHOLD) {
         this->updateColorWhite();
     } else {
-      double hsv[3];
+      double hsl[3];
       RGBConverter converter;
-      converter.rgbToHsv(r, g, b, hsv);
+      converter.rgbToHsl(r, g, b, hsl);
 
-      uint16_t hue = round(hsv[0]*360);
-      uint8_t saturation = round(hsv[1]*100);
+      uint16_t hue = round(hsl[0]*360);
+      uint8_t saturation = round(hsl[1]*100);
 
       this->updateHue(hue);
       this->updateSaturation(saturation);
