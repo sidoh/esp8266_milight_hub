@@ -283,6 +283,9 @@ void setup() {
     // set LED mode for successful operation
     ledStatus->continuous(settings.ledModeOperating);
     Serial.println(F("Wifi connected succesfully\n"));
+
+    // if the config portal was started, make sure to turn off the config AP
+    WiFi.mode(WIFI_STA);
   } else {
     // set LED mode for Wifi failed
     ledStatus->continuous(settings.ledModeWifiFailed);
