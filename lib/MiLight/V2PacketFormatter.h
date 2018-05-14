@@ -26,6 +26,16 @@ public:
 
   uint8_t groupCommandArg(MiLightStatus status, uint8_t groupId);
 
+  /*
+   * Some protocols have scales which have the following characteristics:
+   *   Start at some value X, goes down to 0, then up to Y.
+   * eg:
+   *   0x8F, 0x8D, ..., 0, 0x2, ..., 0x20
+   * This is a parameterized method to convert from [0, 100] TO this scale
+   */
+  static uint8_t tov2scale(uint8_t value, uint8_t endValue, uint8_t interval);
+  static uint8_t fromv2scale(uint8_t value, uint8_t endValue, uint8_t interval);
+
 protected:
   const uint8_t protocolId;
   const uint8_t numGroups;
