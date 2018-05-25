@@ -33,8 +33,8 @@ public:
    *   0x8F, 0x8D, ..., 0, 0x2, ..., 0x20
    * This is a parameterized method to convert from [0, 100] TO this scale
    */
-  static uint8_t tov2scale(uint8_t value, uint8_t endValue, uint8_t interval);
-  static uint8_t fromv2scale(uint8_t value, uint8_t endValue, uint8_t interval);
+  static uint8_t tov2scale(uint8_t value, uint8_t endValue, uint8_t interval, bool reverse = true);
+  static uint8_t fromv2scale(uint8_t value, uint8_t endValue, uint8_t interval, bool reverse = true);
 
 protected:
   const uint8_t protocolId;

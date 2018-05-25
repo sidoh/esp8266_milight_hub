@@ -104,10 +104,18 @@ void V2PacketFormatter::switchMode(GroupState currentState, BulbMode desiredMode
   
 }
 
-uint8_t V2PacketFormatter::tov2scale(uint8_t value, uint8_t endValue, uint8_t interval) {
-  return ((100 - value) * interval) + endValue;
+uint8_t V2PacketFormatter::tov2scale(uint8_t value, uint8_t endValue, uint8_t interval, bool reverse) {
+  if (reverse) {
+    value = 100 - value;
+  }
+
+  return (value * interval) + endValue;
 }
 
-uint8_t V2PacketFormatter::fromv2scale(uint8_t value, uint8_t endValue, uint8_t interval) {
-  return 100 - (((value + (0x100 - endValue))%0x100) / 2);
+uint8_t V2PacketFormatter::fromv2scale(uint8_t value, uint8_t endValue, uint8_t interval, bool reverse) {
+  value = (((value + (0x100 - endValue))%0x100) / interval);
+  if (reverse) {
+    value = 100 - value;
+  }
+  return value;
 }

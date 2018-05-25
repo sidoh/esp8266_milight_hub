@@ -7,7 +7,7 @@ void FUT091PacketFormatter::updateBrightness(uint8_t value) {
 }
 
 void FUT091PacketFormatter::updateTemperature(uint8_t value) {
-  command(static_cast<uint8_t>(FUT091Command::KELVIN), V2PacketFormatter::tov2scale(value, 0xCD, 2));
+  command(static_cast<uint8_t>(FUT091Command::KELVIN), V2PacketFormatter::tov2scale(value, 0xCD, 2, false));
 }
 
 void FUT091PacketFormatter::enableNightMode() {
@@ -42,10 +42,8 @@ BulbId FUT091PacketFormatter::parsePacket(const uint8_t *packet, JsonObject& res
   } else if (command == (uint8_t)FUT091Command::BRIGHTNESS) {
     uint8_t level = V2PacketFormatter::fromv2scale(arg, 0x97, 2);
     result["brightness"] = Units::rescale<uint8_t, uint8_t>(level, 255, 100);
-  // saturation == kelvin. arg ranges are the same, so can't distinguish
-  // without using state
   } else if (command == (uint8_t)FUT091Command::KELVIN) {
-    uint8_t kelvin = V2PacketFormatter::fromv2scale(arg, 0xCD, 2);
+    uint8_t kelvin = V2PacketFormatter::fromv2scale(arg, 0xCD, 2, false);
     result["color_temp"] = Units::whiteValToMireds(kelvin, 100);
   } else {
     result["button_id"] = command;
