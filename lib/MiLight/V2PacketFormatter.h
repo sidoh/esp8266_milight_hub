@@ -34,7 +34,14 @@ public:
    * This is a parameterized method to convert from [0, 100] TO this scale
    */
   static uint8_t tov2scale(uint8_t value, uint8_t endValue, uint8_t interval, bool reverse = true);
-  static uint8_t fromv2scale(uint8_t value, uint8_t endValue, uint8_t interval, bool reverse = true);
+
+  /*
+   * Method to convert FROM the scale described above to [0, 100].
+   * 
+   * An extra parameter is exposed: `buffer`, which allows for a range of values before/after the 
+   * max that will be mapped to 0 and 100, respectively.
+   */
+  static uint8_t fromv2scale(uint8_t value, uint8_t endValue, uint8_t interval, bool reverse = true, uint8_t buffer = 0);
 
 protected:
   const uint8_t protocolId;

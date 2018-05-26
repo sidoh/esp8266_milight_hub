@@ -2,12 +2,15 @@
 #include <V2RFEncoding.h>
 #include <Units.h>
 
+static const uint8_t BRIGHTNESS_SCALE_MAX = 0x97;
+static const uint8_t KELVIN_SCALE_MAX = 0xCD;
+
 void FUT091PacketFormatter::updateBrightness(uint8_t value) {
-  command(static_cast<uint8_t>(FUT091Command::BRIGHTNESS), V2PacketFormatter::tov2scale(value, 0x97, 2));
+  command(static_cast<uint8_t>(FUT091Command::BRIGHTNESS), V2PacketFormatter::tov2scale(value, BRIGHTNESS_SCALE_MAX, 2));
 }
 
 void FUT091PacketFormatter::updateTemperature(uint8_t value) {
-  command(static_cast<uint8_t>(FUT091Command::KELVIN), V2PacketFormatter::tov2scale(value, 0xCD, 2, false));
+  command(static_cast<uint8_t>(FUT091Command::KELVIN), V2PacketFormatter::tov2scale(value, KELVIN_SCALE_MAX, 2, false));
 }
 
 void FUT091PacketFormatter::enableNightMode() {
@@ -40,10 +43,10 @@ BulbId FUT091PacketFormatter::parsePacket(const uint8_t *packet, JsonObject& res
       bulbId.groupId = arg-5;
     }
   } else if (command == (uint8_t)FUT091Command::BRIGHTNESS) {
-    uint8_t level = V2PacketFormatter::fromv2scale(arg, 0x97, 2);
+    uint8_t level = V2PacketFormatter::fromv2scale(arg, BRIGHTNESS_SCALE_MAX, 2, true, 0x13);
     result["brightness"] = Units::rescale<uint8_t, uint8_t>(level, 255, 100);
   } else if (command == (uint8_t)FUT091Command::KELVIN) {
-    uint8_t kelvin = V2PacketFormatter::fromv2scale(arg, 0xCD, 2, false);
+    uint8_t kelvin = V2PacketFormatter::fromv2scale(arg, KELVIN_SCALE_MAX, 2, false, 0x13);
     result["color_temp"] = Units::whiteValToMireds(kelvin, 100);
   } else {
     result["button_id"] = command;
