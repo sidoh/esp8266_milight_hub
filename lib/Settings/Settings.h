@@ -39,10 +39,6 @@
 #define MINIMUM_RESTART_PERIOD 1
 #define DEFAULT_MQTT_PORT 1883
 
-#ifndef SHA1_SIZE
-#define SHA1_SIZE 20
-#endif
-
 enum RadioInterfaceType {
   nRF24 = 0,
   LT8900 = 1,
