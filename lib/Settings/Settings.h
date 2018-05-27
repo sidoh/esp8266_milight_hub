@@ -39,6 +39,10 @@
 #define MINIMUM_RESTART_PERIOD 1
 #define DEFAULT_MQTT_PORT 1883
 
+#ifndef SHA1_SIZE
+#define SHA1_SIZE 20
+#endif
+
 enum RadioInterfaceType {
   nRF24 = 0,
   LT8900 = 1,
@@ -152,6 +156,8 @@ public:
   String mqttTopicPattern;
   String mqttUpdateTopicPattern;
   String mqttStateTopicPattern;
+  bool mqttSecure;
+  String mqttServerFingerprint;
   GroupStateField *groupStateFields;
   size_t numGroupStateFields;
   uint16_t discoveryPort;

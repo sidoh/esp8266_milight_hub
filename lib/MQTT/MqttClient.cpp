@@ -7,6 +7,8 @@
 #include <WiFiClient.h>
 #include <MiLightRadioConfig.h>
 
+using namespace std::placeholders;
+
 MqttClient::MqttClient(Settings& settings, MiLightClient*& milightClient)
   : milightClient(milightClient),
     settings(settings),
@@ -16,15 +18,16 @@ MqttClient::MqttClient(Settings& settings, MiLightClient*& milightClient)
   this->domain = new char[strDomain.length() + 1];
   strcpy(this->domain, strDomain.c_str());
 
-  this->mqttClient = new PubSubClient(tcpClient);
 }
 
 MqttClient::~MqttClient() {
-  mqttClient->disconnect();
+  mqttClient.disconnect();
   delete this->domain;
 }
 
 void MqttClient::begin() {
+  char hexVal[2];
+  uint8_t fingerprint[SHA1_SIZE];
 #ifdef MQTT_DEBUG
   printf_P(
     PSTR("MqttClient - Connecting to: %s\nparsed:%s:%u\n"),
@@ -33,17 +36,32 @@ void MqttClient::begin() {
     settings.mqttPort()
   );
 #endif
-
-  mqttClient->setServer(this->domain, settings.mqttPort());
-  mqttClient->setCallback(
-    [this](char* topic, byte* payload, int length) {
-      this->publishCallback(topic, payload, length);
+  mqttmsg = false;
+  mqttClient.setServer(this->domain, settings.mqttPort());
+  mqttClient.onMessage(std::bind(&MqttClient::publishCallback, this, _1, _2, _3, _4, _5, _6));
+  mqttClient.onConnect(std::bind(&MqttClient::connectCallback, this, _1));
+#if ASYNC_TCP_SSL_ENABLED
+  mqttClient.setSecure(settings.mqttSecure);
+  if(settings.mqttSecure && settings.mqttServerFingerprint.length() == (SHA1_SIZE * 2))
+  {
+    // Convert string to uint8_t[]
+    for(size_t i=0;i<settings.mqttServerFingerprint.length();i+=2)
+    {
+      hexVal[0] = settings.mqttServerFingerprint[i];
+      hexVal[1] = settings.mqttServerFingerprint[i+1];
+      fingerprint[i/2]=strtol(hexVal,NULL,16);
     }
-  );
+    mqttClient.addServerFingerprint(fingerprint);
+  }
+#endif
+  if (settings.mqttUsername.length() > 0) {
+    mqttClient.setCredentials(settings.mqttUsername.c_str(), settings.mqttPassword.c_str());
+  }
+
   reconnect();
 }
 
-bool MqttClient::connect() {
+void MqttClient::connect() {
   char nameBuffer[30];
   sprintf_P(nameBuffer, PSTR("milight-hub-%u"), ESP.getChipId());
 
@@ -51,15 +69,8 @@ bool MqttClient::connect() {
     Serial.println(F("MqttClient - connecting"));
 #endif
 
-  if (settings.mqttUsername.length() > 0) {
-    return mqttClient->connect(
-      nameBuffer,
-      settings.mqttUsername.c_str(),
-      settings.mqttPassword.c_str()
-    );
-  } else {
-    return mqttClient->connect(nameBuffer);
-  }
+  mqttClient.connect();
+
 }
 
 void MqttClient::reconnect() {
@@ -67,24 +78,23 @@ void MqttClient::reconnect() {
     return;
   }
 
-  if (! mqttClient->connected()) {
-    if (connect()) {
-      subscribe();
-
-#ifdef MQTT_DEBUG
-      Serial.println(F("MqttClient - Successfully connected to MQTT server"));
-#endif
-    } else {
-      Serial.println(F("ERROR: Failed to connect to MQTT server"));
-    }
+  if (! mqttClient.connected()) {
+    connect();
   }
 
   lastConnectAttempt = millis();
 }
+void MqttClient::connectCallback(bool sessionPresent)
+{
+  subscribe();
 
+#ifdef MQTT_DEBUG
+  Serial.println(F("MqttClient - Successfully connected to MQTT server"));
+#endif
+}
 void MqttClient::handleClient() {
   reconnect();
-  mqttClient->loop();
+  if(mqttmsg) publishLoop();
 }
 
 void MqttClient::sendUpdate(const MiLightRemoteConfig& remoteConfig, uint16_t deviceId, uint16_t groupId, const char* update) {
@@ -106,7 +116,7 @@ void MqttClient::subscribe() {
   printf_P(PSTR("MqttClient - subscribing to topic: %s\n"), topic.c_str());
 #endif
 
-  mqttClient->subscribe(topic.c_str());
+  mqttClient.subscribe(topic.c_str(), 0);
 }
 
 void MqttClient::publish(
@@ -128,26 +138,40 @@ void MqttClient::publish(
   printf("MqttClient - publishing update to %s\n", topic.c_str());
 #endif
 
-  mqttClient->publish(topic.c_str(), message, retain);
+  mqttClient.publish(topic.c_str(), 0, false, message, retain);
 }
 
-void MqttClient::publishCallback(char* topic, byte* payload, int length) {
+void MqttClient::publishCallback(char* topic, char* payload, AsyncMqttClientMessageProperties properties, size_t  length, size_t index, size_t total) {
+  if(!mqttmsg) // For now irgnore new message while process last message.
+  {
+    strncpy(mqtttopic,topic,strlen(topic));
+    mqtttopic[strlen(topic)] = '\0';
+    strncpy(mqttpayload,payload,length);
+    mqttpayload[length] = '\0';
+
+    mqttmsg = true;
+  }
+}
+
+void MqttClient::publishLoop(){
   uint16_t deviceId = 0;
   uint8_t groupId = 0;
   const MiLightRemoteConfig* config = &FUT092Config;
+  size_t length = strlen(mqttpayload);
   char cstrPayload[length + 1];
-  cstrPayload[length] = 0;
-  memcpy(cstrPayload, payload, sizeof(byte)*length);
+
+  strncpy(cstrPayload, mqttpayload, sizeof cstrPayload - 1);
+  cstrPayload[length] = '\0';
 
 #ifdef MQTT_DEBUG
-  printf("MqttClient - Got message on topic: %s\n%s\n", topic, cstrPayload);
+  printf("MqttClient - Got message on topic: %s, %s\n", mqtttopic, mqttpayload);
 #endif
 
   char topicPattern[settings.mqttTopicPattern.length()];
   strcpy(topicPattern, settings.mqttTopicPattern.c_str());
 
   TokenIterator patternIterator(topicPattern, settings.mqttTopicPattern.length(), '/');
-  TokenIterator topicIterator(topic, strlen(topic), '/');
+  TokenIterator topicIterator(mqtttopic, strlen(mqtttopic), '/');
   UrlTokenBindings tokenBindings(patternIterator, topicIterator);
 
   if (tokenBindings.hasBinding("device_id")) {
@@ -169,7 +193,7 @@ void MqttClient::publishCallback(char* topic, byte* payload, int length) {
     Serial.println(F("MqttClient - WARNING: could not find device_type token.  Defaulting to FUT092.\n"));
   }
 
-  StaticJsonBuffer<400> buffer;
+  StaticJsonBuffer<MQTTBUFFER> buffer;
   JsonObject& obj = buffer.parseObject(cstrPayload);
 
 #ifdef MQTT_DEBUG
@@ -178,6 +202,8 @@ void MqttClient::publishCallback(char* topic, byte* payload, int length) {
 
   milightClient->prepare(config, deviceId, groupId);
   milightClient->update(obj);
+
+  mqttmsg = false;
 }
 
 inline void MqttClient::bindTopicString(

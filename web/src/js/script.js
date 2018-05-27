@@ -121,6 +121,18 @@ var UI_FIELDS = [ {
     type: "string",
     tab: "tab-mqtt"
   }, {
+    tag:   "mqtt_secure",
+    friendly: "MQTT secure",
+    help: "Whether or not to use SSL.",
+    type: "mqtt_secure",
+    tab: "tab-mqtt"
+  }, {
+    tag:   "mqtt_server_fingerprint",
+    friendly: "MQTT server fingerprint",
+    help: "Adds an acceptable server fingerprint (SHA1). Example 2fd4e1c67a2d28fced849ee1bb76e7391b93eb12",
+    type: "string",
+    tab: "tab-mqtt"
+  }, {
     tag:   "radio_interface_type", 
     friendly: "Radio interface type",
     help: "2.4 GHz radio model. Only change this if you know you're not using an NRF24L01!",
@@ -831,6 +843,15 @@ $(function() {
             '</label>'+
             '<label class="btn btn-secondary">' +
               '<input type="radio" id="disable_mode_switching" name="enable_automatic_mode_switching" autocomplete="off" value="false" /> Disable' +
+            '</label>' +
+          '</div>';
+        } else if (k.type == 'mqtt_secure') {
+          elmt += '<div class="btn-group" id="mqtt_secure" data-toggle="buttons">' +
+            '<label class="btn btn-secondary active">' +
+              '<input type="radio" id="enable_mqtt_secure" name="mqtt_secure" autocomplete="off" value="true" /> Enable' +
+            '</label>'+
+            '<label class="btn btn-secondary">' +
+              '<input type="radio" id="disable_mqtt_secure" name="mqtt_secure" autocomplete="off" value="false" /> Disable' +
             '</label>' +
           '</div>';
         } else {

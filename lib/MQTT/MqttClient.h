@@ -1,8 +1,9 @@
 #include <MiLightClient.h>
 #include <Settings.h>
-#include <PubSubClient.h>
+#include <AsyncMqttClient.h>
 #include <WiFiClient.h>
 #include <MiLightRadioConfig.h>
+#include <atomic>
 
 #ifndef MQTT_CONNECTION_ATTEMPT_FREQUENCY
 #define MQTT_CONNECTION_ATTEMPT_FREQUENCY 5000
@@ -10,6 +11,10 @@
 
 #ifndef _MQTT_CLIENT_H
 #define _MQTT_CLIENT_H
+
+#ifndef MQTTBUFFER
+#define MQTTBUFFER 400
+#endif
 
 class MqttClient {
 public:
@@ -24,15 +29,20 @@ public:
 
 private:
   WiFiClient tcpClient;
-  PubSubClient* mqttClient;
+  AsyncMqttClient mqttClient;
   MiLightClient*& milightClient;
   Settings& settings;
   char* domain;
   unsigned long lastConnectAttempt;
+  std::atomic<bool> mqttmsg;
+  char mqtttopic[MQTTBUFFER];
+  char mqttpayload[MQTTBUFFER];
 
-  bool connect();
+  void connect();
   void subscribe();
-  void publishCallback(char* topic, byte* payload, int length);
+  void publishCallback(char* topic, char* payload, AsyncMqttClientMessageProperties properties, size_t  length, size_t index, size_t total);
+  void publishLoop(void);
+  void connectCallback(bool sessionPresent);
   void publish(
     const String& topic,
     const MiLightRemoteConfig& remoteConfig,
