@@ -108,6 +108,12 @@ public:
   inline bool setMqttDirty();
   bool clearMqttDirty();
 
+  // Patches this state with ONLY the set fields in the other. Returns 
+  // true if there were any changes.
+  bool patch(const GroupState& other);
+
+  // Patches this state with the fields defined in the JSON state.  Returns 
+  // true if there were any changes.
   bool patch(const JsonObject& state);
 
   // It's a little weird to need to pass in a BulbId here.  The purpose is to

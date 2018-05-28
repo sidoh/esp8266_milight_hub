@@ -4,6 +4,15 @@
 #include <RGBConverter.h>
 
 const BulbId DEFAULT_BULB_ID;
+static const GroupStateField ALL_PHYSICAL_FIELDS[] = {
+  GroupStateField::BRIGHTNESS,
+  GroupStateField::BULB_MODE,
+  GroupStateField::HUE,
+  GroupStateField::KELVIN,
+  GroupStateField::MODE,
+  GroupStateField::SATURATION,
+  GroupStateField::STATE
+};
 
 // Number of units each increment command counts for
 static const uint8_t INCREMENT_COMMAND_VALUE = 10;
@@ -490,6 +499,16 @@ bool GroupState::applyIncrementCommand(GroupStateField field, IncrementDirection
   }
 
   return false;
+}
+
+bool GroupState::patch(const GroupState& other) {
+  for (size_t i = 0; i < size(ALL_PHYSICAL_FIELDS); ++i) {
+    GroupStateField field = ALL_PHYSICAL_FIELDS[i];
+
+    if (other.isSetField(field)) {
+      setFieldValue(field, other.getFieldValue(field));
+    }
+  }
 }
 
 /*
