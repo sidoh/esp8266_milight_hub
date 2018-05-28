@@ -176,7 +176,7 @@ void test_group_0() {
   GroupState initState = color();
   GroupState initState2 = color();
   GroupState defaultState = GroupState::defaultState(REMOTE_TYPE_FUT089);
-  GroupState* storedState;
+  GroupState storedState;
   GroupState expectedState;
   GroupState group0State;
 
@@ -189,24 +189,24 @@ void test_group_0() {
   TEST_ASSERT_FALSE_MESSAGE(group0State.isEqualIgnoreDirty(initState), "group0 state should be different than initState");
   TEST_ASSERT_FALSE_MESSAGE(group0State.isEqualIgnoreDirty(initState2), "group0 state should be different than initState2");
 
-  storedState = &store.get(id1);
-  TEST_ASSERT_TRUE_MESSAGE(storedState->isEqualIgnoreDirty(initState), "Should fetch persisted state");
+  storedState = store.get(id1);
+  TEST_ASSERT_TRUE_MESSAGE(storedState.isEqualIgnoreDirty(initState), "Should fetch persisted state");
 
-  storedState = &store.get(id2);
-  TEST_ASSERT_TRUE_MESSAGE(storedState->isEqualIgnoreDirty(initState2), "Should fetch persisted state");
+  storedState = store.get(id2);
+  TEST_ASSERT_TRUE_MESSAGE(storedState.isEqualIgnoreDirty(initState2), "Should fetch persisted state");
 
   store.set(group0Id, group0State);
 
-  storedState = &store.get(id1);
+  storedState = store.get(id1);
   expectedState = initState;
   expectedState.setHue(group0State.getHue());
 
-  TEST_ASSERT_TRUE_MESSAGE(storedState->isEqualIgnoreDirty(expectedState), "Saving group 0 should only update changed field");
+  TEST_ASSERT_TRUE_MESSAGE(storedState.isEqualIgnoreDirty(expectedState), "Saving group 0 should only update changed field");
 
-  storedState = &store.get(id2);
+  storedState = store.get(id2);
   expectedState = initState2;
   expectedState.setHue(group0State.getHue());
-  TEST_ASSERT_TRUE_MESSAGE(storedState->isEqualIgnoreDirty(expectedState), "Saving group 0 should only update changed field");
+  TEST_ASSERT_TRUE_MESSAGE(storedState.isEqualIgnoreDirty(expectedState), "Saving group 0 should only update changed field");
 }
 
 // setup connects serial, runs test cases (upcoming)
