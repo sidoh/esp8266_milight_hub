@@ -1,3 +1,5 @@
+#ifndef UNIT_TEST
+
 #include <SPI.h>
 #include <WiFiManager.h>
 #include <ArduinoJson.h>
@@ -344,3 +346,5 @@ void loop() {
     ESP.restart();
   }
 }
+
+#endif
