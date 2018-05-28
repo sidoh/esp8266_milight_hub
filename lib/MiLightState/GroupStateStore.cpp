@@ -38,7 +38,9 @@ GroupState& GroupStateStore::set(const BulbId &id, const GroupState& state) {
 
     for (size_t i = 1; i <= remote->numGroups; i++) {
       individualBulb.groupId = i;
-      set(individualBulb, state);
+
+      GroupState& individualState = get(individualBulb);
+      individualState.patch(state);
     }
   }
   
