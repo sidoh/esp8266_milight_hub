@@ -138,7 +138,7 @@ void MqttClient::publish(
   printf("MqttClient - publishing update to %s\n", topic.c_str());
 #endif
 
-  mqttClient.publish(topic.c_str(), 0, false, message, retain);
+  mqttClient.publish(topic.c_str(), 0, retain, message);
 }
 
 void MqttClient::publishCallback(char* topic, char* payload, AsyncMqttClientMessageProperties properties, size_t  length, size_t index, size_t total) {
