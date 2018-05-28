@@ -154,7 +154,7 @@ public:
   static const GroupState& defaultState(MiLightRemoteType remoteType);
 
 private:
-  static const size_t DATA_LONGS = 3;
+  static const size_t DATA_LONGS = 2;
   union StateData {
     uint32_t rawData[DATA_LONGS];
     struct Fields {
