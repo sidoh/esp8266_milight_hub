@@ -3,7 +3,7 @@
 #include <Units.h>
 
 static const uint8_t BRIGHTNESS_SCALE_MAX = 0x97;
-static const uint8_t KELVIN_SCALE_MAX = 0xCD;
+static const uint8_t KELVIN_SCALE_MAX = 0xC5;
 
 void FUT091PacketFormatter::updateBrightness(uint8_t value) {
   command(static_cast<uint8_t>(FUT091Command::BRIGHTNESS), V2PacketFormatter::tov2scale(value, BRIGHTNESS_SCALE_MAX, 2));
