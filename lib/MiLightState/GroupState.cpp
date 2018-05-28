@@ -98,6 +98,36 @@ GroupState::GroupState() {
   scratchpad.fields._kelvinScratch          = 0;
 }
 
+GroupState& GroupState::operator=(const GroupState& other) {
+  memcpy(state.rawData, other.state.rawData, DATA_LONGS * sizeof(uint32_t));
+  scratchpad.rawData = other.scratchpad.rawData;
+}
+
+GroupState::GroupState(const GroupState& other) {
+  memcpy(state.rawData, other.state.rawData, DATA_LONGS * sizeof(uint32_t));
+  scratchpad.rawData = other.scratchpad.rawData;
+}
+
+bool GroupState::operator==(const GroupState& other) const {
+  return memcmp(state.rawData, other.state.rawData, DATA_LONGS * sizeof(uint32_t)) == 0;
+}
+
+bool GroupState::isEqualIgnoreDirty(const GroupState& other) const {
+  GroupState meCopy = *this;
+  GroupState otherCopy = other;
+
+  meCopy.clearDirty();
+  meCopy.clearMqttDirty();
+  otherCopy.clearDirty();
+  otherCopy.clearMqttDirty();
+
+  return meCopy == otherCopy;
+}
+
+void GroupState::print(Stream& stream) const {
+  stream.printf("State: %08X %08X\n", state.rawData[0], state.rawData[1]);
+}
+
 bool GroupState::isSetField(GroupStateField field) const {
   switch (field) {
     case GroupStateField::COMPUTED_COLOR:

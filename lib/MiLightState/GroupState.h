@@ -46,6 +46,13 @@ class GroupState {
 public:
 
   GroupState();
+  GroupState(const GroupState& other);
+  GroupState& operator=(const GroupState& other);
+
+  bool operator==(const GroupState& other) const;
+  bool isEqualIgnoreDirty(const GroupState& other) const;
+  void print(Stream& stream) const;
+
 
   bool isSetField(GroupStateField field) const;
   uint16_t getFieldValue(GroupStateField field) const;
