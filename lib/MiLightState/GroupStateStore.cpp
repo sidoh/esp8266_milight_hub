@@ -26,7 +26,7 @@ GroupState& GroupStateStore::get(const uint16_t deviceId, const uint8_t groupId,
   return get(bulbId);
 }
 
-// save state for a bulb.  If id.groupId == 0, will iternate across all groups
+// save state for a bulb.  If id.groupId == 0, will iterate across all groups
 // and individually save each group (recursively)
 GroupState& GroupStateStore::set(const BulbId &id, const GroupState& state) {
   GroupState& storedState = get(id);
