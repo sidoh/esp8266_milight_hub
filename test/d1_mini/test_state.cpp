@@ -207,6 +207,23 @@ void test_group_0() {
   expectedState = initState2;
   expectedState.setHue(group0State.getHue());
   TEST_ASSERT_TRUE_MESSAGE(storedState.isEqualIgnoreDirty(expectedState), "Saving group 0 should only update changed field");
+
+  // Test that state for group 0 is not persisted
+  storedState = store.get(group0Id);
+  TEST_ASSERT_TRUE_MESSAGE(storedState.isEqualIgnoreDirty(defaultState), "Group 0 state should not be stored -- should return default state");
+
+  // Should persist group 0 for device types with 0 groups
+  BulbId rgbId(1, 0, REMOTE_TYPE_RGB);
+  GroupState rgbState = GroupState::defaultState(REMOTE_TYPE_RGB);
+  rgbState.setHue(100);
+  rgbState.setBrightness(100);
+
+  store.set(rgbId, rgbState);
+  store.flush();
+
+  storedState = store.get(rgbId);
+
+  TEST_ASSERT_TRUE_MESSAGE(storedState.isEqualIgnoreDirty(rgbState), "Should persist group 0 for device type with no groups");
 }
 
 // setup connects serial, runs test cases (upcoming)

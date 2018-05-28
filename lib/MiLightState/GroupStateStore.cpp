@@ -13,9 +13,20 @@ GroupState& GroupStateStore::get(const BulbId& id) {
   if (state == NULL) {
     trackEviction();
     GroupState loadedState = GroupState::defaultState(id.deviceType);
-    persistence.get(id, loadedState);
 
-    state = cache.set(id, loadedState);
+    // For device types with groups, group 0 is a "virtual" group.  All devices paired with the same ID will respond
+    // to group 0.  So it doesn't make sense to store group 0 state by itself.
+    //
+    // For devices that don't have groups, we made the unfortunate decision to represent state using the fake group
+    // ID 0, so we can't always ignore group 0.
+    const MiLightRemoteConfig* remoteConfig = MiLightRemoteConfig::fromType(id.deviceType);
+
+    if (id.groupId != 0 || remoteConfig == NULL || remoteConfig->numGroups == 0) {
+      persistence.get(id, loadedState);
+      state = cache.set(id, loadedState);
+    } else {
+      state = &loadedState;
+    }
   }
 
   return *state;
