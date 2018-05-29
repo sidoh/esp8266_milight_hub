@@ -26,8 +26,10 @@ MqttClient::~MqttClient() {
 }
 
 void MqttClient::begin() {
+#if ASYNC_TCP_SSL_ENABLED
   char hexVal[2];
   uint8_t fingerprint[SHA1_SIZE];
+#endif
 #ifdef MQTT_DEBUG
   printf_P(
     PSTR("MqttClient - Connecting to: %s\nparsed:%s:%u\n"),
