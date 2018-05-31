@@ -264,3 +264,15 @@ You can select between versions 5 and 6 of the UDP protocol (documented [here](h
 
 [info-license]:   https://github.com/sidoh/esp8266_milight_hub/blob/master/LICENSE
 [shield-license]: https://img.shields.io/badge/license-MIT-blue.svg
+
+## Donating
+
+If the project brings you happiness or utility, it's more than enough for me to hear those words.
+
+If you're feeling especially generous, and are open to a charitable donation, that'd make me very happy.  Here are some whose mission I support (in no particular order):
+
+* [Water.org](https://www.water.org)
+* [Brain & Behavior Research Foundation](https://www.bbrfoundation.org/)
+* [Electronic Frontier Foundation](https://www.eff.org/)
+* [Girls Who Code](https://girlswhocode.com/)
+* [San Francisco Animal Care & Control](http://www.sfanimalcare.org/make-a-donation/)
