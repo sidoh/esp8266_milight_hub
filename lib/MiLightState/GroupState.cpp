@@ -4,6 +4,15 @@
 #include <RGBConverter.h>
 
 const BulbId DEFAULT_BULB_ID;
+static const GroupStateField ALL_PHYSICAL_FIELDS[] = {
+  GroupStateField::BRIGHTNESS,
+  GroupStateField::BULB_MODE,
+  GroupStateField::HUE,
+  GroupStateField::KELVIN,
+  GroupStateField::MODE,
+  GroupStateField::SATURATION,
+  GroupStateField::STATE
+};
 
 // Number of units each increment command counts for
 static const uint8_t INCREMENT_COMMAND_VALUE = 10;
@@ -87,6 +96,36 @@ GroupState::GroupState() {
   scratchpad.fields._brightnessScratch      = 0;
   scratchpad.fields._isSetKelvinScratch     = 0;
   scratchpad.fields._kelvinScratch          = 0;
+}
+
+GroupState& GroupState::operator=(const GroupState& other) {
+  memcpy(state.rawData, other.state.rawData, DATA_LONGS * sizeof(uint32_t));
+  scratchpad.rawData = other.scratchpad.rawData;
+}
+
+GroupState::GroupState(const GroupState& other) {
+  memcpy(state.rawData, other.state.rawData, DATA_LONGS * sizeof(uint32_t));
+  scratchpad.rawData = other.scratchpad.rawData;
+}
+
+bool GroupState::operator==(const GroupState& other) const {
+  return memcmp(state.rawData, other.state.rawData, DATA_LONGS * sizeof(uint32_t)) == 0;
+}
+
+bool GroupState::isEqualIgnoreDirty(const GroupState& other) const {
+  GroupState meCopy = *this;
+  GroupState otherCopy = other;
+
+  meCopy.clearDirty();
+  meCopy.clearMqttDirty();
+  otherCopy.clearDirty();
+  otherCopy.clearMqttDirty();
+
+  return meCopy == otherCopy;
+}
+
+void GroupState::print(Stream& stream) const {
+  stream.printf("State: %08X %08X\n", state.rawData[0], state.rawData[1]);
 }
 
 bool GroupState::isSetField(GroupStateField field) const {
@@ -490,6 +529,16 @@ bool GroupState::applyIncrementCommand(GroupStateField field, IncrementDirection
   }
 
   return false;
+}
+
+bool GroupState::patch(const GroupState& other) {
+  for (size_t i = 0; i < size(ALL_PHYSICAL_FIELDS); ++i) {
+    GroupStateField field = ALL_PHYSICAL_FIELDS[i];
+
+    if (other.isSetField(field)) {
+      setFieldValue(field, other.getFieldValue(field));
+    }
+  }
 }
 
 /*

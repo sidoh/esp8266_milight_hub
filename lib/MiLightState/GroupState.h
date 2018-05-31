@@ -46,6 +46,13 @@ class GroupState {
 public:
 
   GroupState();
+  GroupState(const GroupState& other);
+  GroupState& operator=(const GroupState& other);
+
+  bool operator==(const GroupState& other) const;
+  bool isEqualIgnoreDirty(const GroupState& other) const;
+  void print(Stream& stream) const;
+
 
   bool isSetField(GroupStateField field) const;
   uint16_t getFieldValue(GroupStateField field) const;
@@ -108,6 +115,12 @@ public:
   inline bool setMqttDirty();
   bool clearMqttDirty();
 
+  // Patches this state with ONLY the set fields in the other. Returns 
+  // true if there were any changes.
+  bool patch(const GroupState& other);
+
+  // Patches this state with the fields defined in the JSON state.  Returns 
+  // true if there were any changes.
   bool patch(const JsonObject& state);
 
   // It's a little weird to need to pass in a BulbId here.  The purpose is to
@@ -141,7 +154,7 @@ public:
   static const GroupState& defaultState(MiLightRemoteType remoteType);
 
 private:
-  static const size_t DATA_LONGS = 3;
+  static const size_t DATA_LONGS = 2;
   union StateData {
     uint32_t rawData[DATA_LONGS];
     struct Fields {
