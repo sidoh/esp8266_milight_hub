@@ -160,14 +160,14 @@ If you'd like to control bulbs in all groups paired with a particular device ID,
 Turn on group 2 for device ID 0xCD86, set hue to 100, and brightness to 50%:
 
 ```
-$ curl --data-binary '{"status":"on","hue":100,"level":50}' -X PUT http://esp8266/gateways/0xCD86/rgbw/2
+$ curl -X PUT -H 'Content-Type: applicaiton/json' -d '{"status":"on","hue":100,"level":50}' http://esp8266/gateways/0xCD86/rgbw/2
 true%
 ```
 
 Set color to white (disable RGB):
 
 ```
-$ curl --data-binary '{"command":"set_white"}' -X PUT http://esp8266/gateways/0xCD86/rgbw/2
+$ curl -X PUT -H 'Content-Type: applicaiton/json' -d '{"command":"set_white"}' -X PUT http://esp8266/gateways/0xCD86/rgbw/2
 true%
 ```
 
