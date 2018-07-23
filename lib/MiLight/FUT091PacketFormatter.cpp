@@ -43,10 +43,10 @@ BulbId FUT091PacketFormatter::parsePacket(const uint8_t *packet, JsonObject& res
       bulbId.groupId = arg-5;
     }
   } else if (command == (uint8_t)FUT091Command::BRIGHTNESS) {
-    uint8_t level = V2PacketFormatter::fromv2scale(arg, BRIGHTNESS_SCALE_MAX, 2, true, 0x13);
+    uint8_t level = V2PacketFormatter::fromv2scale(arg, BRIGHTNESS_SCALE_MAX, 2, true);
     result["brightness"] = Units::rescale<uint8_t, uint8_t>(level, 255, 100);
   } else if (command == (uint8_t)FUT091Command::KELVIN) {
-    uint8_t kelvin = V2PacketFormatter::fromv2scale(arg, KELVIN_SCALE_MAX, 2, false, 0x13);
+    uint8_t kelvin = V2PacketFormatter::fromv2scale(arg, KELVIN_SCALE_MAX, 2, false);
     result["color_temp"] = Units::whiteValToMireds(kelvin, 100);
   } else {
     result["button_id"] = command;
