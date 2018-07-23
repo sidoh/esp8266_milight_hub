@@ -160,14 +160,14 @@ If you'd like to control bulbs in all groups paired with a particular device ID,
 Turn on group 2 for device ID 0xCD86, set hue to 100, and brightness to 50%:
 
 ```
-$ curl --data-binary '{"status":"on","hue":100,"level":50}' -X PUT http://esp8266/gateways/0xCD86/rgbw/2
+$ curl -X PUT -H 'Content-Type: applicaiton/json' -d '{"status":"on","hue":100,"level":50}' http://esp8266/gateways/0xCD86/rgbw/2
 true%
 ```
 
 Set color to white (disable RGB):
 
 ```
-$ curl --data-binary '{"command":"set_white"}' -X PUT http://esp8266/gateways/0xCD86/rgbw/2
+$ curl -X PUT -H 'Content-Type: applicaiton/json' -d '{"command":"set_white"}' -X PUT http://esp8266/gateways/0xCD86/rgbw/2
 true%
 ```
 
@@ -264,3 +264,15 @@ You can select between versions 5 and 6 of the UDP protocol (documented [here](h
 
 [info-license]:   https://github.com/sidoh/esp8266_milight_hub/blob/master/LICENSE
 [shield-license]: https://img.shields.io/badge/license-MIT-blue.svg
+
+## Donating
+
+If the project brings you happiness or utility, it's more than enough for me to hear those words.
+
+If you're feeling especially generous, and are open to a charitable donation, that'd make me very happy.  Here are some whose mission I support (in no particular order):
+
+* [Water.org](https://www.water.org)
+* [Brain & Behavior Research Foundation](https://www.bbrfoundation.org/)
+* [Electronic Frontier Foundation](https://www.eff.org/)
+* [Girls Who Code](https://girlswhocode.com/)
+* [San Francisco Animal Care & Control](http://www.sfanimalcare.org/make-a-donation/)

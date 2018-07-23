@@ -47,11 +47,15 @@ void RgbPacketFormatter::updateColorRaw(uint8_t value) {
 }
 
 void RgbPacketFormatter::updateBrightness(uint8_t value) {
+  const GroupState& state = this->stateStore->get(deviceId, groupId, MiLightRemoteType::REMOTE_TYPE_RGB);
+  int8_t knownValue = state.isSetBrightness() ? state.getBrightness() : -1;
+
   valueByStepFunction(
     &PacketFormatter::increaseBrightness,
     &PacketFormatter::decreaseBrightness,
     RGB_INTERVALS,
-    value / RGB_INTERVALS
+    value / RGB_INTERVALS,
+    knownValue / RGB_INTERVALS
   );
 }
 
@@ -104,6 +108,10 @@ BulbId RgbPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& result
     result["command"] = "mode_speed_down";
   } else if (command == RGB_SPEED_UP) {
     result["command"] = "mode_speed_up";
+  } else if (command == RGB_BRIGHTNESS_DOWN) {
+    result["command"] = "brightness_down";
+  } else if (command == RGB_BRIGHTNESS_UP) {
+    result["command"] = "brightness_up";
   } else {
     result["button_id"] = command;
   }

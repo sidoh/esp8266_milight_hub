@@ -84,6 +84,12 @@ void FUT089PacketFormatter::enableNightMode() {
 }
 
 BulbId FUT089PacketFormatter::parsePacket(const uint8_t *packet, JsonObject& result) {
+  if (stateStore == NULL) {
+    Serial.println(F("ERROR: stateStore not set.  Prepare was not called!  **THIS IS A BUG**"));
+    BulbId fakeId(0, 0, REMOTE_TYPE_FUT089);
+    return fakeId;
+  }
+
   uint8_t packetCopy[V2_PACKET_LEN];
   memcpy(packetCopy, packet, V2_PACKET_LEN);
   V2RFEncoding::decodeV2Packet(packetCopy);
