@@ -16,6 +16,7 @@ label:not(.error) .error-info { display: none; }
 #content .dropdown-menu li { display: block; }
 #traffic-sniff { display: none; }
 #sniffed-traffic { max-height: 50em; overflow-y: auto; }
+.dropdown label { display: inline-block; }
 .navbar { background-color: rgba(41,41,45,.9) !important; border-radius: 0 }
 .navbar-brand, .navbar-brand:hover { color: white; }
 .btn-secondary {

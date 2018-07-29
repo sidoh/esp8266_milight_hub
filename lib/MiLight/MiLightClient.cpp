@@ -86,7 +86,7 @@ void MiLightClient::prepare(const MiLightRemoteType type,
   const uint16_t deviceId,
   const uint8_t groupId
 ) {
-  prepare(MiLightRemoteConfig::fromType(type));
+  prepare(MiLightRemoteConfig::fromType(type), deviceId, groupId);
 }
 
 void MiLightClient::setResendCount(const unsigned int resendCount) {

@@ -16,16 +16,22 @@ This project is a replacement for the wifi gateway.
 4. Official hubs connect to remote servers to enable WAN access, and this behavior is not disableable.
 5. This project is capable of passively listening for Milight packets sent from other devices (like remotes). It can publish data from intercepted packets to MQTT. This could, for example, allow the use of Milight remotes while keeping your home automation platform's state in sync. See the MQTT section for more detail.
 
-## Supported bulbs
+## Supported remotes
+
+The following remotes can be emulated:
 
 Support has been added for the following [bulb types](http://futlight.com/productlist.aspx?typeid=101):
 
-1. RGBW bulbs: FUT014, FUT016, FUT103
-1. Dual-White (CCT) bulbs: FUT019
-1. RGB LED strips: FUT025
-1. RGB + Dual White (RGB+CCT) bulbs: FUT015, FUT105
+Model #|Name|Compatible Bulbs
+-------|-----------|----------------
+|FUT096|RGB/W|<ol><li>FUT014</li><li>FUT016</li><li>FUT103</li>|
+|FUT005, FUT006,FUT007</li></ol>|CCT|<ol><li>FUT011</li><li>FUT017</li><li>FUT019</li></ol>|
+|FUT098|RGB|Most RGB LED Strip Controlers|
+|FUT092|RGB/CCT|<ol><li>FUT012</li><li>FUT013</li><li>FUT014</li><li>FUT015</li><li>FUT103</li><li>FUT104</li><li>FUT105</li><li>Many RGB/CCT LED Strip Controllers</li></ol>|
+|FUT091|CCT v2|Most newer dual white bulbs and controllers|
+|FUT089|8-zone RGB/CCT|Most newer rgb + dual white bulbs and controllers|
 
-Other bulb types might work, but have not been tested. It is also relatively easy to add support for new bulb types.
+Other remotes or bulbs, but have not been tested. 
 
 ## What you'll need
 
