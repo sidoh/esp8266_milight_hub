@@ -5,10 +5,11 @@
  */
 const MiLightRemoteConfig* MiLightRemoteConfig::ALL_REMOTES[] = {
   &FUT096Config, // rgbw
-  &FUT091Config, // cct
+  &FUT007Config, // cct
   &FUT092Config, // rgb+cct
   &FUT098Config, // rgb
-  &FUT089Config  // 8-group rgb+cct (b8, fut089)
+  &FUT089Config, // 8-group rgb+cct (b8, fut089)
+  &FUT091Config
 };
 
 const MiLightRemoteConfig* MiLightRemoteConfig::fromType(const String& type) {
@@ -16,8 +17,8 @@ const MiLightRemoteConfig* MiLightRemoteConfig::fromType(const String& type) {
     return &FUT096Config;
   }
 
-  if (type.equalsIgnoreCase("cct") || type.equalsIgnoreCase("fut091")) {
-    return &FUT091Config;
+  if (type.equalsIgnoreCase("cct") || type.equalsIgnoreCase("fut007")) {
+    return &FUT007Config;
   }
 
   if (type.equalsIgnoreCase("rgb_cct") || type.equalsIgnoreCase("fut092")) {
@@ -30,6 +31,10 @@ const MiLightRemoteConfig* MiLightRemoteConfig::fromType(const String& type) {
 
   if (type.equalsIgnoreCase("rgb") || type.equalsIgnoreCase("fut098")) {
     return &FUT098Config;
+  }
+
+  if (type.equalsIgnoreCase("v2_cct") || type.equalsIgnoreCase("fut091")) {
+    return &FUT091Config;
   }
 
   Serial.print(F("MiLightRemoteConfig::fromType: ERROR - tried to fetch remote config for type: "));
@@ -77,11 +82,19 @@ const MiLightRemoteConfig FUT096Config( //rgbw
   4
 );
 
-const MiLightRemoteConfig FUT091Config( //cct
+const MiLightRemoteConfig FUT007Config( //cct
   new CctPacketFormatter(),
   MiLightRadioConfig::ALL_CONFIGS[1],
   REMOTE_TYPE_CCT,
   "cct",
+  4
+);
+
+const MiLightRemoteConfig FUT091Config( //v2 cct
+  new FUT091PacketFormatter(),
+  MiLightRadioConfig::ALL_CONFIGS[2],
+  REMOTE_TYPE_FUT091,
+  "fut091",
   4
 );
 

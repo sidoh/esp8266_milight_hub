@@ -85,7 +85,7 @@ void V5MiLightUdpServer::handleCommand(uint8_t command, uint8_t commandArg) {
     uint8_t onOffGroup = CctPacketFormatter::cctCommandIdToGroup(command);
 
     if (onOffGroup != 255) {
-      client->prepare(&FUT091Config, deviceId, onOffGroup);
+      client->prepare(&FUT007Config, deviceId, onOffGroup);
       // Night mode commands are same as off commands with MSB set
       if ((command & 0x80) == 0x80) {
         client->enableNightMode();
@@ -95,7 +95,7 @@ void V5MiLightUdpServer::handleCommand(uint8_t command, uint8_t commandArg) {
       return;
     }
 
-    client->prepare(&FUT091Config, deviceId, lastGroup);
+    client->prepare(&FUT007Config, deviceId, lastGroup);
 
     switch(command) {
       case UDP_CCT_BRIGHTNESS_DOWN:
