@@ -6,7 +6,7 @@ prepare_log() {
   echo "[prepare release] -- $@"
 }
 
-if [ -z "$(git tag -l --points-at HEAD)" ]; then
+if ! git describe --exact-match HEAD 2>/dev/null; then
   prepare_log "Skipping non-tagged commit."
   exit 0
 fi
