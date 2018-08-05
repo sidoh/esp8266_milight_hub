@@ -90,15 +90,6 @@ void onPacketSentHandler(uint8_t* packet, const MiLightRemoteConfig& config) {
   StaticJsonBuffer<200> buffer;
   JsonObject& result = buffer.createObject();
 
-  // This is gross.  But if a packet is received for a remote type before one is
-  // sent, prepare() won't have been called, meaning stateStore and settings will
-  // not have been initialized.  Both of these things should either be passed in
-  // as constructor parameters, or as prameters to the methods that require them.
-  // 
-  // But for now, just hackily call prepare.  At least fixes a bug.  The deviceId
-  // and groupId won't matter.
-  config.packetFormatter->prepare(0, 0, stateStore, &settings);
-
   BulbId bulbId = config.packetFormatter->parsePacket(packet, result);
 
   // set LED mode for a packet movement

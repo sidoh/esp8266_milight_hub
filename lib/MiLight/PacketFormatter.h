@@ -31,6 +31,13 @@ class PacketFormatter {
 public:
   PacketFormatter(const size_t packetLength, const size_t maxPackets = 1);
 
+  // Ideally these would be constructor parameters.  We could accomplish this by
+  // wrapping PacketFormaters in a factory, as Settings and StateStore are not
+  // available at construction time.
+  //
+  // For now, just rely on the user calling this method.
+  void initialize(GroupStateStore* stateStore, const Settings* settings);
+
   typedef void (PacketFormatter::*StepFunction)();
 
   virtual bool canHandle(const uint8_t* packet, const size_t len);
@@ -72,7 +79,7 @@ public:
   virtual void reset();
 
   virtual PacketStream& buildPackets();
-  virtual void prepare(uint16_t deviceId, uint8_t groupId, GroupStateStore* stateStore, const Settings* settings);
+  virtual void prepare(uint16_t deviceId, uint8_t groupId);
   virtual void format(uint8_t const* packet, char* buffer);
 
   virtual BulbId parsePacket(const uint8_t* packet, JsonObject& result);
