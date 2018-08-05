@@ -28,6 +28,11 @@ PacketFormatter::PacketFormatter(const size_t packetLength, const size_t maxPack
   packetStream.packetLength = packetLength;
 }
 
+void PacketFormatter::initialize(GroupStateStore* stateStore, const Settings* settings) {
+  this->stateStore = stateStore;
+  this->settings = settings;
+}
+
 bool PacketFormatter::canHandle(const uint8_t *packet, const size_t len) {
   return len == packetLength;
 }
@@ -116,11 +121,9 @@ void PacketFormatter::valueByStepFunction(StepFunction increase, StepFunction de
   }
 }
 
-void PacketFormatter::prepare(uint16_t deviceId, uint8_t groupId, GroupStateStore* stateStore, const Settings* settings) {
+void PacketFormatter::prepare(uint16_t deviceId, uint8_t groupId) {
   this->deviceId = deviceId;
   this->groupId = groupId;
-  this->stateStore = stateStore;
-  this->settings = settings;
   reset();
 }
 

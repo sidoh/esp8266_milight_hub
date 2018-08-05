@@ -33,6 +33,14 @@ void MiLightClient::begin() {
   }
 
   switchRadio(static_cast<size_t>(0));
+
+  // Little gross to do this here as it's relying on global state.  A better alternative
+  // would be to statically construct remote config factories which take in a stateStore 
+  // and settings pointer.  The objects could then be initialized by calling the factory
+  // in main.
+  for (size_t i = 0; i < MiLightRemoteConfig::NUM_REMOTES; i++) {
+    MiLightRemoteConfig::ALL_REMOTES[i]->packetFormatter->initialize(stateStore, settings);
+  }
 }
 
 void MiLightClient::setHeld(bool held) {
@@ -78,7 +86,7 @@ void MiLightClient::prepare(const MiLightRemoteConfig* config,
   this->currentRemote = config;
 
   if (deviceId >= 0 && groupId >= 0) {
-    currentRemote->packetFormatter->prepare(deviceId, groupId, stateStore, settings);
+    currentRemote->packetFormatter->prepare(deviceId, groupId);
   }
 }
 
