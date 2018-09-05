@@ -45,7 +45,7 @@ protected:
   ESP8266WebServer::THandlerFunction handleUpdateFile(const char* filename);
   ESP8266WebServer::THandlerFunction handleServe_P(const char* data, size_t length);
   void applySettings(Settings& settings);
-  void sendGroupState(BulbId& bulbId, GroupState& state);
+  void sendGroupState(BulbId& bulbId, GroupState* state);
 
   void handleUpdateSettings();
   void handleUpdateSettingsPost();
