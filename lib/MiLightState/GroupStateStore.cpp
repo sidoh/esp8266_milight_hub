@@ -7,7 +7,7 @@ GroupStateStore::GroupStateStore(const size_t maxSize, const size_t flushRate)
     lastFlush(0)
 { }
 
-GroupState& GroupStateStore::get(const BulbId& id) {
+GroupState* GroupStateStore::get(const BulbId& id) {
   GroupState* state = cache.get(id);
 
   if (state == NULL) {
@@ -25,23 +25,23 @@ GroupState& GroupStateStore::get(const BulbId& id) {
       persistence.get(id, loadedState);
       state = cache.set(id, loadedState);
     } else {
-      state = &loadedState;
+      return NULL;
     }
   }
 
-  return *state;
+  return state;
 }
 
-GroupState& GroupStateStore::get(const uint16_t deviceId, const uint8_t groupId, const MiLightRemoteType deviceType) {
+GroupState* GroupStateStore::get(const uint16_t deviceId, const uint8_t groupId, const MiLightRemoteType deviceType) {
   BulbId bulbId(deviceId, groupId, deviceType);
   return get(bulbId);
 }
 
 // save state for a bulb.  If id.groupId == 0, will iterate across all groups
 // and individually save each group (recursively)
-GroupState& GroupStateStore::set(const BulbId &id, const GroupState& state) {
-  GroupState& storedState = get(id);
-  storedState = state;
+GroupState* GroupStateStore::set(const BulbId &id, const GroupState& state) {
+  GroupState* storedState = get(id);
+  *storedState = state;
 
   if (id.groupId == 0) {
     const MiLightRemoteConfig* remote = MiLightRemoteConfig::fromType(id.deviceType);
@@ -50,15 +50,15 @@ GroupState& GroupStateStore::set(const BulbId &id, const GroupState& state) {
     for (size_t i = 1; i <= remote->numGroups; i++) {
       individualBulb.groupId = i;
 
-      GroupState& individualState = get(individualBulb);
-      individualState.patch(state);
+      GroupState* individualState = get(individualBulb);
+      individualState->patch(state);
     }
   }
   
   return storedState;
 }
 
-GroupState& GroupStateStore::set(const uint16_t deviceId, const uint8_t groupId, const MiLightRemoteType deviceType, const GroupState& state) {
+GroupState* GroupStateStore::set(const uint16_t deviceId, const uint8_t groupId, const MiLightRemoteType deviceType, const GroupState& state) {
   BulbId bulbId(deviceId, groupId, deviceType);
   return set(bulbId, state);
 }

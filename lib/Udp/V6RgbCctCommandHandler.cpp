@@ -98,10 +98,6 @@ void V6RgbCctCommandHandler::handleUpdateColor(MiLightClient *client, uint32_t c
   for (int i = 3; i >= 0; i--) {
     const uint8_t argValue = (color >> (i*8)) & 0xFF;
 
-    if (argValue == 0) {
-      return;
-    }
-
-    client->updateColorRaw(argValue);
+    client->updateColorRaw(argValue + 0xF6);
   }
 }
