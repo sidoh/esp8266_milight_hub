@@ -48,8 +48,8 @@ void CctPacketFormatter::finalizePacket(uint8_t* packet) {
 }
 
 void CctPacketFormatter::updateBrightness(uint8_t value) {
-  const GroupState& state = this->stateStore->get(deviceId, groupId, MiLightRemoteType::REMOTE_TYPE_CCT);
-  int8_t knownValue = state.isSetBrightness() ? state.getBrightness() : -1;
+  const GroupState* state = this->stateStore->get(deviceId, groupId, MiLightRemoteType::REMOTE_TYPE_CCT);
+  int8_t knownValue = state->isSetBrightness() ? state->getBrightness() : -1;
 
   valueByStepFunction(
     &PacketFormatter::increaseBrightness,
@@ -61,8 +61,8 @@ void CctPacketFormatter::updateBrightness(uint8_t value) {
 }
 
 void CctPacketFormatter::updateTemperature(uint8_t value) {
-  const GroupState& state = this->stateStore->get(deviceId, groupId, MiLightRemoteType::REMOTE_TYPE_CCT);
-  int8_t knownValue = state.isSetKelvin() ? state.getKelvin() : -1;
+  const GroupState* state = this->stateStore->get(deviceId, groupId, MiLightRemoteType::REMOTE_TYPE_CCT);
+  int8_t knownValue = state->isSetKelvin() ? state->getKelvin() : -1;
 
   valueByStepFunction(
     &PacketFormatter::increaseTemperature,

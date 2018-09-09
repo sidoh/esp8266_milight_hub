@@ -43,8 +43,8 @@ void RgbwPacketFormatter::previousMode() {
 }
 
 uint8_t RgbwPacketFormatter::currentMode() {
-  GroupState& state = stateStore->get(deviceId, groupId, REMOTE_TYPE_RGBW);
-  return state.getMode();
+  const GroupState* state = stateStore->get(deviceId, groupId, REMOTE_TYPE_RGBW);
+  return state->getMode();
 }
 
 void RgbwPacketFormatter::updateMode(uint8_t mode) {

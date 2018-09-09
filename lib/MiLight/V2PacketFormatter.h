@@ -49,7 +49,7 @@ public:
 protected:
   const uint8_t protocolId;
   const uint8_t numGroups;
-  void switchMode(GroupState currentState, BulbMode desiredMode);
+  void switchMode(const GroupState& currentState, BulbMode desiredMode);
 };
 
 #endif

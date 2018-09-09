@@ -28,11 +28,11 @@ void BulbStateUpdater::enqueueUpdate(BulbId bulbId, GroupState& groupState) {
 void BulbStateUpdater::loop() {
   while (canFlush() && staleGroups.size() > 0) {
     BulbId bulbId = staleGroups.shift();
-    GroupState& groupState = stateStore.get(bulbId);
+    GroupState* groupState = stateStore.get(bulbId);
 
-    if (groupState.isMqttDirty()) {
-      flushGroup(bulbId, groupState);
-      groupState.clearMqttDirty();
+    if (groupState->isMqttDirty()) {
+      flushGroup(bulbId, *groupState);
+      groupState->clearMqttDirty();
     }
   }
 }
