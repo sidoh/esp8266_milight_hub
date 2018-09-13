@@ -27,7 +27,7 @@ void LEDStatus::changePin(int8_t ledPin) {
     inverse = false;
   }
 
-  if ((ledPin != _ledPin) && (inverse != _inverse)) {
+  if ((ledPin != _ledPin) || (inverse != _inverse)) {
     // make sure old pin is off
     digitalWrite(_ledPin, _pinState(LOW));
     _ledPin = ledPin;
