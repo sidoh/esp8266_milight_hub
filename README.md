@@ -49,7 +49,18 @@ Both modules are SPI devices and should be connected to the standard SPI pins on
 
 ##### NRF24L01+
 
-[This guide](https://www.mysensors.org/build/connect_radio#nrf24l01+-&-esp8266) details how to connect an NRF24 to an ESP8266. I used GPIO 16 for CE and GPIO 15 for CSN instead. These can be configured later.
+[This guide](https://www.mysensors.org/build/connect_radio#nrf24l01+-&-esp8266) details how to connect an NRF24 to an ESP8266. I used GPIO 16 for CE and GPIO 15 for CSN instead. These can be configured later in the Web GUI, in Settings -> Setup.
+
+NodeMCU | Radio | Comment
+-- | -- | --
+GND | GND | Black
+3V3 | VCC | Red
+D0 (GPIO16) | CE | Orange
+D8 (GPIO15) | CSN/CS | Yellow
+D5 (GPIO14) | SCK | Green
+D7 (GPIO13) | MOSI | Blue
+D6 (GPIO12) | MISO | Violet
+
 
 ##### LT8900
 
