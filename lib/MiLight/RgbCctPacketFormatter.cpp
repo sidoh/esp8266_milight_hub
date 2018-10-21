@@ -47,14 +47,17 @@ void RgbCctPacketFormatter::updateTemperature(uint8_t value) {
   // is lost.  So lookup our current bulb mode, and if needed, reset the hue/mode after
   // changing the temperature
   const GroupState* ourState = this->stateStore->get(this->deviceId, this->groupId, REMOTE_TYPE_RGB_CCT);
-  BulbMode originalBulbMode = ourState->getBulbMode();
 
   // now make the temperature change
   command(RGB_CCT_KELVIN, cmdValue);
 
   // and return to our original mode
-  if ((settings->enableAutomaticModeSwitching) && (originalBulbMode != BulbMode::BULB_MODE_WHITE)) {
-    switchMode(*ourState, originalBulbMode);
+  if (ourState != NULL) {
+    BulbMode originalBulbMode = ourState->getBulbMode();
+
+    if ((settings->enableAutomaticModeSwitching) && (originalBulbMode != BulbMode::BULB_MODE_WHITE)) {
+      switchMode(*ourState, originalBulbMode);
+    }
   }
 }
 
@@ -63,19 +66,25 @@ void RgbCctPacketFormatter::updateTemperature(uint8_t value) {
 void RgbCctPacketFormatter::updateSaturation(uint8_t value) {
    // look up our current mode 
   const GroupState* ourState = this->stateStore->get(this->deviceId, this->groupId, REMOTE_TYPE_RGB_CCT);
-  BulbMode originalBulbMode = ourState->getBulbMode();
+  BulbMode originalBulbMode;
+  
+  if (ourState != NULL) {
+    originalBulbMode = ourState->getBulbMode();
 
-  // are we already in white?  If not, change to white
-  if ((settings->enableAutomaticModeSwitching) && (originalBulbMode != BulbMode::BULB_MODE_COLOR)) {
-    updateHue(ourState->getHue());
+    // are we already in white?  If not, change to white
+    if ((settings->enableAutomaticModeSwitching) && (originalBulbMode != BulbMode::BULB_MODE_COLOR)) {
+      updateHue(ourState->getHue());
+    }
   }
 
   // now make the saturation change
   uint8_t remapped = value + RGB_CCT_SATURATION_OFFSET;
   command(RGB_CCT_SATURATION, remapped);
 
-  if ((settings->enableAutomaticModeSwitching) && (originalBulbMode != BulbMode::BULB_MODE_COLOR)) {
-    switchMode(*ourState, originalBulbMode);
+  if (ourState != NULL) {
+    if ((settings->enableAutomaticModeSwitching) && (originalBulbMode != BulbMode::BULB_MODE_COLOR)) {
+      switchMode(*ourState, originalBulbMode);
+    }
   }
 }
 
@@ -83,7 +92,10 @@ void RgbCctPacketFormatter::updateColorWhite() {
   // there is no direct white command, so let's look up our prior temperature and set that, which
   // causes the bulb to go white 
   const GroupState* ourState = this->stateStore->get(this->deviceId, this->groupId, REMOTE_TYPE_RGB_CCT);
-  uint8_t value = V2PacketFormatter::tov2scale(ourState->getKelvin(), RGB_CCT_KELVIN_REMOTE_END, 2);
+  uint8_t value = 
+    ourState == NULL 
+      ? 0 
+      : V2PacketFormatter::tov2scale(ourState->getKelvin(), RGB_CCT_KELVIN_REMOTE_END, 2);
 
   // issue command to set kelvin to prior value, which will drive to white
   command(RGB_CCT_KELVIN, value);

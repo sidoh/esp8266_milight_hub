@@ -48,7 +48,7 @@ void RgbPacketFormatter::updateColorRaw(uint8_t value) {
 
 void RgbPacketFormatter::updateBrightness(uint8_t value) {
   const GroupState* state = this->stateStore->get(deviceId, groupId, MiLightRemoteType::REMOTE_TYPE_RGB);
-  int8_t knownValue = state->isSetBrightness() ? state->getBrightness() : -1;
+  int8_t knownValue = (state != NULL && state->isSetBrightness()) ? state->getBrightness() : -1;
 
   valueByStepFunction(
     &PacketFormatter::increaseBrightness,
