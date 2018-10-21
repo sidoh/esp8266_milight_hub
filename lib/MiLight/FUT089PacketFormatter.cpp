@@ -35,18 +35,22 @@ void FUT089PacketFormatter::updateColorRaw(uint8_t value) {
 void FUT089PacketFormatter::updateTemperature(uint8_t value) {
   // look up our current mode 
   const GroupState* ourState = this->stateStore->get(this->deviceId, this->groupId, REMOTE_TYPE_FUT089);
-  BulbMode originalBulbMode = ourState->getBulbMode();
+  BulbMode originalBulbMode;
+  
+  if (ourState != NULL) {
+    originalBulbMode = ourState->getBulbMode();
 
-  // are we already in white?  If not, change to white
-  if (originalBulbMode != BulbMode::BULB_MODE_WHITE) {
-    updateColorWhite();
+    // are we already in white?  If not, change to white
+    if (originalBulbMode != BulbMode::BULB_MODE_WHITE) {
+      updateColorWhite();
+    }
   }
 
   // now make the temperature change
   command(FUT089_KELVIN, 100 - value);
 
   // and return to our original mode
-  if ((settings->enableAutomaticModeSwitching) && (originalBulbMode != BulbMode::BULB_MODE_WHITE)) {
+  if (ourState != NULL && (settings->enableAutomaticModeSwitching) && (originalBulbMode != BulbMode::BULB_MODE_WHITE)) {
     switchMode(*ourState, originalBulbMode);
   }
 }
@@ -58,10 +62,14 @@ void FUT089PacketFormatter::updateTemperature(uint8_t value) {
 void FUT089PacketFormatter::updateSaturation(uint8_t value) {
   // look up our current mode 
   const GroupState* ourState = this->stateStore->get(this->deviceId, this->groupId, REMOTE_TYPE_FUT089);
-  BulbMode originalBulbMode = ourState->getBulbMode();
+  BulbMode originalBulbMode;
+  
+  if (ourState != NULL) {
+    originalBulbMode = ourState->getBulbMode();
+  }
 
   // are we already in color?  If not, we need to flip modes
-  if ((settings->enableAutomaticModeSwitching) && (originalBulbMode != BulbMode::BULB_MODE_COLOR)) {
+  if (ourState != NULL && (settings->enableAutomaticModeSwitching) && (originalBulbMode != BulbMode::BULB_MODE_COLOR)) {
     updateHue(ourState->getHue());
   }
 
@@ -69,7 +77,7 @@ void FUT089PacketFormatter::updateSaturation(uint8_t value) {
   command(FUT089_SATURATION, 100 - value);
 
   // and revert back if necessary
-  if ((settings->enableAutomaticModeSwitching) && (originalBulbMode != BulbMode::BULB_MODE_COLOR)) {
+  if (ourState != NULL && (settings->enableAutomaticModeSwitching) && (originalBulbMode != BulbMode::BULB_MODE_COLOR)) {
     switchMode(*ourState, originalBulbMode);
   }
 }
