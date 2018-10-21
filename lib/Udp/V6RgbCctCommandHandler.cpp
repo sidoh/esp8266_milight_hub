@@ -36,8 +36,6 @@ bool V6RgbCctCommandHandler::handleCommand(
 
   client->setHeld((command & 0x80) == 0x80);
 
-  Serial.println("check1");
-
   if (cmd == V2_STATUS) {
     switch (arg) {
       case V2_RGB_CCT_ON:
@@ -64,17 +62,13 @@ bool V6RgbCctCommandHandler::handleCommand(
     return true;
   }
 
-  Serial.println("check2");
-
   switch (cmd) {
     case V2_COLOR:
       handleUpdateColor(client, commandArg);
       break;
 
     case V2_KELVIN:
-    Serial.println("check3");
       client->updateTemperature(100 - arg);
-    Serial.println("check4");
       break;
 
     case V2_BRIGHTNESS:
