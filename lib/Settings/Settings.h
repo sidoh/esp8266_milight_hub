@@ -98,7 +98,10 @@ public:
     ledModeWifiFailed(LEDStatus::LEDMode::On),
     ledModeOperating(LEDStatus::LEDMode::SlowBlip),
     ledModePacket(LEDStatus::LEDMode::Flicker),
-    ledModePacketCount(3)
+    ledModePacketCount(3),
+    wifiStaticIP("0.0.0.0"),
+    wifiStaticIPNetmask("0.0.0.0"),
+    wifiStaticIPGateway("0.0.0.0")
   {
     if (groupStateFields == NULL) {
       numGroupStateFields = size(DEFAULT_GROUP_STATE_FIELDS);
@@ -167,6 +170,9 @@ public:
   LEDStatus::LEDMode ledModeOperating;
   LEDStatus::LEDMode ledModePacket;
   size_t ledModePacketCount;
+  String wifiStaticIP;
+  String wifiStaticIPNetmask;
+  String wifiStaticIPGateway;
 
 
 protected:
