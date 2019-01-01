@@ -92,7 +92,7 @@ The HTTP endpoints (shown below) will be fully functional at this point. You sho
 
 #### Pair Bulbs
 
-Of course you need to pair some bulbs, how to do this is [described in the wiki](https://github.com/sidoh/esp8266_milight_hub/wiki/Pairing-new-bulbs).
+If you need to pair some bulbs, how to do this is [described in the wiki](https://github.com/sidoh/esp8266_milight_hub/wiki/Pairing-new-bulbs).
 
 ## LED Status
 
