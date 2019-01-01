@@ -90,6 +90,10 @@ The HTTP endpoints (shown below) will be fully functional at this point. You sho
 
 ![Web UI](https://user-images.githubusercontent.com/589893/39412360-0d95ab2e-4bd0-11e8-915c-7fef7ee38761.png)
 
+#### Pair Bulbs
+
+Of course you need to pair some bulbs, how to do this is [described in the wiki](https://github.com/sidoh/esp8266_milight_hub/wiki/Pairing-new-bulbs).
+
 ## LED Status
 
 Some ESP boards have a built-in LED, on pin #2.  This LED will flash to indicate the current status of the hub:
