@@ -72,7 +72,7 @@ public:
     adminUsername(""),
     adminPassword(""),
     // CE and CSN pins from nrf24l01
-    cePin(16),
+    cePin(4),
     csnPin(15),
     resetPin(0),
     ledPin(-2),
