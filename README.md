@@ -53,7 +53,7 @@ Both modules are SPI devices and should be connected to the standard SPI pins on
 
 ##### LT8900
 
-Connect SPI pins (CS, SCK, MOSI, MISO) to appropriate SPI pins on the ESP8266. With default settings, connect RST to GPIO 0, and PKT to GPIO 16. By default GPIO 4 for CE and GPIO 15 for CSN are used, make sure to properly configure these.
+Connect SPI pins (CE, SCK, MOSI, MISO) to appropriate SPI pins on the ESP8266. With default settings, connect RST to GPIO 0, PKT to GPIO 16, CE to GPIO 4, and CSN to GPIO 15.  Make sure to properly configure these if using non-default pinouts.
 
 #### Setting up the ESP
 
