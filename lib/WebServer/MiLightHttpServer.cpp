@@ -133,7 +133,7 @@ void MiLightHttpServer::handleGetRadioConfigs() {
   DynamicJsonBuffer buffer;
   JsonArray& arr = buffer.createArray();
 
-  for (size_t i = 0; i < MiLightRadioConfig::NUM_CONFIGS; i++) {
+  for (size_t i = 0; i < MiLightRemoteConfig::NUM_REMOTES; i++) {
     const MiLightRemoteConfig* config = MiLightRemoteConfig::ALL_REMOTES[i];
     arr.add(config->name);
   }
