@@ -18,7 +18,7 @@ void MiLightHttpServer::begin() {
   server.onAuthenticated("/settings", HTTP_GET, [this]() { serveSettings(); });
   server.onAuthenticated("/settings", HTTP_PUT, [this]() { handleUpdateSettings(); });
   server.onAuthenticated("/settings", HTTP_POST, [this]() { handleUpdateSettingsPost(); }, handleUpdateFile(SETTINGS_FILE));
-  server.onAuthenticated("/radio_configs", HTTP_GET, [this]() { handleGetRadioConfigs(); });
+  server.onAuthenticated("/remote_configs", HTTP_GET, [this]() { handleGetRadioConfigs(); });
 
   server.onAuthenticated("/gateway_traffic", HTTP_GET, [this]() { handleListenGateway(NULL); });
   server.onPatternAuthenticated("/gateway_traffic/:type", HTTP_GET, [this](const UrlTokenBindings* b) { handleListenGateway(b); });
