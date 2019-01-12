@@ -203,6 +203,8 @@ private:
 
   void applyColor(JsonObject& state, uint8_t r, uint8_t g, uint8_t b);
   void applyColor(JsonObject& state);
+  // Apply OpenHAB-style color, e.g., {"color":"0,0,0"}
+  void applyOhColor(JsonObject& state);
 };
 
 extern const BulbId DEFAULT_BULB_ID;

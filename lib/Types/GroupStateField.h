@@ -18,7 +18,8 @@ static const char* STATE_NAMES[] = {
   "effect",
   "device_id",
   "group_id",
-  "device_type"
+  "device_type",
+  "oh_color"
 };
 
 enum class GroupStateField {
@@ -38,7 +39,8 @@ enum class GroupStateField {
   EFFECT,
   DEVICE_ID,
   GROUP_ID,
-  DEVICE_TYPE
+  DEVICE_TYPE,
+  OH_COLOR
 };
 
 class GroupStateFieldHelpers {

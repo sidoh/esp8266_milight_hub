@@ -146,6 +146,7 @@ bool GroupState::isSetField(GroupStateField field) const {
       return isSetBrightness();
     case GroupStateField::COLOR:
     case GroupStateField::HUE:
+    case GroupStateField::OH_COLOR:
       return isSetHue();
     case GroupStateField::SATURATION:
       return isSetSaturation();
@@ -634,6 +635,21 @@ void GroupState::applyColor(ArduinoJson::JsonObject& state, uint8_t r, uint8_t g
   color["b"] = b;
 }
 
+void GroupState::applyOhColor(ArduinoJson::JsonObject& state) {
+  uint8_t rgb[3];
+  RGBConverter converter;
+  converter.hsvToRgb(
+    getHue()/360.0,
+    // Default to fully saturated
+    (isSetSaturation() ? getSaturation() : 100)/100.0,
+    1,
+    rgb
+  );
+  char ohColorStr[13];
+  sprintf(ohColorStr, "%d,%d,%d", rgb[0], rgb[1], rgb[2]);
+  state["color"] = ohColorStr;
+}
+
 // gather partial state for a single field; see GroupState::applyState to gather many fields
 void GroupState::applyField(JsonObject& partialState, const BulbId& bulbId, GroupStateField field) {
   if (isSetField(field)) {
@@ -658,6 +674,12 @@ void GroupState::applyField(JsonObject& partialState, const BulbId& bulbId, Grou
       case GroupStateField::COLOR:
         if (getBulbMode() == BULB_MODE_COLOR) {
           applyColor(partialState);
+        }
+        break;
+
+      case GroupStateField::OH_COLOR:
+        if (getBulbMode() == BULB_MODE_COLOR) {
+          applyOhColor(partialState);
         }
         break;
 

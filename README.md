@@ -259,6 +259,7 @@ You can select which fields should be included in state updates by configuring t
 1. `kelvin / color_temp` - [0, 100] and [153, 370] scales for the same value.  The later's unit is mireds.
 1. `bulb_mode` - what mode the bulb is in: white, rgb, etc.
 1. `color` / `computed_color` - behaves the same when bulb is in rgb mode.  `computed_color` will send RGB = 255,255,255 when in white mode.  This is useful for HomeAssistant where it always expects the color to be set.
+1. `oh_color` - same as `color` with a format compatible with [OpenHAB's colorRGB channel type](https://www.openhab.org/addons/bindings/mqtt.generic/#channel-type-colorrgb-colorhsb).
 1. `device_id` / `device_type` / `group_id` - this information is in the MQTT topic or REST route, but can be included in the payload in the case that processing the topic or route is more difficult.
 
 ## UDP Gateways
