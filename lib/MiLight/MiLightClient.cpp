@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include <RGBConverter.h>
 #include <Units.h>
+#include <TokenIterator.h>
 
 MiLightClient::MiLightClient(
   MiLightRadioFactory* radioFactory,
@@ -361,11 +362,33 @@ void MiLightClient::update(const JsonObject& request) {
 
   // Convert RGB to HSV
   if (request.containsKey("color")) {
-    JsonObject& color = request["color"];
+    uint16_t r, g, b;
 
-    int16_t r = color["r"];
-    int16_t g = color["g"];
-    int16_t b = color["b"];
+    if (request["color"].is<JsonObject>()) {
+      JsonObject& color = request["color"];
+
+      r = color["r"];
+      g = color["g"];
+      b = color["b"];
+    } else if (request["color"].is<const char*>()) {
+      String colorStr = request["color"];
+      char colorCStr[colorStr.length()];
+      uint8_t parsedRgbColors[3] = {0, 0, 0};
+
+      strcpy(colorCStr, colorStr.c_str());
+      TokenIterator colorValueItr(colorCStr, strlen(colorCStr), ',');
+
+      for (size_t i = 0; i < 3 && colorValueItr.hasNext(); ++i) {
+        parsedRgbColors[i] = atoi(colorValueItr.nextToken());
+      }
+
+      r = parsedRgbColors[0];
+      g = parsedRgbColors[1];
+      b = parsedRgbColors[2];
+    } else {
+      Serial.println(F("Unknown format for `color' command"));
+      return;
+    }
 
     // We consider an RGB color "white" if all color intensities are roughly the
     // same value.  An unscientific value of 10 (~4%) is chosen.
