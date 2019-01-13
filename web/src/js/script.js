@@ -252,6 +252,7 @@ var DEFAULT_UDP_PROTOCL_VERSION = 5;
 
 var selectize;
 var sniffing = false;
+var loadingSettings = false;
 
 // don't attempt websocket if we are debugging locally
 if (location.hostname != "") {
@@ -363,6 +364,8 @@ var loadSettings = function() {
     return;
   }
   $.getJSON('/settings', function(val) {
+    loadingSettings = true;
+
     Object.keys(val).forEach(function(k) {
       var field = $('#settings input[name="' + k + '"]');
 
@@ -414,6 +417,8 @@ var loadSettings = function() {
         gatewayForm.append(gatewayServerRow(toHex(v[0]), v[1], v[2]));
       });
     }
+
+    loadingSettings = false;
   });
 };
 
@@ -465,6 +470,32 @@ var saveGatewayConfigs = function() {
       }
     )
   }
+};
+
+var saveDeviceIds = function() {
+  if (!loadingSettings) {
+    var deviceIds = _.map(
+      $('#deviceId')[0].selectize.options,
+      function(option) {
+        return option.value;
+      }
+    );
+
+    $.ajax(
+      "/settings",
+      {
+        method: 'put',
+        contentType: 'application/json',
+        data: JSON.stringify({device_ids: deviceIds})
+      }
+    );
+  }
+};
+
+var deleteDeviceId = function() {
+  selectize.removeOption($(this).data('value'));
+  selectize.refreshOptions();
+  saveDeviceIds();
 };
 
 var deviceIdError = function(v) {
@@ -762,9 +793,37 @@ $(function() {
 
   selectize = $('#deviceId').selectize({
     create: true,
-    sortField: 'text',
+    sortField: 'value',
+    allowEmptyOption: true,
+    render: {
+      option: function(data, escape) {
+        // Mousedown selects an option -- prevent event from bubbling up to select option 
+        // when delete button is clicked.
+        var deleteBtn = $('<span class="selectize-delete"><a href="#"><i class="glyphicon glyphicon-trash"></i></a></span>')
+          .mousedown(function(e) {
+            e.preventDefault();
+            return false;
+          })
+          .click(function(e) {
+            deleteDeviceId.call($(this).closest('.c-selectize-item'));
+            e.preventDefault();
+            return false;
+          });
+
+        var elmt = $('<div class="c-selectize-item"></div>');
+        elmt.append('<span>' + data.text + '</span>');
+        elmt.append(deleteBtn);
+
+        return elmt;
+      }
+    },
     onOptionAdd: function(v, item) {
-      item.value = parseInt(item.value);
+      var unparsedValue = item.value;
+      item.value = parseInt(unparsedValue);
+      selectize.updateOption(unparsedValue, item);
+      selectize.addItem(item.value);
+
+      saveDeviceIds();
     },
     createFilter: function(v) {
       if (! v.match(/^(0x[a-fA-F0-9]{1,4}|[0-9]{1,5})$/)) {
@@ -886,14 +945,6 @@ $(function() {
 
           return a;
         }, {});
-
-      // pretty hacky. whatever.
-      obj.device_ids = _.map(
-        $('.selectize-control .option'),
-        function(x) {
-          return $(x).data('value')
-        }
-      );
 
       // Make sure we're submitting a value for group_state_fields (will be empty
       // if no values were selected).

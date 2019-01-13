@@ -165,3 +165,6 @@ ul.action-buttons {
   from { -webkit-transform: rotate(0deg); }
   to { -webkit-transform: rotate(360deg); }
 }
+
+.selectize-delete { float: right; }
+.c-selectize-item { margin: 0 1em; }
