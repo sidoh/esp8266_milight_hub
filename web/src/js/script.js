@@ -751,7 +751,6 @@ $(function() {
 
   $('body').on('click', '#add-server-btn', function(e) {
     e.preventDefault();
-    console.log('hi');
     $('#gateway-server-configs').append(gatewayServerRow('', ''));
   });
 
