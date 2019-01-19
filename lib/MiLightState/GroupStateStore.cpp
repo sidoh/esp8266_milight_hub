@@ -22,12 +22,15 @@ GroupState* GroupStateStore::get(const BulbId& id) {
     // ID 0, so we can't always ignore group 0.
     const MiLightRemoteConfig* remoteConfig = MiLightRemoteConfig::fromType(id.deviceType);
 
-    if (id.groupId != 0 || remoteConfig == NULL || remoteConfig->numGroups == 0) {
-      persistence.get(id, loadedState);
-      state = cache.set(id, loadedState);
-    } else {
+    if (remoteConfig == NULL) {
       return NULL;
     }
+
+    if (id.groupId != 0 || remoteConfig->numGroups == 0) {
+      persistence.get(id, loadedState);
+    }
+
+    state = cache.set(id, loadedState);
   }
 
   return state;
