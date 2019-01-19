@@ -10,7 +10,8 @@ GroupStateStore::GroupStateStore(const size_t maxSize, const size_t flushRate)
 GroupState* GroupStateStore::get(const BulbId& id) {
   GroupState* state = cache.get(id);
 
-  if (state == NULL) {
+  // Always force re-initialization of group 0 state
+  if (id.groupId == 0 || state == NULL) {
     trackEviction();
     GroupState loadedState = GroupState::defaultState(id.deviceType);
 
