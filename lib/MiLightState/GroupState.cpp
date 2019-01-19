@@ -533,6 +533,11 @@ bool GroupState::applyIncrementCommand(GroupStateField field, IncrementDirection
 }
 
 bool GroupState::patch(const GroupState& other) {
+#ifdef STATE_DEBUG
+  other.debugState("Patching existing state with: ");
+  Serial.println();
+#endif
+
   for (size_t i = 0; i < size(ALL_PHYSICAL_FIELDS); ++i) {
     GroupStateField field = ALL_PHYSICAL_FIELDS[i];
 
@@ -615,7 +620,7 @@ bool GroupState::patch(const JsonObject& state) {
   return changes;
 }
 
-void GroupState::applyColor(ArduinoJson::JsonObject& state) {
+void GroupState::applyColor(ArduinoJson::JsonObject& state) const {
   uint8_t rgb[3];
   RGBConverter converter;
   converter.hsvToRgb(
@@ -628,14 +633,14 @@ void GroupState::applyColor(ArduinoJson::JsonObject& state) {
   applyColor(state, rgb[0], rgb[1], rgb[2]);
 }
 
-void GroupState::applyColor(ArduinoJson::JsonObject& state, uint8_t r, uint8_t g, uint8_t b) {
+void GroupState::applyColor(ArduinoJson::JsonObject& state, uint8_t r, uint8_t g, uint8_t b) const {
   JsonObject& color = state.createNestedObject("color");
   color["r"] = r;
   color["g"] = g;
   color["b"] = b;
 }
 
-void GroupState::applyOhColor(ArduinoJson::JsonObject& state) {
+void GroupState::applyOhColor(ArduinoJson::JsonObject& state) const {
   uint8_t rgb[3];
   RGBConverter converter;
   converter.hsvToRgb(
@@ -651,7 +656,7 @@ void GroupState::applyOhColor(ArduinoJson::JsonObject& state) {
 }
 
 // gather partial state for a single field; see GroupState::applyState to gather many fields
-void GroupState::applyField(JsonObject& partialState, const BulbId& bulbId, GroupStateField field) {
+void GroupState::applyField(JsonObject& partialState, const BulbId& bulbId, GroupStateField field) const {
   if (isSetField(field)) {
     switch (field) {
       case GroupStateField::STATE:
@@ -750,7 +755,7 @@ void GroupState::applyField(JsonObject& partialState, const BulbId& bulbId, Grou
 }
 
 // helper function to debug the current state (in JSON) to the serial port
-void GroupState::debugState(char const *debugMessage) {
+void GroupState::debugState(char const *debugMessage) const {
 #ifdef STATE_DEBUG
   // using static to keep large buffers off the call stack
   static StaticJsonBuffer<500> jsonBuffer;
@@ -759,17 +764,14 @@ void GroupState::debugState(char const *debugMessage) {
   GroupStateField fields[] {
       GroupStateField::BRIGHTNESS,
       GroupStateField::BULB_MODE,
-      GroupStateField::COLOR,
       GroupStateField::COLOR_TEMP,
-      GroupStateField::COMPUTED_COLOR,
       GroupStateField::EFFECT,
       GroupStateField::HUE,
       GroupStateField::KELVIN,
-      GroupStateField::LEVEL,
       GroupStateField::MODE,
       GroupStateField::SATURATION,
-      GroupStateField::STATE,
-      GroupStateField::STATUS };
+      GroupStateField::STATE
+  };
 
   // since our buffer is reused, make sure to clear it every time
   jsonBuffer.clear();
@@ -779,7 +781,7 @@ void GroupState::debugState(char const *debugMessage) {
   BulbId id;
 
   // use applyState to build JSON of all fields (from above)
-  applyState(jsonState, id, fields, 13);
+  applyState(jsonState, id, fields, size(fields));
   // convert to string and print
   Serial.printf("%s: ", debugMessage);
   jsonState.printTo(Serial);
@@ -789,7 +791,7 @@ void GroupState::debugState(char const *debugMessage) {
 
 // build up a partial state representation based on the specified GrouipStateField array.  Used
 // to gather a subset of states (configurable in the UI) for sending to MQTT and web responses.
-void GroupState::applyState(JsonObject& partialState, const BulbId& bulbId, GroupStateField* fields, size_t numFields) {
+void GroupState::applyState(JsonObject& partialState, const BulbId& bulbId, GroupStateField* fields, size_t numFields) const {
   for (size_t i = 0; i < numFields; i++) {
     applyField(partialState, bulbId, fields[i]);
   }

@@ -127,8 +127,8 @@ public:
   // support fields like DEVICE_ID, which aren't otherweise available to the
   // state in this class.  The alternative is to have every GroupState object
   // keep a reference to its BulbId, which feels too heavy-weight.
-  void applyField(JsonObject& state, const BulbId& bulbId, GroupStateField field);
-  void applyState(JsonObject& state, const BulbId& bulbId, GroupStateField* fields, size_t numFields);
+  void applyField(JsonObject& state, const BulbId& bulbId, GroupStateField field) const;
+  void applyState(JsonObject& state, const BulbId& bulbId, GroupStateField* fields, size_t numFields) const;
 
   // Attempt to keep track of increment commands in such a way that we can
   // know what state it's in.  When we get an increment command (like "increase 
@@ -149,7 +149,7 @@ public:
   void load(Stream& stream);
   void dump(Stream& stream) const;
 
-  void debugState(char const *debugMessage);
+  void debugState(char const *debugMessage) const;
 
   static const GroupState& defaultState(MiLightRemoteType remoteType);
 
@@ -201,10 +201,10 @@ private:
   StateData state;
   TransientData scratchpad;
 
-  void applyColor(JsonObject& state, uint8_t r, uint8_t g, uint8_t b);
-  void applyColor(JsonObject& state);
+  void applyColor(JsonObject& state, uint8_t r, uint8_t g, uint8_t b) const;
+  void applyColor(JsonObject& state) const;
   // Apply OpenHAB-style color, e.g., {"color":"0,0,0"}
-  void applyOhColor(JsonObject& state);
+  void applyOhColor(JsonObject& state) const;
 };
 
 extern const BulbId DEFAULT_BULB_ID;
