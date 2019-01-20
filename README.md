@@ -268,6 +268,18 @@ You can add an arbitrary number of UDP gateways through the REST API or through 
 
 You can select between versions 5 and 6 of the UDP protocol (documented [here](http://www.limitlessled.com/dev/)). Version 6 has support for the newer RGB+CCT bulbs and also includes response packets, which can theoretically improve reliability. Version 5 has much smaller packets and is probably lower latency.
 
+## Development
+
+#### Running tests
+
+Run unit tests with this command:
+
+```
+pio test -e d1_mini
+```
+
+substituting `d1_mini` for the environment of your choice.
+
 ## Acknowledgements
 
 * @WoodsterDK added support for LT8900 radios.
