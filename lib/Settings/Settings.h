@@ -153,6 +153,8 @@ public:
   String mqttTopicPattern;
   String mqttUpdateTopicPattern;
   String mqttStateTopicPattern;
+  String mqttLwtTopic;
+  String mqttLwtMessage;
   GroupStateField *groupStateFields;
   size_t numGroupStateFields;
   uint16_t discoveryPort;

@@ -51,11 +51,29 @@ bool MqttClient::connect() {
     Serial.println(F("MqttClient - connecting"));
 #endif
 
-  if (settings.mqttUsername.length() > 0) {
+  if (settings.mqttUsername.length() > 0 && settings.mqttLwtTopic.length() > 0) {
+    return mqttClient->connect(
+      nameBuffer,
+      settings.mqttUsername.c_str(),
+      settings.mqttPassword.c_str(),
+      settings.mqttLwtTopic.c_str(),
+      2,
+      true,
+      settings.mqttLwtMessage.c_str()
+    );
+  } else if (settings.mqttUsername.length() > 0) {
     return mqttClient->connect(
       nameBuffer,
       settings.mqttUsername.c_str(),
       settings.mqttPassword.c_str()
+    );
+  } else if (settings.mqttLwtTopic.length() > 0) {
+    return mqttClient->connect(
+      nameBuffer,
+      settings.mqttLwtTopic.c_str(),
+      2,
+      true,
+      settings.mqttLwtMessage.c_str()
     );
   } else {
     return mqttClient->connect(nameBuffer);
