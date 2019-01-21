@@ -106,6 +106,7 @@ void Settings::patch(JsonObject& parsedSettings) {
     this->setIfPresent(parsedSettings, "packet_repeat_minimum", packetRepeatMinimum);
     this->setIfPresent(parsedSettings, "enable_automatic_mode_switching", enableAutomaticModeSwitching);
     this->setIfPresent(parsedSettings, "led_mode_packet_count", ledModePacketCount);
+    this->setIfPresent(parsedSettings, "hostname", hostname);
 
     if (parsedSettings.containsKey("led_mode_wifi_config")) {
       this->ledModeWifiConfig = LEDStatus::stringToLEDMode(parsedSettings["led_mode_wifi_config"]);
@@ -205,6 +206,7 @@ void Settings::serialize(Stream& stream, const bool prettyPrint) {
   root["led_mode_operating"] = LEDStatus::LEDModeToString(this->ledModeOperating);
   root["led_mode_packet"] = LEDStatus::LEDModeToString(this->ledModePacket);
   root["led_mode_packet_count"] = this->ledModePacketCount;
+  root["hostname"] = this->hostname;
 
   if (this->deviceIds) {
     JsonArray& arr = jsonBuffer.createArray();

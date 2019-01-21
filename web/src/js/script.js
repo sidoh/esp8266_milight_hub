@@ -35,6 +35,12 @@ var UI_FIELDS = [ {
     type: "string",
     tab: "tab-wifi"
   }, {
+    tag: "hostname",
+    friendly: "Hostname",
+    help: "Self-reported hostname to send along with DCHP request",
+    type: "string",
+    tab: "tab-wifi"
+  }, {
     tag: "ce_pin",
     friendly: "CE / PKT pin",
     help: "Pin on ESP8266 used for 'CE' (for NRF24L01 interface) or 'PKT' (for 'PL1167/LT8900' interface)",

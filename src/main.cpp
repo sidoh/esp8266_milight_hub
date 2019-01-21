@@ -246,6 +246,8 @@ void applySettings() {
     ledStatus->changePin(settings.ledPin);
     ledStatus->continuous(settings.ledModeOperating);
   }
+
+  WiFi.hostname(settings.hostname);
 }
 
 /**
