@@ -26,7 +26,7 @@ void run_packet_test(uint8_t* packet, PacketFormatter* packetFormatter, const Bu
   DynamicJsonBuffer jsonBuffer;
   JsonObject& result = jsonBuffer.createObject();
 
-  packetFormatter->prepare(0, 0, &stateStore, &settings);
+  packetFormatter->prepare(0, 0);
   BulbId bulbId = packetFormatter->parsePacket(packet, result);
 
   TEST_ASSERT_EQUAL_INT_MESSAGE(expectedBulbId.deviceId, bulbId.deviceId, "Should get the expected device ID");
@@ -234,24 +234,24 @@ void test_store() {
 
   GroupState* storedState;
 
-  storedState = &store.get(id2);
+  storedState = store.get(id2);
   TEST_ASSERT_TRUE_MESSAGE(*storedState == defaultState, "Should return default for state that hasn't been stored");
 
   store.set(id1, initState);
-  storedState = &store.get(id1);
+  storedState = store.get(id1);
 
   TEST_ASSERT_TRUE_MESSAGE(*storedState == initState, "Should return cached state");
 
   store.flush();
-  storedState = &store.get(id1);
+  storedState = store.get(id1);
   TEST_ASSERT_FALSE_MESSAGE(storedState->isDirty(), "Should not be dirty after flushing");
   TEST_ASSERT_TRUE_MESSAGE(storedState->isEqualIgnoreDirty(initState), "Should return cached state after flushing");
 
   store.set(id2, defaultState);
-  storedState = &store.get(id2);
+  storedState = store.get(id2);
   TEST_ASSERT_TRUE_MESSAGE(storedState->isEqualIgnoreDirty(defaultState), "Should return cached state");
 
-  storedState = &store.get(id1);
+  storedState = store.get(id1);
   TEST_ASSERT_TRUE_MESSAGE(storedState->isEqualIgnoreDirty(initState), "Should return persisted state");
 }
 
@@ -283,28 +283,50 @@ void test_group_0() {
   TEST_ASSERT_FALSE_MESSAGE(group0State.isEqualIgnoreDirty(initState), "group0 state should be different than initState");
   TEST_ASSERT_FALSE_MESSAGE(group0State.isEqualIgnoreDirty(initState2), "group0 state should be different than initState2");
 
-  storedState = store.get(id1);
+  storedState = *store.get(id1);
   TEST_ASSERT_TRUE_MESSAGE(storedState.isEqualIgnoreDirty(initState), "Should fetch persisted state");
 
-  storedState = store.get(id2);
+  storedState = *store.get(id2);
   TEST_ASSERT_TRUE_MESSAGE(storedState.isEqualIgnoreDirty(initState2), "Should fetch persisted state");
 
   store.set(group0Id, group0State);
 
-  storedState = store.get(id1);
+  storedState = *store.get(id1);
   expectedState = initState;
   expectedState.setHue(group0State.getHue());
 
   TEST_ASSERT_TRUE_MESSAGE(storedState.isEqualIgnoreDirty(expectedState), "Saving group 0 should only update changed field");
 
-  storedState = store.get(id2);
+  storedState = *store.get(id2);
   expectedState = initState2;
   expectedState.setHue(group0State.getHue());
   TEST_ASSERT_TRUE_MESSAGE(storedState.isEqualIgnoreDirty(expectedState), "Saving group 0 should only update changed field");
 
   // Test that state for group 0 is not persisted
-  storedState = store.get(group0Id);
+  storedState = *store.get(group0Id);
   TEST_ASSERT_TRUE_MESSAGE(storedState.isEqualIgnoreDirty(defaultState), "Group 0 state should not be stored -- should return default state");
+
+  // Test that states for constituent groups are properly updated
+  initState.setHue(0);
+  initState2.setHue(100);
+  initState.setBrightness(50);
+  initState2.setBrightness(70);
+  store.set(id1, initState);
+  store.set(id2, initState2);
+
+  storedState = *store.get(group0Id);
+  storedState.setHue(200);
+  TEST_ASSERT_FALSE_MESSAGE(storedState.isSetBrightness(), "Should not have a set field for group 0 brightness");
+
+  store.set(group0Id, storedState);
+
+  storedState = *store.get(id1);
+  TEST_ASSERT_TRUE_MESSAGE(storedState.getBrightness() == 50, "UNSET field in group 0 update SHOULD NOT overwrite constituent group field");
+  TEST_ASSERT_TRUE_MESSAGE(storedState.getHue() == 200, "SET field in group 0 update SHOULD overwrite constituent group field");
+
+  storedState = *store.get(id2);
+  TEST_ASSERT_TRUE_MESSAGE(storedState.getBrightness() == 70, "UNSET field in group 0 update SHOULD NOT overwrite constituent group field");
+  TEST_ASSERT_TRUE_MESSAGE(storedState.getHue() == 200, "SET field in group 0 update SHOULD overwrite constituent group field");
 
   // Should persist group 0 for device types with 0 groups
   BulbId rgbId(1, 0, REMOTE_TYPE_RGB);
@@ -315,7 +337,7 @@ void test_group_0() {
   store.set(rgbId, rgbState);
   store.flush();
 
-  storedState = store.get(rgbId);
+  storedState = *store.get(rgbId);
 
   TEST_ASSERT_TRUE_MESSAGE(storedState.isEqualIgnoreDirty(rgbState), "Should persist group 0 for device type with no groups");
 }

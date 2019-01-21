@@ -108,7 +108,9 @@ void onPacketSentHandler(uint8_t* packet, const MiLightRemoteConfig& config) {
 
   if (groupState != NULL) {
     groupState->patch(result);
-    stateStore->set(bulbId, *groupState);
+
+    // Copy state before setting it to avoid group 0 re-initialization clobbering it
+    stateStore->set(bulbId, GroupState(*groupState));
   }
 
   if (mqttClient) {

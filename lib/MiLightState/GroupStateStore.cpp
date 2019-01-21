@@ -10,7 +10,8 @@ GroupStateStore::GroupStateStore(const size_t maxSize, const size_t flushRate)
 GroupState* GroupStateStore::get(const BulbId& id) {
   GroupState* state = cache.get(id);
 
-  if (state == NULL) {
+  // Always force re-initialization of group 0 state
+  if (id.groupId == 0 || state == NULL) {
     trackEviction();
     GroupState loadedState = GroupState::defaultState(id.deviceType);
 
@@ -21,12 +22,15 @@ GroupState* GroupStateStore::get(const BulbId& id) {
     // ID 0, so we can't always ignore group 0.
     const MiLightRemoteConfig* remoteConfig = MiLightRemoteConfig::fromType(id.deviceType);
 
-    if (id.groupId != 0 || remoteConfig == NULL || remoteConfig->numGroups == 0) {
-      persistence.get(id, loadedState);
-      state = cache.set(id, loadedState);
-    } else {
+    if (remoteConfig == NULL) {
       return NULL;
     }
+
+    if (id.groupId != 0 || remoteConfig->numGroups == 0) {
+      persistence.get(id, loadedState);
+    }
+
+    state = cache.set(id, loadedState);
   }
 
   return state;
@@ -46,6 +50,11 @@ GroupState* GroupStateStore::set(const BulbId &id, const GroupState& state) {
   if (id.groupId == 0) {
     const MiLightRemoteConfig* remote = MiLightRemoteConfig::fromType(id.deviceType);
     BulbId individualBulb(id);
+
+#ifdef STATE_DEBUG
+    Serial.printf_P(PSTR("Fanning out group 0 state for device ID 0x%04X (%d groups in total)\n"), id.deviceId, remote->numGroups);
+    state.debugState("group 0 state = ");
+#endif
 
     for (size_t i = 1; i <= remote->numGroups; i++) {
       individualBulb.groupId = i;
