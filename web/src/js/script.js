@@ -142,7 +142,23 @@ var UI_FIELDS = [ {
     tag:   "radio_interface_type", 
     friendly: "Radio interface type",
     help: "2.4 GHz radio model. Only change this if you know you're not using an NRF24L01!",
-    type: "radio_interface_type",
+    type: "option_buttons",
+    options: {
+      'nRF24': 'nRF24',
+      'LT8900': 'PL1167/LT8900'
+    },
+    tab: "tab-radio"
+  }, {
+    tag:   "rf24_power_level", 
+    friendly: "nRF24 Power Level",
+    help: "Power level for nRF24L01",
+    type: "option_buttons",
+    options: {
+      'MIN': 'Min',
+      'LOW': 'Low',
+      'HIGH': 'High',
+      'MAX': 'Max'
+    },
     tab: "tab-radio"
   }, {
     tag:   "listen_repeats",
@@ -199,7 +215,11 @@ var UI_FIELDS = [ {
     friendly: "Enable automatic mode switching",
     help: "For RGBWW bulbs (using RGB+CCT or FUT089), enables automatic switching between modes in order to affect changes to " +
     "temperature and saturation when otherwise it would not work",
-    type: "enable_automatic_mode_switching",
+    type: "option_buttons",
+    options: {
+      true: 'Enable',
+      false: 'Disable'
+    },
     tab: "tab-radio"
   }, {
     tag:   "led_mode_wifi_config",
@@ -699,6 +719,21 @@ var startSniffing = function() {
   $("#traffic-sniff").show();
 };
 
+var generateDropdownField = function(fieldName, options) {
+  var s = '<div class="btn-group" id="' + fieldName + '" data-toggle="buttons">';
+
+  Object.keys(options).forEach(function(optionValue) {
+    var optionLabel = options[optionValue];
+    s += '<label class="btn btn-secondary active">' +
+           '<input type="radio" id="' + fieldName + '" name="' + fieldName + '" autocomplete="off" value="' + optionValue + '" /> ' + optionLabel +
+         '</label>';
+  });
+
+  s += '</div>';
+
+  return s;
+};
+
 $(function() {
   $('.radio-option').click(function() {
     $(this).prev().prop('checked', true);
@@ -890,16 +925,7 @@ $(function() {
 
         elmt += '</div>';
 
-        if (k.type === "radio_interface_type") {
-          elmt += '<div class="btn-group" id="radio_interface_type" data-toggle="buttons">' +
-            '<label class="btn btn-secondary active">' +
-              '<input type="radio" id="nrf24" name="radio_interface_type" autocomplete="off" value="nRF24" /> nRF24' +
-            '</label>'+
-            '<label class="btn btn-secondary">' +
-              '<input type="radio" id="lt8900" name="radio_interface_type" autocomplete="off" value="LT8900" /> PL1167/LT8900' +
-            '</label>' +
-          '</div>';
-        } else if (k.type == 'group_state_fields') {
+        if (k.type == 'group_state_fields') {
           elmt += '<select class="selectpicker select-init" name="group_state_fields" multiple>';
           GROUP_STATE_KEYS.forEach(function(stateKey) {
             elmt += '<option>' + stateKey + '</option>';
@@ -911,15 +937,8 @@ $(function() {
             elmt += '<option>' + stateKey + '</option>';
           });
           elmt += '</select>';
-        } else if (k.type == 'enable_automatic_mode_switching') {
-          elmt += '<div class="btn-group" id="enable_automatic_mode_switching" data-toggle="buttons">' +
-            '<label class="btn btn-secondary active">' +
-              '<input type="radio" id="enable_mode_switching" name="enable_automatic_mode_switching" autocomplete="off" value="true" /> Enable' +
-            '</label>'+
-            '<label class="btn btn-secondary">' +
-              '<input type="radio" id="disable_mode_switching" name="enable_automatic_mode_switching" autocomplete="off" value="false" /> Disable' +
-            '</label>' +
-          '</div>';
+        } else if (k.type == 'option_buttons') {
+          elmt += generateDropdownField(k.tag, k.options);
         } else {
           elmt += '<input type="text" class="form-control" name="' + k.tag + '"/>';
         }
