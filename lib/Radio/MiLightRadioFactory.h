@@ -4,6 +4,7 @@
 #include <MiLightRadio.h>
 #include <NRF24MiLightRadio.h>
 #include <LT8900MiLightRadio.h>
+#include <RF24PowerLevel.h>
 #include <Settings.h>
 
 #ifndef _MILIGHT_RADIO_FACTORY_H
@@ -21,7 +22,7 @@ public:
 class NRF24Factory : public MiLightRadioFactory {
 public:
 
-  NRF24Factory(uint8_t cePin, uint8_t csnPin);
+  NRF24Factory(uint8_t cePin, uint8_t csnPin, RF24PowerLevel rF24PowerLevel);
 
   virtual MiLightRadio* create(const MiLightRadioConfig& config);
 

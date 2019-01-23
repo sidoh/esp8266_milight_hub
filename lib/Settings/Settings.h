@@ -2,6 +2,7 @@
 #include <StringStream.h>
 #include <ArduinoJson.h>
 #include <GroupStateField.h>
+#include <RF24PowerLevel.h>
 #include <Size.h>
 #include <LEDStatus.h>
 
@@ -99,7 +100,8 @@ public:
     ledModeOperating(LEDStatus::LEDMode::SlowBlip),
     ledModePacket(LEDStatus::LEDMode::Flicker),
     ledModePacketCount(3),
-    hostname("milight-hub")
+    hostname("milight-hub"),
+    rf24PowerLevel(RF24PowerLevelHelpers::defaultValue())
   {
     if (groupStateFields == NULL) {
       numGroupStateFields = size(DEFAULT_GROUP_STATE_FIELDS);
@@ -171,6 +173,7 @@ public:
   LEDStatus::LEDMode ledModePacket;
   size_t ledModePacketCount;
   String hostname;
+  RF24PowerLevel rf24PowerLevel;
 
 
 protected:

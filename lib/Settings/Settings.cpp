@@ -110,6 +110,10 @@ void Settings::patch(JsonObject& parsedSettings) {
     this->setIfPresent(parsedSettings, "led_mode_packet_count", ledModePacketCount);
     this->setIfPresent(parsedSettings, "hostname", hostname);
 
+    if (parsedSettings.containsKey("rf24_power_level")) {
+      this->rf24PowerLevel = RF24PowerLevelHelpers::valueFromName(parsedSettings["rf24_power_level"]);
+    }
+
     if (parsedSettings.containsKey("led_mode_wifi_config")) {
       this->ledModeWifiConfig = LEDStatus::stringToLEDMode(parsedSettings["led_mode_wifi_config"]);
     }
@@ -211,6 +215,7 @@ void Settings::serialize(Stream& stream, const bool prettyPrint) {
   root["led_mode_packet"] = LEDStatus::LEDModeToString(this->ledModePacket);
   root["led_mode_packet_count"] = this->ledModePacketCount;
   root["hostname"] = this->hostname;
+  root["rf24_power_level"] = RF24PowerLevelHelpers::nameFromValue(this->rf24PowerLevel);
 
   if (this->deviceIds) {
     JsonArray& arr = jsonBuffer.createArray();

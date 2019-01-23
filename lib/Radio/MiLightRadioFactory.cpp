@@ -3,7 +3,7 @@
 MiLightRadioFactory* MiLightRadioFactory::fromSettings(const Settings& settings) {
   switch (settings.radioInterfaceType) {
     case nRF24:
-      return new NRF24Factory(settings.csnPin, settings.cePin);
+      return new NRF24Factory(settings.csnPin, settings.cePin, settings.rf24PowerLevel);
 
     case LT8900:
       return new LT8900Factory(settings.csnPin, settings.resetPin, settings.cePin);
@@ -13,9 +13,11 @@ MiLightRadioFactory* MiLightRadioFactory::fromSettings(const Settings& settings)
   }
 }
 
-NRF24Factory::NRF24Factory(uint8_t csnPin, uint8_t cePin)
+NRF24Factory::NRF24Factory(uint8_t csnPin, uint8_t cePin, RF24PowerLevel rF24PowerLevel)
   : rf24(RF24(cePin, csnPin))
-{ }
+{ 
+  rf24.setPALevel(RF24PowerLevelHelpers::rf24ValueFromValue(rF24PowerLevel));
+}
 
 MiLightRadio* NRF24Factory::create(const MiLightRadioConfig &config) {
   return new NRF24MiLightRadio(rf24, config);
