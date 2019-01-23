@@ -1,5 +1,5 @@
 #include <RF24PowerLevel.h>
-#include <size.h>
+#include <Size.h>
 
 String RF24PowerLevelHelpers::nameFromValue(const RF24PowerLevel& value) {
   const size_t ix = static_cast<size_t>(value);
