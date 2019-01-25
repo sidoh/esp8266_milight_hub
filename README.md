@@ -51,7 +51,7 @@ Both modules are SPI devices and should be connected to the standard SPI pins on
 
 [This guide](https://www.mysensors.org/build/connect_radio#nrf24l01+-&-esp8266) details how to connect an NRF24 to an ESP8266. I used GPIO 16 for CE and GPIO 15 for CSN instead. These can be configured later in the Web GUI, in Settings -> Setup.
 
-<img src="https://user-images.githubusercontent.com/40266/47967518-67556f00-e05e-11e8-857d-1173a9da955c.png" align="right" width="32%" /> <img src="https://user-images.githubusercontent.com/40266/47967520-691f3280-e05e-11e8-838a-83706df2edb0.png" align="left" width="22%" />
+<img src="https://user-images.githubusercontent.com/40266/47967518-67556f00-e05e-11e8-857d-1173a9da955c.png" align="right" width="32%" title="Source: MySensors.org" /> <img src="https://user-images.githubusercontent.com/40266/47967520-691f3280-e05e-11e8-838a-83706df2edb0.png" align="left" width="22%"  />
 
 <div width="40%">
     
@@ -69,9 +69,10 @@ D6 (GPIO12) | MISO | Violet
 
 <br clear="all" />
 
+
 ##### LT8900
 
-Connect SPI pins (CS, SCK, MOSI, MISO) to appropriate SPI pins on the ESP8266. With default settings, connect RST to GPIO 0, and PKT to GPIO 16.
+Connect SPI pins (CE, SCK, MOSI, MISO) to appropriate SPI pins on the ESP8266. With default settings, connect RST to GPIO 0, PKT to GPIO 16, CE to GPIO 4, and CSN to GPIO 15.  Make sure to properly configure these if using non-default pinouts.
 
 #### Setting up the ESP
 
@@ -108,7 +109,12 @@ The HTTP endpoints (shown below) will be fully functional at this point. You sho
 
 ![Web UI](https://user-images.githubusercontent.com/589893/39412360-0d95ab2e-4bd0-11e8-915c-7fef7ee38761.png)
 
+
 If it does not work as expected see [Troubleshooting](https://github.com/sidoh/esp8266_milight_hub/wiki/Troubleshooting).
+
+#### Pair Bulbs
+
+If you need to pair some bulbs, how to do this is [described in the wiki](https://github.com/sidoh/esp8266_milight_hub/wiki/Pairing-new-bulbs).
 
 ## LED Status
 
@@ -138,7 +144,7 @@ If you want to wire up your own LED on a pin, such as on D2/GPIO4, put a wire fr
 1. `POST /firmware`. OTA firmware update.
 1. `GET /settings`. Gets current settings as JSON.
 1. `PUT /settings`. Patches settings (e.g., doesn't overwrite keys that aren't present). Accepts a JSON blob in the body.
-1. `GET /radio_configs`. Get a list of supported radio configs (aka `device_type`s).
+1. `GET /remote_configs`. Get a list of supported remote configs (aka `device_type`s).
 1. `GET /gateway_traffic(/:device_type)?`. Starts an HTTP long poll. Returns any Milight traffic it hears. Useful if you need to know what your Milight gateway/remote ID is. Since protocols for RGBW/CCT are different, specify one of `rgbw`, `cct`, or `rgb_cct` as `:device_type.  The path `/gateway_traffic` without a `:device_type` will sniff for all protocols simultaneously.
 1. `PUT /gateways/:device_id/:device_type/:group_id`. Controls or sends commands to `:group_id` from `:device_id`. Accepts a JSON blob. The schema is documented below in the _Bulb commands_ section.
 1. `GET /gateways/:device_id/:device_type/:group_id`. Returns a JSON blob describing the state of the the provided group.
@@ -172,7 +178,7 @@ Route (5) supports these commands. Note that each bulb type has support for a di
    * `night_mode`. Enable "night mode", which is minimum brightness and bulbs only responding to on/off commands.
 1. `commands`. An array containing any number of the above commands (including repeats).
 
-The following redundant commands are supported for the sake of compatibility with HomeAssistant's [`mqtt_json`](https://home-assistant.io/components/light.mqtt_json/) light platform:
+The following redundant commands are supported for the sake of compatibility with HomeAssistant's [`mqtt`](https://home-assistant.io/components/light.mqtt/) light platform with the `json` schema:
 
 1. `color`. Hash containing RGB color. All keys for r, g, and b should be present. For example, `{"r":255,"g":200,"b":255}`.
 1. `color_temp`. Controls white temperature. Value is in [mireds](https://en.wikipedia.org/wiki/Mired). Milight bulbs are in the range 153-370 mireds (2700K-6500K).
@@ -186,14 +192,14 @@ If you'd like to control bulbs in all groups paired with a particular device ID,
 Turn on group 2 for device ID 0xCD86, set hue to 100, and brightness to 50%:
 
 ```
-$ curl -X PUT -H 'Content-Type: applicaiton/json' -d '{"status":"on","hue":100,"level":50}' http://esp8266/gateways/0xCD86/rgbw/2
+$ curl -X PUT -H 'Content-Type: application/json' -d '{"status":"on","hue":100,"level":50}' http://esp8266/gateways/0xCD86/rgbw/2
 true%
 ```
 
 Set color to white (disable RGB):
 
 ```
-$ curl -X PUT -H 'Content-Type: applicaiton/json' -d '{"command":"set_white"}' -X PUT http://esp8266/gateways/0xCD86/rgbw/2
+$ curl -X PUT -H 'Content-Type: application/json' -d '{"command":"set_white"}' -X PUT http://esp8266/gateways/0xCD86/rgbw/2
 true%
 ```
 
