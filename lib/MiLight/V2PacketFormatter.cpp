@@ -113,10 +113,19 @@ uint8_t V2PacketFormatter::tov2scale(uint8_t value, uint8_t endValue, uint8_t in
 }
 
 uint8_t V2PacketFormatter::fromv2scale(uint8_t value, uint8_t endValue, uint8_t interval, bool reverse, uint8_t buffer) {
-  value = (((value + (0x100 - endValue))%0x100) / interval);
+  value -= endValue;
+
+  // Deal with underflow
+  if (value >= (0xFF - buffer)) {
+    value = 0;
+  }
+
+  value /= interval;
+
   if (reverse) {
     value = 100 - value;
   }
+
   if (value > 100) {
     // overflow
     if (value <= (100 + buffer)) {
