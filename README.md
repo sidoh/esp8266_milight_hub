@@ -49,7 +49,24 @@ Both modules are SPI devices and should be connected to the standard SPI pins on
 
 ##### NRF24L01+
 
-[This guide](https://www.mysensors.org/build/connect_radio#nrf24l01+-&-esp8266) details how to connect an NRF24 to an ESP8266. By default GPIO 4 for CE and GPIO 15 for CSN are used, but these can be configured later.
+
+[This guide](https://www.mysensors.org/build/connect_radio#nrf24l01+-&-esp8266) details how to connect an NRF24 to an ESP8266. By default GPIO 4 for CE and GPIO 15 for CSN are used, but these can be configured late in the Web GUI under Settings -> Setup.
+
+<img src="https://user-images.githubusercontent.com/40266/47967518-67556f00-e05e-11e8-857d-1173a9da955c.png" align="left" width="32%" /> 
+<img src="https://user-images.githubusercontent.com/40266/47967520-691f3280-e05e-11e8-838a-83706df2edb0.png" align="left" width="22%" />
+
+NodeMCU | Radio | Color
+-- | -- | --
+GND | GND | Black
+3V3 | VCC | Red
+D2 (GPIO4) | CE | Orange
+D8 (GPIO15) | CSN/CS | Yellow
+D5 (GPIO14) | SCK | Green
+D7 (GPIO13) | MOSI | Blue
+D6 (GPIO12) | MISO | Violet
+
+_Image source: [MySensors.org](https://mysensors.org)_
+
 
 ##### LT8900
 
@@ -89,6 +106,9 @@ Both mDNS and SSDP are supported.
 The HTTP endpoints (shown below) will be fully functional at this point. You should also be able to navigate to `http://<ip_of_esp>`, or `http://milight-hub.local` if your client supports mDNS. The UI should look like this:
 
 ![Web UI](https://user-images.githubusercontent.com/589893/39412360-0d95ab2e-4bd0-11e8-915c-7fef7ee38761.png)
+
+
+If it does not work as expected see [Troubleshooting](https://github.com/sidoh/esp8266_milight_hub/wiki/Troubleshooting).
 
 #### Pair Bulbs
 
