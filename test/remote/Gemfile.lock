@@ -1,0 +1,17 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    dotenv (2.6.0)
+    mqtt (0.5.0)
+    multipart-post (2.0.0)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  dotenv (~> 2.6)
+  mqtt (~> 0.5)
+  multipart-post
+
+BUNDLED WITH
+   1.17.2
