@@ -54,6 +54,7 @@ public:
   void previousMode();
   void modeSpeedDown();
   void modeSpeedUp();
+  void toggleStatus();
 
   // RGBW methods
   void updateHue(const uint16_t hue);

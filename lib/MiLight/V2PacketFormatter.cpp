@@ -3,8 +3,8 @@
 
 #define GROUP_COMMAND_ARG(status, groupId, numGroups) ( groupId + (status == OFF ? (numGroups + 1) : 0) )
 
-V2PacketFormatter::V2PacketFormatter(uint8_t protocolId, uint8_t numGroups)
-  : PacketFormatter(9),
+V2PacketFormatter::V2PacketFormatter(const MiLightRemoteType deviceType, uint8_t protocolId, uint8_t numGroups)
+  : PacketFormatter(deviceType, 9),
     protocolId(protocolId),
     numGroups(numGroups)
 { }
@@ -13,6 +13,11 @@ bool V2PacketFormatter::canHandle(const uint8_t *packet, const size_t packetLen)
   uint8_t packetCopy[V2_PACKET_LEN];
   memcpy(packetCopy, packet, V2_PACKET_LEN);
   V2RFEncoding::decodeV2Packet(packetCopy);
+
+#ifdef DEBUG_PRINTF
+  Serial.printf_P(PSTR("Testing whether formater for ID %d can handle packet: with protocol ID %d...\n"), protocolId, packetCopy[V2_PROTOCOL_ID_INDEX]);
+#endif
+
   return packetCopy[V2_PROTOCOL_ID_INDEX] == protocolId;
 }
 

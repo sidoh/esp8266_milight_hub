@@ -12,7 +12,7 @@ enum class FUT091Command {
 class FUT091PacketFormatter : public V2PacketFormatter {
 public:
   FUT091PacketFormatter()
-    : V2PacketFormatter(0x21, 4)    // protocol is 0x21, and there are 4 groups
+    : V2PacketFormatter(REMOTE_TYPE_FUT091, 0x21, 4)    // protocol is 0x21, and there are 4 groups
   { }
 
   virtual void updateBrightness(uint8_t value);
