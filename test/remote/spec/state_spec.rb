@@ -14,6 +14,24 @@ RSpec.describe 'State' do
     }
   end
 
+  context 'toggle command' do
+    it 'should toggle ON to OFF' do
+      init_state = @client.patch_state({'status' => 'ON'}, @id_params)
+      expect(init_state['status']).to eq('ON')
+
+      next_state = @client.patch_state({'command' => 'toggle'}, @id_params)
+      expect(next_state['status']).to eq('OFF')
+    end
+
+    it 'should toggle OFF to ON' do
+      init_state = @client.patch_state({'status' => 'OFF'}, @id_params)
+      expect(init_state['status']).to eq('OFF')
+
+      next_state = @client.patch_state({'command' => 'toggle'}, @id_params)
+      expect(next_state['status']).to eq('ON')
+    end
+  end
+
   context 'persistence' do
     it 'should persist parameters' do
       desired_state = {
