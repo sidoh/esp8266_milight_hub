@@ -26,7 +26,7 @@ enum MiLightCctButton {
 class CctPacketFormatter : public PacketFormatter {
 public:
   CctPacketFormatter()
-    : PacketFormatter(7, 20)
+    : PacketFormatter(REMOTE_TYPE_CCT, 7, 20)
   { }
 
   virtual bool canHandle(const uint8_t* packet, const size_t len);

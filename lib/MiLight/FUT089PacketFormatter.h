@@ -24,7 +24,7 @@ enum MiLightFUT089Arguments {
 class FUT089PacketFormatter : public V2PacketFormatter {
 public:
   FUT089PacketFormatter()
-    : V2PacketFormatter(0x25, 8)    // protocol is 0x25, and there are 8 groups
+    : V2PacketFormatter(REMOTE_TYPE_FUT089, 0x25, 8)    // protocol is 0x25, and there are 8 groups
   { }
 
   virtual void updateBrightness(uint8_t value);

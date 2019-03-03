@@ -15,7 +15,7 @@
 
 class V2PacketFormatter : public PacketFormatter {
 public:
-  V2PacketFormatter(uint8_t protocolId, uint8_t numGroups);
+  V2PacketFormatter(const MiLightRemoteType deviceType, uint8_t protocolId, uint8_t numGroups);
 
   virtual bool canHandle(const uint8_t* packet, const size_t packetLen);
   virtual void initializePacket(uint8_t* packet);

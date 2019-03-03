@@ -19,8 +19,9 @@ uint8_t* PacketStream::next() {
   return packet;
 }
 
-PacketFormatter::PacketFormatter(const size_t packetLength, const size_t maxPackets)
-  : packetLength(packetLength),
+PacketFormatter::PacketFormatter(const MiLightRemoteType deviceType, const size_t packetLength, const size_t maxPackets)
+  : deviceType(deviceType),
+    packetLength(packetLength),
     numPackets(0),
     currentPacket(NULL),
     held(false)
@@ -41,6 +42,18 @@ void PacketFormatter::finalizePacket(uint8_t* packet) { }
 
 void PacketFormatter::updateStatus(MiLightStatus status) {
   updateStatus(status, groupId);
+}
+
+void PacketFormatter::toggleStatus() {
+  const GroupState* state = stateStore->get(deviceId, groupId, deviceType);
+
+  if (state) {
+    if (state->isSetState() && state->getState() == MiLightStatus::ON) {
+      updateStatus(MiLightStatus::OFF);
+    } else {
+      updateStatus(MiLightStatus::ON);
+    }
+  }
 }
 
 void PacketFormatter::setHeld(bool held) {

@@ -174,6 +174,7 @@ Route (5) supports these commands. Note that each bulb type has support for a di
    * `temperature_down`. Turns down the white temperature. Not all bulbs with adjustable white temperature support this command.
    * `temperature_up`. Turns up the white temperature. Not all bulbs with adjustable white temperature support this command.
    * `night_mode`. Enable "night mode", which is minimum brightness and bulbs only responding to on/off commands.
+   * `toggle`. Toggle on/off state.
 1. `commands`. An array containing any number of the above commands (including repeats).
 
 The following redundant commands are supported for the sake of compatibility with HomeAssistant's [`mqtt`](https://home-assistant.io/components/light.mqtt/) light platform with the `json` schema:
