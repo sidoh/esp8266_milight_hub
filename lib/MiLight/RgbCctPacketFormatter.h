@@ -32,7 +32,7 @@ enum MiLightRgbCctArguments {
 class RgbCctPacketFormatter : public V2PacketFormatter {
 public:
   RgbCctPacketFormatter()
-    : V2PacketFormatter(0x20, 4),
+    : V2PacketFormatter(REMOTE_TYPE_RGB_CCT, 0x20, 4),
       lastMode(0)
   { }
 

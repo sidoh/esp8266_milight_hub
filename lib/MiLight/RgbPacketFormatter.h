@@ -22,7 +22,7 @@ enum MiLightRgbButton {
 class RgbPacketFormatter : public PacketFormatter {
 public:
   RgbPacketFormatter()
-    : PacketFormatter(6, 20)
+    : PacketFormatter(REMOTE_TYPE_RGB, 6, 20)
   { }
 
   virtual void updateStatus(MiLightStatus status, uint8_t groupId);

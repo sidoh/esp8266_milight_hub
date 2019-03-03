@@ -322,6 +322,14 @@ void MiLightClient::command(uint8_t command, uint8_t arg) {
   flushPacket();
 }
 
+void MiLightClient::toggleStatus() {
+#ifdef DEBUG_CLIENT_COMMANDS
+  Serial.printf_P(PSTR("MiLightClient::toggleStatus"));
+#endif
+  currentRemote->packetFormatter->toggleStatus();
+  flushPacket();
+}
+
 void MiLightClient::update(const JsonObject& request) {
   if (this->updateBeginHandler) {
     this->updateBeginHandler();
@@ -472,6 +480,8 @@ void MiLightClient::handleCommand(const String& command) {
     this->modeSpeedDown();
   } else if (command == "mode_speed_up") {
     this->modeSpeedUp();
+  } else if (command == "toggle") {
+    this->toggleStatus();
   }
 }
 
