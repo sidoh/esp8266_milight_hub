@@ -47,12 +47,10 @@ void PacketFormatter::updateStatus(MiLightStatus status) {
 void PacketFormatter::toggleStatus() {
   const GroupState* state = stateStore->get(deviceId, groupId, deviceType);
 
-  if (state) {
-    if (state->isSetState() && state->getState() == MiLightStatus::ON) {
-      updateStatus(MiLightStatus::OFF);
-    } else {
-      updateStatus(MiLightStatus::ON);
-    }
+  if (state && state->isSetState() && state->getState() == MiLightStatus::ON) {
+    updateStatus(MiLightStatus::OFF);
+  } else {
+    updateStatus(MiLightStatus::ON);
   }
 }
 
