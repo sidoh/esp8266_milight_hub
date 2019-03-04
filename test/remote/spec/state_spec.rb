@@ -90,19 +90,19 @@ RSpec.describe 'State' do
       expect(group_1_state.select { |x| desired_state.include?(x) } ).to eq(desired_state)
     end
 
-    it 'should keep group 0 state' do
-      group_0_params = @id_params.merge(group_id: 0)
-      desired_state = {
-        'status' => 'ON',
-        'level' => 100,
-        'hue' => 0,
-        'saturation' => 100
-      }
+    # it 'should keep group 0 state' do
+    #   group_0_params = @id_params.merge(group_id: 0)
+    #   desired_state = {
+    #     'status' => 'ON',
+    #     'level' => 100,
+    #     'hue' => 0,
+    #     'saturation' => 100
+    #   }
 
-      patched_state = @client.patch_state(desired_state, group_0_params)
+    #   patched_state = @client.patch_state(desired_state, group_0_params)
 
-      expect(patched_state.keys).to include(*desired_state.keys)
-      expect(patched_state.select { |x| desired_state.include?(x) } ).to eq(desired_state)
-    end
+    #   expect(patched_state.keys).to include(*desired_state.keys)
+    #   expect(patched_state.select { |x| desired_state.include?(x) } ).to eq(desired_state)
+    # end
   end
 end
