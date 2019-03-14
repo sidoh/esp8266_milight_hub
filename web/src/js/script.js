@@ -1,3 +1,23 @@
+$(function() {
+  $(document).on('change', ':file', function() {
+    var input = $(this),
+        label = input.val().replace(/\\/g, '/').replace(/.*\//, '');
+    input.trigger('fileselect', [label]);
+  });
+
+  $(document).ready( function() {
+    $(':file').on('fileselect', function(event, label) {
+
+        var input = $(this).parents('.input-group').find(':text'),
+            log = label;
+
+        if( input.length ) {
+            input.val(log);
+        }
+    });
+  });  
+});
+
 var UNIT_PARAMS = {
   minMireds: 153,
   maxMireds: 370,
@@ -1023,4 +1043,24 @@ $(function() {
 
   loadSettings();
   updateModeOptions();
+});
+
+$(function() {
+  $(document).on('change', ':file', function() {
+    var input = $(this),
+        label = input.val().replace(/\\/g, '/').replace(/.*\//, '');
+    input.trigger('fileselect', [label]);
+  });
+
+  $(document).ready( function() {
+    $(':file').on('fileselect', function(event, label) {
+
+        var input = $(this).parents('.input-group').find(':text'),
+            log = label;
+
+        if( input.length ) {
+            input.val(log);
+        }
+    });
+  });  
 });
