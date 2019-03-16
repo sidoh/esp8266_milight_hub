@@ -10,13 +10,15 @@
 #include <PL1167_nRF24.h>
 #include <MiLightRadioConfig.h>
 #include <MiLightRadio.h>
+#include <RF24Channel.h>
+#include <vector>
 
 #ifndef _NRF24_MILIGHT_RADIO_H_
 #define _NRF24_MILIGHT_RADIO_H_
 
 class NRF24MiLightRadio : public MiLightRadio {
   public:
-    NRF24MiLightRadio(RF24& rf, const MiLightRadioConfig& config);
+    NRF24MiLightRadio(RF24& rf, const MiLightRadioConfig& config, const std::vector<RF24Channel>& channels);
 
     int begin();
     bool available();
@@ -30,6 +32,7 @@ class NRF24MiLightRadio : public MiLightRadio {
   private:
     PL1167_nRF24 _pl1167;
     const MiLightRadioConfig& _config;
+    const std::vector<RF24Channel>& channels;
     uint32_t _prev_packet_id;
 
     uint8_t _packet[10];
