@@ -161,8 +161,19 @@ var UI_FIELDS = [ {
     },
     tab: "tab-radio"
   }, {
+    tag:   "rf24_listen_channel", 
+    friendly: "nRF24 Listen Channel",
+    help: "Which channels to listen for messages on the nRF24",
+    type: "option_buttons",
+    options: {
+      'LOW': 'Min',
+      'MID': 'Mid',
+      'HIGH': 'High'
+    },
+    tab: "tab-radio"
+  }, {
     tag:   "rf24_channels", 
-    friendly: "nRF24 Channels",
+    friendly: "nRF24 Send Channels",
     help: "Which channels to send messages on for the nRF24.  Using fewer channels speeds up sends.",
     type: "option_buttons",
     settings: {

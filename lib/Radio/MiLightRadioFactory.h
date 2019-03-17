@@ -24,7 +24,13 @@ public:
 class NRF24Factory : public MiLightRadioFactory {
 public:
 
-  NRF24Factory(uint8_t cePin, uint8_t csnPin, RF24PowerLevel rF24PowerLevel, const std::vector<RF24Channel>& channels);
+  NRF24Factory(
+    uint8_t cePin, 
+    uint8_t csnPin, 
+    RF24PowerLevel rF24PowerLevel, 
+    const std::vector<RF24Channel>& channels,
+    RF24Channel listenChannel
+  );
 
   virtual MiLightRadio* create(const MiLightRadioConfig& config);
 
@@ -32,6 +38,7 @@ protected:
 
   RF24 rf24;
   const std::vector<RF24Channel>& channels;
+  const RF24Channel listenChannel;
 
 };
 

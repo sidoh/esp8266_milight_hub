@@ -116,6 +116,10 @@ void Settings::patch(JsonObject& parsedSettings) {
       rf24Channels = JsonHelpers::jsonArrToVector<RF24Channel>(arr, RF24ChannelHelpers::valueFromName);
     }
 
+    if (parsedSettings.containsKey("rf24_listen_channel")) {
+      this->rf24ListenChannel = RF24ChannelHelpers::valueFromName(parsedSettings["rf24_listen_channel"]);
+    }
+
     if (parsedSettings.containsKey("rf24_power_level")) {
       this->rf24PowerLevel = RF24PowerLevelHelpers::valueFromName(parsedSettings["rf24_power_level"]);
     }
@@ -222,6 +226,7 @@ void Settings::serialize(Stream& stream, const bool prettyPrint) {
   root["led_mode_packet_count"] = this->ledModePacketCount;
   root["hostname"] = this->hostname;
   root["rf24_power_level"] = RF24PowerLevelHelpers::nameFromValue(this->rf24PowerLevel);
+  root["rf24_listen_channel"] = RF24ChannelHelpers::nameFromValue(rf24ListenChannel);
 
   JsonArray& channelArr = jsonBuffer.createArray();
   JsonHelpers::vectorToJsonArr<RF24Channel>(channelArr, rf24Channels, RF24ChannelHelpers::nameFromValue);
