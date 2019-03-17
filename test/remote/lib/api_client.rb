@@ -23,6 +23,7 @@ class ApiClient
       req = req_type.new(uri)
       if req_body
         req['Content-Type'] = 'application/json'
+        req_body = req_body.to_json if !req_body.is_a?(String)
         req.body = req_body
       end
 
