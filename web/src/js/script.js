@@ -161,6 +161,31 @@ var UI_FIELDS = [ {
     },
     tab: "tab-radio"
   }, {
+    tag:   "rf24_listen_channel", 
+    friendly: "nRF24 Listen Channel",
+    help: "Which channels to listen for messages on the nRF24",
+    type: "option_buttons",
+    options: {
+      'LOW': 'Min',
+      'MID': 'Mid',
+      'HIGH': 'High'
+    },
+    tab: "tab-radio"
+  }, {
+    tag:   "rf24_channels", 
+    friendly: "nRF24 Send Channels",
+    help: "Which channels to send messages on for the nRF24.  Using fewer channels speeds up sends.",
+    type: "option_buttons",
+    settings: {
+      multiple: true,
+    },
+    options: {
+      'LOW': 'Min',
+      'MID': 'Mid',
+      'HIGH': 'High'
+    },
+    tab: "tab-radio"
+  }, {
     tag:   "listen_repeats",
     friendly: "Listen repeats",
     help: "Increasing this increases the amount of time spent listening for " +
@@ -406,10 +431,19 @@ var loadSettings = function() {
 
     Object.keys(val).forEach(function(k) {
       var field = $('#settings input[name="' + k + '"]');
+      var selectVal = function(selectVal) {
+        field.filter('[value="' + selectVal + '"]').click();
+      };
 
       if (field.length > 0) {
-        if (field.attr('type') === 'radio') {
-          field.filter('[value="' + val[k] + '"]').click();
+        if (field.attr('type') === 'radio' || field.attr('type') === 'checkbox') {
+          if (Array.isArray(val[k])) {
+            val[k].forEach(function(x) {
+              selectVal(x);
+            });
+          } else {
+            selectVal(val[k]);
+          }
         } else {
           field.val(val[k]);
         }
@@ -719,13 +753,14 @@ var startSniffing = function() {
   $("#traffic-sniff").show();
 };
 
-var generateDropdownField = function(fieldName, options) {
+var generateDropdownField = function(fieldName, options, settings) {
   var s = '<div class="btn-group" id="' + fieldName + '" data-toggle="buttons">';
+  var inputType = settings.multiple ? 'checkbox' : 'radio';
 
   Object.keys(options).forEach(function(optionValue) {
     var optionLabel = options[optionValue];
-    s += '<label class="btn btn-secondary active">' +
-           '<input type="radio" id="' + fieldName + '" name="' + fieldName + '" autocomplete="off" value="' + optionValue + '" /> ' + optionLabel +
+    s += '<label class="btn btn-secondary">' +
+           '<input type="' + inputType + '" id="' + fieldName + '" name="' + fieldName + '" autocomplete="off" value="' + optionValue + '" /> ' + optionLabel +
          '</label>';
   });
 
@@ -938,7 +973,7 @@ $(function() {
           });
           elmt += '</select>';
         } else if (k.type == 'option_buttons') {
-          elmt += generateDropdownField(k.tag, k.options);
+          elmt += generateDropdownField(k.tag, k.options, k.settings || {});
         } else {
           elmt += '<input type="text" class="form-control" name="' + k.tag + '"/>';
         }
@@ -966,8 +1001,9 @@ $(function() {
     if ($('#tab-udp-gateways').hasClass('active')) {
       saveGatewayConfigs();
     } else {
-      var obj = $('#settings')
-        .serializeArray()
+      var obj = $('#settings').serializeArray();
+
+      obj = obj
         .reduce(function(a, x) {
           var val = a[x.name];
 
@@ -980,7 +1016,11 @@ $(function() {
           }
 
           return a;
-        }, {});
+        }, 
+        {
+          // Make sure the value is always an array, even if a single item is selected
+          rf24_channels: []
+        });
 
       // Make sure we're submitting a value for group_state_fields (will be empty
       // if no values were selected).

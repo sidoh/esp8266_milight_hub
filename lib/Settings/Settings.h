@@ -3,8 +3,10 @@
 #include <ArduinoJson.h>
 #include <GroupStateField.h>
 #include <RF24PowerLevel.h>
+#include <RF24Channel.h>
 #include <Size.h>
 #include <LEDStatus.h>
+#include <vector>
 
 #ifndef _SETTINGS_H_INCLUDED
 #define _SETTINGS_H_INCLUDED
@@ -101,7 +103,9 @@ public:
     ledModePacket(LEDStatus::LEDMode::Flicker),
     ledModePacketCount(3),
     hostname("milight-hub"),
-    rf24PowerLevel(RF24PowerLevelHelpers::defaultValue())
+    rf24PowerLevel(RF24PowerLevelHelpers::defaultValue()),
+    rf24Channels(RF24ChannelHelpers::allValues()),
+    rf24ListenChannel(RF24Channel::RF24_LOW)
   {
     if (groupStateFields == NULL) {
       numGroupStateFields = size(DEFAULT_GROUP_STATE_FIELDS);
@@ -125,6 +129,7 @@ public:
 
   static RadioInterfaceType typeFromString(const String& s);
   static String typeToString(RadioInterfaceType type);
+  static std::vector<RF24Channel> defaultListenChannels();
 
   void save();
   String toJson(const bool prettyPrint = true);
@@ -174,6 +179,8 @@ public:
   size_t ledModePacketCount;
   String hostname;
   RF24PowerLevel rf24PowerLevel;
+  std::vector<RF24Channel> rf24Channels;
+  RF24Channel rf24ListenChannel;
 
 
 protected:
