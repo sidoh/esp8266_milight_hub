@@ -408,15 +408,29 @@
             </p>
           </div>
           <form action="/firmware" method="post" enctype="multipart/form-data">
-            <input type="file" name="file"/>
-            <p>&nbsp;</p>
-            <input type="submit" name="submit" class="btn btn-success"/>
+            <div class="input-group">
+              <label class="input-group-btn">
+                <span class="btn btn-primary">
+                  Browse
+                  <input type="file" name="file" style="display: none;">
+                </span>
+              </label>
+              
+              <input type="text" class="form-control" readonly="">
+              
+              <label class="input-group-btn">
+                <span class="btn btn-success">
+                  Upload Firmware
+                  <input type="submit" style="display: none;">
+                </span>
+              </label>
+            </div>
           </form>
-        </div>
+		</div>
         <div class="modal-footer">
           <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
         </div>
-      </div>
+</div>
 
     </div>
   </div>
@@ -474,6 +488,7 @@
       <div class="modal-content">
         <div class="modal-header">
           <button type="button" class="close" data-dismiss="modal">&times;</button>
+          <h2 class="modal-title">Backup & Restore Settings</h2>
         </div>
         <div class="modal-body">
           <div>
@@ -484,12 +499,23 @@
           <div>
             <h3 class="section-title">Restore Settings</h3>
             <form action="/settings" method="post" enctype="multipart/form-data">
-              <p>
-                <input type="file" name="file"/>
-              </p>
-              <p>
-                <input type="submit" name="submit" class="btn btn-success"/>
-              </p>
+              <div class="input-group">
+                <label class="input-group-btn">
+                  <span class="btn btn-primary">
+                    Browse
+                    <input type="file" name="file" style="display: none;">
+                  </span>
+                </label>
+                
+                <input type="text" class="form-control" readonly="">
+                
+                <label class="input-group-btn">
+                  <span class="btn btn-success">
+                    Upload
+                    <input type="submit" style="display: none;">
+                  </span>
+                </label>
+              </div>
             </form>
           </div>
         </div>
