@@ -30,6 +30,7 @@ private:
   char* domain;
   unsigned long lastConnectAttempt;
 
+  void sendBirthMessage();
   bool connect();
   void subscribe();
   void publishCallback(char* topic, byte* payload, int length);

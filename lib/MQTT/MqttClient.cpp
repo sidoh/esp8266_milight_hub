@@ -6,6 +6,7 @@
 #include <ArduinoJson.h>
 #include <WiFiClient.h>
 #include <MiLightRadioConfig.h>
+#include <AboutStringHelper.h>
 
 MqttClient::MqttClient(Settings& settings, MiLightClient*& milightClient)
   : milightClient(milightClient),
@@ -80,6 +81,15 @@ bool MqttClient::connect() {
   }
 }
 
+void MqttClient::sendBirthMessage() {
+  if (settings.mqttBirthTopic.length() > 0) {
+    String aboutStr = AboutStringHelper::generateAboutString(true);
+    Serial.println(settings.mqttBirthTopic);
+    Serial.println(aboutStr);
+    mqttClient->publish(settings.mqttBirthTopic.c_str(), aboutStr.c_str());
+  }
+}
+
 void MqttClient::reconnect() {
   if (lastConnectAttempt > 0 && (millis() - lastConnectAttempt) < MQTT_CONNECTION_ATTEMPT_FREQUENCY) {
     return;
@@ -88,6 +98,7 @@ void MqttClient::reconnect() {
   if (! mqttClient->connected()) {
     if (connect()) {
       subscribe();
+      sendBirthMessage();
 
 #ifdef MQTT_DEBUG
       Serial.println(F("MqttClient - Successfully connected to MQTT server"));
