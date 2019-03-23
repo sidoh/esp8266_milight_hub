@@ -35,8 +35,8 @@
   "device_ids": [
   ],
   "group_state_fields": [
-    "state",
-    "brightness",
+    "status",
+    "level",
     "color_temp",
     "bulb_mode",
     "hue",
