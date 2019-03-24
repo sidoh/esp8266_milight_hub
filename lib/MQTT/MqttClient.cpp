@@ -84,8 +84,6 @@ bool MqttClient::connect() {
 void MqttClient::sendBirthMessage() {
   if (settings.mqttBirthTopic.length() > 0) {
     String aboutStr = AboutStringHelper::generateAboutString(true);
-    Serial.println(settings.mqttBirthTopic);
-    Serial.println(aboutStr);
     mqttClient->publish(settings.mqttBirthTopic.c_str(), aboutStr.c_str());
   }
 }
