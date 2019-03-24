@@ -291,15 +291,21 @@ You can select between versions 5 and 6 of the UDP protocol (documented [here](h
 
 ## Development
 
+This project is developed and built using [PlatformIO](https://platformio.org/).
+
 #### Running tests
 
-Run unit tests with this command:
+On-board unit tests are available using PlatformIO.  Run unit tests with this command:
 
 ```
 pio test -e d1_mini
 ```
 
 substituting `d1_mini` for the environment of your choice.
+
+#### Running integration tests
+
+A remote integration test suite built using rspec is available under [`./test/remote`](test/remote).
 
 ## Acknowledgements
 

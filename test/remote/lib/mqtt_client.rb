@@ -20,6 +20,11 @@ class MqttClient
     @client.connect
   end
 
+  def wait_for_message(topic, timeout = 10)
+    on_message(topic, timeout) { |topic, message| }
+    wait_for_listeners
+  end
+
   def id_topic_suffix(params)
     if params
       "#{sprintf '0x%04X', params[:id]}/#{params[:type]}/#{params[:group_id]}"
@@ -61,7 +66,9 @@ class MqttClient
             raise BreakListenLoopError if yield(topic, message)
           end
         end
-      rescue Timeout::Error
+      rescue Timeout::Error => e
+        puts "Timed out listening for message on: #{topic}"
+        puts e.backtrace.join("\n")
       rescue BreakListenLoopError
       end
     end

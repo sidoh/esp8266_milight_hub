@@ -7,6 +7,7 @@ RSpec.describe 'State' do
     @client.upload_json('/settings', 'settings.json')
 
     @topic_prefix = ENV.fetch('ESPMH_MQTT_TOPIC_PREFIX')
+    @updates_topic = "#{@topic_prefix}updates/:device_id/:device_type/:group_id"
 
     @client.put(
       '/settings', 
@@ -15,7 +16,7 @@ RSpec.describe 'State' do
       mqtt_password: ENV.fetch('ESPMH_MQTT_PASSWORD'),
       mqtt_topic_pattern: "#{@topic_prefix}commands/:device_id/:device_type/:group_id",
       mqtt_state_topic_pattern: "#{@topic_prefix}state/:device_id/:device_type/:group_id",
-      mqtt_update_topic_pattern: "#{@topic_prefix}updates/:device_id/:device_type/:group_id",
+      mqtt_update_topic_pattern: @updates_topic
     )
 
     @mqtt_client = MqttClient.new(
@@ -110,6 +111,50 @@ RSpec.describe 'State' do
       @mqtt_client.wait_for_listeners
 
       expect(accumulated_state).to eq(desired_state)
+    end
+
+    it 'should respect the state update interval' do
+      # Wait for MQTT to reconnect
+      @mqtt_client.on_message("#{@topic_prefix}birth") { |x, y| true }
+
+      # Disable updates to prevent the negative effects of spamming commands
+      @client.put(
+        '/settings', 
+        mqtt_update_topic_pattern: '',
+        mqtt_state_rate_limit: 500
+      )
+
+      @mqtt_client.wait_for_listeners
+
+      # Set initial state
+      @client.patch_state({status: 'ON', level: 0}, @id_params)
+
+      last_seen = 0
+      update_timestamp_gaps = []
+      num_updates = 20
+
+      @mqtt_client.on_state(@id_params) do |id, message|
+        next_time = Time.now
+        if last_seen != 0
+          update_timestamp_gaps << next_time - last_seen
+        end
+        last_seen = next_time
+
+        message['level'] == num_updates
+      end
+
+      (1..num_updates).each do |i|
+        @mqtt_client.patch_state(@id_params, level: i)
+        sleep 0.1
+      end
+
+      @mqtt_client.wait_for_listeners
+
+      # Discard first, retained messages mess with it
+      avg = update_timestamp_gaps.sum / update_timestamp_gaps.length
+
+      expect(update_timestamp_gaps.length).to be >= 3
+      expect(avg).to be >= 0.5
     end
   end
 end
