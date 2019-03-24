@@ -159,6 +159,12 @@ var UI_FIELDS = [ {
     type: "string",
     tab: "tab-mqtt"
   }, {
+    tag:   "mqtt_birth_topic", 
+    friendly: "MQTT Birth Topic",
+    help: "Birth Topic - JSON blob with system details will be sent to this topic upon connection",
+    type: "string",
+    tab: "tab-mqtt"
+  }, {
     tag:   "radio_interface_type", 
     friendly: "Radio interface type",
     help: "2.4 GHz radio model. Only change this if you know you're not using an NRF24L01!",
