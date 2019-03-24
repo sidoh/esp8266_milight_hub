@@ -14,6 +14,10 @@
 #define XQUOTE(x) #x
 #define QUOTE(x) XQUOTE(x)
 
+#ifndef FIRMWARE_NAME
+#define FIRMWARE_NAME unknown
+#endif
+
 #ifndef FIRMWARE_VARIANT
 #define FIRMWARE_VARIANT unknown
 #endif
@@ -162,6 +166,7 @@ public:
   String mqttStateTopicPattern;
   String mqttLwtTopic;
   String mqttLwtMessage;
+  String mqttBirthTopic;
   GroupStateField *groupStateFields;
   size_t numGroupStateFields;
   uint16_t discoveryPort;

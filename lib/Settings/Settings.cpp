@@ -100,6 +100,7 @@ void Settings::patch(JsonObject& parsedSettings) {
     this->setIfPresent(parsedSettings, "mqtt_state_topic_pattern", mqttStateTopicPattern);
     this->setIfPresent(parsedSettings, "mqtt_lwt_topic", mqttLwtTopic);
     this->setIfPresent(parsedSettings, "mqtt_lwt_message", mqttLwtMessage);
+    this->setIfPresent(parsedSettings, "mqtt_birth_topic", mqttBirthTopic);
     this->setIfPresent(parsedSettings, "discovery_port", discoveryPort);
     this->setIfPresent(parsedSettings, "listen_repeats", listenRepeats);
     this->setIfPresent(parsedSettings, "state_flush_interval", stateFlushInterval);
@@ -211,6 +212,7 @@ void Settings::serialize(Stream& stream, const bool prettyPrint) {
   root["mqtt_state_topic_pattern"] = this->mqttStateTopicPattern;
   root["mqtt_lwt_topic"] = this->mqttLwtTopic;
   root["mqtt_lwt_message"] = this->mqttLwtMessage;
+  root["mqtt_birth_topic"] = this->mqttBirthTopic;
   root["discovery_port"] = this->discoveryPort;
   root["listen_repeats"] = this->listenRepeats;
   root["state_flush_interval"] = this->stateFlushInterval;
