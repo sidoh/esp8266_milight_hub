@@ -24,6 +24,10 @@
 #include <LEDStatus.h>
 
 WiFiManager wifiManager;
+// because of callbacks, these need to be in the higher scope :(
+WiFiManagerParameter* wifiStaticIP = NULL;
+WiFiManagerParameter* wifiStaticIPNetmask = NULL;
+WiFiManagerParameter* wifiStaticIPGateway = NULL;
 
 static LEDStatus *ledStatus;
 
@@ -266,6 +270,16 @@ void handleLED() {
   ledStatus->handle();
 }
 
+void wifiExtraSettingsChange() {
+  WiFiManagerParameter param = *wifiStaticIP;
+  settings.wifiStaticIP = param.getValue();
+  param = *wifiStaticIPNetmask;
+  settings.wifiStaticIPNetmask = param.getValue();
+  param = *wifiStaticIPGateway;
+  settings.wifiStaticIPGateway = param.getValue();
+  settings.save();
+}
+
 void setup() {
   Serial.begin(9600);
   String ssid = "ESP" + String(ESP.getChipId());
@@ -289,6 +303,36 @@ void setup() {
   // that change is only on the development branch so we are going to continue to use this fork until
   // that is merged and ready.
   wifiManager.setSetupLoopCallback(handleLED);
+  
+  // Allows us to have static IP config in the captive portal. Yucky pointers to pointers, just to have the settings carry through
+  wifiManager.setSaveConfigCallback(wifiExtraSettingsChange);
+  char* _value = new char[14];
+  settings.wifiStaticIP.toCharArray(_value,14);
+  WiFiManagerParameter param = WiFiManagerParameter("staticIP", "Static IP (Leave 0.0.0.0 for dhcp)", _value, 15);
+  wifiStaticIP = &param;
+  wifiManager.addParameter(wifiStaticIP);
+  char* _value2 = new char[14];
+  settings.wifiStaticIPNetmask.toCharArray(_value2,14);
+  WiFiManagerParameter param2 = WiFiManagerParameter("netmask", "Netmask (required if IP given)", _value2, 15);
+  wifiStaticIPNetmask = &param2;
+  wifiManager.addParameter(wifiStaticIPNetmask);
+  char* _value3 = new char[14];
+  settings.wifiStaticIPGateway.toCharArray(_value3,14);
+  WiFiManagerParameter param3 = WiFiManagerParameter("gateway", "Default Gateway (optional, only used if static IP)", _value3, 15);
+  wifiStaticIPGateway = &param3;
+  wifiManager.addParameter(wifiStaticIPGateway);
+
+  // We have a saved static IP, let's try and use it.
+  if (settings.wifiStaticIP != "0.0.0.0") {
+    Serial.println(F("We have a static IP.\n"));
+    Serial.println(settings.wifiStaticIP + "\n");
+    IPAddress _ip,_subnet,_gw;
+    _ip.fromString(settings.wifiStaticIP);
+    _subnet.fromString(settings.wifiStaticIPNetmask);
+    _gw.fromString(settings.wifiStaticIPGateway);
+    wifiManager.setSTAStaticIPConfig(_ip,_gw,_subnet);
+  }
+
   wifiManager.setConfigPortalTimeout(180);
   if (wifiManager.autoConnect(ssid.c_str(), "milightHub")) {
     // set LED mode for successful operation

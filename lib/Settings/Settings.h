@@ -109,7 +109,10 @@ public:
     hostname("milight-hub"),
     rf24PowerLevel(RF24PowerLevelHelpers::defaultValue()),
     rf24Channels(RF24ChannelHelpers::allValues()),
-    rf24ListenChannel(RF24Channel::RF24_LOW)
+    rf24ListenChannel(RF24Channel::RF24_LOW),
+    wifiStaticIP("0.0.0.0"),
+    wifiStaticIPNetmask("0.0.0.0"),
+    wifiStaticIPGateway("0.0.0.0")
   {
     if (groupStateFields == NULL) {
       numGroupStateFields = size(DEFAULT_GROUP_STATE_FIELDS);
@@ -186,6 +189,9 @@ public:
   RF24PowerLevel rf24PowerLevel;
   std::vector<RF24Channel> rf24Channels;
   RF24Channel rf24ListenChannel;
+  String wifiStaticIP;
+  String wifiStaticIPNetmask;
+  String wifiStaticIPGateway;
 
 
 protected:

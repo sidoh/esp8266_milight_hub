@@ -157,6 +157,10 @@ void Settings::patch(JsonObject& parsedSettings) {
       JsonArray& arr = parsedSettings["group_state_fields"];
       updateGroupStateFields(arr);
     }
+
+    this->setIfPresent<String>(parsedSettings, "wifi_static_ip", wifiStaticIP);
+    this->setIfPresent<String>(parsedSettings, "wifi_static_ip_gateway", wifiStaticIPGateway);
+    this->setIfPresent<String>(parsedSettings, "wifi_static_ip_netmask", wifiStaticIPNetmask);
   }
 }
 
@@ -264,6 +268,10 @@ void Settings::serialize(Stream& stream, const bool prettyPrint) {
 
     root["group_state_fields"] = arr;
   }
+
+  root["wifi_static_ip"] = this->wifiStaticIP;
+  root["wifi_static_ip_gateway"] = this->wifiStaticIPGateway;
+  root["wifi_static_ip_netmask"] = this->wifiStaticIPNetmask;
 
   if (prettyPrint) {
     root.prettyPrintTo(stream);
