@@ -18,14 +18,6 @@ RSpec.describe 'State' do
       mqtt_state_topic_pattern: "#{@topic_prefix}state/:device_id/:device_type/:group_id",
       mqtt_update_topic_pattern: @updates_topic
     )
-
-    @mqtt_client = MqttClient.new(
-      *%w(SERVER USERNAME PASSWORD).map { |x| ENV.fetch("ESPMH_MQTT_#{x}") } << @topic_prefix
-    )
-  end
-
-  after(:all) do
-    @mqtt_client.disconnect
   end
 
   before(:each) do
@@ -34,6 +26,10 @@ RSpec.describe 'State' do
       type: 'rgb_cct',
       group_id: 1
     }
+
+    @mqtt_client = MqttClient.new(
+      *%w(SERVER USERNAME PASSWORD).map { |x| ENV.fetch("ESPMH_MQTT_#{x}") } << @topic_prefix
+    )
   end
 
   context 'birth and LWT' do
@@ -121,7 +117,8 @@ RSpec.describe 'State' do
       @client.put(
         '/settings', 
         mqtt_update_topic_pattern: '',
-        mqtt_state_rate_limit: 500
+        mqtt_state_rate_limit: 500,
+        packet_repeats: 1
       )
 
       @mqtt_client.wait_for_listeners
@@ -131,7 +128,7 @@ RSpec.describe 'State' do
 
       last_seen = 0
       update_timestamp_gaps = []
-      num_updates = 20
+      num_updates = 50
 
       @mqtt_client.on_state(@id_params) do |id, message|
         next_time = Time.now
@@ -154,7 +151,7 @@ RSpec.describe 'State' do
       avg = update_timestamp_gaps.sum / update_timestamp_gaps.length
 
       expect(update_timestamp_gaps.length).to be >= 3
-      expect(avg).to be >= 0.5
+      expect((avg - 0.5).abs).to be < 0.02
     end
   end
 end

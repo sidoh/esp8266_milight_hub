@@ -42,9 +42,9 @@ class MqttClient
   end
 
   def on_id_message(path, id_params, timeout, &block)
-    topic = "#{@topic_prefix}#{path}/#{id_topic_suffix(id_params)}"
+    sub_topic = "#{@topic_prefix}#{path}/#{id_topic_suffix(id_params)}"
 
-    on_message(topic, timeout) do |topic, message|
+    on_message(sub_topic, timeout) do |topic, message|
       topic_parts = topic.split('/')
 
       yield(
@@ -63,7 +63,8 @@ class MqttClient
       begin
         Timeout.timeout(timeout) do
           @client.get(topic) do |topic, message|
-            raise BreakListenLoopError if yield(topic, message)
+            ret_val = yield(topic, message)
+            raise BreakListenLoopError if ret_val
           end
         end
       rescue Timeout::Error => e
