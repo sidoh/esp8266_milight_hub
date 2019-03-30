@@ -31,7 +31,7 @@ void MiLightHttpServer::begin() {
 
   server.onPatternAuthenticated("/raw_commands/:type", HTTP_ANY, [this](const UrlTokenBindings* b) { handleSendRaw(b); });
   server.onAuthenticated("/web", HTTP_POST, [this]() { server.send_P(200, TEXT_PLAIN, PSTR("success")); }, handleUpdateFile(WEB_INDEX_FILENAME));
-  server.on("/about", HTTP_GET, [this]() { handleAbout(); });
+  server.onAuthenticated("/about", HTTP_GET, [this]() { handleAbout(); });
   server.onAuthenticated("/system", HTTP_POST, [this]() { handleSystemPost(); });
   server.onAuthenticated("/firmware", HTTP_POST, [this]() { handleFirmwarePost(); }, [this]() { handleFirmwareUpload(); });
 
@@ -213,6 +213,12 @@ void MiLightHttpServer::handleUpdateSettings() {
 
 void MiLightHttpServer::handleUpdateSettingsPost() {
   Settings::load(settings);
+
+  this->applySettings(settings);
+  if (this->settingsSavedHandler) {
+    this->settingsSavedHandler();
+  }
+
   server.send_P(200, TEXT_PLAIN, PSTR("success."));
 }
 

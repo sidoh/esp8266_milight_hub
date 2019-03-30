@@ -162,6 +162,9 @@ void Settings::patch(JsonObject& parsedSettings) {
 
 void Settings::load(Settings& settings) {
   if (SPIFFS.exists(SETTINGS_FILE)) {
+    // Clear in-memory settings
+    settings = Settings();
+
     File f = SPIFFS.open(SETTINGS_FILE, "r");
     String settingsContents = f.readStringUntil(SETTINGS_TERMINATOR);
     f.close();

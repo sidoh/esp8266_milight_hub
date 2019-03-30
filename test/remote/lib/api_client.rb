@@ -15,6 +15,16 @@ class ApiClient
     id
   end
 
+  def set_auth!(username, password)
+    @username = username
+    @password = password
+  end
+
+  def clear_auth!
+    @username = nil
+    @password = nil
+  end
+
   def request(type, path, req_body = nil)
     uri = URI("http://#{@host}#{path}")
     Net::HTTP.start(uri.host, uri.port) do |http|
@@ -25,6 +35,10 @@ class ApiClient
         req['Content-Type'] = 'application/json'
         req_body = req_body.to_json if !req_body.is_a?(String)
         req.body = req_body
+      end
+
+      if @username && @password
+        req.basic_auth(@username, @password)
       end
 
       res = http.request(req)
@@ -41,7 +55,7 @@ class ApiClient
   end
 
   def upload_json(path, file)
-    `curl -s "http://#{@host}#{path}" -X POST -F 'f=@settings.json'`
+    `curl -s "http://#{@host}#{path}" -X POST -F 'f=@#{file}'`
   end
 
   def get(path)
