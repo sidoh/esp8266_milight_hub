@@ -111,6 +111,9 @@ void Settings::patch(JsonObject& parsedSettings) {
     this->setIfPresent(parsedSettings, "enable_automatic_mode_switching", enableAutomaticModeSwitching);
     this->setIfPresent(parsedSettings, "led_mode_packet_count", ledModePacketCount);
     this->setIfPresent(parsedSettings, "hostname", hostname);
+    this->setIfPresent(parsedSettings, "wifi_static_ip", wifiStaticIP);
+    this->setIfPresent(parsedSettings, "wifi_static_ip_gateway", wifiStaticIPGateway);
+    this->setIfPresent(parsedSettings, "wifi_static_ip_netmask", wifiStaticIPNetmask);
 
     if (parsedSettings.containsKey("rf24_channels")) {
       JsonArray& arr = parsedSettings["rf24_channels"];
@@ -157,10 +160,6 @@ void Settings::patch(JsonObject& parsedSettings) {
       JsonArray& arr = parsedSettings["group_state_fields"];
       updateGroupStateFields(arr);
     }
-
-    this->setIfPresent<String>(parsedSettings, "wifi_static_ip", wifiStaticIP);
-    this->setIfPresent<String>(parsedSettings, "wifi_static_ip_gateway", wifiStaticIPGateway);
-    this->setIfPresent<String>(parsedSettings, "wifi_static_ip_netmask", wifiStaticIPNetmask);
   }
 }
 
@@ -236,6 +235,9 @@ void Settings::serialize(Stream& stream, const bool prettyPrint) {
   root["hostname"] = this->hostname;
   root["rf24_power_level"] = RF24PowerLevelHelpers::nameFromValue(this->rf24PowerLevel);
   root["rf24_listen_channel"] = RF24ChannelHelpers::nameFromValue(rf24ListenChannel);
+  root["wifi_static_ip"] = this->wifiStaticIP;
+  root["wifi_static_ip_gateway"] = this->wifiStaticIPGateway;
+  root["wifi_static_ip_netmask"] = this->wifiStaticIPNetmask;
 
   JsonArray& channelArr = jsonBuffer.createArray();
   JsonHelpers::vectorToJsonArr<RF24Channel>(channelArr, rf24Channels, RF24ChannelHelpers::nameFromValue);
@@ -268,10 +270,6 @@ void Settings::serialize(Stream& stream, const bool prettyPrint) {
 
     root["group_state_fields"] = arr;
   }
-
-  root["wifi_static_ip"] = this->wifiStaticIP;
-  root["wifi_static_ip_gateway"] = this->wifiStaticIPGateway;
-  root["wifi_static_ip_netmask"] = this->wifiStaticIPNetmask;
 
   if (prettyPrint) {
     root.prettyPrintTo(stream);
