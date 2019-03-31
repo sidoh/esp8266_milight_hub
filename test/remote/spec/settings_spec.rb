@@ -1,5 +1,6 @@
 require 'api_client'
 require 'tempfile'
+require 'net/ping'
 
 RSpec.describe 'Settings' do
   before(:all) do
@@ -90,6 +91,45 @@ RSpec.describe 'Settings' do
       @client.put('/settings', rf24_listen_channel: 'LOW')
       result = @client.get('/settings')
       expect(result['rf24_listen_channel']).to eq('LOW')
+    end
+  end
+
+  context 'static ip' do
+    it 'should boot with static IP when applied' do
+      static_ip = ENV.fetch('ESPMH_STATIC_IP')
+
+      @client.put(
+        '/settings',
+        wifi_static_ip: static_ip,
+        wifi_static_ip_netmask: ENV.fetch('ESPMH_STATIC_IP_NETMASK'),
+        wifi_static_ip_gateway: ENV.fetch('ESPMH_STATIC_IP_GATEWAY')
+      )
+
+      # Reboot to apply static ip
+      @client.reboot
+
+      # Wait for it to come back up
+      ping_test = Net::Ping::External.new(static_ip)
+
+      10.times do 
+        break if ping_test.ping?
+        sleep 1
+      end
+
+      expect(ping_test.ping?).to be(true)
+
+      static_client = ApiClient.new(static_ip, ENV.fetch('ESPMH_TEST_DEVICE_ID_BASE'))
+      static_client.put('/settings', wifi_static_ip: '')
+      static_client.reboot
+
+      ping_test = Net::Ping::External.new(ENV.fetch('ESPMH_HOSTNAME'))
+
+      10.times do 
+        break if ping_test.ping?
+        sleep 1
+      end
+
+      expect(ping_test.ping?).to be(true)
     end
   end
 end

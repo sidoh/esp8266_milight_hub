@@ -25,6 +25,10 @@ class ApiClient
     @password = nil
   end
 
+  def reboot
+    post('/system', '{"command":"restart"}')
+  end
+
   def request(type, path, req_body = nil)
     uri = URI("http://#{@host}#{path}")
     Net::HTTP.start(uri.host, uri.port) do |http|
