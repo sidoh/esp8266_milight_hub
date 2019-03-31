@@ -323,17 +323,19 @@ void setup() {
   wifiManager.addParameter(wifiStaticIPGateway);
 
   // We have a saved static IP, let's try and use it.
-  if (settings.wifiStaticIP != "0.0.0.0") {
-    Serial.println(F("We have a static IP.\n"));
-    Serial.println(settings.wifiStaticIP + "\n");
-    IPAddress _ip,_subnet,_gw;
+  if (settings.wifiStaticIP.length() > 0) {
+    Serial.printf_P(PSTR("We have a static IP: %s\n"), settings.wifiStaticIP.c_str());
+
+    IPAddress _ip, _subnet, _gw;
     _ip.fromString(settings.wifiStaticIP);
     _subnet.fromString(settings.wifiStaticIPNetmask);
     _gw.fromString(settings.wifiStaticIPGateway);
+
     wifiManager.setSTAStaticIPConfig(_ip,_gw,_subnet);
   }
 
   wifiManager.setConfigPortalTimeout(180);
+
   if (wifiManager.autoConnect(ssid.c_str(), "milightHub")) {
     // set LED mode for successful operation
     ledStatus->continuous(settings.ledModeOperating);
