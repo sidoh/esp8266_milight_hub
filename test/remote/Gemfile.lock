@@ -4,6 +4,7 @@ GEM
     dotenv (2.6.0)
     mqtt (0.5.0)
     multipart-post (2.0.0)
+    net-ping (2.0.5)
 
 PLATFORMS
   ruby
@@ -12,6 +13,7 @@ DEPENDENCIES
   dotenv (~> 2.6)
   mqtt (~> 0.5)
   multipart-post
+  net-ping
 
 BUNDLED WITH
    1.17.2

@@ -24,6 +24,10 @@
 #include <LEDStatus.h>
 
 WiFiManager wifiManager;
+// because of callbacks, these need to be in the higher scope :(
+WiFiManagerParameter* wifiStaticIP = NULL;
+WiFiManagerParameter* wifiStaticIPNetmask = NULL;
+WiFiManagerParameter* wifiStaticIPGateway = NULL;
 
 static LEDStatus *ledStatus;
 
@@ -266,6 +270,13 @@ void handleLED() {
   ledStatus->handle();
 }
 
+void wifiExtraSettingsChange() {
+  settings.wifiStaticIP = wifiStaticIP->getValue();
+  settings.wifiStaticIPNetmask = wifiStaticIPNetmask->getValue();
+  settings.wifiStaticIPGateway = wifiStaticIPGateway->getValue();
+  settings.save();
+}
+
 void setup() {
   Serial.begin(9600);
   String ssid = "ESP" + String(ESP.getChipId());
@@ -289,7 +300,48 @@ void setup() {
   // that change is only on the development branch so we are going to continue to use this fork until
   // that is merged and ready.
   wifiManager.setSetupLoopCallback(handleLED);
+  
+  // Allows us to have static IP config in the captive portal. Yucky pointers to pointers, just to have the settings carry through
+  wifiManager.setSaveConfigCallback(wifiExtraSettingsChange);
+
+  wifiStaticIP = new WiFiManagerParameter(
+    "staticIP",
+    "Static IP (Leave blank for dhcp)",
+    settings.wifiStaticIP.c_str(),
+    MAX_IP_ADDR_LEN
+  );
+  wifiManager.addParameter(wifiStaticIP);
+
+  wifiStaticIPNetmask = new WiFiManagerParameter(
+    "netmask",
+    "Netmask (required if IP given)",
+    settings.wifiStaticIPNetmask.c_str(),
+    MAX_IP_ADDR_LEN
+  );
+  wifiManager.addParameter(wifiStaticIPNetmask);
+
+  wifiStaticIPGateway = new WiFiManagerParameter(
+    "gateway",
+    "Default Gateway (optional, only used if static IP)",
+    settings.wifiStaticIPGateway.c_str(),
+    MAX_IP_ADDR_LEN
+  );
+  wifiManager.addParameter(wifiStaticIPGateway);
+
+  // We have a saved static IP, let's try and use it.
+  if (settings.wifiStaticIP.length() > 0) {
+    Serial.printf_P(PSTR("We have a static IP: %s\n"), settings.wifiStaticIP.c_str());
+
+    IPAddress _ip, _subnet, _gw;
+    _ip.fromString(settings.wifiStaticIP);
+    _subnet.fromString(settings.wifiStaticIPNetmask);
+    _gw.fromString(settings.wifiStaticIPGateway);
+
+    wifiManager.setSTAStaticIPConfig(_ip,_gw,_subnet);
+  }
+
   wifiManager.setConfigPortalTimeout(180);
+
   if (wifiManager.autoConnect(ssid.c_str(), "milightHub")) {
     // set LED mode for successful operation
     ledStatus->continuous(settings.ledModeOperating);

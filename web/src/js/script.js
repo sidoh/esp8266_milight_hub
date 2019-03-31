@@ -61,6 +61,24 @@ var UI_FIELDS = [ {
     type: "string",
     tab: "tab-wifi"
   }, {
+    tag: "wifi_static_ip",
+    friendly: "Static IP Address",
+    help: "Static IP address (leave blank to use DHCP)",
+    type: "string",
+    tab: "tab-wifi"
+  }, {
+    tag: "wifi_static_ip_netmask",
+    friendly: "Static IP Netmask",
+    help: "Netmask to use with Static IP",
+    type: "string",
+    tab: "tab-wifi"
+  }, {
+    tag: "wifi_static_ip_gateway",
+    friendly: "Static IP Gateway Address",
+    help: "IP address to use as gateway when a Static IP is speicifed",
+    type: "string",
+    tab: "tab-wifi"
+  }, {
     tag: "ce_pin",
     friendly: "CE / PKT pin",
     help: "Pin on ESP8266 used for 'CE' (for NRF24L01 interface) or 'PKT' (for 'PL1167/LT8900' interface)",
