@@ -271,12 +271,9 @@ void handleLED() {
 }
 
 void wifiExtraSettingsChange() {
-  WiFiManagerParameter param = *wifiStaticIP;
-  settings.wifiStaticIP = param.getValue();
-  param = *wifiStaticIPNetmask;
-  settings.wifiStaticIPNetmask = param.getValue();
-  param = *wifiStaticIPGateway;
-  settings.wifiStaticIPGateway = param.getValue();
+  settings.wifiStaticIP = wifiStaticIP->getValue();
+  settings.wifiStaticIPNetmask = wifiStaticIPNetmask->getValue();
+  settings.wifiStaticIPGateway = wifiStaticIPGateway->getValue();
   settings.save();
 }
 
@@ -306,20 +303,29 @@ void setup() {
   
   // Allows us to have static IP config in the captive portal. Yucky pointers to pointers, just to have the settings carry through
   wifiManager.setSaveConfigCallback(wifiExtraSettingsChange);
-  char* _value = new char[14];
-  settings.wifiStaticIP.toCharArray(_value,14);
-  WiFiManagerParameter param = WiFiManagerParameter("staticIP", "Static IP (Leave 0.0.0.0 for dhcp)", _value, 15);
-  wifiStaticIP = &param;
+
+  wifiStaticIP = new WiFiManagerParameter(
+    "staticIP", 
+    "Static IP (Leave blank for dhcp)", 
+    settings.wifiStaticIP.c_str(), 
+    MAX_IP_ADDR_LEN
+  );
   wifiManager.addParameter(wifiStaticIP);
-  char* _value2 = new char[14];
-  settings.wifiStaticIPNetmask.toCharArray(_value2,14);
-  WiFiManagerParameter param2 = WiFiManagerParameter("netmask", "Netmask (required if IP given)", _value2, 15);
-  wifiStaticIPNetmask = &param2;
+
+  wifiStaticIPNetmask = new WiFiManagerParameter(
+    "netmask", 
+    "Netmask (required if IP given)", 
+    settings.wifiStaticIPNetmask.c_str(),
+    MAX_IP_ADDR_LEN
+  );
   wifiManager.addParameter(wifiStaticIPNetmask);
-  char* _value3 = new char[14];
-  settings.wifiStaticIPGateway.toCharArray(_value3,14);
-  WiFiManagerParameter param3 = WiFiManagerParameter("gateway", "Default Gateway (optional, only used if static IP)", _value3, 15);
-  wifiStaticIPGateway = &param3;
+
+  wifiStaticIPGateway = new WiFiManagerParameter(
+    "gateway", 
+    "Default Gateway (optional, only used if static IP)", 
+    settings.wifiStaticIPGateway.c_str(),
+    MAX_IP_ADDR_LEN
+  );
   wifiManager.addParameter(wifiStaticIPGateway);
 
   // We have a saved static IP, let's try and use it.
