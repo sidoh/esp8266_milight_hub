@@ -305,24 +305,24 @@ void setup() {
   wifiManager.setSaveConfigCallback(wifiExtraSettingsChange);
 
   wifiStaticIP = new WiFiManagerParameter(
-    "staticIP", 
-    "Static IP (Leave blank for dhcp)", 
-    settings.wifiStaticIP.c_str(), 
+    "staticIP",
+    "Static IP (Leave blank for dhcp)",
+    settings.wifiStaticIP.c_str(),
     MAX_IP_ADDR_LEN
   );
   wifiManager.addParameter(wifiStaticIP);
 
   wifiStaticIPNetmask = new WiFiManagerParameter(
-    "netmask", 
-    "Netmask (required if IP given)", 
+    "netmask",
+    "Netmask (required if IP given)",
     settings.wifiStaticIPNetmask.c_str(),
     MAX_IP_ADDR_LEN
   );
   wifiManager.addParameter(wifiStaticIPNetmask);
 
   wifiStaticIPGateway = new WiFiManagerParameter(
-    "gateway", 
-    "Default Gateway (optional, only used if static IP)", 
+    "gateway",
+    "Default Gateway (optional, only used if static IP)",
     settings.wifiStaticIPGateway.c_str(),
     MAX_IP_ADDR_LEN
   );
