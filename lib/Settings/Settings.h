@@ -45,6 +45,7 @@
 
 #define MINIMUM_RESTART_PERIOD 1
 #define DEFAULT_MQTT_PORT 1883
+#define MAX_IP_ADDR_LEN 15
 
 enum RadioInterfaceType {
   nRF24 = 0,
