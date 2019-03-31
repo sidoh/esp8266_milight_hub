@@ -105,4 +105,40 @@ RSpec.describe 'State' do
     #   expect(patched_state.select { |x| desired_state.include?(x) } ).to eq(desired_state)
     # end
   end
+
+  context 'fields' do
+    it 'should support the color field' do
+      desired_state = {
+        'hue' => 0,
+        'saturation' => 100,
+        'status' => 'ON'
+      }
+
+      @client.patch_state(
+        desired_state.merge(hue: 100),
+        @id_params
+      )
+
+      @client.patch_state(
+        { color: '255,0,0' },
+        @id_params
+      )
+
+      state = @client.get_state(@id_params)
+
+      expect(state.keys).to include(*desired_state.keys)
+      expect(state.select { |x| desired_state.include?(x) } ).to eq(desired_state)
+
+      @client.patch_state(
+        { color: {r: 0, g: 255, b: 0} },
+        @id_params
+      )
+      state = @client.get_state(@id_params)
+
+      desired_state.merge!('hue' => 120)
+
+      expect(state.keys).to include(*desired_state.keys)
+      expect(state.select { |x| desired_state.include?(x) } ).to eq(desired_state)
+    end
+  end
 end
