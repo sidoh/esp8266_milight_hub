@@ -74,11 +74,23 @@ class ApiClient
     request(:Post, path, body)
   end
 
+  def delete(path)
+    request(:Delete, path)
+  end
+
+  def state_path(params = {})
+    "/gateways/#{params[:id]}/#{params[:type]}/#{params[:group_id]}"
+  end
+
+  def delete_state(params = {})
+    delete(state_path(params))
+  end
+
   def get_state(params = {})
-    get("/gateways/#{params[:id]}/#{params[:type]}/#{params[:group_id]}")
+    get(state_path(params))
   end
 
   def patch_state(state, params = {})
-    put("/gateways/#{params[:id]}/#{params[:type]}/#{params[:group_id]}", state.to_json)
+    put(state_path(params), state.to_json)
   end
 end

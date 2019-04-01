@@ -26,6 +26,8 @@ public:
   GroupState* set(const BulbId& id, const GroupState& state);
   GroupState* set(const uint16_t deviceId, const uint8_t groupId, const MiLightRemoteType deviceType, const GroupState& state);
 
+  void clear(const BulbId& id);
+
   /*
    * Flushes all states to persistent storage.  Returns true iff anything was
    * flushed.

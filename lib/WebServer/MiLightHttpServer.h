@@ -57,6 +57,7 @@ protected:
   void handleListenGateway(const UrlTokenBindings* urlBindings);
   void handleSendRaw(const UrlTokenBindings* urlBindings);
   void handleUpdateGroup(const UrlTokenBindings* urlBindings);
+  void handleDeleteGroup(const UrlTokenBindings* urlBindings);
   void handleGetGroup(const UrlTokenBindings* urlBindings);
 
   void handleRequest(const JsonObject& request);

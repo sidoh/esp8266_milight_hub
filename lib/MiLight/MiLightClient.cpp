@@ -429,6 +429,9 @@ void MiLightClient::update(const JsonObject& request) {
   if (request.containsKey("temperature")) {
     this->updateTemperature(request["temperature"]);
   }
+  if (request.containsKey("kelvin")) {
+    this->updateTemperature(request["kelvin"]);
+  }
   // HomeAssistant
   if (request.containsKey("color_temp")) {
     this->updateTemperature(
