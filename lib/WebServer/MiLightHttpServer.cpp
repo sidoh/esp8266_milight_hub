@@ -27,6 +27,7 @@ void MiLightHttpServer::begin() {
   const char groupPattern[] = "/gateways/:device_id/:type/:group_id";
   server.onPatternAuthenticated(groupPattern, HTTP_PUT, [this](const UrlTokenBindings* b) { handleUpdateGroup(b); });
   server.onPatternAuthenticated(groupPattern, HTTP_POST, [this](const UrlTokenBindings* b) { handleUpdateGroup(b); });
+  server.onPatternAuthenticated(groupPattern, HTTP_DELETE, [this](const UrlTokenBindings* b) { handleDeleteGroup(b); });
   server.onPatternAuthenticated(groupPattern, HTTP_GET, [this](const UrlTokenBindings* b) { handleGetGroup(b); });
 
   server.onPatternAuthenticated("/raw_commands/:type", HTTP_ANY, [this](const UrlTokenBindings* b) { handleSendRaw(b); });
@@ -351,6 +352,24 @@ void MiLightHttpServer::handleGetGroup(const UrlTokenBindings* urlBindings) {
   BulbId bulbId(parseInt<uint16_t>(_deviceId), _groupId, _remoteType->type);
   GroupState* state = stateStore->get(bulbId);
   sendGroupState(bulbId, stateStore->get(bulbId));
+}
+
+void MiLightHttpServer::handleDeleteGroup(const UrlTokenBindings* urlBindings) {
+  const String _deviceId = urlBindings->get("device_id");
+  uint8_t _groupId = atoi(urlBindings->get("group_id"));
+  const MiLightRemoteConfig* _remoteType = MiLightRemoteConfig::fromType(urlBindings->get("type"));
+
+  if (_remoteType == NULL) {
+    char buffer[40];
+    sprintf_P(buffer, PSTR("Unknown device type\n"));
+    server.send(400, TEXT_PLAIN, buffer);
+    return;
+  }
+
+  BulbId bulbId(parseInt<uint16_t>(_deviceId), _groupId, _remoteType->type);
+  stateStore->clear(bulbId);
+
+  server.send_P(200, APPLICATION_JSON, PSTR("true"));
 }
 
 void MiLightHttpServer::handleUpdateGroup(const UrlTokenBindings* urlBindings) {
