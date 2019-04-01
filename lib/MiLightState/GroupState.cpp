@@ -358,7 +358,11 @@ bool GroupState::setState(const MiLightStatus status) {
 }
 
 bool GroupState::isSetBrightness() const {
-  if (! state.fields._isSetBulbMode) {
+  // If we don't know what mode we're in, just assume white mode.  Do this for a few
+  // reasons:
+  //   * Some bulbs don't have multiple modes
+  //   * It's confusing to not have a default
+  if (! isSetBulbMode()) {
     return state.fields._isSetBrightness;
   }
 
@@ -838,7 +842,7 @@ void GroupState::applyField(JsonObject& partialState, const BulbId& bulbId, Grou
       case GroupStateField::EFFECT:
         if (getBulbMode() == BULB_MODE_SCENE) {
           partialState["effect"] = String(getMode());
-        } else if (getBulbMode() == BULB_MODE_WHITE) {
+        } else if (isSetBulbMode() && getBulbMode() == BULB_MODE_WHITE) {
           partialState["effect"] = "white_mode";
         } else if (getBulbMode() == BULB_MODE_NIGHT) {
           partialState["effect"] = "night_mode";
@@ -846,13 +850,13 @@ void GroupState::applyField(JsonObject& partialState, const BulbId& bulbId, Grou
         break;
 
       case GroupStateField::COLOR_TEMP:
-        if (getBulbMode() == BULB_MODE_WHITE) {
+        if (isSetBulbMode() && getBulbMode() == BULB_MODE_WHITE) {
           partialState["color_temp"] = getMireds();
         }
         break;
 
       case GroupStateField::KELVIN:
-        if (getBulbMode() == BULB_MODE_WHITE) {
+        if (isSetBulbMode() && getBulbMode() == BULB_MODE_WHITE) {
           partialState["kelvin"] = getKelvin();
         }
         break;
