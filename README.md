@@ -146,6 +146,7 @@ If you want to wire up your own LED on a pin, such as on D2/GPIO4, put a wire fr
 1. `GET /gateway_traffic(/:device_type)?`. Starts an HTTP long poll. Returns any Milight traffic it hears. Useful if you need to know what your Milight gateway/remote ID is. Since protocols for RGBW/CCT are different, specify one of `rgbw`, `cct`, or `rgb_cct` as `:device_type.  The path `/gateway_traffic` without a `:device_type` will sniff for all protocols simultaneously.
 1. `PUT /gateways/:device_id/:device_type/:group_id`. Controls or sends commands to `:group_id` from `:device_id`. Accepts a JSON blob. The schema is documented below in the _Bulb commands_ section.
 1. `GET /gateways/:device_id/:device_type/:group_id`. Returns a JSON blob describing the state of the the provided group.
+1. `DELETE /gateways/:device_id/:device_type/:group_id`. Deletes state associated with the provided group.
 1. `POST /raw_commands/:device_type`. Sends a raw RF packet with radio configs associated with `:device_type`. Example body:
     ```
     {"packet": "01 02 03 04 05 06 07 08 09", "num_repeats": 10}
