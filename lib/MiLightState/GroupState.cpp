@@ -69,6 +69,15 @@ bool BulbId::operator==(const BulbId &other) {
 }
 
 GroupState::GroupState() {
+  initFields();
+}
+
+GroupState::GroupState(const JsonObject& jsonState) {
+  initFields();
+  patch(jsonState);
+}
+
+void GroupState::initFields() {
   state.fields._state                = 0;
   state.fields._brightness           = 0;
   state.fields._brightnessColor      = 0;
