@@ -137,6 +137,66 @@ void GroupState::print(Stream& stream) const {
   stream.printf("State: %08X %08X\n", state.rawData[0], state.rawData[1]);
 }
 
+bool GroupState::clearField(GroupStateField field) {
+  bool clearedAny = false;
+
+  switch (field) {
+    // Always set and can't be cleared
+    case GroupStateField::COMPUTED_COLOR:
+    case GroupStateField::DEVICE_ID:
+    case GroupStateField::GROUP_ID:
+    case GroupStateField::DEVICE_TYPE:
+      break;
+
+    case GroupStateField::STATE:
+    case GroupStateField::STATUS:
+      clearedAny = isSetState();
+      state.fields._isSetState = 0;
+      break;
+
+    case GroupStateField::BRIGHTNESS:
+    case GroupStateField::LEVEL:
+      clearedAny = clearBrightness();
+      break;
+
+    case GroupStateField::COLOR:
+    case GroupStateField::HUE:
+    case GroupStateField::OH_COLOR:
+      clearedAny = isSetHue();
+      state.fields._isSetHue = 0;
+      break;
+
+    case GroupStateField::SATURATION:
+      clearedAny = isSetSaturation();
+      state.fields._isSetSaturation = 0;
+      break;
+
+    case GroupStateField::MODE:
+    case GroupStateField::EFFECT:
+      clearedAny = isSetMode();
+      state.fields._isSetMode = 0;
+      break;
+
+    case GroupStateField::KELVIN:
+    case GroupStateField::COLOR_TEMP:
+      clearedAny = isSetKelvin();
+      state.fields._isSetKelvin = 0;
+      break;
+
+    case GroupStateField::BULB_MODE:
+      clearedAny = isSetBulbMode();
+      state.fields._isSetBulbMode = 0;
+
+      // Clear brightness as well
+      Serial.println("also clearing brightness");
+      clearedAny = clearBrightness() || clearedAny;
+      debugState("result--");
+      break;
+  }
+
+  return clearedAny;
+}
+
 bool GroupState::isSetField(GroupStateField field) const {
   switch (field) {
     case GroupStateField::COMPUTED_COLOR:
@@ -312,6 +372,33 @@ bool GroupState::isSetBrightness() const {
   }
 
   return false;
+}
+bool GroupState::clearBrightness() {
+  bool cleared = false;
+
+  if (!state.fields._isSetBulbMode) {
+    cleared = state.fields._isSetBrightness;
+    state.fields._isSetBrightness = 0;
+  } else {
+    switch (state.fields._bulbMode) {
+      case BULB_MODE_COLOR:
+        cleared = state.fields._isSetBrightnessColor;
+        state.fields._isSetBrightnessColor = 0;
+        break;
+
+      case BULB_MODE_SCENE:
+        cleared = state.fields._isSetBrightnessMode;
+        state.fields._isSetBrightnessMode = 0;
+        break;
+
+      case BULB_MODE_WHITE:
+        cleared = state.fields._isSetBrightness;
+        state.fields._isSetBrightness = 0;
+        break;
+    }
+  }
+
+  return cleared;
 }
 uint8_t GroupState::getBrightness() const {
   switch (state.fields._bulbMode) {
@@ -539,6 +626,31 @@ bool GroupState::applyIncrementCommand(GroupStateField field, IncrementDirection
   }
 
   return false;
+}
+
+bool GroupState::clearNonMatchingFields(const GroupState& other) {
+#ifdef STATE_DEBUG
+  this->debugState("Clearing fields.  Current state");
+  other.debugState("Other state");
+#endif
+
+  bool clearedAny = false;
+
+  for (size_t i = 0; i < size(ALL_PHYSICAL_FIELDS); ++i) {
+    GroupStateField field = ALL_PHYSICAL_FIELDS[i];
+
+    if (other.isSetField(field) && isSetField(field) && getFieldValue(field) != other.getFieldValue(field)) {
+      if (clearField(field)) {
+        clearedAny = true;
+      }
+    }
+  }
+
+#ifdef STATE_DEBUG
+  this->debugState("Result");
+#endif
+
+  return clearedAny;
 }
 
 bool GroupState::patch(const GroupState& other) {

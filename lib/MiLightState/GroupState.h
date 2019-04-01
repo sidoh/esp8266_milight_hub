@@ -49,14 +49,19 @@ public:
   GroupState(const GroupState& other);
   GroupState& operator=(const GroupState& other);
 
+  // Convenience constructor that patches defaults with JSON state
+  GroupState(const JsonObject& jsonState);
+
+  void initFields();
+
   bool operator==(const GroupState& other) const;
   bool isEqualIgnoreDirty(const GroupState& other) const;
   void print(Stream& stream) const;
 
-
   bool isSetField(GroupStateField field) const;
   uint16_t getFieldValue(GroupStateField field) const;
   void setFieldValue(GroupStateField field, uint16_t value);
+  bool clearField(GroupStateField field);
 
   bool isSetScratchField(GroupStateField field) const;
   uint16_t getScratchFieldValue(GroupStateField field) const;
@@ -73,6 +78,7 @@ public:
   bool isSetBrightness() const;
   uint8_t getBrightness() const;
   bool setBrightness(uint8_t brightness);
+  bool clearBrightness();
 
   // 8 bits
   bool isSetHue() const;
@@ -114,6 +120,10 @@ public:
   bool isMqttDirty() const;
   inline bool setMqttDirty();
   bool clearMqttDirty();
+
+  // Clears all of the fields in THIS GroupState that have different values
+  // than the provided group state.
+  bool clearNonMatchingFields(const GroupState& other);
 
   // Patches this state with ONLY the set fields in the other. Returns 
   // true if there were any changes.
