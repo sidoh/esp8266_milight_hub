@@ -188,9 +188,7 @@ bool GroupState::clearField(GroupStateField field) {
       state.fields._isSetBulbMode = 0;
 
       // Clear brightness as well
-      Serial.println("also clearing brightness");
       clearedAny = clearBrightness() || clearedAny;
-      debugState("result--");
       break;
   }
 
