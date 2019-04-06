@@ -11,6 +11,9 @@ GroupState* GroupStateStore::get(const BulbId& id) {
   GroupState* state = cache.get(id);
 
   if (state == NULL) {
+#if STATE_DEBUG
+    Serial.println(F("Couldn't fetch state from cache, getting it from persistence"));
+#endif
     trackEviction();
     GroupState loadedState = GroupState::defaultState(id.deviceType);
 
