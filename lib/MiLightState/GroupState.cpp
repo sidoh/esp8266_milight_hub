@@ -108,13 +108,13 @@ GroupState& GroupState::operator=(const GroupState& other) {
   scratchpad.rawData = other.scratchpad.rawData;
 }
 
-GroupState::GroupState() 
+GroupState::GroupState()
   : previousState(NULL)
 {
   initFields();
 }
 
-GroupState::GroupState(const GroupState& other) 
+GroupState::GroupState(const GroupState& other)
   : previousState(NULL)
 {
   memcpy(state.rawData, other.state.rawData, DATA_LONGS * sizeof(uint32_t));
