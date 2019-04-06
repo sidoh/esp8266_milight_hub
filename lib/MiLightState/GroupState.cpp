@@ -121,13 +121,13 @@ GroupState::GroupState(const GroupState& other)
   scratchpad.rawData = other.scratchpad.rawData;
 }
 
-GroupState::GroupState(const GroupState* other, const JsonObject& jsonState) 
-  : previousState(other)
+GroupState::GroupState(const GroupState* previousState, const JsonObject& jsonState)
+  : previousState(previousState)
 {
   initFields();
 
-  if (other != NULL) {
-    this->scratchpad = other->scratchpad;
+  if (previousState != NULL) {
+    this->scratchpad = previousState->scratchpad;
   }
 
   patch(jsonState);

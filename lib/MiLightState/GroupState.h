@@ -51,7 +51,7 @@ public:
 
   // Convenience constructor that patches transient state from a previous GroupState,
   // and defaults with JSON state
-  GroupState(const GroupState* other, const JsonObject& jsonState);
+  GroupState(const GroupState* previousState, const JsonObject& jsonState);
 
   void initFields();
 
