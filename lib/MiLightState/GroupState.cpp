@@ -3,6 +3,13 @@
 #include <MiLightRemoteConfig.h>
 #include <RGBConverter.h>
 
+static const char* BULB_MODE_NAMES[] = {
+  "white",
+  "color",
+  "scene",
+  "night"
+};
+
 const BulbId DEFAULT_BULB_ID;
 static const GroupStateField ALL_PHYSICAL_FIELDS[] = {
   GroupStateField::BRIGHTNESS,
@@ -32,6 +39,10 @@ const GroupState& GroupState::defaultState(MiLightRemoteType remoteType) {
       break;
     case REMOTE_TYPE_CCT:
       state.setBulbMode(BULB_MODE_WHITE);
+      break;
+
+    default:
+      // No modifications needed
       break;
   }
 
@@ -106,6 +117,7 @@ void GroupState::initFields() {
 GroupState& GroupState::operator=(const GroupState& other) {
   memcpy(state.rawData, other.state.rawData, DATA_LONGS * sizeof(uint32_t));
   scratchpad.rawData = other.scratchpad.rawData;
+  return *this;
 }
 
 GroupState::GroupState()
@@ -206,6 +218,10 @@ bool GroupState::clearField(GroupStateField field) {
       // Clear brightness as well
       clearedAny = clearBrightness() || clearedAny;
       break;
+
+    default:
+      Serial.printf_P(PSTR("Attempted to clear unknown field: %d\n"), static_cast<uint8_t>(field));
+      break;
   }
 
   return clearedAny;
@@ -242,10 +258,11 @@ bool GroupState::isSetField(GroupStateField field) const {
       return isSetKelvin();
     case GroupStateField::BULB_MODE:
       return isSetBulbMode();
+    default:
+      Serial.print(F("WARNING: tried to check if unknown field was set: "));
+      Serial.println(static_cast<unsigned int>(field));
+      break;
   }
-
-  Serial.print(F("WARNING: tried to check if unknown field was set: "));
-  Serial.println(static_cast<unsigned int>(field));
 
   return false;
 }
@@ -256,10 +273,11 @@ bool GroupState::isSetScratchField(GroupStateField field) const {
       return scratchpad.fields._isSetBrightnessScratch;
     case GroupStateField::KELVIN:
       return scratchpad.fields._isSetKelvinScratch;
+    default:
+      Serial.print(F("WARNING: tried to check if unknown scratch field was set: "));
+      Serial.println(static_cast<unsigned int>(field));
+      break;
   }
-
-  Serial.print(F("WARNING: tried to check if unknown scratch field was set: "));
-  Serial.println(static_cast<unsigned int>(field));
 
   return false;
 }
@@ -281,10 +299,11 @@ uint16_t GroupState::getFieldValue(GroupStateField field) const {
       return getKelvin();
     case GroupStateField::BULB_MODE:
       return getBulbMode();
+    default:
+      Serial.print(F("WARNING: tried to fetch value for unknown field: "));
+      Serial.println(static_cast<unsigned int>(field));
+      break;
   }
-
-  Serial.print(F("WARNING: tried to fetch value for unknown field: "));
-  Serial.println(static_cast<unsigned int>(field));
 
   return 0;
 }
@@ -295,10 +314,11 @@ uint16_t GroupState::getScratchFieldValue(GroupStateField field) const {
       return scratchpad.fields._brightnessScratch;
     case GroupStateField::KELVIN:
       return scratchpad.fields._kelvinScratch;
+    default:
+      Serial.print(F("WARNING: tried to fetch value for unknown scratch field: "));
+      Serial.println(static_cast<unsigned int>(field));
+      break;
   }
-
-  Serial.print(F("WARNING: tried to fetch value for unknown scratch field: "));
-  Serial.println(static_cast<unsigned int>(field));
 
   return 0;
 }
@@ -531,8 +551,6 @@ bool GroupState::setMireds(uint16_t mireds) {
 
 bool GroupState::isSetBulbMode() const { return state.fields._isSetBulbMode; }
 BulbMode GroupState::getBulbMode() const {
-  BulbMode mode;
-
   // Night mode is a transient state.  When power is toggled, the bulb returns
   // to the state it was last in.  To handle this case, night mode state is
   // stored separately.
@@ -578,11 +596,19 @@ bool GroupState::isDirty() const { return state.fields._dirty; }
 inline bool GroupState::setDirty() {
   state.fields._dirty = 1;
   state.fields._mqttDirty = 1;
+
+  return true;
 }
-bool GroupState::clearDirty() { state.fields._dirty = 0; }
+bool GroupState::clearDirty() {
+  state.fields._dirty = 0;
+  return true;
+}
 
 bool GroupState::isMqttDirty() const { return state.fields._mqttDirty; }
-bool GroupState::clearMqttDirty() { state.fields._mqttDirty = 0; }
+bool GroupState::clearMqttDirty() {
+  state.fields._mqttDirty = 0;
+  return true;
+}
 
 void GroupState::load(Stream& stream) {
   for (size_t i = 0; i < DATA_LONGS; i++) {
@@ -672,7 +698,7 @@ bool GroupState::clearNonMatchingFields(const GroupState& other) {
   return clearedAny;
 }
 
-bool GroupState::patch(const GroupState& other) {
+void GroupState::patch(const GroupState& other) {
 #ifdef STATE_DEBUG
   other.debugState("Patching existing state with: ");
   Serial.println();
@@ -895,10 +921,16 @@ void GroupState::applyField(JsonObject& partialState, const BulbId& bulbId, Grou
         break;
 
       case GroupStateField::DEVICE_TYPE:
-        const MiLightRemoteConfig* remoteConfig = MiLightRemoteConfig::fromType(bulbId.deviceType);
-        if (remoteConfig) {
-          partialState["device_type"] = remoteConfig->name;
+        {
+          const MiLightRemoteConfig* remoteConfig = MiLightRemoteConfig::fromType(bulbId.deviceType);
+          if (remoteConfig) {
+            partialState["device_type"] = remoteConfig->name;
+          }
         }
+        break;
+
+      default:
+        Serial.printf_P(PSTR("Tried to apply unknown field: %d\n"), static_cast<uint8_t>(field));
         break;
     }
   }

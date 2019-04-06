@@ -4,10 +4,10 @@ PatternHandler::PatternHandler(
     const String& pattern,
     const HTTPMethod method,
     const PatternHandler::TPatternHandlerFn fn)
-  : method(method),
-    fn(fn),
-    _pattern(new char[pattern.length() + 1]),
-    patternTokens(NULL)
+  : _pattern(new char[pattern.length() + 1]),
+    patternTokens(NULL),
+    method(method),
+    fn(fn)
 {
   strcpy(_pattern, pattern.c_str());
   patternTokens = new TokenIterator(_pattern, pattern.length(), '/');
@@ -59,4 +59,6 @@ bool PatternHandler::handle(ESP8266WebServer& server, HTTPMethod requestMethod, 
 
   UrlTokenBindings bindings(*patternTokens, requestTokens);
   fn(&bindings);
+
+  return true;
 }

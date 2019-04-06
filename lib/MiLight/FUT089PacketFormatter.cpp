@@ -28,15 +28,15 @@ void FUT089PacketFormatter::updateColorRaw(uint8_t value) {
   command(FUT089_COLOR, FUT089_COLOR_OFFSET + value);
 }
 
-// change the temperature (kelvin).  Note that temperature and saturation share the same command 
+// change the temperature (kelvin).  Note that temperature and saturation share the same command
 // number (7), and they change which they do based on the mode of the lamp (white vs. color mode).
 // To make this command work, we need to switch to white mode, make the change, and then flip
 // back to the original mode.
 void FUT089PacketFormatter::updateTemperature(uint8_t value) {
-  // look up our current mode 
+  // look up our current mode
   const GroupState* ourState = this->stateStore->get(this->deviceId, this->groupId, REMOTE_TYPE_FUT089);
   BulbMode originalBulbMode;
-  
+
   if (ourState != NULL) {
     originalBulbMode = ourState->getBulbMode();
 
@@ -55,15 +55,15 @@ void FUT089PacketFormatter::updateTemperature(uint8_t value) {
   }
 }
 
-// change the saturation.  Note that temperature and saturation share the same command 
+// change the saturation.  Note that temperature and saturation share the same command
 // number (7), and they change which they do based on the mode of the lamp (white vs. color mode).
 // Therefore, if we are not in color mode, we need to switch to color mode, make the change,
 // and switch back to the original mode.
 void FUT089PacketFormatter::updateSaturation(uint8_t value) {
-  // look up our current mode 
+  // look up our current mode
   const GroupState* ourState = this->stateStore->get(this->deviceId, this->groupId, REMOTE_TYPE_FUT089);
-  BulbMode originalBulbMode;
-  
+  BulbMode originalBulbMode = BulbMode::BULB_MODE_WHITE;
+
   if (ourState != NULL) {
     originalBulbMode = ourState->getBulbMode();
   }

@@ -67,11 +67,11 @@ protected:
 
   WebServer server;
   WebSocketsServer wsServer;
-  Settings& settings;
+  size_t numWsClients;
   MiLightClient*& milightClient;
+  Settings& settings;
   GroupStateStore*& stateStore;
   SettingsSavedHandler settingsSavedHandler;
-  size_t numWsClients;
   ESP8266WebServer::THandlerFunction _handleRootPage;
 
 };

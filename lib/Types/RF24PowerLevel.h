@@ -4,13 +4,6 @@
 #ifndef _RF24_POWER_LEVEL_H
 #define _RF24_POWER_LEVEL_H
 
-static const char* RF24_POWER_LEVEL_NAMES[] = {
-  "MIN",
-  "LOW",
-  "HIGH",
-  "MAX"
-};
-
 enum class RF24PowerLevel {
   RF24_MIN  = RF24_PA_MIN,  // -18 dBm
   RF24_LOW  = RF24_PA_LOW,  // -12 dBm

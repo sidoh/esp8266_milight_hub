@@ -4,12 +4,6 @@
 #ifndef _RF24_CHANNELS_H
 #define _RF24_CHANNELS_H
 
-static const char* RF24_CHANNEL_NAMES[] = {
-  "LOW",
-  "MID",
-  "HIGH"
-};
-
 enum class RF24Channel {
   RF24_LOW = 0,
   RF24_MID = 1,

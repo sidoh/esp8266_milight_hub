@@ -124,6 +124,8 @@ void PacketFormatter::valueByStepFunction(StepFunction increase, StepFunction de
   } else if (targetValue > knownValue) {
     fn = increase;
     numCommands = (targetValue - knownValue);
+  } else {
+    return;
   }
 
   // Get to the desired value
@@ -161,7 +163,7 @@ void PacketFormatter::pushPacket() {
 }
 
 void PacketFormatter::format(uint8_t const* packet, char* buffer) {
-  for (int i = 0; i < packetLength; i++) {
+  for (size_t i = 0; i < packetLength; i++) {
     sprintf_P(buffer, "%02X ", packet[i]);
     buffer += 3;
   }

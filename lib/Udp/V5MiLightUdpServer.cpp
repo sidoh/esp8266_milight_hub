@@ -29,8 +29,10 @@ void V5MiLightUdpServer::handleCommand(uint8_t command, uint8_t commandArg) {
     this->lastGroup = groupId;
   // Set night_mode for RGBW
  } else if (command == UDP_RGBW_GROUP_ALL_NIGHT || command == UDP_RGBW_GROUP_1_NIGHT || command == UDP_RGBW_GROUP_2_NIGHT || command == UDP_RGBW_GROUP_3_NIGHT || command == UDP_RGBW_GROUP_4_NIGHT) {
-    const uint8_t groupId = (command - UDP_RGBW_GROUP_1_NIGHT + 2)/2;
-    if (command == UDP_RGBW_GROUP_ALL_NIGHT) const uint8_t groupId = 0;
+    uint8_t groupId = (command - UDP_RGBW_GROUP_1_NIGHT + 2)/2;
+    if (command == UDP_RGBW_GROUP_ALL_NIGHT) {
+      groupId = 0;
+    }
 
     client->prepare(&FUT096Config, deviceId, groupId);
     client->enableNightMode();

@@ -1,6 +1,12 @@
 #include <Size.h>
 #include <RF24Channel.h>
 
+static const char* RF24_CHANNEL_NAMES[] = {
+  "LOW",
+  "MID",
+  "HIGH"
+};
+
 String RF24ChannelHelpers::nameFromValue(const RF24Channel& value) {
   const size_t ix = static_cast<size_t>(value);
 

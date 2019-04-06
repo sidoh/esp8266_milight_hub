@@ -92,7 +92,6 @@ public:
     packetRepeats(50),
     httpRepeatFactor(1),
     listenRepeats(3),
-    _autoRestartPeriod(0),
     discoveryPort(48899),
     stateFlushInterval(10000),
     mqttStateRateLimit(500),
@@ -110,7 +109,8 @@ public:
     hostname("milight-hub"),
     rf24PowerLevel(RF24PowerLevelHelpers::defaultValue()),
     rf24Channels(RF24ChannelHelpers::allValues()),
-    rf24ListenChannel(RF24Channel::RF24_LOW)
+    rf24ListenChannel(RF24Channel::RF24_LOW),
+    _autoRestartPeriod(0)
   {
     if (groupStateFields == NULL) {
       numGroupStateFields = size(DEFAULT_GROUP_STATE_FIELDS);
@@ -155,10 +155,12 @@ public:
   RadioInterfaceType radioInterfaceType;
   uint16_t *deviceIds;
   GatewayConfig **gatewayConfigs;
-  size_t numGatewayConfigs;
   size_t numDeviceIds;
+  size_t numGatewayConfigs;
   size_t packetRepeats;
   size_t httpRepeatFactor;
+  uint8_t listenRepeats;
+  uint16_t discoveryPort;
   String _mqttServer;
   String mqttUsername;
   String mqttPassword;
@@ -168,15 +170,13 @@ public:
   String mqttLwtTopic;
   String mqttLwtMessage;
   String mqttBirthTopic;
-  GroupStateField *groupStateFields;
-  size_t numGroupStateFields;
-  uint16_t discoveryPort;
-  uint8_t listenRepeats;
   size_t stateFlushInterval;
   size_t mqttStateRateLimit;
-  size_t packetRepeatThrottleSensitivity;
   size_t packetRepeatThrottleThreshold;
+  size_t packetRepeatThrottleSensitivity;
   size_t packetRepeatMinimum;
+  GroupStateField *groupStateFields;
+  size_t numGroupStateFields;
   bool enableAutomaticModeSwitching;
   LEDStatus::LEDMode ledModeWifiConfig;
   LEDStatus::LEDMode ledModeWifiFailed;

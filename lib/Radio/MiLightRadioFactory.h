@@ -15,6 +15,7 @@
 class MiLightRadioFactory {
 public:
 
+  virtual ~MiLightRadioFactory() { };
   virtual MiLightRadio* create(const MiLightRadioConfig& config) = 0;
 
   static MiLightRadioFactory* fromSettings(const Settings& settings);
@@ -25,9 +26,9 @@ class NRF24Factory : public MiLightRadioFactory {
 public:
 
   NRF24Factory(
-    uint8_t cePin, 
-    uint8_t csnPin, 
-    RF24PowerLevel rF24PowerLevel, 
+    uint8_t cePin,
+    uint8_t csnPin,
+    RF24PowerLevel rF24PowerLevel,
     const std::vector<RF24Channel>& channels,
     RF24Channel listenChannel
   );

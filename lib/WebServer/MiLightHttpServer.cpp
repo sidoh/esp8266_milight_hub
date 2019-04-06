@@ -269,7 +269,6 @@ void MiLightHttpServer::handleFirmwareUpload() {
 
 
 void MiLightHttpServer::handleListenGateway(const UrlTokenBindings* bindings) {
-  bool available = false;
   bool listenAll = bindings == NULL;
   size_t configIx = 0;
   const MiLightRadioConfig* radioConfig = NULL;
@@ -350,7 +349,6 @@ void MiLightHttpServer::handleGetGroup(const UrlTokenBindings* urlBindings) {
   }
 
   BulbId bulbId(parseInt<uint16_t>(_deviceId), _groupId, _remoteType->type);
-  GroupState* state = stateStore->get(bulbId);
   sendGroupState(bulbId, stateStore->get(bulbId));
 }
 
@@ -480,6 +478,10 @@ void MiLightHttpServer::handleWsEvent(uint8_t num, WStype_t type, uint8_t *paylo
 
     case WStype_CONNECTED:
       numWsClients++;
+      break;
+
+    default:
+      Serial.printf_P(PSTR("Unhandled websocket event: %d\n"), static_cast<uint8_t>(type));
       break;
   }
 }

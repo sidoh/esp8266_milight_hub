@@ -16,6 +16,7 @@ MiLightDiscoveryServer::MiLightDiscoveryServer(MiLightDiscoveryServer& other)
 MiLightDiscoveryServer& MiLightDiscoveryServer::operator=(MiLightDiscoveryServer other) {
   this->settings = other.settings;
   this->socket = other.socket;
+  return *this;
 }
 
 MiLightDiscoveryServer::~MiLightDiscoveryServer() {

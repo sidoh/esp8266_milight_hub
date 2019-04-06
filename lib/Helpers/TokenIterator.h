@@ -16,6 +16,6 @@ private:
   char* current;
   size_t length;
   char sep;
-  int i;
+  size_t i;
 };
 #endif

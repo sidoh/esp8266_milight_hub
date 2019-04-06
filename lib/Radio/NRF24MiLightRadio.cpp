@@ -6,16 +6,16 @@
 #define PACKET_ID(packet, packet_length) ( (packet[1] << 8) | packet[packet_length - 1] )
 
 NRF24MiLightRadio::NRF24MiLightRadio(
-  RF24& rf24, 
-  const MiLightRadioConfig& config, 
+  RF24& rf24,
+  const MiLightRadioConfig& config,
   const std::vector<RF24Channel>& channels,
   RF24Channel listenChannel
 )
-  : _pl1167(PL1167_nRF24(rf24)),
-    channels(channels),
+  : channels(channels),
     listenChannelIx(static_cast<size_t>(listenChannel)),
-    _waiting(false),
-    _config(config)
+    _pl1167(PL1167_nRF24(rf24)),
+    _config(config),
+    _waiting(false)
 { }
 
 int NRF24MiLightRadio::begin() {

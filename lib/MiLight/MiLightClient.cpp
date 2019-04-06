@@ -10,8 +10,7 @@ MiLightClient::MiLightClient(
   GroupStateStore* stateStore,
   Settings* settings
 )
-  : baseResendCount(MILIGHT_DEFAULT_RESEND_COUNT),
-    currentRadio(NULL),
+  : currentRadio(NULL),
     currentRemote(NULL),
     numRadios(MiLightRadioConfig::NUM_CONFIGS),
     packetSentHandler(NULL),
@@ -19,7 +18,8 @@ MiLightClient::MiLightClient(
     updateEndHandler(NULL),
     stateStore(stateStore),
     settings(settings),
-    lastSend(0)
+    lastSend(0),
+    baseResendCount(MILIGHT_DEFAULT_RESEND_COUNT)
 {
   radios = new MiLightRadio*[numRadios];
 
@@ -36,7 +36,7 @@ void MiLightClient::begin() {
   switchRadio(static_cast<size_t>(0));
 
   // Little gross to do this here as it's relying on global state.  A better alternative
-  // would be to statically construct remote config factories which take in a stateStore 
+  // would be to statically construct remote config factories which take in a stateStore
   // and settings pointer.  The objects could then be initialized by calling the factory
   // in main.
   for (size_t i = 0; i < MiLightRemoteConfig::NUM_REMOTES; i++) {
@@ -66,9 +66,9 @@ MiLightRadio* MiLightClient::switchRadio(size_t radioIx) {
 }
 
 MiLightRadio* MiLightClient::switchRadio(const MiLightRemoteConfig* remoteConfig) {
-  MiLightRadio* radio;
+  MiLightRadio* radio = NULL;
 
-  for (int i = 0; i < numRadios; i++) {
+  for (size_t i = 0; i < numRadios; i++) {
     if (&this->radios[i]->config() == &remoteConfig->radioConfig) {
       radio = switchRadio(i);
       break;
@@ -518,7 +518,11 @@ void MiLightClient::updateResendCount() {
   long x = (millisSinceLastSend - settings->packetRepeatThrottleThreshold);
   long delta = x * throttleMultiplier;
 
-  this->currentResendCount = constrain(this->currentResendCount + delta, settings->packetRepeatMinimum, this->baseResendCount);
+  this->currentResendCount = constrain(
+    static_cast<size_t>(this->currentResendCount + delta),
+    settings->packetRepeatMinimum,
+    this->baseResendCount
+  );
   this->lastSend = now;
 }
 

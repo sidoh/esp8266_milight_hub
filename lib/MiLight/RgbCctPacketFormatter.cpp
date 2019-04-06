@@ -64,10 +64,10 @@ void RgbCctPacketFormatter::updateTemperature(uint8_t value) {
 // update saturation.  This only works when in Color mode, so if not in color we switch to color,
 // make the change, and switch back again.
 void RgbCctPacketFormatter::updateSaturation(uint8_t value) {
-   // look up our current mode 
+   // look up our current mode
   const GroupState* ourState = this->stateStore->get(this->deviceId, this->groupId, REMOTE_TYPE_RGB_CCT);
-  BulbMode originalBulbMode;
-  
+  BulbMode originalBulbMode = BulbMode::BULB_MODE_WHITE;
+
   if (ourState != NULL) {
     originalBulbMode = ourState->getBulbMode();
 
@@ -90,11 +90,11 @@ void RgbCctPacketFormatter::updateSaturation(uint8_t value) {
 
 void RgbCctPacketFormatter::updateColorWhite() {
   // there is no direct white command, so let's look up our prior temperature and set that, which
-  // causes the bulb to go white 
+  // causes the bulb to go white
   const GroupState* ourState = this->stateStore->get(this->deviceId, this->groupId, REMOTE_TYPE_RGB_CCT);
-  uint8_t value = 
-    ourState == NULL 
-      ? 0 
+  uint8_t value =
+    ourState == NULL
+      ? 0
       : V2PacketFormatter::tov2scale(ourState->getKelvin(), RGB_CCT_KELVIN_REMOTE_END, 2);
 
   // issue command to set kelvin to prior value, which will drive to white

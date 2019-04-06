@@ -1,7 +1,7 @@
 /*
  * Adapated from https://gist.github.com/cmaglie/5883185
  */
- 
+
 #ifndef _STRING_STREAM_H_INCLUDED_
 #define _STRING_STREAM_H_INCLUDED_
 
@@ -18,7 +18,7 @@ public:
     virtual int peek() { return position < string.length() ? string[position] : -1; }
     virtual void flush() { };
     // Print methods
-    virtual size_t write(uint8_t c) { string += (char)c; };
+    virtual size_t write(uint8_t c) { string += (char)c; return 1; };
 
 private:
     String &string;

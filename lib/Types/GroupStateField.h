@@ -1,27 +1,6 @@
 #ifndef _GROUP_STATE_FIELDS_H
 #define _GROUP_STATE_FIELDS_H
 
-static const char* STATE_NAMES[] = {
-  "unknown",
-  "state",
-  "status",
-  "brightness",
-  "level",
-  "hue",
-  "saturation",
-  "color",
-  "mode",
-  "kelvin",
-  "color_temp",
-  "bulb_mode",
-  "computed_color",
-  "effect",
-  "device_id",
-  "group_id",
-  "device_type",
-  "oh_color"
-};
-
 enum class GroupStateField {
   UNKNOWN,
   STATE,

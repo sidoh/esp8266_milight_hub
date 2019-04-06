@@ -90,17 +90,17 @@ public:
   size_t getPacketLength() const;
 
 protected:
-  uint8_t* currentPacket;
+  const MiLightRemoteType deviceType;
   size_t packetLength;
+  size_t numPackets;
+  uint8_t* currentPacket;
+  bool held;
   uint16_t deviceId;
   uint8_t groupId;
   uint8_t sequenceNum;
-  size_t numPackets;
-  bool held;
   PacketStream packetStream;
   GroupStateStore* stateStore = NULL;
   const Settings* settings = NULL;
-  const MiLightRemoteType deviceType;
 
   void pushPacket();
 

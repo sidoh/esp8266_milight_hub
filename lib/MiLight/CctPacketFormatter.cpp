@@ -184,6 +184,7 @@ MiLightStatus CctPacketFormatter::cctCommandToStatus(uint8_t command) {
     case CCT_GROUP_3_OFF:
     case CCT_GROUP_4_OFF:
     case CCT_ALL_OFF:
+    default:
       return OFF;
   }
 }

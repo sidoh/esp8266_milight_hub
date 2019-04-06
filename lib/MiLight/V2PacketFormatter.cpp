@@ -62,7 +62,7 @@ void V2PacketFormatter::finalizePacket(uint8_t* packet) {
 
 void V2PacketFormatter::format(uint8_t const* packet, char* buffer) {
   buffer += sprintf_P(buffer, PSTR("Raw packet: "));
-  for (int i = 0; i < packetLength; i++) {
+  for (size_t i = 0; i < packetLength; i++) {
     buffer += sprintf_P(buffer, PSTR("%02X "), packet[i]);
   }
 
@@ -106,7 +106,7 @@ void V2PacketFormatter::switchMode(const GroupState& currentState, BulbMode desi
       Serial.printf_P(PSTR("V2PacketFormatter::switchMode: Request to switch to unknown mode %d\n"), desiredMode);
       break;
   }
-  
+
 }
 
 uint8_t V2PacketFormatter::tov2scale(uint8_t value, uint8_t endValue, uint8_t interval, bool reverse) {

@@ -1,6 +1,13 @@
 #include <RF24PowerLevel.h>
 #include <Size.h>
 
+static const char* RF24_POWER_LEVEL_NAMES[] = {
+  "MIN",
+  "LOW",
+  "HIGH",
+  "MAX"
+};
+
 String RF24PowerLevelHelpers::nameFromValue(const RF24PowerLevel& value) {
   const size_t ix = static_cast<size_t>(value);
 
