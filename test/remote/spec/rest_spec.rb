@@ -47,15 +47,16 @@ RSpec.describe 'REST Server' do
       # Make sure all routes are protected
       @client.clear_auth!
       [
-        '/about', 
-        '/gateways/0/rgb_cct/1', 
-        '/remote_configs', 
+        '/about',
+        '/gateways/0/rgb_cct/1',
+        '/remote_configs',
         '/'
       ].each do |page|
         expect { @client.get(page) }.to raise_error(Net::HTTPServerException), "No auth required for page: #{page}"
       end
 
       expect { @client.post('/system', {}) }.to raise_error(Net::HTTPServerException)
+      expect { @client.post('/firmware', {}) }.to raise_error(Net::HTTPServerException)
 
       # Clear auth
       @client.set_auth!(@username, @password)
