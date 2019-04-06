@@ -55,6 +55,8 @@ RSpec.describe 'REST Server' do
         expect { @client.get(page) }.to raise_error(Net::HTTPServerException), "No auth required for page: #{page}"
       end
 
+      expect { @client.post('/system', {}) }.to raise_error(Net::HTTPServerException)
+
       # Clear auth
       @client.set_auth!(@username, @password)
       @client.put('/settings', admin_username: '', admin_password: '')
