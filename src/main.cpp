@@ -109,7 +109,9 @@ void onPacketSentHandler(uint8_t* packet, const MiLightRemoteConfig& config) {
 
   // update state to reflect changes from this packet
   GroupState* groupState = stateStore->get(bulbId);
-  const GroupState stateUpdates(result);
+
+  // pass in previous scratch state as well
+  const GroupState stateUpdates(groupState, result);
 
   if (groupState != NULL) {
     groupState->patch(stateUpdates);

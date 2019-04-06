@@ -14,6 +14,11 @@ static const GroupStateField ALL_PHYSICAL_FIELDS[] = {
   GroupStateField::STATE
 };
 
+static const GroupStateField ALL_SCRATCH_FIELDS[] = {
+  GroupStateField::BRIGHTNESS,
+  GroupStateField::KELVIN
+};
+
 // Number of units each increment command counts for
 static const uint8_t INCREMENT_COMMAND_VALUE = 10;
 
@@ -68,15 +73,6 @@ bool BulbId::operator==(const BulbId &other) {
     && deviceType == other.deviceType;
 }
 
-GroupState::GroupState() {
-  initFields();
-}
-
-GroupState::GroupState(const JsonObject& jsonState) {
-  initFields();
-  patch(jsonState);
-}
-
 void GroupState::initFields() {
   state.fields._state                = 0;
   state.fields._brightness           = 0;
@@ -112,9 +108,29 @@ GroupState& GroupState::operator=(const GroupState& other) {
   scratchpad.rawData = other.scratchpad.rawData;
 }
 
-GroupState::GroupState(const GroupState& other) {
+GroupState::GroupState()
+  : previousState(NULL)
+{
+  initFields();
+}
+
+GroupState::GroupState(const GroupState& other)
+  : previousState(NULL)
+{
   memcpy(state.rawData, other.state.rawData, DATA_LONGS * sizeof(uint32_t));
   scratchpad.rawData = other.scratchpad.rawData;
+}
+
+GroupState::GroupState(const GroupState* previousState, const JsonObject& jsonState)
+  : previousState(previousState)
+{
+  initFields();
+
+  if (previousState != NULL) {
+    this->scratchpad = previousState->scratchpad;
+  }
+
+  patch(jsonState);
 }
 
 bool GroupState::operator==(const GroupState& other) const {
@@ -591,16 +607,17 @@ bool GroupState::applyIncrementCommand(GroupStateField field, IncrementDirection
   int8_t dirValue = static_cast<int8_t>(dir);
 
   // If there's already a known value, update it
-  if (isSetField(field)) {
-    int8_t currentValue = static_cast<int8_t>(getFieldValue(field));
+  if (previousState != NULL && previousState->isSetField(field)) {
+    int8_t currentValue = static_cast<int8_t>(previousState->getFieldValue(field));
     int8_t newValue = currentValue + (dirValue * INCREMENT_COMMAND_VALUE);
 
 #ifdef STATE_DEBUG
-    debugState("Updating field from increment command");
+    previousState->debugState("Updating field from increment command");
 #endif
 
     // For now, assume range for both brightness and kelvin is [0, 100]
     setFieldValue(field, constrain(newValue, 0, 100));
+
     return true;
   // Otherwise start or update scratch state
   } else {
@@ -668,6 +685,14 @@ bool GroupState::patch(const GroupState& other) {
       setFieldValue(field, other.getFieldValue(field));
     }
   }
+
+  for (size_t i = 0; i < size(ALL_SCRATCH_FIELDS); ++i) {
+    GroupStateField field = ALL_SCRATCH_FIELDS[i];
+
+    if (other.isSetScratchField(field)) {
+      setScratchFieldValue(field, other.getScratchFieldValue(field));
+    }
+  }
 }
 
 /*
@@ -728,8 +753,10 @@ bool GroupState::patch(const JsonObject& state) {
       changes |= applyIncrementCommand(GroupStateField::BRIGHTNESS, IncrementDirection::DECREASE);
     } else if (isOn() && command == "temperature_up") {
       changes |= applyIncrementCommand(GroupStateField::KELVIN, IncrementDirection::INCREASE);
+      changes |= setBulbMode(BULB_MODE_WHITE);
     } else if (isOn() && command == "temperature_down") {
       changes |= applyIncrementCommand(GroupStateField::KELVIN, IncrementDirection::DECREASE);
+      changes |= setBulbMode(BULB_MODE_WHITE);
     }
   }
 

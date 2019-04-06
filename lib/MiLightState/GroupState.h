@@ -49,8 +49,9 @@ public:
   GroupState(const GroupState& other);
   GroupState& operator=(const GroupState& other);
 
-  // Convenience constructor that patches defaults with JSON state
-  GroupState(const JsonObject& jsonState);
+  // Convenience constructor that patches transient state from a previous GroupState,
+  // and defaults with JSON state
+  GroupState(const GroupState* previousState, const JsonObject& jsonState);
 
   void initFields();
 
@@ -210,6 +211,12 @@ private:
 
   StateData state;
   TransientData scratchpad;
+
+  // State is constructed from individual command packets.  A command packet is parsed in
+  // isolation, and the result is patched onto previous state.  There are a few cases where
+  // it's necessary to know some things from the previous state, so we keep a reference to
+  // it here.
+  const GroupState* previousState;
 
   void applyColor(JsonObject& state, uint8_t r, uint8_t g, uint8_t b) const;
   void applyColor(JsonObject& state) const;

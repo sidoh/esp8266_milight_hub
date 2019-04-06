@@ -250,4 +250,74 @@ RSpec.describe 'State' do
       expect(state.select { |x| desired_state.include?(x) } ).to eq(desired_state)
     end
   end
+
+  context 'increment/decrement commands' do
+    it 'should assume state after sufficiently many down commands' do
+      id = @id_params.merge(type: 'cct')
+      @client.delete_state(id)
+
+      @client.patch_state({status: 'on'}, id)
+
+      expect(@client.get_state(id)).to_not include('brightness', 'kelvin')
+
+      10.times do
+        @client.patch_state(
+          { commands: ['level_down', 'temperature_down'] },
+          id
+        )
+      end
+
+      state = @client.get_state(id)
+      expect(state).to          include('level', 'kelvin')
+      expect(state['level']).to eq(0)
+      expect(state['kelvin']).to eq(0)
+    end
+
+    it 'should assume state after sufficiently many up commands' do
+      id = @id_params.merge(type: 'cct')
+      @client.delete_state(id)
+
+      @client.patch_state({status: 'on'}, id)
+
+      expect(@client.get_state(id)).to_not include('level', 'kelvin')
+
+      10.times do
+        @client.patch_state(
+          { commands: ['level_up', 'temperature_up'] },
+          id
+        )
+      end
+
+      state = @client.get_state(id)
+      expect(state).to          include('level', 'kelvin')
+      expect(state['level']).to eq(100)
+      expect(state['kelvin']).to eq(100)
+    end
+
+    it 'should affect known state' do
+      id = @id_params.merge(type: 'cct')
+      @client.delete_state(id)
+
+      @client.patch_state({status: 'on'}, id)
+
+      expect(@client.get_state(id)).to_not include('level', 'kelvin')
+
+      10.times do
+        @client.patch_state(
+          { commands: ['level_up', 'temperature_up'] },
+          id
+        )
+      end
+
+      @client.patch_state(
+        { commands: ['level_down', 'temperature_down'] },
+        id
+      )
+
+      state = @client.get_state(id)
+      expect(state).to           include('level', 'kelvin')
+      expect(state['level']).to  eq(90)
+      expect(state['kelvin']).to eq(90)
+    end
+  end
 end
