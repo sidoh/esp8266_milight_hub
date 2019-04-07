@@ -126,6 +126,8 @@ void MqttClient::subscribe() {
   String topic = settings.mqttTopicPattern;
 
   topic.replace(":device_id", "+");
+  topic.replace(":hex_device_id", "+");
+  topic.replace(":dec_device_id", "+");
   topic.replace(":group_id", "+");
   topic.replace(":device_type", "+");
 
@@ -179,6 +181,10 @@ void MqttClient::publishCallback(char* topic, byte* payload, int length) {
 
   if (tokenBindings.hasBinding("device_id")) {
     deviceId = parseInt<uint16_t>(tokenBindings.get("device_id"));
+  } else if (tokenBindings.hasBinding("hex_device_id")) {
+    deviceId = parseInt<uint16_t>(tokenBindings.get("hex_device_id"));
+  } else if (tokenBindings.hasBinding("dec_device_id")) {
+    deviceId = parseInt<uint16_t>(tokenBindings.get("dec_device_id"));
   }
 
   if (tokenBindings.hasBinding("group_id")) {

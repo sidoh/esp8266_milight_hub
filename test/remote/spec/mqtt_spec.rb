@@ -154,4 +154,96 @@ RSpec.describe 'State' do
       expect((avg - 0.5).abs).to be < 0.02
     end
   end
+
+  context ':device_id token for command topic' do
+    it 'should support hexadecimal device IDs' do
+      seen = false
+
+      @mqtt_client.on_state(@id_params) do |id, message|
+        seen = (message['status'] == 'ON')
+      end
+
+      # Will use hex by default
+      @mqtt_client.patch_state(@id_params, status: 'ON')
+      @mqtt_client.wait_for_listeners
+
+      expect(seen).to eq(true), "Should see update for hex param"
+    end
+
+    it 'should support decimal device IDs' do
+      seen = false
+
+      @mqtt_client.on_state(@id_params) do |id, message|
+        seen = (message['status'] == 'ON')
+      end
+
+      @mqtt_client.publish(
+        "#{@topic_prefix}commands/#{@id_params[:id]}/rgb_cct/1",
+        status: 'ON'
+      )
+      @mqtt_client.wait_for_listeners
+
+      expect(seen).to eq(true), "Should see update for decimal param"
+    end
+  end
+
+  context ':hex_device_id for command topic' do
+    before(:all) do
+      @client.put(
+        '/settings',
+        mqtt_topic_pattern: "#{@topic_prefix}commands/:hex_device_id/:device_type/:group_id",
+      )
+    end
+
+    after(:all) do
+      @client.put(
+        '/settings',
+        mqtt_topic_pattern: "#{@topic_prefix}commands/:device_id/:device_type/:group_id",
+      )
+    end
+
+    it 'should respond to commands' do
+      seen = false
+
+      @mqtt_client.on_state(@id_params) do |id, message|
+        seen = (message['status'] == 'ON')
+      end
+
+      # Will use hex by default
+      @mqtt_client.patch_state(@id_params, status: 'ON')
+      @mqtt_client.wait_for_listeners
+
+      expect(seen).to eq(true), "Should see update for hex param"
+    end
+  end
+
+  context ':dec_device_id for command topic' do
+    before(:all) do
+      @client.put(
+        '/settings',
+        mqtt_topic_pattern: "#{@topic_prefix}commands/:dec_device_id/:device_type/:group_id",
+      )
+    end
+
+    after(:all) do
+      @client.put(
+        '/settings',
+        mqtt_topic_pattern: "#{@topic_prefix}commands/:device_id/:device_type/:group_id",
+      )
+    end
+
+    it 'should respond to commands' do
+      seen = false
+
+      @mqtt_client.on_state(@id_params) do |id, message|
+        seen = (message['status'] == 'ON')
+      end
+
+      # Will use hex by default
+      @mqtt_client.patch_state(@id_params, status: 'ON', level: 100)
+      @mqtt_client.wait_for_listeners
+
+      expect(seen).to eq(true), "Should see update for hex param"
+    end
+  end
 end
