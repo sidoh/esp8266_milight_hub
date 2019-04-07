@@ -27,7 +27,13 @@ class MqttClient
 
   def id_topic_suffix(params)
     if params
-      "#{sprintf '0x%04X', params[:id]}/#{params[:type]}/#{params[:group_id]}"
+      str_id = if params[:id_format] == 'decimal'
+        params[:id].to_s
+      else
+        sprintf '0x%04X', params[:id]
+      end
+
+      "#{str_id}/#{params[:type]}/#{params[:group_id]}"
     else
       "+/+/+"
     end
