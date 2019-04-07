@@ -10,7 +10,7 @@ RSpec.describe 'State' do
     @updates_topic = "#{@topic_prefix}updates/:device_id/:device_type/:group_id"
 
     @client.put(
-      '/settings', 
+      '/settings',
       mqtt_server: ENV.fetch('ESPMH_MQTT_SERVER'),
       mqtt_username: ENV.fetch('ESPMH_MQTT_USERNAME'),
       mqtt_password: ENV.fetch('ESPMH_MQTT_PASSWORD'),
@@ -26,10 +26,28 @@ RSpec.describe 'State' do
       type: 'rgb_cct',
       group_id: 1
     }
+    @client.delete_state(@id_params)
 
     @mqtt_client = MqttClient.new(
       *%w(SERVER USERNAME PASSWORD).map { |x| ENV.fetch("ESPMH_MQTT_#{x}") } << @topic_prefix
     )
+  end
+
+  context 'deleting' do
+    it 'should remove retained state' do
+      @client.patch_state(@id_params, status: 'ON')
+
+      seen_blank = false
+
+      @mqtt_client.on_state(@id_params) do |topic, message|
+        seen_blank = (message == "")
+      end
+
+      @client.delete_state(@id_params)
+      @mqtt_client.wait_for_listeners
+
+      expect(seen_blank).to eq(true)
+    end
   end
 
   context 'birth and LWT' do
@@ -115,7 +133,7 @@ RSpec.describe 'State' do
 
       # Disable updates to prevent the negative effects of spamming commands
       @client.put(
-        '/settings', 
+        '/settings',
         mqtt_update_topic_pattern: '',
         mqtt_state_rate_limit: 500,
         packet_repeats: 1

@@ -115,6 +115,10 @@ void MiLightHttpServer::onSettingsSaved(SettingsSavedHandler handler) {
   this->settingsSavedHandler = handler;
 }
 
+void MiLightHttpServer::onGroupDeleted(GroupDeletedHandler handler) {
+  this->groupDeletedHandler = handler;
+}
+
 void MiLightHttpServer::handleAbout() {
   // DynamicJsonBuffer buffer;
   // JsonObject& response = buffer.createObject();
@@ -368,6 +372,10 @@ void MiLightHttpServer::handleDeleteGroup(const UrlTokenBindings* urlBindings) {
   stateStore->clear(bulbId);
 
   server.send_P(200, APPLICATION_JSON, PSTR("true"));
+
+  if (groupDeletedHandler != NULL) {
+    this->groupDeletedHandler(bulbId);
+  }
 }
 
 void MiLightHttpServer::handleUpdateGroup(const UrlTokenBindings* urlBindings) {

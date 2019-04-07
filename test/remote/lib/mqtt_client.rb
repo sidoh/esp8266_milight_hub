@@ -14,7 +14,7 @@ class MqttClient
   def disconnect
     @client.disconnect
   end
-  
+
   def reconnect
     @client.disconnect
     @client.connect
@@ -47,13 +47,18 @@ class MqttClient
     on_message(sub_topic, timeout) do |topic, message|
       topic_parts = topic.split('/')
 
+      begin
+        message = JSON.parse(message)
+      rescue JSON::ParserError => e
+      end
+
       yield(
         {
           id: topic_parts[2].to_i(16),
           type: topic_parts[3],
           group_id: topic_parts[4].to_i
         },
-        JSON.parse(message)
+        message
       )
     end
   end
@@ -69,10 +74,14 @@ class MqttClient
         end
       rescue Timeout::Error => e
         puts "Timed out listening for message on: #{topic}"
-        puts e.backtrace.join("\n")
+        raise e
       rescue BreakListenLoopError
       end
     end
+  end
+
+  def publish(topic, state = {})
+    @client.publish(topic, state.to_json)
   end
 
   def patch_state(id_params, state = {})
