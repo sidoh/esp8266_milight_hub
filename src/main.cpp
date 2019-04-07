@@ -278,12 +278,14 @@ void wifiExtraSettingsChange() {
   settings.wifiStaticIPNetmask = wifiStaticIPNetmask->getValue();
   settings.wifiStaticIPGateway = wifiStaticIPGateway->getValue();
   settings.save();
+
+  ledStatus->continuous(settings.ledModeOperating);
 }
 
 void setup() {
   Serial.begin(9600);
   String ssid = "ESP" + String(ESP.getChipId());
-  
+
   // load up our persistent settings from the file system
   SPIFFS.begin();
   Settings::load(settings);
@@ -297,15 +299,10 @@ void setup() {
   if (! MDNS.begin("milight-hub")) {
     Serial.println(F("Error setting up MDNS responder"));
   }
-  // tell Wifi manager to call us during the setup.  Note that this "setSetupLoopCallback" is an addition
-  // made to Wifi manager in a private fork.  As of this writing, WifiManager has a new feature coming that
-  // allows the "autoConnect" method to be non-blocking which can implement this same functionality.  However,
-  // that change is only on the development branch so we are going to continue to use this fork until
-  // that is merged and ready.
-  wifiManager.setSetupLoopCallback(handleLED);
-  
-  // Allows us to have static IP config in the captive portal. Yucky pointers to pointers, just to have the settings carry through
+
+  // Allows us to have static IP config in the captive portal.
   wifiManager.setSaveConfigCallback(wifiExtraSettingsChange);
+  wifiManager.setConfigPortalBlocking(false);
 
   wifiStaticIP = new WiFiManagerParameter(
     "staticIP",
@@ -349,17 +346,18 @@ void setup() {
     // set LED mode for successful operation
     ledStatus->continuous(settings.ledModeOperating);
     Serial.println(F("Wifi connected succesfully\n"));
-
-    // if the config portal was started, make sure to turn off the config AP
-    WiFi.mode(WIFI_STA);
   } else {
-    // set LED mode for Wifi failed
-    ledStatus->continuous(settings.ledModeWifiFailed);
-    Serial.println(F("Wifi failed.  Restarting in 10 seconds.\n"));
-
-    delay(10000);
-    ESP.restart();
+    Serial.println(F("Started config portal"));
   }
+
+  // } else {
+  //   // set LED mode for Wifi failed
+  //   ledStatus->continuous(settings.ledModeWifiFailed);
+  //   Serial.println(F("Wifi failed.  Restarting in 10 seconds.\n"));
+
+  //   delay(10000);
+  //   ESP.restart();
+  // }
 
 
   MDNS.addService("http", "tcp", 80);
@@ -381,33 +379,41 @@ void setup() {
 }
 
 void loop() {
-  httpServer->handleClient();
-
-  if (mqttClient) {
-    mqttClient->handleClient();
-    bulbStateUpdater->loop();
-  }
-
-  if (udpServers) {
-    for (size_t i = 0; i < settings.numGatewayConfigs; i++) {
-      udpServers[i]->handleClient();
-    }
-  }
-
-  if (discoveryServer) {
-    discoveryServer->handleClient();
-  }
-
-  handleListen();
-
-  stateStore->limitedFlush();
+  wifiManager.process();
 
   // update LED with status
   ledStatus->handle();
 
-  if (shouldRestart()) {
-    Serial.println(F("Auto-restart triggered. Restarting..."));
-    ESP.restart();
+  uint8_t lastConxResult = wifiManager.getLastConxResult();
+
+  if (lastConxResult == WL_CONNECTED) {
+    httpServer->handleClient();
+
+    if (mqttClient) {
+      mqttClient->handleClient();
+      bulbStateUpdater->loop();
+    }
+
+    if (udpServers) {
+      for (size_t i = 0; i < settings.numGatewayConfigs; i++) {
+        udpServers[i]->handleClient();
+      }
+    }
+
+    if (discoveryServer) {
+      discoveryServer->handleClient();
+    }
+
+    handleListen();
+
+    stateStore->limitedFlush();
+
+    if (shouldRestart()) {
+      Serial.println(F("Auto-restart triggered. Restarting..."));
+      ESP.restart();
+    }
+  } else if (lastConxResult == WL_CONNECT_FAILED) {
+    ledStatus->continuous(settings.ledModeWifiFailed);
   }
 }
 
