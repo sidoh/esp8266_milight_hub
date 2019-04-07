@@ -280,10 +280,23 @@ void wifiExtraSettingsChange() {
   settings.save();
 }
 
+// Called when a group is deleted via the REST API.  Will publish an empty message to
+// the MQTT topic to delete retained state
+void onGroupDeleted(const BulbId& id) {
+  if (mqttClient != NULL) {
+    mqttClient->sendState(
+      *MiLightRemoteConfig::fromType(id.deviceType),
+      id.deviceId,
+      id.groupId,
+      ""
+    );
+  }
+}
+
 void setup() {
   Serial.begin(9600);
   String ssid = "ESP" + String(ESP.getChipId());
-  
+
   // load up our persistent settings from the file system
   SPIFFS.begin();
   Settings::load(settings);
@@ -303,7 +316,7 @@ void setup() {
   // that change is only on the development branch so we are going to continue to use this fork until
   // that is merged and ready.
   wifiManager.setSetupLoopCallback(handleLED);
-  
+
   // Allows us to have static IP config in the captive portal. Yucky pointers to pointers, just to have the settings carry through
   wifiManager.setSaveConfigCallback(wifiExtraSettingsChange);
 
@@ -374,6 +387,7 @@ void setup() {
 
   httpServer = new MiLightHttpServer(settings, milightClient, stateStore);
   httpServer->onSettingsSaved(applySettings);
+  httpServer->onGroupDeleted(onGroupDeleted);
   httpServer->on("/description.xml", HTTP_GET, []() { SSDP.schema(httpServer->client()); });
   httpServer->begin();
 

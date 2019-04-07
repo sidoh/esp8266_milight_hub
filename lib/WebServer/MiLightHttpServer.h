@@ -10,6 +10,7 @@
 #define MAX_DOWNLOAD_ATTEMPTS 3
 
 typedef std::function<void(void)> SettingsSavedHandler;
+typedef std::function<void(const BulbId& id)> GroupDeletedHandler;
 
 const char TEXT_PLAIN[] PROGMEM = "text/plain";
 const char APPLICATION_JSON[] = "application/json";
@@ -30,6 +31,7 @@ public:
   void begin();
   void handleClient();
   void onSettingsSaved(SettingsSavedHandler handler);
+  void onGroupDeleted(GroupDeletedHandler handler);
   void on(const char* path, HTTPMethod method, ESP8266WebServer::THandlerFunction handler);
   void handlePacketSent(uint8_t* packet, const MiLightRemoteConfig& config);
   WiFiClient client();
@@ -72,6 +74,7 @@ protected:
   Settings& settings;
   GroupStateStore*& stateStore;
   SettingsSavedHandler settingsSavedHandler;
+  GroupDeletedHandler groupDeletedHandler;
   ESP8266WebServer::THandlerFunction _handleRootPage;
 
 };
