@@ -2,6 +2,7 @@
 
 source "https://rubygems.org"
 
+gem 'rspec'
 gem 'mqtt', '~> 0.5'
 gem 'dotenv', '~> 2.6'
 gem 'multipart-post'
