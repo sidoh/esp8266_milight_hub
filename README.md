@@ -31,7 +31,7 @@ Model #|Name|Compatible Bulbs
 |FUT091|CCT v2|Most newer dual white bulbs and controllers|
 |FUT089|8-zone RGB/CCT|Most newer rgb + dual white bulbs and controllers|
 
-Other remotes or bulbs, but have not been tested. 
+Other remotes or bulbs, but have not been tested.
 
 ## What you'll need
 
@@ -52,7 +52,7 @@ Both modules are SPI devices and should be connected to the standard SPI pins on
 
 [This guide](https://www.mysensors.org/build/connect_radio#nrf24l01+-&-esp8266) details how to connect an NRF24 to an ESP8266. By default GPIO 4 for CE and GPIO 15 for CSN are used, but these can be configured late in the Web GUI under Settings -> Setup.
 
-<img src="https://user-images.githubusercontent.com/40266/47967518-67556f00-e05e-11e8-857d-1173a9da955c.png" align="left" width="32%" /> 
+<img src="https://user-images.githubusercontent.com/40266/47967518-67556f00-e05e-11e8-857d-1173a9da955c.png" align="left" width="32%" />
 <img src="https://user-images.githubusercontent.com/40266/47967520-691f3280-e05e-11e8-838a-83706df2edb0.png" align="left" width="22%" />
 
 NodeMCU | Radio | Color
@@ -283,6 +283,14 @@ You can select which fields should be included in state updates by configuring t
 1. `color` / `computed_color` - behaves the same when bulb is in rgb mode.  `computed_color` will send RGB = 255,255,255 when in white mode.  This is useful for HomeAssistant where it always expects the color to be set.
 1. `oh_color` - same as `color` with a format compatible with [OpenHAB's colorRGB channel type](https://www.openhab.org/addons/bindings/mqtt.generic/#channel-type-colorrgb-colorhsb).
 1. `device_id` / `device_type` / `group_id` - this information is in the MQTT topic or REST route, but can be included in the payload in the case that processing the topic or route is more difficult.
+
+#### Client Status
+
+To receive updates when the MQTT client connects or disconnects from the broker, confugre the `mqtt_client_status_topic` parameter.  A message of the following form will be published:
+
+```json
+{"status":"disconnected_unclean","firmware":"milight-hub","version":"1.9.0-rc3","ip_address":"192.168.1.111","reset_reason":"External System"}
+```
 
 ## UDP Gateways
 
