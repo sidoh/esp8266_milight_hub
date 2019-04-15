@@ -167,9 +167,7 @@ public:
   String mqttTopicPattern;
   String mqttUpdateTopicPattern;
   String mqttStateTopicPattern;
-  String mqttLwtTopic;
-  String mqttLwtMessage;
-  String mqttBirthTopic;
+  String mqttClientStatusTopic;
   size_t stateFlushInterval;
   size_t mqttStateRateLimit;
   size_t packetRepeatThrottleThreshold;

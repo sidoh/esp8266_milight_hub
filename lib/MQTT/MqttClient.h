@@ -49,6 +49,8 @@ private:
     const uint16_t deviceId,
     const uint16_t groupId
   );
+
+  static String generateConnectionStatusMessage(const char* status);
 };
 
 #endif
