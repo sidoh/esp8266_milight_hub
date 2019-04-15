@@ -50,20 +50,27 @@ RSpec.describe 'State' do
     end
   end
 
-  context 'birth and LWT' do
+  context 'client status topic' do
     # Unfortunately, no way to easily simulate an unclean disconnect, so only test birth
-    it 'should send birth message when configured' do
-      birth_topic = "#{@topic_prefix}birth"
+    it 'should send client status messages when configured' do
+      status_topic = "#{@topic_prefix}client_status"
 
       @client.put(
         '/settings',
-        mqtt_birth_topic: birth_topic
+        mqtt_client_status_topic: status_topic
       )
 
-      seen_birth = false
+      # Clear any retained messages
+      @mqtt_client.publish(status_topic, nil)
 
-      @mqtt_client.on_message(birth_topic) do |topic, message|
-        seen_birth = true
+      seen_statuses = Set.new
+      required_statuses = %w(connected disconnected_clean)
+
+      @mqtt_client.on_message(status_topic, 20) do |topic, message|
+        message = JSON.parse(message)
+
+        seen_statuses << message['status']
+        required_statuses.all? { |x| seen_statuses.include?(x) }
       end
 
       # Force MQTT reconnect by updating settings
@@ -71,7 +78,7 @@ RSpec.describe 'State' do
 
       @mqtt_client.wait_for_listeners
 
-      expect(seen_birth).to be(true)
+      expect(seen_statuses).to include(*required_statuses)
     end
   end
 
@@ -128,9 +135,6 @@ RSpec.describe 'State' do
     end
 
     it 'should respect the state update interval' do
-      # Wait for MQTT to reconnect
-      @mqtt_client.on_message("#{@topic_prefix}birth") { |x, y| true }
-
       # Disable updates to prevent the negative effects of spamming commands
       @client.put(
         '/settings',
@@ -138,8 +142,6 @@ RSpec.describe 'State' do
         mqtt_state_rate_limit: 500,
         packet_repeats: 1
       )
-
-      @mqtt_client.wait_for_listeners
 
       # Set initial state
       @client.patch_state({status: 'ON', level: 0}, @id_params)
