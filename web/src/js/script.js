@@ -15,7 +15,7 @@ $(function() {
             input.val(log);
         }
     });
-  });  
+  });
 });
 
 var UNIT_PARAMS = {
@@ -134,13 +134,13 @@ var UI_FIELDS = [ {
     type: "string",
     tab: "tab-mqtt"
   }, {
-    tag: "mqtt_topic_pattern", 
+    tag: "mqtt_topic_pattern",
     friendly: "MQTT topic pattern",
     help: "Pattern for MQTT topics to listen on. Example: lights/:device_id/:device_type/:group_id. See README for further details",
     type: "string",
     tab: "tab-mqtt"
   }, {
-    tag:   "mqtt_update_topic_pattern", 
+    tag:   "mqtt_update_topic_pattern",
     friendly: "MQTT update topic pattern",
     help: "Pattern to publish MQTT updates. Packets that are received from other devices, and packets that are sent from this device will " +
     "result in updates being sent",
@@ -153,37 +153,25 @@ var UI_FIELDS = [ {
     type: "string",
     tab: "tab-mqtt"
   }, {
-    tag:   "mqtt_username", 
+    tag:   "mqtt_username",
     friendly: "MQTT user name",
     help: "User name to log in to MQTT server",
     type: "string",
     tab: "tab-mqtt"
   }, {
-    tag:   "mqtt_password", 
+    tag:   "mqtt_password",
     friendly: "MQTT password",
     help: "Password to log into MQTT server",
     type: "string",
     tab: "tab-mqtt"
   }, {
-    tag:   "mqtt_lwt_topic", 
-    friendly: "MQTT LWT Topic",
-    help: "Topic to use for LWT message (leave blank to disable LWT)",
+    tag:   "mqtt_client_status_topic",
+    friendly: "MQTT Client Status Topic",
+    help: "Connection status messages will be published to this topic.  This includes LWT and birth.  See README for further detail.",
     type: "string",
     tab: "tab-mqtt"
   }, {
-    tag:   "mqtt_lwt_message", 
-    friendly: "MQTT LWT Message",
-    help: "LWT Message - sent when client disconnects uncleanly",
-    type: "string",
-    tab: "tab-mqtt"
-  }, {
-    tag:   "mqtt_birth_topic", 
-    friendly: "MQTT Birth Topic",
-    help: "Birth Topic - JSON blob with system details will be sent to this topic upon connection",
-    type: "string",
-    tab: "tab-mqtt"
-  }, {
-    tag:   "radio_interface_type", 
+    tag:   "radio_interface_type",
     friendly: "Radio interface type",
     help: "2.4 GHz radio model. Only change this if you know you're not using an NRF24L01!",
     type: "option_buttons",
@@ -193,7 +181,7 @@ var UI_FIELDS = [ {
     },
     tab: "tab-radio"
   }, {
-    tag:   "rf24_power_level", 
+    tag:   "rf24_power_level",
     friendly: "nRF24 Power Level",
     help: "Power level for nRF24L01",
     type: "option_buttons",
@@ -205,7 +193,7 @@ var UI_FIELDS = [ {
     },
     tab: "tab-radio"
   }, {
-    tag:   "rf24_listen_channel", 
+    tag:   "rf24_listen_channel",
     friendly: "nRF24 Listen Channel",
     help: "Which channels to listen for messages on the nRF24",
     type: "option_buttons",
@@ -216,7 +204,7 @@ var UI_FIELDS = [ {
     },
     tab: "tab-radio"
   }, {
-    tag:   "rf24_channels", 
+    tag:   "rf24_channels",
     friendly: "nRF24 Send Channels",
     help: "Which channels to send messages on for the nRF24.  Using fewer channels speeds up sends.",
     type: "option_buttons",
@@ -237,14 +225,14 @@ var UI_FIELDS = [ {
     type: "string",
     tab: "tab-wifi"
   }, {
-    tag:   "state_flush_interval", 
+    tag:   "state_flush_interval",
     friendly: "State flush interval",
     help: "Minimum number of milliseconds between flushing state to flash. " +
     "Set to 0 to disable delay and immediately persist state to flash",
     type: "string",
     tab: "tab-setup"
   }, {
-    tag:   "mqtt_state_rate_limit", 
+    tag:   "mqtt_state_rate_limit",
     friendly: "MQTT state rate limit",
     help: "Minimum number of milliseconds between MQTT updates of bulb state (defaults to 500)",
     type: "string",
@@ -259,7 +247,7 @@ var UI_FIELDS = [ {
     type: "string",
     tab: "tab-radio"
   }, {
-    tag:   "packet_repeat_throttle_sensitivity", 
+    tag:   "packet_repeat_throttle_sensitivity",
     friendly: "Packet repeat throttle sensitivity",
     help: "Controls how packet repeats are throttled. " +
     "Higher values cause packets to be throttled up and down faster " +
@@ -267,7 +255,7 @@ var UI_FIELDS = [ {
     type: "string",
     tab: "tab-radio"
   }, {
-    tag:   "packet_repeat_minimum", 
+    tag:   "packet_repeat_minimum",
     friendly: "Packet repeat minimum",
     help: "Controls how far throttling can decrease the number " +
     "of repeated packets (defaults to 3)",
@@ -280,7 +268,7 @@ var UI_FIELDS = [ {
     type: "group_state_fields",
     tab: "tab-mqtt"
   }, {
-    tag:   "enable_automatic_mode_switching", 
+    tag:   "enable_automatic_mode_switching",
     friendly: "Enable automatic mode switching",
     help: "For RGBWW bulbs (using RGB+CCT or FUT089), enables automatic switching between modes in order to affect changes to " +
     "temperature and saturation when otherwise it would not work",
@@ -319,7 +307,7 @@ var UI_FIELDS = [ {
     friendly: "Flash count on packets",
     help: "Number of times the LED will flash when packets are changing",
     type: "string",
-    tab: "tab-led"    
+    tab: "tab-led"
   }
 ];
 
@@ -928,7 +916,7 @@ $(function() {
     allowEmptyOption: true,
     render: {
       option: function(data, escape) {
-        // Mousedown selects an option -- prevent event from bubbling up to select option 
+        // Mousedown selects an option -- prevent event from bubbling up to select option
         // when delete button is clicked.
         var deleteBtn = $('<span class="selectize-delete"><a href="#"><i class="glyphicon glyphicon-trash"></i></a></span>')
           .mousedown(function(e) {
@@ -1028,7 +1016,7 @@ $(function() {
     });
     settings += "</div>";
   });
-  
+
   // UDP gateways tab
   settings += '<div class="tab-pane fade ' + tabClass + '" id="tab-udp-gateways">';
   settings += $('#gateway-servers-modal .modal-body').remove().html();
@@ -1060,7 +1048,7 @@ $(function() {
           }
 
           return a;
-        }, 
+        },
         {
           // Make sure the value is always an array, even if a single item is selected
           rf24_channels: []
@@ -1081,7 +1069,7 @@ $(function() {
     }
 
     $('#settings-modal').modal('hide');
-    
+
     return false;
   });
 
@@ -1126,5 +1114,5 @@ $(function() {
             input.val(log);
         }
     });
-  });  
+  });
 });
