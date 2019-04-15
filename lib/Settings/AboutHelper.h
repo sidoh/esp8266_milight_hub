@@ -1,11 +1,13 @@
 #include <Arduino.h>
+#include <ArduinoJson.h>
 
 #ifndef _ABOUT_STRING_HELPER_H
 #define _ABOUT_STRING_HELPER_H
 
-class AboutStringHelper {
+class AboutHelper {
 public:
   static String generateAboutString(bool abbreviated = false);
+  static void generateAboutObject(JsonObject& obj, bool abbreviated = false);
 };
 
 #endif

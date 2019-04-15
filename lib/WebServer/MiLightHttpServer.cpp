@@ -6,7 +6,7 @@
 #include <MiLightRadioConfig.h>
 #include <string.h>
 #include <TokenIterator.h>
-#include <AboutStringHelper.h>
+#include <AboutHelper.h>
 #include <index.html.gz.h>
 
 void MiLightHttpServer::begin() {
@@ -120,19 +120,7 @@ void MiLightHttpServer::onGroupDeleted(GroupDeletedHandler handler) {
 }
 
 void MiLightHttpServer::handleAbout() {
-  // DynamicJsonBuffer buffer;
-  // JsonObject& response = buffer.createObject();
-
-  // response["version"] = QUOTE(MILIGHT_HUB_VERSION);
-  // response["variant"] = QUOTE(FIRMWARE_VARIANT);
-  // response["free_heap"] = ESP.getFreeHeap();
-  // response["arduino_version"] = ESP.getCoreVersion();
-  // response["reset_reason"] = ESP.getResetReason();
-
-  // String body;
-  // response.printTo(body);
-
-  server.send(200, APPLICATION_JSON, AboutStringHelper::generateAboutString());
+  server.send(200, APPLICATION_JSON, AboutHelper::generateAboutString());
 }
 
 void MiLightHttpServer::handleGetRadioConfigs() {

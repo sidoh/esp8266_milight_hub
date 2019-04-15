@@ -6,7 +6,7 @@
 #include <ArduinoJson.h>
 #include <WiFiClient.h>
 #include <MiLightRadioConfig.h>
-#include <AboutStringHelper.h>
+#include <AboutHelper.h>
 
 MqttClient::MqttClient(Settings& settings, MiLightClient*& milightClient)
   : milightClient(milightClient),
