@@ -6,7 +6,11 @@
 #include <ArduinoJson.h>
 #include <WiFiClient.h>
 #include <MiLightRadioConfig.h>
-#include <AboutStringHelper.h>
+#include <AboutHelper.h>
+
+static const char* STATUS_CONNECTED = "connected";
+static const char* STATUS_DISCONNECTED = "disconnected_clean";
+static const char* STATUS_LWT_DISCONNECTED = "disconnected_unclean";
 
 MqttClient::MqttClient(Settings& settings, MiLightClient*& milightClient)
   : milightClient(milightClient),
@@ -21,6 +25,8 @@ MqttClient::MqttClient(Settings& settings, MiLightClient*& milightClient)
 }
 
 MqttClient::~MqttClient() {
+  String aboutStr = generateConnectionStatusMessage(STATUS_DISCONNECTED);
+  mqttClient->publish(settings.mqttClientStatusTopic.c_str(), aboutStr.c_str(), true);
   mqttClient->disconnect();
   delete this->domain;
 }
@@ -52,15 +58,15 @@ bool MqttClient::connect() {
     Serial.println(F("MqttClient - connecting"));
 #endif
 
-  if (settings.mqttUsername.length() > 0 && settings.mqttLwtTopic.length() > 0) {
+  if (settings.mqttUsername.length() > 0 && settings.mqttClientStatusTopic.length() > 0) {
     return mqttClient->connect(
       nameBuffer,
       settings.mqttUsername.c_str(),
       settings.mqttPassword.c_str(),
-      settings.mqttLwtTopic.c_str(),
+      settings.mqttClientStatusTopic.c_str(),
       2,
       true,
-      settings.mqttLwtMessage.c_str()
+      generateConnectionStatusMessage(STATUS_LWT_DISCONNECTED).c_str()
     );
   } else if (settings.mqttUsername.length() > 0) {
     return mqttClient->connect(
@@ -68,13 +74,13 @@ bool MqttClient::connect() {
       settings.mqttUsername.c_str(),
       settings.mqttPassword.c_str()
     );
-  } else if (settings.mqttLwtTopic.length() > 0) {
+  } else if (settings.mqttClientStatusTopic.length() > 0) {
     return mqttClient->connect(
       nameBuffer,
-      settings.mqttLwtTopic.c_str(),
+      settings.mqttClientStatusTopic.c_str(),
       2,
       true,
-      settings.mqttLwtMessage.c_str()
+      generateConnectionStatusMessage(STATUS_LWT_DISCONNECTED).c_str()
     );
   } else {
     return mqttClient->connect(nameBuffer);
@@ -82,9 +88,9 @@ bool MqttClient::connect() {
 }
 
 void MqttClient::sendBirthMessage() {
-  if (settings.mqttBirthTopic.length() > 0) {
-    String aboutStr = AboutStringHelper::generateAboutString(true);
-    mqttClient->publish(settings.mqttBirthTopic.c_str(), aboutStr.c_str());
+  if (settings.mqttClientStatusTopic.length() > 0) {
+    String aboutStr = generateConnectionStatusMessage(STATUS_CONNECTED);
+    mqttClient->publish(settings.mqttClientStatusTopic.c_str(), aboutStr.c_str(), true);
   }
 }
 
@@ -228,4 +234,18 @@ inline void MqttClient::bindTopicString(
   topicPattern.replace(":dec_device_id", String(deviceId));
   topicPattern.replace(":group_id", String(groupId));
   topicPattern.replace(":device_type", remoteConfig.name);
+}
+
+String MqttClient::generateConnectionStatusMessage(const char* connectionStatus) {
+  DynamicJsonBuffer buffer;
+  JsonObject& status = buffer.createObject();
+  status["status"] = connectionStatus;
+
+  // Fill other fields
+  AboutHelper::generateAboutObject(status, true);
+
+  String response;
+  status.printTo(response);
+
+  return response;
 }

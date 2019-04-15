@@ -2,6 +2,7 @@
 .piolibdeps
 .clang_complete
 .gcc-flags.json
+.sconsign.dblite
 /web/node_modules
 /web/build
 /dist/*.bin
