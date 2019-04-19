@@ -7,6 +7,7 @@
 #include <Size.h>
 #include <LEDStatus.h>
 #include <vector>
+#include "DHT.h"
 
 #ifndef _SETTINGS_H_INCLUDED
 #define _SETTINGS_H_INCLUDED
@@ -110,7 +111,12 @@ public:
     rf24PowerLevel(RF24PowerLevelHelpers::defaultValue()),
     rf24Channels(RF24ChannelHelpers::allValues()),
     rf24ListenChannel(RF24Channel::RF24_LOW),
-    _autoRestartPeriod(0)
+    _autoRestartPeriod(0),
+    dht_Enable(false),
+    dht_Pin(5),
+    dht_Type(DHT::AM2302),
+    dht_TempInF(false),
+    dht_UpdateInterval(5000)
   {
     if (groupStateFields == NULL) {
       numGroupStateFields = size(DEFAULT_GROUP_STATE_FIELDS);
@@ -135,6 +141,7 @@ public:
   static RadioInterfaceType typeFromString(const String& s);
   static String typeToString(RadioInterfaceType type);
   static std::vector<RF24Channel> defaultListenChannels();
+  DHT::DHT_MODEL_t dhtTypeFromString(const String& s);
 
   void save();
   String toJson(const bool prettyPrint = true);
@@ -168,6 +175,7 @@ public:
   String mqttUpdateTopicPattern;
   String mqttStateTopicPattern;
   String mqttClientStatusTopic;
+  String mqttSensorStateTopic;
   size_t stateFlushInterval;
   size_t mqttStateRateLimit;
   size_t packetRepeatThrottleThreshold;
@@ -188,6 +196,11 @@ public:
   String wifiStaticIP;
   String wifiStaticIPNetmask;
   String wifiStaticIPGateway;
+  bool dht_Enable;
+  uint8_t dht_Pin;
+  uint8_t dht_Type;
+  bool dht_TempInF;
+  uint dht_UpdateInterval;
 
 
 protected:

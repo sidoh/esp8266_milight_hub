@@ -39,6 +39,9 @@ var UI_TABS = [ {
   }, {
     tag: "tab-mqtt",
     friendly: "MQTT"
+  }, {
+    tag: "tab-mqtt",
+    friendly: "Sensor"
   }
 ];
 
@@ -308,6 +311,51 @@ var UI_FIELDS = [ {
     help: "Number of times the LED will flash when packets are changing",
     type: "string",
     tab: "tab-led"
+  }, {
+    tag:   "dht_Enable",
+    friendly: "Enable the DHT Sensor",
+    help: "Enable the sensor (mqtt much be setup to read values)",
+    type: "option_buttons",
+    options: {
+      true: 'Enable',
+      false: 'Disable'
+    },
+    tab: "tab-sensor"
+  }, {
+    tag:   "dht_Pin",
+    friendly: "Pin the DHT sensor is connected to",
+    help: "Number of times the LED will flash when packets are changing",
+    type: "string",
+    tab: "tab-sensor"
+  }, {
+    tag:   "dht_Type",
+    friendly: "Type of sensor",
+    help: "Is the sensor a DHT11, DHT22, AM2302, etc",
+    type: "option_buttons",
+    options: {
+      'auto': 'AUTO_DETECT',
+      'dht11': 'DHT11',
+      'dht22': 'DHT22',
+      'am2302': 'AM2302',
+      'rht03': 'RHT03'
+    },
+    tab: "tab-sensor"
+  }, {
+    tag:   "dht_tempInF",
+    friendly: "Read values in Fahrenheit",
+    help: "Do you understand Celcius or Fahrenheit values?",
+    type: "option_buttons",
+    options: {
+      true: 'F',
+      false: 'C'
+    },
+    tab: "tab-sensor"
+  }, {
+    tag:   "dht_updateInterval",
+    friendly: "Update Interval to poll sensor (ms)",
+    help: "How often should the sensor be read?",
+    type: "string",
+    tab: "tab-sensor"
   }
 ];
 

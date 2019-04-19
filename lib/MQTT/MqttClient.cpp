@@ -128,6 +128,10 @@ void MqttClient::sendState(const MiLightRemoteConfig& remoteConfig, uint16_t dev
   publish(settings.mqttStateTopicPattern, remoteConfig, deviceId, groupId, update, true);
 }
 
+void MqttClient::sendSensorData(const char* update) {
+  mqttClient->publish(settings.mqttSensorStateTopic.c_str(), update, true);
+}
+
 void MqttClient::subscribe() {
   String topic = settings.mqttTopicPattern;
 

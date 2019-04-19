@@ -99,6 +99,7 @@ void Settings::patch(JsonObject& parsedSettings) {
     this->setIfPresent(parsedSettings, "mqtt_update_topic_pattern", mqttUpdateTopicPattern);
     this->setIfPresent(parsedSettings, "mqtt_state_topic_pattern", mqttStateTopicPattern);
     this->setIfPresent(parsedSettings, "mqtt_client_status_topic", mqttClientStatusTopic);
+    this->setIfPresent(parsedSettings, "mqtt_sensor_state_topic", mqttSensorStateTopic);
     this->setIfPresent(parsedSettings, "discovery_port", discoveryPort);
     this->setIfPresent(parsedSettings, "listen_repeats", listenRepeats);
     this->setIfPresent(parsedSettings, "state_flush_interval", stateFlushInterval);
@@ -112,6 +113,10 @@ void Settings::patch(JsonObject& parsedSettings) {
     this->setIfPresent(parsedSettings, "wifi_static_ip", wifiStaticIP);
     this->setIfPresent(parsedSettings, "wifi_static_ip_gateway", wifiStaticIPGateway);
     this->setIfPresent(parsedSettings, "wifi_static_ip_netmask", wifiStaticIPNetmask);
+    this->setIfPresent(parsedSettings, "dht_Enable", dht_Enable);
+    this->setIfPresent(parsedSettings, "dht_Pin", dht_Pin);
+    this->setIfPresent(parsedSettings, "dht_tempInF", dht_TempInF);
+    this->setIfPresent(parsedSettings, "dht_updateInterval", dht_UpdateInterval);
 
     if (parsedSettings.containsKey("rf24_channels")) {
       JsonArray& arr = parsedSettings["rf24_channels"];
@@ -144,6 +149,10 @@ void Settings::patch(JsonObject& parsedSettings) {
 
     if (parsedSettings.containsKey("radio_interface_type")) {
       this->radioInterfaceType = Settings::typeFromString(parsedSettings["radio_interface_type"]);
+    }
+
+    if (parsedSettings.containsKey("dht_Type")) {
+      this->dht_Type = Settings::dhtTypeFromString(parsedSettings["radio_interface_type"]);
     }
 
     if (parsedSettings.containsKey("device_ids")) {
@@ -215,6 +224,7 @@ void Settings::serialize(Stream& stream, const bool prettyPrint) {
   root["mqtt_update_topic_pattern"] = this->mqttUpdateTopicPattern;
   root["mqtt_state_topic_pattern"] = this->mqttStateTopicPattern;
   root["mqtt_client_status_topic"] = this->mqttClientStatusTopic;
+  root["mqtt_sensor_state_topic"] = this->mqttSensorStateTopic;
   root["discovery_port"] = this->discoveryPort;
   root["listen_repeats"] = this->listenRepeats;
   root["state_flush_interval"] = this->stateFlushInterval;
@@ -234,6 +244,11 @@ void Settings::serialize(Stream& stream, const bool prettyPrint) {
   root["wifi_static_ip"] = this->wifiStaticIP;
   root["wifi_static_ip_gateway"] = this->wifiStaticIPGateway;
   root["wifi_static_ip_netmask"] = this->wifiStaticIPNetmask;
+  root["dht_Enable"] = this->dht_Enable;
+  root["dht_Pin"] = this->dht_Pin;
+  root["dht_Type"] = this->dht_Type;
+  root["dht_TempInF"] = this->dht_TempInF;
+  root["dht_UpdateInterval"] = this->dht_UpdateInterval;
 
   JsonArray& channelArr = jsonBuffer.createArray();
   JsonHelpers::vectorToJsonArr<RF24Channel>(channelArr, rf24Channels, RF24ChannelHelpers::nameFromValue);
@@ -311,4 +326,18 @@ String Settings::typeToString(RadioInterfaceType type) {
     default:
       return "nRF24";
   }
+}
+
+DHT::DHT_MODEL_t Settings::dhtTypeFromString(const String& s) {
+  if (s.equalsIgnoreCase("dht11")) {
+    return DHT::DHT11;
+  } else if (s.equalsIgnoreCase("dht22")) {
+    return DHT::DHT22;
+  } else if (s.equalsIgnoreCase("am2302")) {
+    return DHT::AM2302;
+  } else if (s.equalsIgnoreCase("rht03")) {
+    return DHT::RHT03;
+  } else {
+    return DHT::AUTO_DETECT;
+  }  
 }

@@ -22,6 +22,7 @@
 #include <MiLightClient.h>
 #include <BulbStateUpdater.h>
 #include <LEDStatus.h>
+#include <DHTSensor.h>
 
 WiFiManager wifiManager;
 // because of callbacks, these need to be in the higher scope :(
@@ -30,6 +31,7 @@ WiFiManagerParameter* wifiStaticIPNetmask = NULL;
 WiFiManagerParameter* wifiStaticIPGateway = NULL;
 
 static LEDStatus *ledStatus;
+static DHTSensor *dhtSensor;
 
 Settings settings;
 
@@ -83,6 +85,25 @@ void initMilightUdpServers() {
     }
   }
 }
+
+/**
+ * Send DHT sensor data to MQTT
+ */
+void sendSensorData() {
+  StaticJsonBuffer<100> buffer;
+  JsonObject& result = buffer.createObject();
+
+  result["temperature"] = dhtSensor->getTemperature();
+  result["humidity"] = dhtSensor->getHumidity();
+
+  if (mqttClient) {
+    char output[200];
+    result.printTo(output);
+
+    mqttClient->sendSensorData(output);
+  }
+}
+
 
 /**
  * Milight RF packet handler.
@@ -253,6 +274,12 @@ void applySettings() {
     ledStatus->changePin(settings.ledPin);
     ledStatus->continuous(settings.ledModeOperating);
   }
+  
+  if (dhtSensor && settings.dht_Enable) {
+    dhtSensor->changePinAndType(settings.dht_Pin, settings.dht_Type);
+    dhtSensor->setTemperatureMode(settings.dht_TempInF);
+    dhtSensor->setUpdateInterval(settings.dht_UpdateInterval);
+  }
 
   WiFi.hostname(settings.hostname);
 }
@@ -390,6 +417,11 @@ void setup() {
   httpServer->onGroupDeleted(onGroupDeleted);
   httpServer->on("/description.xml", HTTP_GET, []() { SSDP.schema(httpServer->client()); });
   httpServer->begin();
+    
+  // set up the DHT Sensor
+  dhtSensor = new DHTSensor(settings.dht_Pin, settings.dht_Type);
+  dhtSensor->setTemperatureMode(settings.dht_TempInF);
+  dhtSensor->setUpdateInterval(settings.dht_UpdateInterval);
 
   Serial.printf_P(PSTR("Setup complete (version %s)\n"), QUOTE(MILIGHT_HUB_VERSION));
 }
@@ -419,6 +451,14 @@ void loop() {
   // update LED with status
   ledStatus->handle();
 
+  //check DHT timer to see if the sensor should be read
+  if (settings.dht_Enable) {
+    if (dhtSensor->handle())
+    {
+      sendSensorData();
+    }
+  }
+  
   if (shouldRestart()) {
     Serial.println(F("Auto-restart triggered. Restarting..."));
     ESP.restart();
