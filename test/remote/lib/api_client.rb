@@ -62,6 +62,10 @@ class ApiClient
     `curl -s "http://#{@host}#{path}" -X POST -F 'f=@#{file}'`
   end
 
+  def patch_settings(settings)
+    put('/settings', settings)
+  end
+
   def get(path)
     request(:Get, path)
   end
