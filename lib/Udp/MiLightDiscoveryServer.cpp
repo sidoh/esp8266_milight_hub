@@ -49,7 +49,7 @@ void MiLightDiscoveryServer::handleClient() {
 
 void MiLightDiscoveryServer::handleDiscovery(uint8_t version) {
 #ifdef MILIGHT_UDP_DEBUG
-  printf("Handling discovery for version: %u, %d configs to consider\n", version, settings.numGatewayConfigs);
+  printf_P(PSTR("Handling discovery for version: %u, %d configs to consider\n"), version, settings.numGatewayConfigs);
 #endif
 
   char buffer[40];
@@ -80,6 +80,10 @@ void MiLightDiscoveryServer::handleDiscovery(uint8_t version) {
 }
 
 void MiLightDiscoveryServer::sendResponse(char* buffer) {
+#ifdef MILIGHT_UDP_DEBUG
+  printf_P(PSTR("Sending response: %s\n"), buffer);
+#endif
+
   socket.beginPacket(socket.remoteIP(), socket.remotePort());
   socket.write(buffer);
   socket.endPacket();

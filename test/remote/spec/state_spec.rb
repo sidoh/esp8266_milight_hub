@@ -1,9 +1,4 @@
 require 'api_client'
-require './helpers/state_helpers'
-
-RSpec.configure do |c|
-  c.include StateHelpers
-end
 
 RSpec.describe 'State' do
   before(:all) do
@@ -182,7 +177,7 @@ RSpec.describe 'State' do
       resulting_state = @client.get_state(group_0_params)
       expect(resulting_state).to_not include('level')
 
-      # white mode -> color.  
+      # white mode -> color.
       white_mode_desired_state = {'status' => 'ON', 'color_temp' => 253, 'level' => 11}
       @client.patch_state(white_mode_desired_state, group_0_params)
       @client.patch_state({'hue' => 10}, @id_params)

@@ -1,22 +1,17 @@
 require 'api_client'
-require 'mqtt_client'
 
 RSpec.describe 'State' do
   before(:all) do
     @client = ApiClient.new(ENV.fetch('ESPMH_HOSTNAME'), ENV.fetch('ESPMH_TEST_DEVICE_ID_BASE'))
     @client.upload_json('/settings', 'settings.json')
 
-    @topic_prefix = ENV.fetch('ESPMH_MQTT_TOPIC_PREFIX')
-    @updates_topic = "#{@topic_prefix}updates/:device_id/:device_type/:group_id"
+    mqtt_params = mqtt_parameters()
+    @updates_topic = mqtt_params[:updates_topic]
+    @topic_prefix = mqtt_topic_prefix()
 
     @client.put(
       '/settings',
-      mqtt_server: ENV.fetch('ESPMH_MQTT_SERVER'),
-      mqtt_username: ENV.fetch('ESPMH_MQTT_USERNAME'),
-      mqtt_password: ENV.fetch('ESPMH_MQTT_PASSWORD'),
-      mqtt_topic_pattern: "#{@topic_prefix}commands/:device_id/:device_type/:group_id",
-      mqtt_state_topic_pattern: "#{@topic_prefix}state/:device_id/:device_type/:group_id",
-      mqtt_update_topic_pattern: @updates_topic
+      mqtt_params
     )
   end
 
@@ -28,9 +23,7 @@ RSpec.describe 'State' do
     }
     @client.delete_state(@id_params)
 
-    @mqtt_client = MqttClient.new(
-      *%w(SERVER USERNAME PASSWORD).map { |x| ENV.fetch("ESPMH_MQTT_#{x}") } << @topic_prefix
-    )
+    @mqtt_client = create_mqtt_client()
   end
 
   context 'deleting' do
