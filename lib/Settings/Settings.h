@@ -7,7 +7,7 @@
 #include <Size.h>
 #include <LEDStatus.h>
 #include <vector>
-#include "DHT.h"
+#include <EnvSensor.h>
 
 #ifndef _SETTINGS_H_INCLUDED
 #define _SETTINGS_H_INCLUDED
@@ -112,11 +112,12 @@ public:
     rf24Channels(RF24ChannelHelpers::allValues()),
     rf24ListenChannel(RF24Channel::RF24_LOW),
     _autoRestartPeriod(0),
-    dht_Enable(false),
-    dht_Pin(5),
-    dht_Type(DHT::AM2302),
-    dht_TempInF(false),
-    dht_UpdateInterval(5000)
+    sensor_Enable(false),
+    sensor_Pin(5),
+    sensor_BME_Addr(0x76),
+    sensor_Type(EnvSensor::UNKNOWN),
+    sensor_TempInF(false),
+    sensor_UpdateInterval(5000)
   {
     if (groupStateFields == NULL) {
       numGroupStateFields = size(DEFAULT_GROUP_STATE_FIELDS);
@@ -141,7 +142,8 @@ public:
   static RadioInterfaceType typeFromString(const String& s);
   static String typeToString(RadioInterfaceType type);
   static std::vector<RF24Channel> defaultListenChannels();
-  DHT::DHT_MODEL_t dhtTypeFromString(const String& s);
+  EnvSensor::SENSORS sensorTypeFromString(const String& s);
+  String sensorTypeToString(const EnvSensor::SENSORS type);
 
   void save();
   String toJson(const bool prettyPrint = true);
@@ -196,11 +198,12 @@ public:
   String wifiStaticIP;
   String wifiStaticIPNetmask;
   String wifiStaticIPGateway;
-  bool dht_Enable;
-  uint8_t dht_Pin;
-  uint8_t dht_Type;
-  bool dht_TempInF;
-  uint dht_UpdateInterval;
+  bool sensor_Enable;
+  uint8_t sensor_Pin;
+  uint8_t sensor_BME_Addr;
+  EnvSensor::SENSORS sensor_Type;
+  bool sensor_TempInF;
+  uint16_t sensor_UpdateInterval;
 
 
 protected:

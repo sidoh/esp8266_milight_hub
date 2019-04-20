@@ -40,7 +40,7 @@ var UI_TABS = [ {
     tag: "tab-mqtt",
     friendly: "MQTT"
   }, {
-    tag: "tab-mqtt",
+    tag: "tab-sensor",
     friendly: "Sensor"
   }
 ];
@@ -312,8 +312,8 @@ var UI_FIELDS = [ {
     type: "string",
     tab: "tab-led"
   }, {
-    tag:   "dht_Enable",
-    friendly: "Enable the DHT Sensor",
+    tag:   "sensor_Enable",
+    friendly: "Enable the sensor Sensor",
     help: "Enable the sensor (mqtt much be setup to read values)",
     type: "option_buttons",
     options: {
@@ -322,26 +322,43 @@ var UI_FIELDS = [ {
     },
     tab: "tab-sensor"
   }, {
-    tag:   "dht_Pin",
-    friendly: "Pin the DHT sensor is connected to",
-    help: "Number of times the LED will flash when packets are changing",
+    tag:   "mqtt_sensor_state_topic",
+    friendly: "sensor MQTT State Topic",
+    help: "MQTT Topic to publish sensor data to.",
     type: "string",
     tab: "tab-sensor"
   }, {
-    tag:   "dht_Type",
-    friendly: "Type of sensor",
-    help: "Is the sensor a DHT11, DHT22, AM2302, etc",
+    tag:   "sensor_Pin",
+    friendly: "Sensor Pin",
+    help: "This the the pin that the sensor is connected to. Not used for i2c sensors.",
+    type: "string",
+    tab: "tab-sensor"
+  }, {
+    tag:   "sensor_BME_Addr",
+    friendly: "BME Sensor I2C Addr",
+    help: "The I2C address for the BME sensor. Not used for other sensors.",
     type: "option_buttons",
     options: {
-      'auto': 'AUTO_DETECT',
-      'dht11': 'DHT11',
-      'dht22': 'DHT22',
-      'am2302': 'AM2302',
-      'rht03': 'RHT03'
+      '0x76': '0x76',
+      '0x77': '0x77'
     },
     tab: "tab-sensor"
   }, {
-    tag:   "dht_tempInF",
+    tag:   "sensor_Type",
+    friendly: "Type of sensor",
+    help: "Is the sensor a DHT22, AM2302, BME280, SHT21, etc.",
+    type: "option_buttons",
+    options: {
+      'dht11': 'DHT11',
+      'dht22': 'DHT22',
+      'am2302': 'AM2302',
+      'rht03': 'RHT03',
+      'bme280': 'BME280',
+      'sht21': 'SHT21'
+    },
+    tab: "tab-sensor"
+  }, {
+    tag:   "sensor_TempInF",
     friendly: "Read values in Fahrenheit",
     help: "Do you understand Celcius or Fahrenheit values?",
     type: "option_buttons",
@@ -351,7 +368,7 @@ var UI_FIELDS = [ {
     },
     tab: "tab-sensor"
   }, {
-    tag:   "dht_updateInterval",
+    tag:   "sensor_UpdateInterval",
     friendly: "Update Interval to poll sensor (ms)",
     help: "How often should the sensor be read?",
     type: "string",

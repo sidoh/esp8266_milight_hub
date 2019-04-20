@@ -22,7 +22,7 @@
 #include <MiLightClient.h>
 #include <BulbStateUpdater.h>
 #include <LEDStatus.h>
-#include <DHTSensor.h>
+#include <EnvSensor.h>
 
 WiFiManager wifiManager;
 // because of callbacks, these need to be in the higher scope :(
@@ -31,7 +31,7 @@ WiFiManagerParameter* wifiStaticIPNetmask = NULL;
 WiFiManagerParameter* wifiStaticIPGateway = NULL;
 
 static LEDStatus *ledStatus;
-static DHTSensor *dhtSensor;
+static EnvSensor *envSensor;
 
 Settings settings;
 
@@ -87,14 +87,23 @@ void initMilightUdpServers() {
 }
 
 /**
- * Send DHT sensor data to MQTT
+ * Send sensor sensor data to MQTT
  */
 void sendSensorData() {
   StaticJsonBuffer<100> buffer;
   JsonObject& result = buffer.createObject();
 
-  result["temperature"] = dhtSensor->getTemperature();
-  result["humidity"] = dhtSensor->getHumidity();
+  if (envSensor->getTemperature() > -127) {
+    result["temperature"] = envSensor->getTemperature();
+  }
+
+  if (envSensor->getHumidity() > 0) {
+    result["humidity"] = envSensor->getHumidity();
+  }
+
+  if (envSensor->getPressure() > 0) {
+    result["pressure"] = envSensor->getPressure();
+  }
 
   if (mqttClient) {
     char output[200];
@@ -275,10 +284,11 @@ void applySettings() {
     ledStatus->continuous(settings.ledModeOperating);
   }
   
-  if (dhtSensor && settings.dht_Enable) {
-    dhtSensor->changePinAndType(settings.dht_Pin, settings.dht_Type);
-    dhtSensor->setTemperatureMode(settings.dht_TempInF);
-    dhtSensor->setUpdateInterval(settings.dht_UpdateInterval);
+  if (envSensor && settings.sensor_Enable) {
+    envSensor->changePinAndType(settings.sensor_Pin, settings.sensor_Type);
+    envSensor->changeAddr(settings.sensor_BME_Addr);
+    envSensor->setTemperatureMode(settings.sensor_TempInF);
+    envSensor->setUpdateInterval(settings.sensor_UpdateInterval);
   }
 
   WiFi.hostname(settings.hostname);
@@ -418,10 +428,8 @@ void setup() {
   httpServer->on("/description.xml", HTTP_GET, []() { SSDP.schema(httpServer->client()); });
   httpServer->begin();
     
-  // set up the DHT Sensor
-  dhtSensor = new DHTSensor(settings.dht_Pin, settings.dht_Type);
-  dhtSensor->setTemperatureMode(settings.dht_TempInF);
-  dhtSensor->setUpdateInterval(settings.dht_UpdateInterval);
+  // set up the sensor Sensor
+  envSensor = new EnvSensor(settings.sensor_Pin, settings.sensor_Type, settings.sensor_BME_Addr, settings.sensor_TempInF, settings.sensor_UpdateInterval);
 
   Serial.printf_P(PSTR("Setup complete (version %s)\n"), QUOTE(MILIGHT_HUB_VERSION));
 }
@@ -451,9 +459,9 @@ void loop() {
   // update LED with status
   ledStatus->handle();
 
-  //check DHT timer to see if the sensor should be read
-  if (settings.dht_Enable) {
-    if (dhtSensor->handle())
+  //check sensor timer to see if the sensor should be read
+  if (settings.sensor_Enable) {
+    if (envSensor->handle())
     {
       sendSensorData();
     }

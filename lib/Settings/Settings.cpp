@@ -113,10 +113,10 @@ void Settings::patch(JsonObject& parsedSettings) {
     this->setIfPresent(parsedSettings, "wifi_static_ip", wifiStaticIP);
     this->setIfPresent(parsedSettings, "wifi_static_ip_gateway", wifiStaticIPGateway);
     this->setIfPresent(parsedSettings, "wifi_static_ip_netmask", wifiStaticIPNetmask);
-    this->setIfPresent(parsedSettings, "dht_Enable", dht_Enable);
-    this->setIfPresent(parsedSettings, "dht_Pin", dht_Pin);
-    this->setIfPresent(parsedSettings, "dht_tempInF", dht_TempInF);
-    this->setIfPresent(parsedSettings, "dht_updateInterval", dht_UpdateInterval);
+    this->setIfPresent(parsedSettings, "sensor_Enable", sensor_Enable);
+    this->setIfPresent(parsedSettings, "sensor_Pin", sensor_Pin);
+    this->setIfPresent(parsedSettings, "sensor_TempInF", sensor_TempInF);
+    this->setIfPresent(parsedSettings, "sensor_UpdateInterval", sensor_UpdateInterval);
 
     if (parsedSettings.containsKey("rf24_channels")) {
       JsonArray& arr = parsedSettings["rf24_channels"];
@@ -138,7 +138,7 @@ void Settings::patch(JsonObject& parsedSettings) {
     if (parsedSettings.containsKey("led_mode_wifi_failed")) {
       this->ledModeWifiFailed = LEDStatus::stringToLEDMode(parsedSettings["led_mode_wifi_failed"]);
     }
-
+     
     if (parsedSettings.containsKey("led_mode_operating")) {
       this->ledModeOperating = LEDStatus::stringToLEDMode(parsedSettings["led_mode_operating"]);
     }
@@ -151,9 +151,19 @@ void Settings::patch(JsonObject& parsedSettings) {
       this->radioInterfaceType = Settings::typeFromString(parsedSettings["radio_interface_type"]);
     }
 
-    if (parsedSettings.containsKey("dht_Type")) {
-      this->dht_Type = Settings::dhtTypeFromString(parsedSettings["radio_interface_type"]);
+    if (parsedSettings.containsKey("sensor_Type")) {
+      this->sensor_Type = Settings::sensorTypeFromString(parsedSettings["sensor_Type"]);
     }
+
+    if (parsedSettings.containsKey("sensor_BME_Addr")) {
+      String val = parsedSettings["sensor_BME_Addr"];
+      if (val.equalsIgnoreCase("0x76")) {
+        this->sensor_BME_Addr = 0x76;
+      } else if (val.equalsIgnoreCase("0x77")) {
+        this->sensor_BME_Addr = 0x77;
+      }
+    }
+    
 
     if (parsedSettings.containsKey("device_ids")) {
       JsonArray& arr = parsedSettings["device_ids"];
@@ -244,11 +254,12 @@ void Settings::serialize(Stream& stream, const bool prettyPrint) {
   root["wifi_static_ip"] = this->wifiStaticIP;
   root["wifi_static_ip_gateway"] = this->wifiStaticIPGateway;
   root["wifi_static_ip_netmask"] = this->wifiStaticIPNetmask;
-  root["dht_Enable"] = this->dht_Enable;
-  root["dht_Pin"] = this->dht_Pin;
-  root["dht_Type"] = this->dht_Type;
-  root["dht_TempInF"] = this->dht_TempInF;
-  root["dht_UpdateInterval"] = this->dht_UpdateInterval;
+  root["sensor_Enable"] = this->sensor_Enable;
+  root["sensor_Pin"] = this->sensor_Pin;
+  root["sensor_BME_Addr"] = String(this->sensor_BME_Addr, HEX);
+  root["sensor_Type"] = sensorTypeToString(this->sensor_Type);
+  root["sensor_TempInF"] = this->sensor_TempInF;
+  root["sensor_UpdateInterval"] = this->sensor_UpdateInterval;
 
   JsonArray& channelArr = jsonBuffer.createArray();
   JsonHelpers::vectorToJsonArr<RF24Channel>(channelArr, rf24Channels, RF24ChannelHelpers::nameFromValue);
@@ -328,16 +339,29 @@ String Settings::typeToString(RadioInterfaceType type) {
   }
 }
 
-DHT::DHT_MODEL_t Settings::dhtTypeFromString(const String& s) {
+EnvSensor::SENSORS Settings::sensorTypeFromString(const String& s) {
   if (s.equalsIgnoreCase("dht11")) {
-    return DHT::DHT11;
+    return EnvSensor::DHT11;
   } else if (s.equalsIgnoreCase("dht22")) {
-    return DHT::DHT22;
+    return EnvSensor::DHT22;
   } else if (s.equalsIgnoreCase("am2302")) {
-    return DHT::AM2302;
+    return EnvSensor::AM2302;
   } else if (s.equalsIgnoreCase("rht03")) {
-    return DHT::RHT03;
+    return EnvSensor::RHT03;
+  } else if (s.equalsIgnoreCase("bme280")) {
+    return EnvSensor::BME280;
   } else {
-    return DHT::AUTO_DETECT;
+    return EnvSensor::UNKNOWN;
   }  
+}
+
+String Settings::sensorTypeToString(const EnvSensor::SENSORS type) {
+  switch (type) {
+    case EnvSensor::DHT11:  return "dht11";
+    case EnvSensor::DHT22:  return "dht22";
+    case EnvSensor::AM2302: return "am2302";
+    case EnvSensor::RHT03:  return "rht03";
+    case EnvSensor::BME280: return "bme280";
+    default: return "unknown";
+  }
 }
