@@ -549,7 +549,9 @@ bool GroupState::setMireds(uint16_t mireds) {
   return setKelvin(Units::miredsToWhiteVal(mireds, 100));
 }
 
-bool GroupState::isSetBulbMode() const { return state.fields._isSetBulbMode; }
+bool GroupState::isSetBulbMode() const {
+  return  (isSetNightMode() && isNightMode()) || state.fields._isSetBulbMode;
+}
 BulbMode GroupState::getBulbMode() const {
   // Night mode is a transient state.  When power is toggled, the bulb returns
   // to the state it was last in.  To handle this case, night mode state is
