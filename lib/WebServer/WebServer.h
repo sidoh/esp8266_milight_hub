@@ -19,7 +19,6 @@ public:
   void onAuthenticated(const String &uri, HTTPMethod method, THandlerFunction fn, THandlerFunction ufn);
   void onPattern(const String& pattern, const HTTPMethod method, PathVariableHandler::TPathVariableHandlerFn fn);
   void onPatternAuthenticated(const String& pattern, const HTTPMethod method, PathVariableHandler::TPathVariableHandlerFn handler);
-  bool matchesPattern(const String& pattern, const String& url);
   void requireAuthentication(const String& username, const String& password);
   void disableAuthentication();
   bool validateAuthentiation();
