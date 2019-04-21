@@ -33,6 +33,46 @@ RSpec.describe 'State' do
     end
   end
 
+  context 'night mode command' do
+    it 'should affect state when bulb is off' do
+      state = @client.patch_state({'command' => 'night_mode'}, @id_params)
+
+      expect(state['bulb_mode']).to eq('night')
+      expect(state['effect']).to    eq('night_mode')
+    end
+
+    it 'should affect state when bulb is on' do
+      @client.patch_state({'status' => 'ON'}, @id_params)
+      state = @client.patch_state({'command' => 'night_mode'}, @id_params)
+
+      expect(state['status']).to    eq('ON')
+      expect(state['bulb_mode']).to eq('night')
+      expect(state['effect']).to    eq('night_mode')
+    end
+
+    it 'should revert to previous mode when status is toggled' do
+      @client.patch_state({'status' => 'ON', 'kelvin' => 100}, @id_params)
+      state = @client.patch_state({'command' => 'night_mode'}, @id_params)
+
+      expect(state['effect']).to eq('night_mode')
+
+      state = @client.patch_state({'status' => 'OFF'}, @id_params)
+
+      expect(state['bulb_mode']).to eq('white')
+      expect(state['kelvin']).to    eq(100)
+
+      @client.patch_state({'status' => 'ON', 'hue' => 0}, @id_params)
+      state = @client.patch_state({'command' => 'night_mode'}, @id_params)
+
+      expect(state['effect']).to eq('night_mode')
+
+      state = @client.patch_state({'status' => 'OFF'}, @id_params)
+
+      expect(state['bulb_mode']).to eq('color')
+      expect(state['hue']).to       eq(0)
+    end
+  end
+
   context 'deleting' do
     it 'should support deleting state' do
       desired_state = {
