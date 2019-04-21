@@ -4,7 +4,7 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <ESP8266WebServer.h>
-#include <PatternHandler.h>
+#include <PathVariableHandler.h>
 
 #define HTTP_DOWNLOAD_UNIT_SIZE 1460
 #define HTTP_MAX_SEND_WAIT 5000 //ms to wait for data chunk to be ACKed
@@ -17,8 +17,8 @@ public:
   void onAuthenticated(const String &uri, THandlerFunction handler);
   void onAuthenticated(const String &uri, HTTPMethod method, THandlerFunction fn);
   void onAuthenticated(const String &uri, HTTPMethod method, THandlerFunction fn, THandlerFunction ufn);
-  void onPattern(const String& pattern, const HTTPMethod method, PatternHandler::TPatternHandlerFn fn);
-  void onPatternAuthenticated(const String& pattern, const HTTPMethod method, PatternHandler::TPatternHandlerFn handler);
+  void onPattern(const String& pattern, const HTTPMethod method, PathVariableHandler::TPathVariableHandlerFn fn);
+  void onPatternAuthenticated(const String& pattern, const HTTPMethod method, PathVariableHandler::TPathVariableHandlerFn handler);
   bool matchesPattern(const String& pattern, const String& url);
   void requireAuthentication(const String& username, const String& password);
   void disableAuthentication();
