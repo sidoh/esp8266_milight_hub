@@ -42,28 +42,28 @@ void test_fut092_packet_formatter() {
 
   uint8_t onPacket[] = {0x00, 0xDB, 0xE1, 0x24, 0x66, 0xCA, 0x54, 0x66, 0xD2};
   run_packet_test(
-    onPacket, 
-    &packetFormatter, 
-    BulbId(1, 1, REMOTE_TYPE_RGB_CCT), 
-    "state", 
+    onPacket,
+    &packetFormatter,
+    BulbId(1, 1, REMOTE_TYPE_RGB_CCT),
+    "state",
     "OFF"
   );
 
   uint8_t minColorTempPacket[] = {0x00, 0xDB, 0xE1, 0x24, 0x64, 0x3C, 0x47, 0x66, 0x31};
   run_packet_test(
-    minColorTempPacket, 
-    &packetFormatter, 
-    BulbId(1, 1, REMOTE_TYPE_RGB_CCT), 
-    "color_temp", 
+    minColorTempPacket,
+    &packetFormatter,
+    BulbId(1, 1, REMOTE_TYPE_RGB_CCT),
+    "color_temp",
     COLOR_TEMP_MIN_MIREDS
   );
 
   uint8_t maxColorTempPacket[] = {0x00, 0xDB, 0xE1, 0x24, 0x64, 0x94, 0x62, 0x66, 0x88};
   run_packet_test(
-    maxColorTempPacket, 
-    &packetFormatter, 
-    BulbId(1, 1, REMOTE_TYPE_RGB_CCT), 
-    "color_temp", 
+    maxColorTempPacket,
+    &packetFormatter,
+    BulbId(1, 1, REMOTE_TYPE_RGB_CCT),
+    "color_temp",
     COLOR_TEMP_MAX_MIREDS
   );
 }
@@ -73,28 +73,28 @@ void test_fut091_packet_formatter() {
 
   uint8_t onPacket[] = {0x00, 0xDC, 0xE1, 0x24, 0x66, 0xCA, 0xBA, 0x66, 0xB5};
   run_packet_test(
-    onPacket, 
-    &packetFormatter, 
-    BulbId(1, 1, REMOTE_TYPE_FUT091), 
-    "state", 
+    onPacket,
+    &packetFormatter,
+    BulbId(1, 1, REMOTE_TYPE_FUT091),
+    "state",
     "OFF"
   );
 
   uint8_t minColorTempPacket[] = {0x00, 0xDC, 0xE1, 0x24, 0x64, 0x8D, 0xB9, 0x66, 0x71};
   run_packet_test(
-    minColorTempPacket, 
-    &packetFormatter, 
-    BulbId(1, 1, REMOTE_TYPE_FUT091), 
-    "color_temp", 
+    minColorTempPacket,
+    &packetFormatter,
+    BulbId(1, 1, REMOTE_TYPE_FUT091),
+    "color_temp",
     COLOR_TEMP_MIN_MIREDS
   );
 
   uint8_t maxColorTempPacket[] = {0x00, 0xDC, 0xE1, 0x24, 0x64, 0x55, 0xB7, 0x66, 0x27};
   run_packet_test(
-    maxColorTempPacket, 
-    &packetFormatter, 
-    BulbId(1, 1, REMOTE_TYPE_FUT091), 
-    "color_temp", 
+    maxColorTempPacket,
+    &packetFormatter,
+    BulbId(1, 1, REMOTE_TYPE_FUT091),
+    "color_temp",
     COLOR_TEMP_MAX_MIREDS
   );
 }
@@ -108,9 +108,9 @@ GroupState color() {
 
   s.setState(MiLightStatus::ON);
   s.setBulbMode(BulbMode::BULB_MODE_COLOR);
-  s.setBrightness(100);
   s.setHue(1);
   s.setSaturation(10);
+  s.setBrightness(100);
 
   return s;
 }
@@ -220,8 +220,7 @@ void test_store() {
   BulbId id1(1, 1, REMOTE_TYPE_FUT089);
   BulbId id2(1, 2, REMOTE_TYPE_FUT089);
 
-  // cache 1 item, flush immediately
-  GroupStateStore store(1, 0);
+  GroupStateStore store(4, 0);
   GroupStatePersistence persistence;
 
   persistence.clear(id1);
@@ -230,7 +229,7 @@ void test_store() {
   GroupState initState = color();
   GroupState initState2 = color();
   GroupState defaultState = GroupState::defaultState(REMOTE_TYPE_FUT089);
-  initState2.setBrightness(255);
+  initState2.setBrightness(50);
 
   GroupState* storedState;
 
@@ -240,7 +239,7 @@ void test_store() {
   store.set(id1, initState);
   storedState = store.get(id1);
 
-  TEST_ASSERT_TRUE_MESSAGE(*storedState == initState, "Should return cached state");
+  TEST_ASSERT_TRUE_MESSAGE(storedState->isEqualIgnoreDirty(initState), "Should return stored state.  Will not be cached because of internal group 0 lookups");
 
   store.flush();
   storedState = store.get(id1);
@@ -269,7 +268,6 @@ void test_group_0() {
 
   GroupState initState = color();
   GroupState initState2 = color();
-  GroupState defaultState = GroupState::defaultState(REMOTE_TYPE_FUT089);
   GroupState storedState;
   GroupState expectedState;
   GroupState group0State;
@@ -302,9 +300,9 @@ void test_group_0() {
   expectedState.setHue(group0State.getHue());
   TEST_ASSERT_TRUE_MESSAGE(storedState.isEqualIgnoreDirty(expectedState), "Saving group 0 should only update changed field");
 
-  // Test that state for group 0 is not persisted
+  // Test that state for group 0 is persisted
   storedState = *store.get(group0Id);
-  TEST_ASSERT_TRUE_MESSAGE(storedState.isEqualIgnoreDirty(defaultState), "Group 0 state should not be stored -- should return default state");
+  TEST_ASSERT_TRUE_MESSAGE(storedState.isEqualIgnoreDirty(group0State), "Group 0 state should not be stored -- should return default state");
 
   // Test that states for constituent groups are properly updated
   initState.setHue(0);

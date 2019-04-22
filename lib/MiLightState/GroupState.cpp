@@ -12,13 +12,13 @@ static const char* BULB_MODE_NAMES[] = {
 
 const BulbId DEFAULT_BULB_ID;
 static const GroupStateField ALL_PHYSICAL_FIELDS[] = {
-  GroupStateField::BRIGHTNESS,
   GroupStateField::BULB_MODE,
   GroupStateField::HUE,
   GroupStateField::KELVIN,
   GroupStateField::MODE,
   GroupStateField::SATURATION,
-  GroupStateField::STATE
+  GroupStateField::STATE,
+  GroupStateField::BRIGHTNESS
 };
 
 static const GroupStateField ALL_SCRATCH_FIELDS[] = {
@@ -946,7 +946,7 @@ void GroupState::debugState(char const *debugMessage) const {
 
   // define fields to show (if count changes, make sure to update count to applyState below)
   GroupStateField fields[] {
-      GroupStateField::BRIGHTNESS,
+      GroupStateField::LEVEL,
       GroupStateField::BULB_MODE,
       GroupStateField::COLOR_TEMP,
       GroupStateField::EFFECT,
@@ -970,6 +970,7 @@ void GroupState::debugState(char const *debugMessage) const {
   Serial.printf("%s: ", debugMessage);
   jsonState.printTo(Serial);
   Serial.println("");
+  Serial.printf("Raw data: %08X %08X\n", state.rawData[0], state.rawData[1]);
 #endif
 }
 

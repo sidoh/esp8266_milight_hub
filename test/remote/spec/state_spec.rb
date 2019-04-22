@@ -284,6 +284,31 @@ RSpec.describe 'State' do
       expect(state.keys).to include(*desired_state.keys)
       expect(state.select { |x| desired_state.include?(x) } ).to eq(desired_state)
     end
+
+    it 'should support separate brightness fields for different modes' do
+      desired_state = {
+        'hue' => 0,
+        'level' => 50
+      }
+
+      @client.patch_state(desired_state, @id_params)
+      result = @client.get_state(@id_params)
+      expect(result['bulb_mode']).to eq('color')
+      expect(result['level']).to eq(50)
+
+
+      @client.patch_state({'kelvin' => 100}, @id_params)
+      @client.patch_state({'level' => 70}, @id_params)
+      result = @client.get_state(@id_params)
+      expect(result['bulb_mode']).to eq('white')
+      expect(result['level']).to eq(70)
+
+      @client.patch_state({'hue' => 0}, @id_params)
+      result = @client.get_state(@id_params)
+      expect(result['bulb_mode']).to eq('color')
+      # Should retain previous brightness
+      expect(result['level']).to eq(50)
+    end
   end
 
   context 'increment/decrement commands' do
