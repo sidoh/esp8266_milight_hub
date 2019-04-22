@@ -239,7 +239,7 @@ void test_store() {
   store.set(id1, initState);
   storedState = store.get(id1);
 
-  TEST_ASSERT_TRUE_MESSAGE(*storedState == initState, "Should return cached state");
+  TEST_ASSERT_TRUE_MESSAGE(storedState->isEqualIgnoreDirty(initState), "Should return stored state.  Will not be cached because of internal group 0 lookups");
 
   store.flush();
   storedState = store.get(id1);
