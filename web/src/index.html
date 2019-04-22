@@ -396,6 +396,17 @@
         <div class="modal-body">
           <div class="alert alert-warning">
             <p>
+              <b>
+                Always take a
+                <a href="/settings" download="settings.json">backup of your settings</a>
+                before upgrading.
+              </b>
+              Sometimes upgrades change flash offsets, which can corrupt the filesystem.  If this happens, clear
+              flash, re-upload the firmware, and restore the backup of your settings.
+            </p>
+          </div>
+          <div class="alert alert-warning">
+            <p>
             Download firmware binaries from the
             <a href="https://github.com/sidoh/esp8266_milight_hub/releases">GitHub releases page</a>.
             Check for a new version by clicking on the "Check for Updates" button.
