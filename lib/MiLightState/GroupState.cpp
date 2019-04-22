@@ -944,7 +944,7 @@ void GroupState::debugState(char const *debugMessage) const {
 
   // define fields to show (if count changes, make sure to update count to applyState below)
   GroupStateField fields[] {
-      GroupStateField::BRIGHTNESS,
+      GroupStateField::LEVEL,
       GroupStateField::BULB_MODE,
       GroupStateField::COLOR_TEMP,
       GroupStateField::EFFECT,
