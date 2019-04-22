@@ -220,8 +220,7 @@ void test_store() {
   BulbId id1(1, 1, REMOTE_TYPE_FUT089);
   BulbId id2(1, 2, REMOTE_TYPE_FUT089);
 
-  // cache 1 item, flush immediately
-  GroupStateStore store(1, 0);
+  GroupStateStore store(4, 0);
   GroupStatePersistence persistence;
 
   persistence.clear(id1);
