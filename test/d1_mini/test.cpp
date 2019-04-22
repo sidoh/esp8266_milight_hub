@@ -268,7 +268,6 @@ void test_group_0() {
 
   GroupState initState = color();
   GroupState initState2 = color();
-  GroupState defaultState = GroupState::defaultState(REMOTE_TYPE_FUT089);
   GroupState storedState;
   GroupState expectedState;
   GroupState group0State;
@@ -301,9 +300,9 @@ void test_group_0() {
   expectedState.setHue(group0State.getHue());
   TEST_ASSERT_TRUE_MESSAGE(storedState.isEqualIgnoreDirty(expectedState), "Saving group 0 should only update changed field");
 
-  // Test that state for group 0 is not persisted
+  // Test that state for group 0 is persisted
   storedState = *store.get(group0Id);
-  TEST_ASSERT_TRUE_MESSAGE(storedState.isEqualIgnoreDirty(defaultState), "Group 0 state should not be stored -- should return default state");
+  TEST_ASSERT_TRUE_MESSAGE(storedState.isEqualIgnoreDirty(group0State), "Group 0 state should not be stored -- should return default state");
 
   // Test that states for constituent groups are properly updated
   initState.setHue(0);
