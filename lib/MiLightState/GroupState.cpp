@@ -12,13 +12,13 @@ static const char* BULB_MODE_NAMES[] = {
 
 const BulbId DEFAULT_BULB_ID;
 static const GroupStateField ALL_PHYSICAL_FIELDS[] = {
-  GroupStateField::BRIGHTNESS,
   GroupStateField::BULB_MODE,
   GroupStateField::HUE,
   GroupStateField::KELVIN,
   GroupStateField::MODE,
   GroupStateField::SATURATION,
-  GroupStateField::STATE
+  GroupStateField::STATE,
+  GroupStateField::BRIGHTNESS
 };
 
 static const GroupStateField ALL_SCRATCH_FIELDS[] = {
