@@ -38,7 +38,7 @@ void EnvSensor::initEnvSensor()
     case SENSORS::DHT11:
     case SENSORS::DHT22:
     case SENSORS::AM2302:
-    case SENSORS::RHT03: dhtSensor.setup(_sensorPin, (DHT::DHT_MODEL_t)_sensorType); return;
+    case SENSORS::RHT03: dhtSensor.setup(_sensorPin, (DHTesp::DHT_MODEL_t)_sensorType); return;
     case SENSORS::BME280: Wire.begin(); bme.begin(_sensorAddr);
     case SENSORS::SHT21: Wire.begin();
     default: break;
@@ -149,7 +149,7 @@ bool EnvSensor::handle() {
                            break;
       case SENSORS::BME280: _temperature = bme.readTemperature();
                             _humidity    = bme.readHumidity();
-                            _pressure    = bme.readPressure();
+                            _pressure    = (int)(bme.readPressure() / 10) / 10.0; //convert Paskal to hPa with one decimal place
                             break;
       case SENSORS::SHT21: _temperature  = SHT2x.GetTemperature();
                            _humidity     = SHT2x.GetHumidity();
@@ -157,13 +157,11 @@ bool EnvSensor::handle() {
                            break;
       default: _temperature = -1; _humidity = -1; _pressure = -1; break;
     }
+
+    _temperature = (int)(_temperature * 100) / 100.0;  //two decimal places max
+    _humidity = (int)(_humidity * 100) / 100.0;        //two decimal places max
+
     _timer = millis();
-    Serial.print("Read:  T: ");
-    Serial.print(_temperature);
-    Serial.print("   H: ");
-    Serial.print(_humidity);
-    Serial.print("   P: ");
-    Serial.println(_pressure);
     return true;
   }
   return false;

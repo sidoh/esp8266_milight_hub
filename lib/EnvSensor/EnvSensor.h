@@ -1,5 +1,5 @@
 #include <Arduino.h>
-#include "DHT.h"
+#include "DHTesp.h"
 #include <Wire.h>
 #include "Adafruit_Sensor.h"
 #include "Adafruit_BME280.h"
@@ -41,7 +41,7 @@ class EnvSensor {
     void setType(SENSORS sensorType);
     void setAddress(uint8_t sensorAddr);
 
-    DHT dhtSensor;
+    DHTesp dhtSensor;
     Adafruit_BME280 bme;
 
     uint8_t _sensorPin;  //the sensors pin (used if not i2c)
@@ -51,7 +51,7 @@ class EnvSensor {
     boolean _inFahrenheit;
     float _humidity;
     float _temperature;
-    float _pressure;
+    uint16_t _pressure;
 
     unsigned long _timer = 0;
     uint _updateInterval;
