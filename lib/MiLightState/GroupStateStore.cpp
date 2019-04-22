@@ -12,7 +12,12 @@ GroupState* GroupStateStore::get(const BulbId& id) {
 
   if (state == NULL) {
 #if STATE_DEBUG
-    Serial.println(F("Couldn't fetch state from cache, getting it from persistence"));
+    printf(
+      "Couldn't fetch state for 0x%04X / %d / %s in the cache, getting it from persistence\n",
+      id.deviceId,
+      id.groupId,
+      MiLightRemoteConfig::fromType(id.deviceType)->name.c_str()
+    );
 #endif
     trackEviction();
     GroupState loadedState = GroupState::defaultState(id.deviceType);
@@ -90,6 +95,16 @@ void GroupStateStore::clear(const BulbId& bulbId) {
 void GroupStateStore::trackEviction() {
   if (cache.isFull()) {
     evictedIds.add(cache.getLru());
+
+#ifdef STATE_DEBUG
+    BulbId bulbId = evictedIds.getLast();
+    printf(
+      "Evicting from cache: 0x%04X / %d / %s\n",
+      bulbId.deviceId,
+      bulbId.groupId,
+      MiLightRemoteConfig::fromType(bulbId.deviceType)->name.c_str()
+    );
+#endif
   }
 }
 

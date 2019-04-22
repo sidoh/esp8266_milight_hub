@@ -968,6 +968,7 @@ void GroupState::debugState(char const *debugMessage) const {
   Serial.printf("%s: ", debugMessage);
   jsonState.printTo(Serial);
   Serial.println("");
+  Serial.printf("Raw data: %08X %08X\n", state.rawData[0], state.rawData[1]);
 #endif
 }
 
