@@ -12,7 +12,12 @@ GroupState* GroupStateStore::get(const BulbId& id) {
 
   if (state == NULL) {
 #if STATE_DEBUG
-    Serial.println(F("Couldn't fetch state from cache, getting it from persistence"));
+    printf(
+      "Couldn't fetch state for 0x%04X / %d / %s in the cache, getting it from persistence\n",
+      id.deviceId,
+      id.groupId,
+      MiLightRemoteConfig::fromType(id.deviceType)->name.c_str()
+    );
 #endif
     trackEviction();
     GroupState loadedState = GroupState::defaultState(id.deviceType);
@@ -39,8 +44,8 @@ GroupState* GroupStateStore::get(const uint16_t deviceId, const uint8_t groupId,
 //
 // Notes:
 //
-// * For device types with groups, group 0 is a "virtual" group.  All devices paired with the same ID will 
-//   respond to group 0.  When state for an individual (i.e., != 0) group is changed, the state for 
+// * For device types with groups, group 0 is a "virtual" group.  All devices paired with the same ID will
+//   respond to group 0.  When state for an individual (i.e., != 0) group is changed, the state for
 //   group 0 becomes out of sync and should be cleared.
 //
 // * If id.groupId == 0, will iterate across all groups and individually save each group (recursively)
@@ -70,7 +75,7 @@ GroupState* GroupStateStore::set(const BulbId &id, const GroupState& state) {
 
     group0State->clearNonMatchingFields(state);
   }
-  
+
   return storedState;
 }
 
@@ -90,6 +95,16 @@ void GroupStateStore::clear(const BulbId& bulbId) {
 void GroupStateStore::trackEviction() {
   if (cache.isFull()) {
     evictedIds.add(cache.getLru());
+
+#ifdef STATE_DEBUG
+    BulbId bulbId = evictedIds.getLast();
+    printf(
+      "Evicting from cache: 0x%04X / %d / %s\n",
+      bulbId.deviceId,
+      bulbId.groupId,
+      MiLightRemoteConfig::fromType(bulbId.deviceType)->name.c_str()
+    );
+#endif
   }
 }
 
