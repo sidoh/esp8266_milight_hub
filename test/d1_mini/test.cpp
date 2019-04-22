@@ -108,9 +108,9 @@ GroupState color() {
 
   s.setState(MiLightStatus::ON);
   s.setBulbMode(BulbMode::BULB_MODE_COLOR);
-  s.setBrightness(100);
   s.setHue(1);
   s.setSaturation(10);
+  s.setBrightness(100);
 
   return s;
 }
@@ -230,7 +230,7 @@ void test_store() {
   GroupState initState = color();
   GroupState initState2 = color();
   GroupState defaultState = GroupState::defaultState(REMOTE_TYPE_FUT089);
-  initState2.setBrightness(255);
+  initState2.setBrightness(50);
 
   GroupState* storedState;
 
