@@ -1,4 +1,4 @@
-#include <WebServer.h>
+#include <RichHttpServer.h>
 #include <MiLightClient.h>
 #include <Settings.h>
 #include <WebSocketsServer.h>
@@ -67,7 +67,7 @@ protected:
 
   File updateFile;
 
-  WebServer server;
+  RichHttpServer server;
   WebSocketsServer wsServer;
   size_t numWsClients;
   MiLightClient*& milightClient;
