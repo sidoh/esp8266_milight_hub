@@ -380,4 +380,30 @@ RSpec.describe 'State' do
       expect(state['kelvin']).to eq(90)
     end
   end
+
+  context 'state updates while off' do
+    it 'should not affect persisted state' do
+      @client.patch_state({'status' => 'OFF'}, @id_params)
+      state = @client.patch_state({'hue' => 100}, @id_params)
+
+      expect(state.count).to eq(1)
+      expect(state).to include('status')
+    end
+
+    it 'should not affect persisted state using increment/decrement' do
+      @client.patch_state({'status' => 'OFF'}, @id_params)
+
+      10.times do
+        @client.patch_state(
+          { commands: ['level_down', 'temperature_down'] },
+          @id_params
+        )
+      end
+
+      state = @client.get_state(@id_params)
+
+      expect(state.count).to eq(1)
+      expect(state).to include('status')
+    end
+  end
 end
