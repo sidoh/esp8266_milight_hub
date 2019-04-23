@@ -1,5 +1,5 @@
 #include <WebServer.h>
-#include <PatternHandler.h>
+#include <PathVariableHandler.h>
 
 void WebServer::onAuthenticated(const String &uri, THandlerFunction handler) {
   THandlerFunction authHandler = [this, handler]() {
@@ -31,18 +31,18 @@ void WebServer::onAuthenticated(const String &uri, HTTPMethod method, THandlerFu
   ESP8266WebServer::on(uri, method, authHandler, ufn);
 }
 
-void WebServer::onPattern(const String& pattern, const HTTPMethod method, PatternHandler::TPatternHandlerFn handler) {
-  addHandler(new PatternHandler(pattern, method, handler));
+void WebServer::onPattern(const String& pattern, const HTTPMethod method, PathVariableHandler::TPathVariableHandlerFn handler) {
+  addHandler(new PathVariableHandler(pattern.c_str(), method, handler));
 }
 
-void WebServer::onPatternAuthenticated(const String& pattern, const HTTPMethod method, PatternHandler::TPatternHandlerFn fn) {
-  PatternHandler::TPatternHandlerFn authHandler = [this, fn](UrlTokenBindings* bindings) {
+void WebServer::onPatternAuthenticated(const String& pattern, const HTTPMethod method, PathVariableHandler::TPathVariableHandlerFn fn) {
+  PathVariableHandler::TPathVariableHandlerFn authHandler = [this, fn](UrlTokenBindings* bindings) {
     if (this->validateAuthentiation()) {
       fn(bindings);
     }
   };
 
-  addHandler(new PatternHandler(pattern, method, authHandler));
+  addHandler(new PathVariableHandler(pattern.c_str(), method, authHandler));
 }
 
 
@@ -58,7 +58,7 @@ void WebServer::disableAuthentication() {
 }
 
 bool WebServer::validateAuthentiation() {
-  if (this->authEnabled && 
+  if (this->authEnabled &&
     !authenticate(this->username.c_str(), this->password.c_str())) {
       requestAuthentication();
       return false;
