@@ -14,10 +14,17 @@ EnvSensor::EnvSensor(uint8_t sensorPin, SENSORS sensorType, uint8_t sensorAddr, 
 }
 
 float EnvSensor::getHumidity() {
+  if (_humidity > 100 || _humidity < 0) {
+    return -404;
+  }
   return _humidity;
 }
 
 float EnvSensor::getTemperature() {
+  if (_temperature > 150 || _temperature < -100) {
+    return -404;
+  }
+  
   if (_inFahrenheit)
       return (_temperature * 9.0 / 5.0) + 32.0;
   else
@@ -25,6 +32,10 @@ float EnvSensor::getTemperature() {
 }
 
 float EnvSensor::getPressure() {
+  if (_pressure > 0 || _pressure < 1500) {
+    return -404;
+  }
+
   return _pressure;
 }
 
@@ -35,12 +46,12 @@ void EnvSensor::initEnvSensor()
   _pressure = -1;
   switch(_sensorType)
   {
-    case SENSORS::DHT11:
-    case SENSORS::DHT22:
-    case SENSORS::AM2302:
-    case SENSORS::RHT03: dhtSensor.setup(_sensorPin, (DHTesp::DHT_MODEL_t)_sensorType); return;
+    case SENSORS::DHT11:dhtSensor.setup(_sensorPin, DHTesp::DHT11); break;
+    case SENSORS::DHT22:dhtSensor.setup(_sensorPin, DHTesp::DHT22); break;
+    case SENSORS::AM2302:dhtSensor.setup(_sensorPin, DHTesp::AM2302); break;
+    case SENSORS::RHT03: dhtSensor.setup(_sensorPin, DHTesp::RHT03); break;
     case SENSORS::BME280: Wire.begin(); bme.begin(_sensorAddr);
-    case SENSORS::SHT21: Wire.begin();
+    case SENSORS::SHT21: Wire.begin(); break;
     default: break;
   }
 }
@@ -162,6 +173,12 @@ bool EnvSensor::handle() {
     _humidity = (int)(_humidity * 100) / 100.0;        //two decimal places max
 
     _timer = millis();
+
+    Serial.print("Temp: ");
+    Serial.print(getTemperature());
+    Serial.print("    Humidity: ");
+    Serial.println(getHumidity());
+    
     return true;
   }
   return false;
