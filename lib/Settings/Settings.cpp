@@ -29,12 +29,6 @@ size_t Settings::getAutoRestartPeriod() {
   return std::max(_autoRestartPeriod, static_cast<size_t>(MINIMUM_RESTART_PERIOD));
 }
 
-void Settings::deserialize(Settings& settings, String json) {
-  DynamicJsonBuffer jsonBuffer;
-  JsonObject& parsedSettings = jsonBuffer.parseObject(json);
-  settings.patch(parsedSettings);
-}
-
 void Settings::updateDeviceIds(JsonArray& arr) {
   if (arr.success()) {
     this->deviceIds.clear();
@@ -54,7 +48,7 @@ void Settings::updateGatewayConfigs(JsonArray& arr) {
 
       if (params.success() && params.size() == 3) {
         std::shared_ptr<GatewayConfig> ptr = std::make_shared<GatewayConfig>(parseInt<uint16_t>(params[0]), params[1], params[2]);
-        gatewayConfigs.push_back(ptr);
+        gatewayConfigs.push_back(std::move(ptr));
       } else {
         Serial.print(F("Settings - skipped parsing gateway ports settings for element #"));
         Serial.println(i);
@@ -149,10 +143,12 @@ void Settings::load(Settings& settings) {
     settings = Settings();
 
     File f = SPIFFS.open(SETTINGS_FILE, "r");
-    String settingsContents = f.readStringUntil(SETTINGS_TERMINATOR);
-    f.close();
 
-    deserialize(settings, settingsContents);
+    DynamicJsonBuffer jsonBuffer;
+    JsonObject& parsedSettings = jsonBuffer.parseObject(f);
+    settings.patch(parsedSettings);
+
+    f.close();
   } else {
     settings.save();
   }
@@ -221,7 +217,7 @@ void Settings::serialize(Stream& stream, const bool prettyPrint) {
   JsonHelpers::vectorToJsonArr<RF24Channel, String>(channelArr, rf24Channels, RF24ChannelHelpers::nameFromValue);
 
   JsonArray& deviceIdsArr = root.createNestedArray("device_ids");
-  deviceIdsArr.copyFrom(this->deviceIds.data(), this->deviceIds.size());
+  deviceIdsArr.copyFrom<uint16_t>(this->deviceIds.data(), this->deviceIds.size());
 
   JsonArray& gatewayConfigsArr = root.createNestedArray("gateway_configs");
   for (size_t i = 0; i < this->gatewayConfigs.size(); i++) {

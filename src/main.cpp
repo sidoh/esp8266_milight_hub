@@ -37,7 +37,7 @@ static LEDStatus *ledStatus;
 Settings settings;
 
 MiLightClient* milightClient = NULL;
-MiLightRadioFactory* radioFactory = NULL;
+std::shared_ptr<MiLightRadioFactory> radioFactory;
 MiLightHttpServer *httpServer = NULL;
 MqttClient* mqttClient = NULL;
 MiLightDiscoveryServer* discoveryServer = NULL;
@@ -137,7 +137,7 @@ void handleListen() {
     return;
   }
 
-  MiLightRadio* radio = milightClient->switchRadio(currentRadioType++ % milightClient->getNumRadios());
+  std::shared_ptr<MiLightRadio> radio = milightClient->switchRadio(currentRadioType++ % milightClient->getNumRadios());
 
   for (size_t i = 0; i < settings.listenRepeats; i++) {
     if (milightClient->available()) {
@@ -190,9 +190,6 @@ void onUpdateEnd() {
 void applySettings() {
   if (milightClient) {
     delete milightClient;
-  }
-  if (radioFactory) {
-    delete radioFactory;
   }
   if (mqttClient) {
     delete mqttClient;

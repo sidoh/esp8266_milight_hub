@@ -6,13 +6,12 @@
 #include <TokenIterator.h>
 
 MiLightClient::MiLightClient(
-  MiLightRadioFactory* radioFactory,
+  std::shared_ptr<MiLightRadioFactory> radioFactory,
   GroupStateStore* stateStore,
   Settings* settings
 )
   : currentRadio(NULL),
     currentRemote(NULL),
-    numRadios(MiLightRadioConfig::NUM_CONFIGS),
     packetSentHandler(NULL),
     updateBeginHandler(NULL),
     updateEndHandler(NULL),
@@ -21,15 +20,13 @@ MiLightClient::MiLightClient(
     lastSend(0),
     baseResendCount(MILIGHT_DEFAULT_RESEND_COUNT)
 {
-  radios = new MiLightRadio*[numRadios];
-
-  for (size_t i = 0; i < numRadios; i++) {
-    radios[i] = radioFactory->create(MiLightRadioConfig::ALL_CONFIGS[i]);
+  for (size_t i = 0; i < MiLightRadioConfig::NUM_CONFIGS; i++) {
+    radios.push_back(radioFactory->create(MiLightRadioConfig::ALL_CONFIGS[i]));
   }
 }
 
 void MiLightClient::begin() {
-  for (size_t i = 0; i < numRadios; i++) {
+  for (size_t i = 0; i < radios.size(); i++) {
     radios[i]->begin();
   }
 
@@ -49,10 +46,10 @@ void MiLightClient::setHeld(bool held) {
 }
 
 size_t MiLightClient::getNumRadios() const {
-  return numRadios;
+  return radios.size();
 }
 
-MiLightRadio* MiLightClient::switchRadio(size_t radioIx) {
+std::shared_ptr<MiLightRadio> MiLightClient::switchRadio(size_t radioIx) {
   if (radioIx >= getNumRadios()) {
     return NULL;
   }
@@ -65,10 +62,10 @@ MiLightRadio* MiLightClient::switchRadio(size_t radioIx) {
   return this->currentRadio;
 }
 
-MiLightRadio* MiLightClient::switchRadio(const MiLightRemoteConfig* remoteConfig) {
-  MiLightRadio* radio = NULL;
+std::shared_ptr<MiLightRadio> MiLightClient::switchRadio(const MiLightRemoteConfig* remoteConfig) {
+  std::shared_ptr<MiLightRadio> radio = NULL;
 
-  for (size_t i = 0; i < numRadios; i++) {
+  for (size_t i = 0; i < radios.size(); i++) {
     if (&this->radios[i]->config() == &remoteConfig->radioConfig) {
       radio = switchRadio(i);
       break;

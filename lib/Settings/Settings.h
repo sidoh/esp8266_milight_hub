@@ -109,7 +109,6 @@ public:
   bool isAutoRestartEnabled();
   size_t getAutoRestartPeriod();
 
-  static void deserialize(Settings& settings, String json);
   static void load(Settings& settings);
 
   static RadioInterfaceType typeFromString(const String& s);
