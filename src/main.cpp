@@ -23,6 +23,9 @@
 #include <BulbStateUpdater.h>
 #include <LEDStatus.h>
 
+#include <vector>
+#include <memory>
+
 WiFiManager wifiManager;
 // because of callbacks, these need to be in the higher scope :(
 WiFiManagerParameter* wifiStaticIP = NULL;
@@ -45,29 +48,19 @@ GroupStateStore* stateStore = NULL;
 BulbStateUpdater* bulbStateUpdater = NULL;
 
 int numUdpServers = 0;
-MiLightUdpServer** udpServers = NULL;
+std::vector<std::shared_ptr<MiLightUdpServer>> udpServers;
 WiFiUDP udpSeder;
 
 /**
  * Set up UDP servers (both v5 and v6).  Clean up old ones if necessary.
  */
 void initMilightUdpServers() {
-  if (udpServers) {
-    for (int i = 0; i < numUdpServers; i++) {
-      if (udpServers[i]) {
-        delete udpServers[i];
-      }
-    }
-
-    delete udpServers;
-  }
-
-  udpServers = new MiLightUdpServer*[settings.gatewayConfigs.size()];
+  udpServers.clear();
 
   for (size_t i = 0; i < settings.gatewayConfigs.size(); ++i) {
     const GatewayConfig& config = *settings.gatewayConfigs[i];
 
-    MiLightUdpServer* server = MiLightUdpServer::fromVersion(
+    std::shared_ptr<MiLightUdpServer> server = MiLightUdpServer::fromVersion(
       config.protocolVersion,
       milightClient,
       config.port,
@@ -78,7 +71,7 @@ void initMilightUdpServers() {
       Serial.print(F("Error creating UDP server with protocol version: "));
       Serial.println(config.protocolVersion);
     } else {
-      udpServers[i] = server;
+      udpServers.push_back(std::move(server));
       udpServers[i]->begin();
     }
   }
@@ -402,10 +395,8 @@ void loop() {
     bulbStateUpdater->loop();
   }
 
-  if (udpServers) {
-    for (size_t i = 0; i < settings.gatewayConfigs.size(); i++) {
-      udpServers[i]->handleClient();
-    }
+  for (size_t i = 0; i < udpServers.size(); i++) {
+    udpServers[i]->handleClient();
   }
 
   if (discoveryServer) {
