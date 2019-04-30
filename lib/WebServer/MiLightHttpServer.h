@@ -37,21 +37,19 @@ public:
   WiFiClient client();
 
 protected:
-  ESP8266WebServer::THandlerFunction handleServeFile(
-    const char* filename,
-    const char* contentType,
-    const char* defaultText = NULL);
 
-  void serveSettings();
   bool serveFile(const char* file, const char* contentType = "text/html");
-  ESP8266WebServer::THandlerFunction handleUpdateFile(const char* filename);
-  ESP8266WebServer::THandlerFunction handleServe_P(const char* data, size_t length);
+  void handleServe_P(const char* data, size_t length);
   void applySettings(Settings& settings);
   void sendGroupState(BulbId& bulbId, GroupState* state);
 
+  void serveSettings();
   void handleUpdateSettings();
   void handleUpdateSettingsPost();
+  void handleUpdateFile(const char* filename);
+
   void handleGetRadioConfigs();
+
   void handleAbout();
   void handleSystemPost();
   void handleFirmwareUpload();

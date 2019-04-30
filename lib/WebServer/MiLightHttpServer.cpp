@@ -9,33 +9,62 @@
 #include <AboutHelper.h>
 #include <index.html.gz.h>
 
+using namespace std::placeholders;
+
 void MiLightHttpServer::begin() {
   applySettings(settings);
 
   // set up HTTP end points to serve
 
-  _handleRootPage = handleServe_P(index_html_gz, index_html_gz_len);
-  server.onAuthenticated("/", HTTP_GET, [this]() { _handleRootPage(); });
-  server.onAuthenticated("/settings", HTTP_GET, [this]() { serveSettings(); });
-  server.onAuthenticated("/settings", HTTP_PUT, [this]() { handleUpdateSettings(); });
-  server.onAuthenticated("/settings", HTTP_POST, [this]() { handleUpdateSettingsPost(); }, handleUpdateFile(SETTINGS_FILE));
-  server.onAuthenticated("/remote_configs", HTTP_GET, [this]() { handleGetRadioConfigs(); });
+  server
+    .buildHandler("/")
+    .on(HTTP_GET, std::bind(&MiLightHttpServer::handleServe_P, this, index_html_gz, index_html_gz_len));
 
-  server.onAuthenticated("/gateway_traffic", HTTP_GET, [this]() { handleListenGateway(NULL); });
-  server.onPatternAuthenticated("/gateway_traffic/:type", HTTP_GET, [this](const UrlTokenBindings* b) { handleListenGateway(b); });
+  server
+    .buildHandler("/settings")
+    .on(HTTP_GET, std::bind(&MiLightHttpServer::serveSettings, this))
+    .on(HTTP_PUT, std::bind(&MiLightHttpServer::handleUpdateSettings, this))
+    .on(
+      HTTP_POST,
+      std::bind(&MiLightHttpServer::handleUpdateSettingsPost, this),
+      std::bind(&MiLightHttpServer::handleUpdateFile, this, SETTINGS_FILE)
+    );
 
-  const char groupPattern[] = "/gateways/:device_id/:type/:group_id";
-  server.onPatternAuthenticated(groupPattern, HTTP_PUT, [this](const UrlTokenBindings* b) { handleUpdateGroup(b); });
-  server.onPatternAuthenticated(groupPattern, HTTP_POST, [this](const UrlTokenBindings* b) { handleUpdateGroup(b); });
-  server.onPatternAuthenticated(groupPattern, HTTP_DELETE, [this](const UrlTokenBindings* b) { handleDeleteGroup(b); });
-  server.onPatternAuthenticated(groupPattern, HTTP_GET, [this](const UrlTokenBindings* b) { handleGetGroup(b); });
+  server
+    .buildHandler("/remote_configs")
+    .on(HTTP_GET, std::bind(&MiLightHttpServer::handleGetRadioConfigs, this));
 
-  server.onPatternAuthenticated("/raw_commands/:type", HTTP_ANY, [this](const UrlTokenBindings* b) { handleSendRaw(b); });
-  server.onAuthenticated("/web", HTTP_POST, [this]() { server.send_P(200, TEXT_PLAIN, PSTR("success")); }, handleUpdateFile(WEB_INDEX_FILENAME));
-  server.onAuthenticated("/about", HTTP_GET, [this]() { handleAbout(); });
-  server.onAuthenticated("/system", HTTP_POST, [this]() { handleSystemPost(); });
-  server.onAuthenticated("/firmware", HTTP_POST, [this]() { handleFirmwarePost(); }, [this]() { handleFirmwareUpload(); });
+  server
+    .buildHandler("/gateway_traffic")
+    .on(HTTP_GET, [this](UrlTokenBindings* b) { handleListenGateway(NULL); })
+    .on(HTTP_GET, "/:type", std::bind(&MiLightHttpServer::handleListenGateway, this, _1));
 
+  server
+    .buildHandler("/gateways/:device_id/:type/:group_id")
+    .on(HTTP_PUT, std::bind(&MiLightHttpServer::handleUpdateGroup, this, _1))
+    .on(HTTP_POST, std::bind(&MiLightHttpServer::handleUpdateGroup, this, _1))
+    .on(HTTP_DELETE, std::bind(&MiLightHttpServer::handleDeleteGroup, this, _1))
+    .on(HTTP_GET, std::bind(&MiLightHttpServer::handleGetGroup, this, _1));
+
+  server
+    .buildHandler("/raw_commands/:type")
+    .on(HTTP_ANY, std::bind(&MiLightHttpServer::handleSendRaw, this, _1));
+
+  server
+    .buildHandler("/about")
+    .on(HTTP_GET, std::bind(&MiLightHttpServer::handleAbout, this));
+
+  server
+    .buildHandler("/system")
+    .on(HTTP_POST, std::bind(&MiLightHttpServer::handleSystemPost, this));
+
+  server
+    .buildHandler("/firmware")
+    .on(
+      HTTP_POST,
+      std::bind(&MiLightHttpServer::handleFirmwarePost, this),
+      std::bind(&MiLightHttpServer::handleFirmwareUpload, this)
+    );
 
   // set up web socket server
   wsServer.onEvent(
@@ -138,22 +167,6 @@ void MiLightHttpServer::handleGetRadioConfigs() {
   server.send(200, APPLICATION_JSON, body);
 }
 
-ESP8266WebServer::THandlerFunction MiLightHttpServer::handleServeFile(
-  const char* filename,
-  const char* contentType,
-  const char* defaultText) {
-
-  return [this, filename, contentType, defaultText]() {
-    if (!serveFile(filename)) {
-      if (defaultText) {
-        server.send(200, contentType, defaultText);
-      } else {
-        server.send(404);
-      }
-    }
-  };
-}
-
 bool MiLightHttpServer::serveFile(const char* file, const char* contentType) {
   if (SPIFFS.exists(file)) {
     File f = SPIFFS.open(file, "r");
@@ -165,20 +178,18 @@ bool MiLightHttpServer::serveFile(const char* file, const char* contentType) {
   return false;
 }
 
-ESP8266WebServer::THandlerFunction MiLightHttpServer::handleUpdateFile(const char* filename) {
-  return [this, filename]() {
-    HTTPUpload& upload = server.upload();
+void MiLightHttpServer::handleUpdateFile(const char* filename) {
+  HTTPUpload& upload = server.upload();
 
-    if (upload.status == UPLOAD_FILE_START) {
-      updateFile = SPIFFS.open(filename, "w");
-    } else if(upload.status == UPLOAD_FILE_WRITE){
-      if (updateFile.write(upload.buf, upload.currentSize) != upload.currentSize) {
-        Serial.println(F("Error updating web file"));
-      }
-    } else if (upload.status == UPLOAD_FILE_END) {
-      updateFile.close();
+  if (upload.status == UPLOAD_FILE_START) {
+    updateFile = SPIFFS.open(filename, "w");
+  } else if(upload.status == UPLOAD_FILE_WRITE){
+    if (updateFile.write(upload.buf, upload.currentSize) != upload.currentSize) {
+      Serial.println(F("Error updating web file"));
     }
-  };
+  } else if (upload.status == UPLOAD_FILE_END) {
+    updateFile.close();
+  }
 }
 
 void MiLightHttpServer::handleUpdateSettings() {
@@ -263,35 +274,42 @@ void MiLightHttpServer::handleFirmwareUpload() {
 void MiLightHttpServer::handleListenGateway(const UrlTokenBindings* bindings) {
   bool listenAll = bindings == NULL;
   size_t configIx = 0;
-  const MiLightRadioConfig* radioConfig = NULL;
+  std::shared_ptr<MiLightRadio> radio = NULL;
   const MiLightRemoteConfig* remoteConfig = NULL;
+  const MiLightRemoteConfig* tmpRemoteConfig = NULL;
+
   uint8_t packet[MILIGHT_MAX_PACKET_LENGTH];
 
   if (bindings != NULL) {
     String strType(bindings->get("type"));
-    const MiLightRemoteConfig* remoteConfig = MiLightRemoteConfig::fromType(strType);
-    milightClient->prepare(remoteConfig, 0, 0);
-    radioConfig = &remoteConfig->radioConfig;
+    tmpRemoteConfig = MiLightRemoteConfig::fromType(strType);
+    milightClient->prepare(tmpRemoteConfig, 0, 0);
   }
 
-  if (radioConfig == NULL && !listenAll) {
+  if (tmpRemoteConfig == NULL && !listenAll) {
     server.send_P(400, TEXT_PLAIN, PSTR("Unknown device type supplied."));
     return;
   }
 
+  if (tmpRemoteConfig != NULL) {
+    radio = milightClient->switchRadio(tmpRemoteConfig);
+  }
+
   while (remoteConfig == NULL) {
-    if (server.isClientConnected()) {
+    if (!server.isClientConnected()) {
       return;
     }
 
     if (listenAll) {
-      radioConfig = &milightClient->switchRadio(configIx++ % milightClient->getNumRadios())->config();
+      radio = milightClient->switchRadio(configIx++ % milightClient->getNumRadios());
+    } else {
+      radio->configure();
     }
 
     if (milightClient->available()) {
       size_t packetLen = milightClient->read(packet);
       remoteConfig = MiLightRemoteConfig::fromReceivedPacket(
-        *radioConfig,
+        radio->config(),
         packet,
         packetLen
       );
@@ -503,14 +521,12 @@ void MiLightHttpServer::handlePacketSent(uint8_t *packet, const MiLightRemoteCon
   }
 }
 
-ESP8266WebServer::THandlerFunction MiLightHttpServer::handleServe_P(const char* data, size_t length) {
-  return [this, data, length]() {
-    server.sendHeader("Content-Encoding", "gzip");
-    server.setContentLength(CONTENT_LENGTH_UNKNOWN);
-    server.send(200, "text/html", "");
-    server.sendContent_P(data, length);
-    server.sendContent("");
-    server.client().stop();
-  };
+void MiLightHttpServer::handleServe_P(const char* data, size_t length) {
+  server.sendHeader("Content-Encoding", "gzip");
+  server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+  server.send(200, "text/html", "");
+  server.sendContent_P(data, length);
+  server.sendContent("");
+  server.client().stop();
 }
 
