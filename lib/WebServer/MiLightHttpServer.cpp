@@ -36,8 +36,10 @@ void MiLightHttpServer::begin() {
 
   server
     .buildHandler("/gateway_traffic")
-    .on(HTTP_GET, [this](UrlTokenBindings* b) { handleListenGateway(NULL); })
-    .on(HTTP_GET, "/:type", std::bind(&MiLightHttpServer::handleListenGateway, this, _1));
+    .on(HTTP_GET, [this](UrlTokenBindings* b) { handleListenGateway(NULL); });
+  server
+    .buildHandler("/gateway_traffic/:type")
+    .on(HTTP_GET, std::bind(&MiLightHttpServer::handleListenGateway, this, _1));
 
   server
     .buildHandler("/gateways/:device_id/:type/:group_id")
