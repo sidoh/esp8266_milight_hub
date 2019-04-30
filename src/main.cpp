@@ -62,21 +62,21 @@ void initMilightUdpServers() {
     delete udpServers;
   }
 
-  udpServers = new MiLightUdpServer*[settings.numGatewayConfigs];
-  numUdpServers = settings.numGatewayConfigs;
+  udpServers = new MiLightUdpServer*[settings.gatewayConfigs.size()];
 
-  for (size_t i = 0; i < settings.numGatewayConfigs; i++) {
-    GatewayConfig* config = settings.gatewayConfigs[i];
+  for (size_t i = 0; i < settings.gatewayConfigs.size(); ++i) {
+    const GatewayConfig& config = *settings.gatewayConfigs[i];
+
     MiLightUdpServer* server = MiLightUdpServer::fromVersion(
-      config->protocolVersion,
+      config.protocolVersion,
       milightClient,
-      config->port,
-      config->deviceId
+      config.port,
+      config.deviceId
     );
 
     if (server == NULL) {
       Serial.print(F("Error creating UDP server with protocol version: "));
-      Serial.println(config->protocolVersion);
+      Serial.println(config.protocolVersion);
     } else {
       udpServers[i] = server;
       udpServers[i]->begin();
@@ -403,7 +403,7 @@ void loop() {
   }
 
   if (udpServers) {
-    for (size_t i = 0; i < settings.numGatewayConfigs; i++) {
+    for (size_t i = 0; i < settings.gatewayConfigs.size(); i++) {
       udpServers[i]->handleClient();
     }
   }

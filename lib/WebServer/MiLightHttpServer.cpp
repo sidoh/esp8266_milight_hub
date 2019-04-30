@@ -320,7 +320,7 @@ void MiLightHttpServer::sendGroupState(BulbId& bulbId, GroupState* state) {
   JsonObject& obj = jsonBuffer.createObject();
 
   if (state != NULL) {
-    state->applyState(obj, bulbId, settings.groupStateFields, settings.numGroupStateFields);
+    state->applyState(obj, bulbId, settings.groupStateFields);
   }
 
   obj.printTo(body);

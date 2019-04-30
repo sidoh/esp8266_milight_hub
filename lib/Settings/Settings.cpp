@@ -7,6 +7,12 @@
 
 #define PORT_POSITION(s) ( s.indexOf(':') )
 
+GatewayConfig::GatewayConfig(uint16_t deviceId, uint16_t port, uint8_t protocolVersion)
+  : deviceId(deviceId)
+  , port(port)
+  , protocolVersion(protocolVersion)
+{ }
+
 bool Settings::hasAuthSettings() {
   return adminUsername.length() > 0 && adminPassword.length() > 0;
 }
@@ -31,52 +37,28 @@ void Settings::deserialize(Settings& settings, String json) {
 
 void Settings::updateDeviceIds(JsonArray& arr) {
   if (arr.success()) {
-    if (this->deviceIds) {
-      delete this->deviceIds;
-    }
+    this->deviceIds.clear();
 
-    this->deviceIds = new uint16_t[arr.size()];
-    this->numDeviceIds = arr.size();
-    arr.copyTo(this->deviceIds, arr.size());
+    for (size_t i = 0; i < arr.size(); ++i) {
+      this->deviceIds.push_back(arr[i]);
+    }
   }
 }
 
 void Settings::updateGatewayConfigs(JsonArray& arr) {
   if (arr.success()) {
-    if (this->gatewayConfigs) {
-      delete[] this->gatewayConfigs;
-    }
-
-    this->gatewayConfigs = new GatewayConfig*[arr.size()];
-    this->numGatewayConfigs = arr.size();
+    gatewayConfigs.clear();
 
     for (size_t i = 0; i < arr.size(); i++) {
       JsonArray& params = arr[i];
 
       if (params.success() && params.size() == 3) {
-        this->gatewayConfigs[i] = new GatewayConfig(parseInt<uint16_t>(params[0]), params[1], params[2]);
+        std::shared_ptr<GatewayConfig> ptr = std::make_shared<GatewayConfig>(parseInt<uint16_t>(params[0]), params[1], params[2]);
+        gatewayConfigs.push_back(ptr);
       } else {
         Serial.print(F("Settings - skipped parsing gateway ports settings for element #"));
         Serial.println(i);
       }
-    }
-  }
-}
-
-void Settings::updateGroupStateFields(JsonArray &arr) {
-  if (arr.success()) {
-    if (this->groupStateFields) {
-      delete this->groupStateFields;
-    }
-
-    this->groupStateFields = new GroupStateField[arr.size()];
-    this->numGroupStateFields = arr.size();
-
-    for (size_t i = 0; i < arr.size(); i++) {
-      String name = arr[i];
-      name.toLowerCase();
-
-      this->groupStateFields[i] = GroupStateFieldHelpers::getFieldByName(name.c_str());
     }
   }
 }
@@ -115,7 +97,7 @@ void Settings::patch(JsonObject& parsedSettings) {
 
     if (parsedSettings.containsKey("rf24_channels")) {
       JsonArray& arr = parsedSettings["rf24_channels"];
-      rf24Channels = JsonHelpers::jsonArrToVector<RF24Channel>(arr, RF24ChannelHelpers::valueFromName);
+      rf24Channels = JsonHelpers::jsonArrToVector<RF24Channel, String>(arr, RF24ChannelHelpers::valueFromName);
     }
 
     if (parsedSettings.containsKey("rf24_listen_channel")) {
@@ -156,7 +138,7 @@ void Settings::patch(JsonObject& parsedSettings) {
     }
     if (parsedSettings.containsKey("group_state_fields")) {
       JsonArray& arr = parsedSettings["group_state_fields"];
-      updateGroupStateFields(arr);
+      groupStateFields = JsonHelpers::jsonArrToVector<GroupStateField, const char*>(arr, GroupStateFieldHelpers::getFieldByName);
     }
   }
 }
@@ -235,37 +217,23 @@ void Settings::serialize(Stream& stream, const bool prettyPrint) {
   root["wifi_static_ip_gateway"] = this->wifiStaticIPGateway;
   root["wifi_static_ip_netmask"] = this->wifiStaticIPNetmask;
 
-  JsonArray& channelArr = jsonBuffer.createArray();
-  JsonHelpers::vectorToJsonArr<RF24Channel>(channelArr, rf24Channels, RF24ChannelHelpers::nameFromValue);
-  root["rf24_channels"] = channelArr;
+  JsonArray& channelArr = root.createNestedArray("rf24_channels");
+  JsonHelpers::vectorToJsonArr<RF24Channel, String>(channelArr, rf24Channels, RF24ChannelHelpers::nameFromValue);
 
-  if (this->deviceIds) {
-    JsonArray& arr = jsonBuffer.createArray();
-    arr.copyFrom(this->deviceIds, this->numDeviceIds);
-    root["device_ids"] = arr;
+  JsonArray& deviceIdsArr = root.createNestedArray("device_ids");
+  deviceIdsArr.copyFrom(this->deviceIds.data(), this->deviceIds.size());
+
+  JsonArray& gatewayConfigsArr = root.createNestedArray("gateway_configs");
+  for (size_t i = 0; i < this->gatewayConfigs.size(); i++) {
+    JsonArray& elmt = jsonBuffer.createArray();
+    elmt.add(this->gatewayConfigs[i]->deviceId);
+    elmt.add(this->gatewayConfigs[i]->port);
+    elmt.add(this->gatewayConfigs[i]->protocolVersion);
+    gatewayConfigsArr.add(elmt);
   }
 
-  if (this->gatewayConfigs) {
-    JsonArray& arr = jsonBuffer.createArray();
-    for (size_t i = 0; i < this->numGatewayConfigs; i++) {
-      JsonArray& elmt = jsonBuffer.createArray();
-      elmt.add(this->gatewayConfigs[i]->deviceId);
-      elmt.add(this->gatewayConfigs[i]->port);
-      elmt.add(this->gatewayConfigs[i]->protocolVersion);
-      arr.add(elmt);
-    }
-
-    root["gateway_configs"] = arr;
-  }
-
-  if (this->groupStateFields) {
-    JsonArray& arr = jsonBuffer.createArray();
-    for (size_t i = 0; i < this->numGroupStateFields; i++) {
-      arr.add(GroupStateFieldHelpers::getFieldName(this->groupStateFields[i]));
-    }
-
-    root["group_state_fields"] = arr;
-  }
+  JsonArray& groupStateFieldArr = root.createNestedArray("group_state_fields");
+  JsonHelpers::vectorToJsonArr<GroupStateField, const char*>(groupStateFieldArr, groupStateFields, GroupStateFieldHelpers::getFieldName);
 
   if (prettyPrint) {
     root.prettyPrintTo(stream);

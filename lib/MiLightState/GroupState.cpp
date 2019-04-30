@@ -976,8 +976,8 @@ void GroupState::debugState(char const *debugMessage) const {
 
 // build up a partial state representation based on the specified GrouipStateField array.  Used
 // to gather a subset of states (configurable in the UI) for sending to MQTT and web responses.
-void GroupState::applyState(JsonObject& partialState, const BulbId& bulbId, GroupStateField* fields, size_t numFields) const {
-  for (size_t i = 0; i < numFields; i++) {
-    applyField(partialState, bulbId, fields[i]);
+void GroupState::applyState(JsonObject& partialState, const BulbId& bulbId, std::vector<GroupStateField>& fields) const {
+  for (std::vector<GroupStateField>::const_iterator itr = fields.begin(); itr != fields.end(); ++itr) {
+    applyField(partialState, bulbId, *itr);
   }
 }
