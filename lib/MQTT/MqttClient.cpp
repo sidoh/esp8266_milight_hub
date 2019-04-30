@@ -13,21 +13,20 @@ static const char* STATUS_DISCONNECTED = "disconnected_clean";
 static const char* STATUS_LWT_DISCONNECTED = "disconnected_unclean";
 
 MqttClient::MqttClient(Settings& settings, MiLightClient*& milightClient)
-  : milightClient(milightClient),
+  : mqttClient(tcpClient),
+    milightClient(milightClient),
     settings(settings),
     lastConnectAttempt(0)
 {
   String strDomain = settings.mqttServer();
   this->domain = new char[strDomain.length() + 1];
   strcpy(this->domain, strDomain.c_str());
-
-  this->mqttClient = new PubSubClient(tcpClient);
 }
 
 MqttClient::~MqttClient() {
   String aboutStr = generateConnectionStatusMessage(STATUS_DISCONNECTED);
-  mqttClient->publish(settings.mqttClientStatusTopic.c_str(), aboutStr.c_str(), true);
-  mqttClient->disconnect();
+  mqttClient.publish(settings.mqttClientStatusTopic.c_str(), aboutStr.c_str(), true);
+  mqttClient.disconnect();
   delete this->domain;
 }
 
@@ -41,8 +40,8 @@ void MqttClient::begin() {
   );
 #endif
 
-  mqttClient->setServer(this->domain, settings.mqttPort());
-  mqttClient->setCallback(
+  mqttClient.setServer(this->domain, settings.mqttPort());
+  mqttClient.setCallback(
     [this](char* topic, byte* payload, int length) {
       this->publishCallback(topic, payload, length);
     }
@@ -59,7 +58,7 @@ bool MqttClient::connect() {
 #endif
 
   if (settings.mqttUsername.length() > 0 && settings.mqttClientStatusTopic.length() > 0) {
-    return mqttClient->connect(
+    return mqttClient.connect(
       nameBuffer,
       settings.mqttUsername.c_str(),
       settings.mqttPassword.c_str(),
@@ -69,13 +68,13 @@ bool MqttClient::connect() {
       generateConnectionStatusMessage(STATUS_LWT_DISCONNECTED).c_str()
     );
   } else if (settings.mqttUsername.length() > 0) {
-    return mqttClient->connect(
+    return mqttClient.connect(
       nameBuffer,
       settings.mqttUsername.c_str(),
       settings.mqttPassword.c_str()
     );
   } else if (settings.mqttClientStatusTopic.length() > 0) {
-    return mqttClient->connect(
+    return mqttClient.connect(
       nameBuffer,
       settings.mqttClientStatusTopic.c_str(),
       2,
@@ -83,14 +82,14 @@ bool MqttClient::connect() {
       generateConnectionStatusMessage(STATUS_LWT_DISCONNECTED).c_str()
     );
   } else {
-    return mqttClient->connect(nameBuffer);
+    return mqttClient.connect(nameBuffer);
   }
 }
 
 void MqttClient::sendBirthMessage() {
   if (settings.mqttClientStatusTopic.length() > 0) {
     String aboutStr = generateConnectionStatusMessage(STATUS_CONNECTED);
-    mqttClient->publish(settings.mqttClientStatusTopic.c_str(), aboutStr.c_str(), true);
+    mqttClient.publish(settings.mqttClientStatusTopic.c_str(), aboutStr.c_str(), true);
   }
 }
 
@@ -99,7 +98,7 @@ void MqttClient::reconnect() {
     return;
   }
 
-  if (! mqttClient->connected()) {
+  if (! mqttClient.connected()) {
     if (connect()) {
       subscribe();
       sendBirthMessage();
@@ -117,7 +116,7 @@ void MqttClient::reconnect() {
 
 void MqttClient::handleClient() {
   reconnect();
-  mqttClient->loop();
+  mqttClient.loop();
 }
 
 void MqttClient::sendUpdate(const MiLightRemoteConfig& remoteConfig, uint16_t deviceId, uint16_t groupId, const char* update) {
@@ -141,7 +140,7 @@ void MqttClient::subscribe() {
   printf_P(PSTR("MqttClient - subscribing to topic: %s\n"), topic.c_str());
 #endif
 
-  mqttClient->subscribe(topic.c_str());
+  mqttClient.subscribe(topic.c_str());
 }
 
 void MqttClient::publish(
@@ -163,7 +162,7 @@ void MqttClient::publish(
   printf("MqttClient - publishing update to %s\n", topic.c_str());
 #endif
 
-  mqttClient->publish(topic.c_str(), message, retain);
+  mqttClient.publish(topic.c_str(), message, retain);
 }
 
 void MqttClient::publishCallback(char* topic, byte* payload, int length) {
