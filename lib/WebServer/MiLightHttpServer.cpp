@@ -66,6 +66,8 @@ void MiLightHttpServer::begin() {
       std::bind(&MiLightHttpServer::handleFirmwareUpload, this)
     );
 
+  server.clearBuilders();
+
   // set up web socket server
   wsServer.onEvent(
     [this](uint8_t num, WStype_t type, uint8_t * payload, size_t length) {
