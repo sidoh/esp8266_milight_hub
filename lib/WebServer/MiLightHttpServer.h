@@ -65,7 +65,7 @@ protected:
 
   File updateFile;
 
-  RichHttpServer server;
+  RichHttpServer<RichHttp::Generics::Configs::ESP8266Config> server;
   WebSocketsServer wsServer;
   size_t numWsClients;
   MiLightClient*& milightClient;

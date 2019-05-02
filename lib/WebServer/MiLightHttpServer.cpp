@@ -24,8 +24,7 @@ void MiLightHttpServer::begin() {
     .buildHandler("/settings")
     .on(HTTP_GET, std::bind(&MiLightHttpServer::serveSettings, this))
     .on(HTTP_PUT, std::bind(&MiLightHttpServer::handleUpdateSettings, this))
-    .on(
-      HTTP_POST,
+    .onUpload(
       std::bind(&MiLightHttpServer::handleUpdateSettingsPost, this),
       std::bind(&MiLightHttpServer::handleUpdateFile, this, SETTINGS_FILE)
     );
@@ -36,7 +35,7 @@ void MiLightHttpServer::begin() {
 
   server
     .buildHandler("/gateway_traffic")
-    .on(HTTP_GET, [this](UrlTokenBindings* b) { handleListenGateway(NULL); });
+    .on(HTTP_GET, std::bind(&MiLightHttpServer::handleListenGateway, this, nullptr));
   server
     .buildHandler("/gateway_traffic/:type")
     .on(HTTP_GET, std::bind(&MiLightHttpServer::handleListenGateway, this, _1));
@@ -62,8 +61,7 @@ void MiLightHttpServer::begin() {
 
   server
     .buildHandler("/firmware")
-    .on(
-      HTTP_POST,
+    .onUpload(
       std::bind(&MiLightHttpServer::handleFirmwarePost, this),
       std::bind(&MiLightHttpServer::handleFirmwareUpload, this)
     );
