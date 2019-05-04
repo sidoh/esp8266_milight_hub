@@ -9,6 +9,10 @@
 
 #define MAX_DOWNLOAD_ATTEMPTS 3
 
+#ifndef MILIGHT_HTTP_JSON_BUFFER_SIZE
+#define MILIGHT_HTTP_JSON_BUFFER_SIZE 4096
+#endif
+
 typedef std::function<void(void)> SettingsSavedHandler;
 typedef std::function<void(const BulbId& id)> GroupDeletedHandler;
 
@@ -41,31 +45,31 @@ protected:
   bool serveFile(const char* file, const char* contentType = "text/html");
   void handleServe_P(const char* data, size_t length);
   void applySettings(Settings& settings);
-  void sendGroupState(BulbId& bulbId, GroupState* state);
+  void sendGroupState(BulbId& bulbId, GroupState* state, RichHttp::Response& response);
 
   void serveSettings();
-  void handleUpdateSettings();
+  void handleUpdateSettings(JsonDocument& request, RichHttp::Response& response);
   void handleUpdateSettingsPost();
   void handleUpdateFile(const char* filename);
 
-  void handleGetRadioConfigs();
+  void handleGetRadioConfigs(RichHttp::Response& response);
 
-  void handleAbout();
-  void handleSystemPost();
+  void handleAbout(RichHttp::Response& response);
+  void handleSystemPost(JsonDocument& request, RichHttp::Response& response);
   void handleFirmwareUpload();
   void handleFirmwarePost();
-  void handleListenGateway(const UrlTokenBindings* urlBindings);
-  void handleSendRaw(const UrlTokenBindings* urlBindings);
-  void handleUpdateGroup(const UrlTokenBindings* urlBindings);
-  void handleDeleteGroup(const UrlTokenBindings* urlBindings);
-  void handleGetGroup(const UrlTokenBindings* urlBindings);
+  void handleListenGateway(const UrlTokenBindings* urlBindings, RichHttp::Response& response);
+  void handleSendRaw(const UrlTokenBindings* urlBindings, JsonDocument& request, RichHttp::Response& response);
+  void handleUpdateGroup(const UrlTokenBindings* urlBindings, JsonDocument& request, RichHttp::Response& response);
+  void handleDeleteGroup(const UrlTokenBindings* urlBindings, RichHttp::Response& response);
+  void handleGetGroup(const UrlTokenBindings* urlBindings, RichHttp::Response& response);
 
   void handleRequest(const JsonObject& request);
   void handleWsEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length);
 
   File updateFile;
 
-  RichHttpServer<RichHttp::Generics::Configs::ESP8266Config> server;
+  RichHttpServer<RichHttp::Generics::Configs::EspressifBuiltin> server;
   WebSocketsServer wsServer;
   size_t numWsClients;
   MiLightClient*& milightClient;

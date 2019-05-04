@@ -327,7 +327,7 @@ void MiLightClient::toggleStatus() {
   flushPacket();
 }
 
-void MiLightClient::update(const JsonObject& request) {
+void MiLightClient::update(JsonObject request) {
   if (this->updateBeginHandler) {
     this->updateBeginHandler();
   }
@@ -344,11 +344,11 @@ void MiLightClient::update(const JsonObject& request) {
   }
 
   if (request.containsKey("commands")) {
-    JsonArray& commands = request["commands"];
+    JsonArray commands = request["commands"];
 
-    if (commands.success()) {
+    if (! commands.isNull()) {
       for (size_t i = 0; i < commands.size(); i++) {
-        this->handleCommand(commands.get<String>(i));
+        this->handleCommand(commands[i].as<const char*>());
       }
     }
   }
@@ -370,7 +370,7 @@ void MiLightClient::update(const JsonObject& request) {
     uint16_t r, g, b;
 
     if (request["color"].is<JsonObject>()) {
-      JsonObject& color = request["color"];
+      JsonObject color = request["color"];
 
       r = color["r"];
       g = color["g"];
@@ -419,7 +419,7 @@ void MiLightClient::update(const JsonObject& request) {
   }
   // HomeAssistant
   if (request.containsKey("brightness")) {
-    uint8_t scaledBrightness = Units::rescale(request.get<uint8_t>("brightness"), 100, 255);
+    uint8_t scaledBrightness = Units::rescale(request["brightness"].as<uint8_t>(), 100, 255);
     this->updateBrightness(scaledBrightness);
   }
 
@@ -495,13 +495,13 @@ void MiLightClient::handleEffect(const String& effect) {
   }
 }
 
-uint8_t MiLightClient::parseStatus(const JsonObject& object) {
+uint8_t MiLightClient::parseStatus(JsonObject object) {
   String strStatus;
 
   if (object.containsKey("status")) {
-    strStatus = object.get<char*>("status");
+    strStatus = object["status"].as<char*>();
   } else if (object.containsKey("state")) {
-    strStatus = object.get<char*>("state");
+    strStatus = object["state"].as<char*>();
   } else {
     return 255;
   }

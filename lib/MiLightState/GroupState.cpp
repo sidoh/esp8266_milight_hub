@@ -133,7 +133,7 @@ GroupState::GroupState(const GroupState& other)
   scratchpad.rawData = other.scratchpad.rawData;
 }
 
-GroupState::GroupState(const GroupState* previousState, const JsonObject& jsonState)
+GroupState::GroupState(const GroupState* previousState, JsonObject jsonState)
   : previousState(previousState)
 {
   initFields();
@@ -731,12 +731,12 @@ void GroupState::patch(const GroupState& other) {
 
   Returns true if the packet changes affects a state change
 */
-bool GroupState::patch(const JsonObject& state) {
+bool GroupState::patch(JsonObject state) {
   bool changes = false;
 
 #ifdef STATE_DEBUG
   Serial.print(F("Patching existing state with: "));
-  state.printTo(Serial);
+  serializeJson(state, Serial);
   Serial.println();
 #endif
 
@@ -749,7 +749,7 @@ bool GroupState::patch(const JsonObject& state) {
   // changes to devices we know are off.
 
   if (isOn() && state.containsKey("brightness")) {
-    bool stateChange = setBrightness(Units::rescale(state.get<uint8_t>("brightness"), 100, 255));
+    bool stateChange = setBrightness(Units::rescale(state["brightness"].as<uint8_t>(), 100, 255));
     changes |= stateChange;
   }
   if (isOn() && state.containsKey("hue")) {
@@ -798,7 +798,7 @@ bool GroupState::patch(const JsonObject& state) {
   return changes;
 }
 
-void GroupState::applyColor(ArduinoJson::JsonObject& state) const {
+void GroupState::applyColor(JsonObject state) const {
   uint8_t rgb[3];
   RGBConverter converter;
   converter.hsvToRgb(
@@ -811,14 +811,14 @@ void GroupState::applyColor(ArduinoJson::JsonObject& state) const {
   applyColor(state, rgb[0], rgb[1], rgb[2]);
 }
 
-void GroupState::applyColor(ArduinoJson::JsonObject& state, uint8_t r, uint8_t g, uint8_t b) const {
-  JsonObject& color = state.createNestedObject("color");
+void GroupState::applyColor(JsonObject state, uint8_t r, uint8_t g, uint8_t b) const {
+  JsonObject color = state.createNestedObject("color");
   color["r"] = r;
   color["g"] = g;
   color["b"] = b;
 }
 
-void GroupState::applyOhColor(ArduinoJson::JsonObject& state) const {
+void GroupState::applyOhColor(JsonObject state) const {
   uint8_t rgb[3];
   RGBConverter converter;
   converter.hsvToRgb(
@@ -834,7 +834,7 @@ void GroupState::applyOhColor(ArduinoJson::JsonObject& state) const {
 }
 
 // gather partial state for a single field; see GroupState::applyState to gather many fields
-void GroupState::applyField(JsonObject& partialState, const BulbId& bulbId, GroupStateField field) const {
+void GroupState::applyField(JsonObject partialState, const BulbId& bulbId, GroupStateField field) const {
   if (isSetField(field)) {
     switch (field) {
       case GroupStateField::STATE:
@@ -942,10 +942,11 @@ void GroupState::applyField(JsonObject& partialState, const BulbId& bulbId, Grou
 void GroupState::debugState(char const *debugMessage) const {
 #ifdef STATE_DEBUG
   // using static to keep large buffers off the call stack
-  static StaticJsonBuffer<500> jsonBuffer;
+  StaticJsonDocument<500> jsonDoc;
+  JsonObject jsonState = jsonDoc.to<JsonObject>();
 
   // define fields to show (if count changes, make sure to update count to applyState below)
-  GroupStateField fields[] {
+  std::vector<GroupStateField> fields({
       GroupStateField::LEVEL,
       GroupStateField::BULB_MODE,
       GroupStateField::COLOR_TEMP,
@@ -955,20 +956,16 @@ void GroupState::debugState(char const *debugMessage) const {
       GroupStateField::MODE,
       GroupStateField::SATURATION,
       GroupStateField::STATE
-  };
-
-  // since our buffer is reused, make sure to clear it every time
-  jsonBuffer.clear();
-  JsonObject& jsonState = jsonBuffer.createObject();
+  });
 
   // Fake id
   BulbId id;
 
   // use applyState to build JSON of all fields (from above)
-  applyState(jsonState, id, fields, size(fields));
+  applyState(jsonState, id, fields);
   // convert to string and print
   Serial.printf("%s: ", debugMessage);
-  jsonState.printTo(Serial);
+  serializeJson(jsonState, Serial);
   Serial.println("");
   Serial.printf("Raw data: %08X %08X\n", state.rawData[0], state.rawData[1]);
 #endif
@@ -976,7 +973,7 @@ void GroupState::debugState(char const *debugMessage) const {
 
 // build up a partial state representation based on the specified GrouipStateField array.  Used
 // to gather a subset of states (configurable in the UI) for sending to MQTT and web responses.
-void GroupState::applyState(JsonObject& partialState, const BulbId& bulbId, std::vector<GroupStateField>& fields) const {
+void GroupState::applyState(JsonObject partialState, const BulbId& bulbId, std::vector<GroupStateField>& fields) const {
   for (std::vector<GroupStateField>::const_iterator itr = fields.begin(); itr != fields.end(); ++itr) {
     applyField(partialState, bulbId, *itr);
   }

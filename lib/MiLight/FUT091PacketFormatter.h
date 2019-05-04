@@ -19,7 +19,7 @@ public:
   virtual void updateTemperature(uint8_t value);
   virtual void enableNightMode();
 
-  virtual BulbId parsePacket(const uint8_t* packet, JsonObject& result);
+  virtual BulbId parsePacket(const uint8_t* packet, JsonObject result);
 };
 
 #endif

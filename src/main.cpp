@@ -84,8 +84,8 @@ void initMilightUdpServers() {
  * is read.
  */
 void onPacketSentHandler(uint8_t* packet, const MiLightRemoteConfig& config) {
-  StaticJsonBuffer<200> buffer;
-  JsonObject& result = buffer.createObject();
+  StaticJsonDocument<200> buffer;
+  JsonObject result = buffer.to<JsonObject>();
 
   BulbId bulbId = config.packetFormatter->parsePacket(packet, result);
 
@@ -116,7 +116,7 @@ void onPacketSentHandler(uint8_t* packet, const MiLightRemoteConfig& config) {
   if (mqttClient) {
     // Sends the state delta derived from the raw packet
     char output[200];
-    result.printTo(output);
+    serializeJson(result, output);
     mqttClient->sendUpdate(remoteConfig, bulbId.deviceId, bulbId.groupId, output);
 
     // Sends the entire state

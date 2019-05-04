@@ -189,7 +189,7 @@ MiLightStatus CctPacketFormatter::cctCommandToStatus(uint8_t command) {
   }
 }
 
-BulbId CctPacketFormatter::parsePacket(const uint8_t* packet, JsonObject& result) {
+BulbId CctPacketFormatter::parsePacket(const uint8_t* packet, JsonObject result) {
   uint8_t command = packet[CCT_COMMAND_INDEX] & 0x7F;
 
   uint8_t onOffGroupId = cctCommandIdToGroup(command);

@@ -12,6 +12,10 @@
 #ifndef _SETTINGS_H_INCLUDED
 #define _SETTINGS_H_INCLUDED
 
+#ifndef MILIGHT_HUB_SETTINGS_BUFFER_SIZE
+#define MILIGHT_HUB_SETTINGS_BUFFER_SIZE 4096
+#endif
+
 #define XQUOTE(x) #x
 #define QUOTE(x) XQUOTE(x)
 
@@ -117,10 +121,10 @@ public:
 
   void save();
   String toJson(const bool prettyPrint = true);
-  void serialize(Stream& stream, const bool prettyPrint = false);
-  void updateDeviceIds(JsonArray& arr);
-  void updateGatewayConfigs(JsonArray& arr);
-  void patch(JsonObject& obj);
+  void serialize(Print& stream, const bool prettyPrint = false);
+  void updateDeviceIds(JsonArray arr);
+  void updateGatewayConfigs(JsonArray arr);
+  void patch(JsonObject obj);
   String mqttServer();
   uint16_t mqttPort();
 
@@ -168,9 +172,10 @@ protected:
   size_t _autoRestartPeriod;
 
   template <typename T>
-  void setIfPresent(JsonObject& obj, const char* key, T& var) {
+  void setIfPresent(JsonObject obj, const char* key, T& var) {
     if (obj.containsKey(key)) {
-      var = obj.get<T>(key);
+      JsonVariant val = obj[key];
+      var = val.as<T>();
     }
   }
 };

@@ -70,7 +70,7 @@ public:
 
   void updateSaturation(const uint8_t saturation);
 
-  void update(const JsonObject& object);
+  void update(JsonObject object);
   void handleCommand(const String& command);
   void handleEffect(const String& effect);
 
@@ -120,7 +120,7 @@ protected:
    */
   void updateResendCount();
 
-  uint8_t parseStatus(const JsonObject& object);
+  uint8_t parseStatus(JsonObject object);
 
   void flushPacket();
 };

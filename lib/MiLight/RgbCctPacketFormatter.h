@@ -50,7 +50,7 @@ public:
   virtual void nextMode();
   virtual void previousMode();
 
-  virtual BulbId parsePacket(const uint8_t* packet, JsonObject& result);
+  virtual BulbId parsePacket(const uint8_t* packet, JsonObject result);
 
 protected:
 

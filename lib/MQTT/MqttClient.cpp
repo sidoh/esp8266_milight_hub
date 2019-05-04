@@ -207,8 +207,9 @@ void MqttClient::publishCallback(char* topic, byte* payload, int length) {
     Serial.println(F("MqttClient - WARNING: could not find device_type token.  Defaulting to FUT092.\n"));
   }
 
-  StaticJsonBuffer<400> buffer;
-  JsonObject& obj = buffer.parseObject(cstrPayload);
+  StaticJsonDocument<400> buffer;
+  deserializeJson(buffer, cstrPayload);
+  JsonObject obj = buffer.as<JsonObject>();
 
 #ifdef MQTT_DEBUG
   printf("MqttClient - device %04X, group %u\n", deviceId, groupId);
@@ -236,15 +237,14 @@ inline void MqttClient::bindTopicString(
 }
 
 String MqttClient::generateConnectionStatusMessage(const char* connectionStatus) {
-  DynamicJsonBuffer buffer;
-  JsonObject& status = buffer.createObject();
-  status["status"] = connectionStatus;
+  StaticJsonDocument<1024> json;
+  json["status"] = connectionStatus;
 
   // Fill other fields
-  AboutHelper::generateAboutObject(status, true);
+  AboutHelper::generateAboutObject(json, true);
 
   String response;
-  status.printTo(response);
+  serializeJson(json, response);
 
   return response;
 }
