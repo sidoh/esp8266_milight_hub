@@ -288,7 +288,7 @@ void MiLightHttpServer::handleListenGateway(const UrlTokenBindings* bindings, Ri
   }
 
   while (remoteConfig == NULL) {
-    if (!server.isClientConnected()) {
+    if (!server.client().connected()) {
       return;
     }
 
