@@ -839,7 +839,7 @@ $(function() {
 
   $('.raw-update').change(function() {
     var data = {}
-      , val = $(this).attr('type') == 'checkbox' ? $(this).is(':checked') : $(this).val()
+      , val = $(this).attr('type') == 'checkbox' ? ($(this).is(':checked') ? 'on' : 'off') : $(this).val()
       ;
 
     data[$(this).attr('name')] = val;
