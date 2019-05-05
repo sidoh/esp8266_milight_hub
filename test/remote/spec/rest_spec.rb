@@ -77,5 +77,12 @@ RSpec.describe 'REST Server' do
     it 'should respond to /system' do
       expect { @client.post('/system', {}) }.to raise_error('400 "Bad Request"')
     end
+
+    it 'should respond to /remote_configs' do
+      result = @client.get('/remote_configs')
+
+      expect(result).to be_a(Array)
+      expect(result).to include('rgb_cct')
+    end
   end
 end
