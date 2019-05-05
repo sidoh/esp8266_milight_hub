@@ -709,7 +709,10 @@ void GroupState::patch(const GroupState& other) {
   for (size_t i = 0; i < size(ALL_PHYSICAL_FIELDS); ++i) {
     GroupStateField field = ALL_PHYSICAL_FIELDS[i];
 
-    if (other.isSetField(field)) {
+    // Conditions:
+    //   * Only set anything if field is set in other state
+    //   * Do not patch anything other than STATE if bulb is off
+    if (other.isSetField(field) && (field == GroupStateField::STATE || isOn())) {
       setFieldValue(field, other.getFieldValue(field));
     }
   }
@@ -717,7 +720,8 @@ void GroupState::patch(const GroupState& other) {
   for (size_t i = 0; i < size(ALL_SCRATCH_FIELDS); ++i) {
     GroupStateField field = ALL_SCRATCH_FIELDS[i];
 
-    if (other.isSetScratchField(field)) {
+    // All scratch field updates require that the bulb is on.
+    if (isOn() && other.isSetScratchField(field)) {
       setScratchFieldValue(field, other.getScratchFieldValue(field));
     }
   }
