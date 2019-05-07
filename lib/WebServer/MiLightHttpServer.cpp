@@ -62,11 +62,7 @@ void MiLightHttpServer::begin() {
 
   server
     .buildHandler("/firmware")
-    .on(
-      HTTP_POST,
-      std::bind(&MiLightHttpServer::handleFirmwarePost, this),
-      std::bind(&MiLightHttpServer::handleFirmwareUpload, this)
-    );
+    .handleOTA();
 
   server.clearBuilders();
 
