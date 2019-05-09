@@ -12,8 +12,6 @@
 using namespace std::placeholders;
 
 void MiLightHttpServer::begin() {
-  applySettings(settings);
-
   // set up HTTP end points to serve
 
   server
@@ -133,14 +131,6 @@ void MiLightHttpServer::serveSettings() {
   serveFile(SETTINGS_FILE, APPLICATION_JSON);
 }
 
-void MiLightHttpServer::applySettings(Settings& settings) {
-  if (settings.hasAuthSettings()) {
-    server.requireAuthentication(settings.adminUsername, settings.adminPassword);
-  } else {
-    server.disableAuthentication();
-  }
-}
-
 void MiLightHttpServer::onSettingsSaved(SettingsSavedHandler handler) {
   this->settingsSavedHandler = handler;
 }
@@ -194,8 +184,6 @@ void MiLightHttpServer::handleUpdateSettings(RequestContext& request) {
     settings.patch(parsedSettings);
     settings.save();
 
-    this->applySettings(settings);
-
     if (this->settingsSavedHandler) {
       this->settingsSavedHandler();
     }
@@ -208,7 +196,6 @@ void MiLightHttpServer::handleUpdateSettings(RequestContext& request) {
 void MiLightHttpServer::handleUpdateSettingsPost(RequestContext& request) {
   Settings::load(settings);
 
-  this->applySettings(settings);
   if (this->settingsSavedHandler) {
     this->settingsSavedHandler();
   }

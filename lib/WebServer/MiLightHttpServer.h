@@ -21,15 +21,14 @@ const char APPLICATION_JSON[] = "application/json";
 class MiLightHttpServer {
 public:
   MiLightHttpServer(Settings& settings, MiLightClient*& milightClient, GroupStateStore*& stateStore)
-    : server(80),
-      wsServer(WebSocketsServer(81)),
-      numWsClients(0),
-      milightClient(milightClient),
-      settings(settings),
-      stateStore(stateStore)
-  {
-    this->applySettings(settings);
-  }
+    : authProvider(settings)
+    , server(80, authProvider)
+    , wsServer(WebSocketsServer(81))
+    , numWsClients(0)
+    , milightClient(milightClient)
+    , settings(settings)
+    , stateStore(stateStore)
+  { }
 
   void begin();
   void handleClient();
@@ -43,7 +42,6 @@ protected:
 
   bool serveFile(const char* file, const char* contentType = "text/html");
   void handleServe_P(const char* data, size_t length);
-  void applySettings(Settings& settings);
   void sendGroupState(BulbId& bulbId, GroupState* state, RichHttp::Response& response);
 
   void serveSettings();
@@ -68,6 +66,7 @@ protected:
 
   File updateFile;
 
+  PassthroughAuthProvider<Settings> authProvider;
   RichHttpServer<RichHttp::Generics::Configs::EspressifBuiltin> server;
   WebSocketsServer wsServer;
   size_t numWsClients;

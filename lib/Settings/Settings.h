@@ -6,6 +6,7 @@
 #include <RF24Channel.h>
 #include <Size.h>
 #include <LEDStatus.h>
+#include <AuthProviders.h>
 #include <vector>
 #include <memory>
 
@@ -109,7 +110,10 @@ public:
 
   ~Settings() { }
 
-  bool hasAuthSettings();
+  bool isAuthenticationEnabled() const;
+  const String& getUsername() const;
+  const String& getPassword() const;
+
   bool isAutoRestartEnabled();
   size_t getAutoRestartPeriod();
 
@@ -178,6 +182,20 @@ protected:
       var = val.as<T>();
     }
   }
+};
+
+class SettingsAuthProvider : public AuthProvider {
+public:
+  SettingsAuthProvider(Settings& settings);
+
+  // Returns true if authentication is currently enabled
+  virtual bool isAuthenticationEnabled() const override;
+
+  virtual const String& getUsername() const override;
+  virtual const String& getPassword() const override;
+
+private:
+  Settings& settings;
 };
 
 #endif

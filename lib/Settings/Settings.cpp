@@ -13,8 +13,16 @@ GatewayConfig::GatewayConfig(uint16_t deviceId, uint16_t port, uint8_t protocolV
   , protocolVersion(protocolVersion)
 { }
 
-bool Settings::hasAuthSettings() {
+bool Settings::isAuthenticationEnabled() const {
   return adminUsername.length() > 0 && adminPassword.length() > 0;
+}
+
+const String& Settings::getUsername() const {
+  return adminUsername;
+}
+
+const String& Settings::getPassword() const {
+  return adminPassword;
 }
 
 bool Settings::isAutoRestartEnabled() {
