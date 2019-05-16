@@ -4,18 +4,17 @@
 #include <ESP8266WiFi.h>
 
 String AboutHelper::generateAboutString(bool abbreviated) {
-  DynamicJsonBuffer buffer;
-  JsonObject& response = buffer.createObject();
+  DynamicJsonDocument buffer(1024);
 
-  generateAboutObject(response, abbreviated);
+  generateAboutObject(buffer, abbreviated);
 
   String body;
-  response.printTo(body);
+  serializeJson(buffer, body);
 
   return body;
 }
 
-void AboutHelper::generateAboutObject(JsonObject& obj, bool abbreviated) {
+void AboutHelper::generateAboutObject(JsonDocument& obj, bool abbreviated) {
   obj["firmware"] = QUOTE(FIRMWARE_NAME);
   obj["version"] = QUOTE(MILIGHT_HUB_VERSION);
   obj["ip_address"] = WiFi.localIP().toString();

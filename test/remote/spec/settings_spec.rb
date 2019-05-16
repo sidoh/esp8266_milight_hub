@@ -37,7 +37,7 @@ RSpec.describe 'Settings' do
       expect(settings['mqtt_server']).to eq('test123')
 
       @client.put('/settings', {mqtt_server: 'abc123', mqtt_username: 'foo'})
-      
+
       settings = @client.get('/settings')
       expect(settings['mqtt_server']).to eq('abc123')
       expect(settings['mqtt_username']).to eq('foo')
@@ -62,6 +62,26 @@ RSpec.describe 'Settings' do
       @client.upload_json('/settings', file.path)
 
       expect { @client.get('/settings') }.to raise_error(Net::HTTPServerException)
+    end
+  end
+
+  context 'PUT settings file' do
+    it 'should accept a fairly large request body' do
+      contents = (1..25).reduce({}) { |a, x| a[x] = "test#{x}"*10; a }
+
+      expect { @client.put('/settings', contents) }.to_not raise_error
+    end
+
+    it 'should not cause excessive memory leaks' do
+      start_mem = @client.get('/about')['free_heap']
+
+      20.times do
+        @client.put('/settings', mqtt_username: 'a')
+      end
+
+      end_mem = @client.get('/about')['free_heap']
+
+      expect(end_mem - start_mem).to_not be < -200
     end
   end
 
@@ -111,7 +131,7 @@ RSpec.describe 'Settings' do
       # Wait for it to come back up
       ping_test = Net::Ping::External.new(static_ip)
 
-      10.times do 
+      10.times do
         break if ping_test.ping?
         sleep 1
       end
@@ -124,7 +144,7 @@ RSpec.describe 'Settings' do
 
       ping_test = Net::Ping::External.new(ENV.fetch('ESPMH_HOSTNAME'))
 
-      10.times do 
+      10.times do
         break if ping_test.ping?
         sleep 1
       end

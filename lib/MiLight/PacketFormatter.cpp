@@ -80,7 +80,7 @@ void PacketFormatter::enableNightMode() { }
 void PacketFormatter::updateTemperature(uint8_t value) { }
 void PacketFormatter::updateSaturation(uint8_t value) { }
 
-BulbId PacketFormatter::parsePacket(const uint8_t *packet, JsonObject &result) {
+BulbId PacketFormatter::parsePacket(const uint8_t *packet, JsonObject result) {
   return DEFAULT_BULB_ID;
 }
 

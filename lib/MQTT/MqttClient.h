@@ -24,7 +24,7 @@ public:
 
 private:
   WiFiClient tcpClient;
-  PubSubClient* mqttClient;
+  PubSubClient mqttClient;
   MiLightClient*& milightClient;
   Settings& settings;
   char* domain;

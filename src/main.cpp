@@ -23,6 +23,9 @@
 #include <BulbStateUpdater.h>
 #include <LEDStatus.h>
 
+#include <vector>
+#include <memory>
+
 WiFiManager wifiManager;
 // because of callbacks, these need to be in the higher scope :(
 WiFiManagerParameter* wifiStaticIP = NULL;
@@ -34,7 +37,7 @@ static LEDStatus *ledStatus;
 Settings settings;
 
 MiLightClient* milightClient = NULL;
-MiLightRadioFactory* radioFactory = NULL;
+std::shared_ptr<MiLightRadioFactory> radioFactory;
 MiLightHttpServer *httpServer = NULL;
 MqttClient* mqttClient = NULL;
 MiLightDiscoveryServer* discoveryServer = NULL;
@@ -45,40 +48,30 @@ GroupStateStore* stateStore = NULL;
 BulbStateUpdater* bulbStateUpdater = NULL;
 
 int numUdpServers = 0;
-MiLightUdpServer** udpServers = NULL;
+std::vector<std::shared_ptr<MiLightUdpServer>> udpServers;
 WiFiUDP udpSeder;
 
 /**
  * Set up UDP servers (both v5 and v6).  Clean up old ones if necessary.
  */
 void initMilightUdpServers() {
-  if (udpServers) {
-    for (int i = 0; i < numUdpServers; i++) {
-      if (udpServers[i]) {
-        delete udpServers[i];
-      }
-    }
+  udpServers.clear();
 
-    delete udpServers;
-  }
+  for (size_t i = 0; i < settings.gatewayConfigs.size(); ++i) {
+    const GatewayConfig& config = *settings.gatewayConfigs[i];
 
-  udpServers = new MiLightUdpServer*[settings.numGatewayConfigs];
-  numUdpServers = settings.numGatewayConfigs;
-
-  for (size_t i = 0; i < settings.numGatewayConfigs; i++) {
-    GatewayConfig* config = settings.gatewayConfigs[i];
-    MiLightUdpServer* server = MiLightUdpServer::fromVersion(
-      config->protocolVersion,
+    std::shared_ptr<MiLightUdpServer> server = MiLightUdpServer::fromVersion(
+      config.protocolVersion,
       milightClient,
-      config->port,
-      config->deviceId
+      config.port,
+      config.deviceId
     );
 
     if (server == NULL) {
       Serial.print(F("Error creating UDP server with protocol version: "));
-      Serial.println(config->protocolVersion);
+      Serial.println(config.protocolVersion);
     } else {
-      udpServers[i] = server;
+      udpServers.push_back(std::move(server));
       udpServers[i]->begin();
     }
   }
@@ -91,8 +84,8 @@ void initMilightUdpServers() {
  * is read.
  */
 void onPacketSentHandler(uint8_t* packet, const MiLightRemoteConfig& config) {
-  StaticJsonBuffer<200> buffer;
-  JsonObject& result = buffer.createObject();
+  StaticJsonDocument<200> buffer;
+  JsonObject result = buffer.to<JsonObject>();
 
   BulbId bulbId = config.packetFormatter->parsePacket(packet, result);
 
@@ -123,7 +116,7 @@ void onPacketSentHandler(uint8_t* packet, const MiLightRemoteConfig& config) {
   if (mqttClient) {
     // Sends the state delta derived from the raw packet
     char output[200];
-    result.printTo(output);
+    serializeJson(result, output);
     mqttClient->sendUpdate(remoteConfig, bulbId.deviceId, bulbId.groupId, output);
 
     // Sends the entire state
@@ -144,7 +137,7 @@ void handleListen() {
     return;
   }
 
-  MiLightRadio* radio = milightClient->switchRadio(currentRadioType++ % milightClient->getNumRadios());
+  std::shared_ptr<MiLightRadio> radio = milightClient->switchRadio(currentRadioType++ % milightClient->getNumRadios());
 
   for (size_t i = 0; i < settings.listenRepeats; i++) {
     if (milightClient->available()) {
@@ -197,9 +190,6 @@ void onUpdateEnd() {
 void applySettings() {
   if (milightClient) {
     delete milightClient;
-  }
-  if (radioFactory) {
-    delete radioFactory;
   }
   if (mqttClient) {
     delete mqttClient;
@@ -402,10 +392,8 @@ void loop() {
     bulbStateUpdater->loop();
   }
 
-  if (udpServers) {
-    for (size_t i = 0; i < settings.numGatewayConfigs; i++) {
-      udpServers[i]->handleClient();
-    }
+  for (size_t i = 0; i < udpServers.size(); i++) {
+    udpServers[i]->handleClient();
   }
 
   if (discoveryServer) {

@@ -2,6 +2,8 @@
 #include <MiLightClient.h>
 #include <WiFiUdp.h>
 
+#include <memory>
+
 // This protocol is documented here:
 // http://www.limitlessled.com/dev/
 
@@ -22,7 +24,7 @@ public:
   void begin();
   void handleClient();
 
-  static MiLightUdpServer* fromVersion(uint8_t version, MiLightClient*&, uint16_t port, uint16_t deviceId);
+  static std::shared_ptr<MiLightUdpServer> fromVersion(uint8_t version, MiLightClient*&, uint16_t port, uint16_t deviceId);
 
 protected:
   WiFiUDP socket;

@@ -18,7 +18,7 @@ void FUT091PacketFormatter::enableNightMode() {
   command(static_cast<uint8_t>(FUT091Command::ON_OFF) | 0x80, arg);
 }
 
-BulbId FUT091PacketFormatter::parsePacket(const uint8_t *packet, JsonObject& result) {
+BulbId FUT091PacketFormatter::parsePacket(const uint8_t *packet, JsonObject result) {
   uint8_t packetCopy[V2_PACKET_LEN];
   memcpy(packetCopy, packet, V2_PACKET_LEN);
   V2RFEncoding::decodeV2Packet(packetCopy);

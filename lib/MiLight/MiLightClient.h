@@ -20,14 +20,12 @@
 class MiLightClient {
 public:
   MiLightClient(
-    MiLightRadioFactory* radioFactory,
+    std::shared_ptr<MiLightRadioFactory> radioFactory,
     GroupStateStore* stateStore,
     Settings* settings
   );
 
-  ~MiLightClient() {
-    delete[] radios;
-  }
+  ~MiLightClient() { }
 
   typedef std::function<void(uint8_t* packet, const MiLightRemoteConfig& config)> PacketSentHandler;
   typedef std::function<void(void)> EventHandler;
@@ -72,7 +70,7 @@ public:
 
   void updateSaturation(const uint8_t saturation);
 
-  void update(const JsonObject& object);
+  void update(JsonObject object);
   void handleCommand(const String& command);
   void handleEffect(const String& effect);
 
@@ -81,15 +79,15 @@ public:
   void onUpdateEnd(EventHandler handler);
 
   size_t getNumRadios() const;
-  MiLightRadio* switchRadio(size_t radioIx);
+  std::shared_ptr<MiLightRadio> switchRadio(size_t radioIx);
+  std::shared_ptr<MiLightRadio> switchRadio(const MiLightRemoteConfig* remoteConfig);
   MiLightRemoteConfig& currentRemoteConfig() const;
 
 protected:
 
-  MiLightRadio** radios;
-  MiLightRadio* currentRadio;
+  std::vector<std::shared_ptr<MiLightRadio>> radios;
+  std::shared_ptr<MiLightRadio> currentRadio;
   const MiLightRemoteConfig* currentRemote;
-  const size_t numRadios;
 
   PacketSentHandler packetSentHandler;
   EventHandler updateBeginHandler;
@@ -122,8 +120,7 @@ protected:
    */
   void updateResendCount();
 
-  MiLightRadio* switchRadio(const MiLightRemoteConfig* remoteConfig);
-  uint8_t parseStatus(const JsonObject& object);
+  uint8_t parseStatus(JsonObject object);
 
   void flushPacket();
 };

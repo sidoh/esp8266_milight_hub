@@ -91,7 +91,7 @@ void FUT089PacketFormatter::enableNightMode() {
   command(FUT089_ON | 0x80, arg);
 }
 
-BulbId FUT089PacketFormatter::parsePacket(const uint8_t *packet, JsonObject& result) {
+BulbId FUT089PacketFormatter::parsePacket(const uint8_t *packet, JsonObject result) {
   if (stateStore == NULL) {
     Serial.println(F("ERROR: stateStore not set.  Prepare was not called!  **THIS IS A BUG**"));
     BulbId fakeId(0, 0, REMOTE_TYPE_FUT089);

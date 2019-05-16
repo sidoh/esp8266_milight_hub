@@ -7,7 +7,7 @@
 class AboutHelper {
 public:
   static String generateAboutString(bool abbreviated = false);
-  static void generateAboutObject(JsonObject& obj, bool abbreviated = false);
+  static void generateAboutObject(JsonDocument& obj, bool abbreviated = false);
 };
 
 #endif

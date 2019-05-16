@@ -7,8 +7,22 @@
 
 #define PORT_POSITION(s) ( s.indexOf(':') )
 
-bool Settings::hasAuthSettings() {
+GatewayConfig::GatewayConfig(uint16_t deviceId, uint16_t port, uint8_t protocolVersion)
+  : deviceId(deviceId)
+  , port(port)
+  , protocolVersion(protocolVersion)
+{ }
+
+bool Settings::isAuthenticationEnabled() const {
   return adminUsername.length() > 0 && adminPassword.length() > 0;
+}
+
+const String& Settings::getUsername() const {
+  return adminUsername;
+}
+
+const String& Settings::getPassword() const {
+  return adminPassword;
 }
 
 bool Settings::isAutoRestartEnabled() {
@@ -23,141 +37,110 @@ size_t Settings::getAutoRestartPeriod() {
   return std::max(_autoRestartPeriod, static_cast<size_t>(MINIMUM_RESTART_PERIOD));
 }
 
-void Settings::deserialize(Settings& settings, String json) {
-  DynamicJsonBuffer jsonBuffer;
-  JsonObject& parsedSettings = jsonBuffer.parseObject(json);
-  settings.patch(parsedSettings);
-}
+void Settings::updateDeviceIds(JsonArray arr) {
+  this->deviceIds.clear();
 
-void Settings::updateDeviceIds(JsonArray& arr) {
-  if (arr.success()) {
-    if (this->deviceIds) {
-      delete this->deviceIds;
-    }
-
-    this->deviceIds = new uint16_t[arr.size()];
-    this->numDeviceIds = arr.size();
-    arr.copyTo(this->deviceIds, arr.size());
+  for (size_t i = 0; i < arr.size(); ++i) {
+    this->deviceIds.push_back(arr[i]);
   }
 }
 
-void Settings::updateGatewayConfigs(JsonArray& arr) {
-  if (arr.success()) {
-    if (this->gatewayConfigs) {
-      delete[] this->gatewayConfigs;
-    }
+void Settings::updateGatewayConfigs(JsonArray arr) {
+  gatewayConfigs.clear();
 
-    this->gatewayConfigs = new GatewayConfig*[arr.size()];
-    this->numGatewayConfigs = arr.size();
+  for (size_t i = 0; i < arr.size(); i++) {
+    JsonArray params = arr[i];
 
-    for (size_t i = 0; i < arr.size(); i++) {
-      JsonArray& params = arr[i];
-
-      if (params.success() && params.size() == 3) {
-        this->gatewayConfigs[i] = new GatewayConfig(parseInt<uint16_t>(params[0]), params[1], params[2]);
-      } else {
-        Serial.print(F("Settings - skipped parsing gateway ports settings for element #"));
-        Serial.println(i);
-      }
+    if (params.size() == 3) {
+      std::shared_ptr<GatewayConfig> ptr = std::make_shared<GatewayConfig>(parseInt<uint16_t>(params[0]), params[1], params[2]);
+      gatewayConfigs.push_back(std::move(ptr));
+    } else {
+      Serial.print(F("Settings - skipped parsing gateway ports settings for element #"));
+      Serial.println(i);
     }
   }
 }
 
-void Settings::updateGroupStateFields(JsonArray &arr) {
-  if (arr.success()) {
-    if (this->groupStateFields) {
-      delete this->groupStateFields;
-    }
-
-    this->groupStateFields = new GroupStateField[arr.size()];
-    this->numGroupStateFields = arr.size();
-
-    for (size_t i = 0; i < arr.size(); i++) {
-      String name = arr[i];
-      name.toLowerCase();
-
-      this->groupStateFields[i] = GroupStateFieldHelpers::getFieldByName(name.c_str());
-    }
+void Settings::patch(JsonObject parsedSettings) {
+  if (parsedSettings.isNull()) {
+    Serial.println(F("Skipping patching loaded settings.  Parsed settings was null."));
+    return;
   }
-}
 
-void Settings::patch(JsonObject& parsedSettings) {
-  if (parsedSettings.success()) {
-    this->setIfPresent<String>(parsedSettings, "admin_username", adminUsername);
-    this->setIfPresent(parsedSettings, "admin_password", adminPassword);
-    this->setIfPresent(parsedSettings, "ce_pin", cePin);
-    this->setIfPresent(parsedSettings, "csn_pin", csnPin);
-    this->setIfPresent(parsedSettings, "reset_pin", resetPin);
-    this->setIfPresent(parsedSettings, "led_pin", ledPin);
-    this->setIfPresent(parsedSettings, "packet_repeats", packetRepeats);
-    this->setIfPresent(parsedSettings, "http_repeat_factor", httpRepeatFactor);
-    this->setIfPresent(parsedSettings, "auto_restart_period", _autoRestartPeriod);
-    this->setIfPresent(parsedSettings, "mqtt_server", _mqttServer);
-    this->setIfPresent(parsedSettings, "mqtt_username", mqttUsername);
-    this->setIfPresent(parsedSettings, "mqtt_password", mqttPassword);
-    this->setIfPresent(parsedSettings, "mqtt_topic_pattern", mqttTopicPattern);
-    this->setIfPresent(parsedSettings, "mqtt_update_topic_pattern", mqttUpdateTopicPattern);
-    this->setIfPresent(parsedSettings, "mqtt_state_topic_pattern", mqttStateTopicPattern);
-    this->setIfPresent(parsedSettings, "mqtt_client_status_topic", mqttClientStatusTopic);
-    this->setIfPresent(parsedSettings, "discovery_port", discoveryPort);
-    this->setIfPresent(parsedSettings, "listen_repeats", listenRepeats);
-    this->setIfPresent(parsedSettings, "state_flush_interval", stateFlushInterval);
-    this->setIfPresent(parsedSettings, "mqtt_state_rate_limit", mqttStateRateLimit);
-    this->setIfPresent(parsedSettings, "packet_repeat_throttle_threshold", packetRepeatThrottleThreshold);
-    this->setIfPresent(parsedSettings, "packet_repeat_throttle_sensitivity", packetRepeatThrottleSensitivity);
-    this->setIfPresent(parsedSettings, "packet_repeat_minimum", packetRepeatMinimum);
-    this->setIfPresent(parsedSettings, "enable_automatic_mode_switching", enableAutomaticModeSwitching);
-    this->setIfPresent(parsedSettings, "led_mode_packet_count", ledModePacketCount);
-    this->setIfPresent(parsedSettings, "hostname", hostname);
-    this->setIfPresent(parsedSettings, "wifi_static_ip", wifiStaticIP);
-    this->setIfPresent(parsedSettings, "wifi_static_ip_gateway", wifiStaticIPGateway);
-    this->setIfPresent(parsedSettings, "wifi_static_ip_netmask", wifiStaticIPNetmask);
+  this->setIfPresent(parsedSettings, "admin_username", adminUsername);
+  this->setIfPresent(parsedSettings, "admin_password", adminPassword);
+  this->setIfPresent(parsedSettings, "ce_pin", cePin);
+  this->setIfPresent(parsedSettings, "csn_pin", csnPin);
+  this->setIfPresent(parsedSettings, "reset_pin", resetPin);
+  this->setIfPresent(parsedSettings, "led_pin", ledPin);
+  this->setIfPresent(parsedSettings, "packet_repeats", packetRepeats);
+  this->setIfPresent(parsedSettings, "http_repeat_factor", httpRepeatFactor);
+  this->setIfPresent(parsedSettings, "auto_restart_period", _autoRestartPeriod);
+  this->setIfPresent(parsedSettings, "mqtt_server", _mqttServer);
+  this->setIfPresent(parsedSettings, "mqtt_username", mqttUsername);
+  this->setIfPresent(parsedSettings, "mqtt_password", mqttPassword);
+  this->setIfPresent(parsedSettings, "mqtt_topic_pattern", mqttTopicPattern);
+  this->setIfPresent(parsedSettings, "mqtt_update_topic_pattern", mqttUpdateTopicPattern);
+  this->setIfPresent(parsedSettings, "mqtt_state_topic_pattern", mqttStateTopicPattern);
+  this->setIfPresent(parsedSettings, "mqtt_client_status_topic", mqttClientStatusTopic);
+  this->setIfPresent(parsedSettings, "discovery_port", discoveryPort);
+  this->setIfPresent(parsedSettings, "listen_repeats", listenRepeats);
+  this->setIfPresent(parsedSettings, "state_flush_interval", stateFlushInterval);
+  this->setIfPresent(parsedSettings, "mqtt_state_rate_limit", mqttStateRateLimit);
+  this->setIfPresent(parsedSettings, "packet_repeat_throttle_threshold", packetRepeatThrottleThreshold);
+  this->setIfPresent(parsedSettings, "packet_repeat_throttle_sensitivity", packetRepeatThrottleSensitivity);
+  this->setIfPresent(parsedSettings, "packet_repeat_minimum", packetRepeatMinimum);
+  this->setIfPresent(parsedSettings, "enable_automatic_mode_switching", enableAutomaticModeSwitching);
+  this->setIfPresent(parsedSettings, "led_mode_packet_count", ledModePacketCount);
+  this->setIfPresent(parsedSettings, "hostname", hostname);
+  this->setIfPresent(parsedSettings, "wifi_static_ip", wifiStaticIP);
+  this->setIfPresent(parsedSettings, "wifi_static_ip_gateway", wifiStaticIPGateway);
+  this->setIfPresent(parsedSettings, "wifi_static_ip_netmask", wifiStaticIPNetmask);
 
-    if (parsedSettings.containsKey("rf24_channels")) {
-      JsonArray& arr = parsedSettings["rf24_channels"];
-      rf24Channels = JsonHelpers::jsonArrToVector<RF24Channel>(arr, RF24ChannelHelpers::valueFromName);
-    }
+  if (parsedSettings.containsKey("rf24_channels")) {
+    JsonArray arr = parsedSettings["rf24_channels"];
+    rf24Channels = JsonHelpers::jsonArrToVector<RF24Channel, String>(arr, RF24ChannelHelpers::valueFromName);
+  }
 
-    if (parsedSettings.containsKey("rf24_listen_channel")) {
-      this->rf24ListenChannel = RF24ChannelHelpers::valueFromName(parsedSettings["rf24_listen_channel"]);
-    }
+  if (parsedSettings.containsKey("rf24_listen_channel")) {
+    this->rf24ListenChannel = RF24ChannelHelpers::valueFromName(parsedSettings["rf24_listen_channel"]);
+  }
 
-    if (parsedSettings.containsKey("rf24_power_level")) {
-      this->rf24PowerLevel = RF24PowerLevelHelpers::valueFromName(parsedSettings["rf24_power_level"]);
-    }
+  if (parsedSettings.containsKey("rf24_power_level")) {
+    this->rf24PowerLevel = RF24PowerLevelHelpers::valueFromName(parsedSettings["rf24_power_level"]);
+  }
 
-    if (parsedSettings.containsKey("led_mode_wifi_config")) {
-      this->ledModeWifiConfig = LEDStatus::stringToLEDMode(parsedSettings["led_mode_wifi_config"]);
-    }
+  if (parsedSettings.containsKey("led_mode_wifi_config")) {
+    this->ledModeWifiConfig = LEDStatus::stringToLEDMode(parsedSettings["led_mode_wifi_config"]);
+  }
 
-    if (parsedSettings.containsKey("led_mode_wifi_failed")) {
-      this->ledModeWifiFailed = LEDStatus::stringToLEDMode(parsedSettings["led_mode_wifi_failed"]);
-    }
+  if (parsedSettings.containsKey("led_mode_wifi_failed")) {
+    this->ledModeWifiFailed = LEDStatus::stringToLEDMode(parsedSettings["led_mode_wifi_failed"]);
+  }
 
-    if (parsedSettings.containsKey("led_mode_operating")) {
-      this->ledModeOperating = LEDStatus::stringToLEDMode(parsedSettings["led_mode_operating"]);
-    }
+  if (parsedSettings.containsKey("led_mode_operating")) {
+    this->ledModeOperating = LEDStatus::stringToLEDMode(parsedSettings["led_mode_operating"]);
+  }
 
-    if (parsedSettings.containsKey("led_mode_packet")) {
-      this->ledModePacket = LEDStatus::stringToLEDMode(parsedSettings["led_mode_packet"]);
-    }
+  if (parsedSettings.containsKey("led_mode_packet")) {
+    this->ledModePacket = LEDStatus::stringToLEDMode(parsedSettings["led_mode_packet"]);
+  }
 
-    if (parsedSettings.containsKey("radio_interface_type")) {
-      this->radioInterfaceType = Settings::typeFromString(parsedSettings["radio_interface_type"]);
-    }
+  if (parsedSettings.containsKey("radio_interface_type")) {
+    this->radioInterfaceType = Settings::typeFromString(parsedSettings["radio_interface_type"]);
+  }
 
-    if (parsedSettings.containsKey("device_ids")) {
-      JsonArray& arr = parsedSettings["device_ids"];
-      updateDeviceIds(arr);
-    }
-    if (parsedSettings.containsKey("gateway_configs")) {
-      JsonArray& arr = parsedSettings["gateway_configs"];
-      updateGatewayConfigs(arr);
-    }
-    if (parsedSettings.containsKey("group_state_fields")) {
-      JsonArray& arr = parsedSettings["group_state_fields"];
-      updateGroupStateFields(arr);
-    }
+  if (parsedSettings.containsKey("device_ids")) {
+    JsonArray arr = parsedSettings["device_ids"];
+    updateDeviceIds(arr);
+  }
+  if (parsedSettings.containsKey("gateway_configs")) {
+    JsonArray arr = parsedSettings["gateway_configs"];
+    updateGatewayConfigs(arr);
+  }
+  if (parsedSettings.containsKey("group_state_fields")) {
+    JsonArray arr = parsedSettings["group_state_fields"];
+    groupStateFields = JsonHelpers::jsonArrToVector<GroupStateField, const char*>(arr, GroupStateFieldHelpers::getFieldByName);
   }
 }
 
@@ -167,10 +150,18 @@ void Settings::load(Settings& settings) {
     settings = Settings();
 
     File f = SPIFFS.open(SETTINGS_FILE, "r");
-    String settingsContents = f.readStringUntil(SETTINGS_TERMINATOR);
+
+    DynamicJsonDocument json(MILIGHT_HUB_SETTINGS_BUFFER_SIZE);
+    auto error = deserializeJson(json, f);
     f.close();
 
-    deserialize(settings, settingsContents);
+    if (! error) {
+      JsonObject parsedSettings = json.as<JsonObject>();
+      settings.patch(parsedSettings);
+    } else {
+      Serial.print(F("Error parsing saved settings file: "));
+      Serial.println(error.c_str());
+    }
   } else {
     settings.save();
   }
@@ -194,9 +185,8 @@ void Settings::save() {
   }
 }
 
-void Settings::serialize(Stream& stream, const bool prettyPrint) {
-  DynamicJsonBuffer jsonBuffer;
-  JsonObject& root = jsonBuffer.createObject();
+void Settings::serialize(Print& stream, const bool prettyPrint) {
+  DynamicJsonDocument root(MILIGHT_HUB_SETTINGS_BUFFER_SIZE);
 
   root["admin_username"] = this->adminUsername;
   root["admin_password"] = this->adminPassword;
@@ -235,42 +225,27 @@ void Settings::serialize(Stream& stream, const bool prettyPrint) {
   root["wifi_static_ip_gateway"] = this->wifiStaticIPGateway;
   root["wifi_static_ip_netmask"] = this->wifiStaticIPNetmask;
 
-  JsonArray& channelArr = jsonBuffer.createArray();
-  JsonHelpers::vectorToJsonArr<RF24Channel>(channelArr, rf24Channels, RF24ChannelHelpers::nameFromValue);
-  root["rf24_channels"] = channelArr;
+  JsonArray channelArr = root.createNestedArray("rf24_channels");
+  JsonHelpers::vectorToJsonArr<RF24Channel, String>(channelArr, rf24Channels, RF24ChannelHelpers::nameFromValue);
 
-  if (this->deviceIds) {
-    JsonArray& arr = jsonBuffer.createArray();
-    arr.copyFrom(this->deviceIds, this->numDeviceIds);
-    root["device_ids"] = arr;
+  JsonArray deviceIdsArr = root.createNestedArray("device_ids");
+  JsonHelpers::copyFrom<uint16_t>(deviceIdsArr, this->deviceIds);
+
+  JsonArray gatewayConfigsArr = root.createNestedArray("gateway_configs");
+  for (size_t i = 0; i < this->gatewayConfigs.size(); i++) {
+    JsonArray elmt = gatewayConfigsArr.createNestedArray();
+    elmt.add(this->gatewayConfigs[i]->deviceId);
+    elmt.add(this->gatewayConfigs[i]->port);
+    elmt.add(this->gatewayConfigs[i]->protocolVersion);
   }
 
-  if (this->gatewayConfigs) {
-    JsonArray& arr = jsonBuffer.createArray();
-    for (size_t i = 0; i < this->numGatewayConfigs; i++) {
-      JsonArray& elmt = jsonBuffer.createArray();
-      elmt.add(this->gatewayConfigs[i]->deviceId);
-      elmt.add(this->gatewayConfigs[i]->port);
-      elmt.add(this->gatewayConfigs[i]->protocolVersion);
-      arr.add(elmt);
-    }
-
-    root["gateway_configs"] = arr;
-  }
-
-  if (this->groupStateFields) {
-    JsonArray& arr = jsonBuffer.createArray();
-    for (size_t i = 0; i < this->numGroupStateFields; i++) {
-      arr.add(GroupStateFieldHelpers::getFieldName(this->groupStateFields[i]));
-    }
-
-    root["group_state_fields"] = arr;
-  }
+  JsonArray groupStateFieldArr = root.createNestedArray("group_state_fields");
+  JsonHelpers::vectorToJsonArr<GroupStateField, const char*>(groupStateFieldArr, groupStateFields, GroupStateFieldHelpers::getFieldName);
 
   if (prettyPrint) {
-    root.prettyPrintTo(stream);
+    serializeJsonPretty(root, stream);
   } else {
-    root.printTo(stream);
+    serializeJson(root, stream);
   }
 }
 
