@@ -237,14 +237,23 @@ inline void MqttClient::bindTopicString(
 }
 
 String MqttClient::generateConnectionStatusMessage(const char* connectionStatus) {
-  StaticJsonDocument<1024> json;
-  json["status"] = connectionStatus;
+  if (settings.simpleMqttClientStatus) {
+    // Don't expand disconnect type for simple status
+    if (0 == strcmp(connectionStatus, STATUS_CONNECTED)) {
+      return connectionStatus;
+    } else {
+      return "disconnected";
+    }
+  } else {
+    StaticJsonDocument<1024> json;
+    json["status"] = connectionStatus;
 
-  // Fill other fields
-  AboutHelper::generateAboutObject(json, true);
+    // Fill other fields
+    AboutHelper::generateAboutObject(json, true);
 
-  String response;
-  serializeJson(json, response);
+    String response;
+    serializeJson(json, response);
 
-  return response;
+    return response;
+  }
 }

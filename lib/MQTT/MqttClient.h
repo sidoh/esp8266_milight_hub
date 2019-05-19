@@ -50,7 +50,7 @@ private:
     const uint16_t groupId
   );
 
-  static String generateConnectionStatusMessage(const char* status);
+  String generateConnectionStatusMessage(const char* status);
 };
 
 #endif

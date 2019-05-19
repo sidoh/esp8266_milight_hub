@@ -90,6 +90,7 @@ public:
     httpRepeatFactor(1),
     listenRepeats(3),
     discoveryPort(48899),
+    simpleMqttClientStatus(false),
     stateFlushInterval(10000),
     mqttStateRateLimit(500),
     packetRepeatThrottleThreshold(200),
@@ -150,6 +151,7 @@ public:
   String mqttUpdateTopicPattern;
   String mqttStateTopicPattern;
   String mqttClientStatusTopic;
+  bool simpleMqttClientStatus;
   size_t stateFlushInterval;
   size_t mqttStateRateLimit;
   size_t packetRepeatThrottleThreshold;

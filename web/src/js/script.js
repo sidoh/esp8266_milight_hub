@@ -171,6 +171,16 @@ var UI_FIELDS = [ {
     type: "string",
     tab: "tab-mqtt"
   }, {
+    tag:   "simple_mqtt_client_status",
+    friendly: "Client Status Messages Mode",
+    help: "In simple mode, only the strings 'connected' and 'disconnected' will be published.  In detailed mode, data about the version, IP address, etc. will be included.",
+    type: "option_buttons",
+    options: {
+      true: "Simple",
+      false: "Detailed"
+    },
+    tab: "tab-mqtt"
+  }, {
     tag:   "radio_interface_type",
     friendly: "Radio interface type",
     help: "2.4 GHz radio model. Only change this if you know you're not using an NRF24L01!",
