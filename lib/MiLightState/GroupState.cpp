@@ -709,10 +709,15 @@ void GroupState::patch(const GroupState& other) {
   for (size_t i = 0; i < size(ALL_PHYSICAL_FIELDS); ++i) {
     GroupStateField field = ALL_PHYSICAL_FIELDS[i];
 
+    // Handle night mode separately.  Should always set this field.
+    if (field == GroupStateField::BULB_MODE && other.isNightMode()) {
+      setFieldValue(field, other.getFieldValue(field));
+    }
+    // Otherwise...
     // Conditions:
     //   * Only set anything if field is set in other state
     //   * Do not patch anything other than STATE if bulb is off
-    if (other.isSetField(field) && (field == GroupStateField::STATE || isOn())) {
+    else if (other.isSetField(field) && (field == GroupStateField::STATE || isOn())) {
       setFieldValue(field, other.getFieldValue(field));
     }
   }

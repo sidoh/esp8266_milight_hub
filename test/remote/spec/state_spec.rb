@@ -34,20 +34,33 @@ RSpec.describe 'State' do
   end
 
   context 'night mode command' do
-    it 'should affect state when bulb is off' do
-      state = @client.patch_state({'command' => 'night_mode'}, @id_params)
+    StateHelpers::ALL_REMOTE_TYPES
+      .reject { |x| %w(rgb).include?(x) } # Night mode not supported for these types
+      .each do |type|
+      it "should affect state when bulb is OFF for #{type}" do
+        params = @id_params.merge(type: type)
+        @client.delete_state(params)
+        state = @client.patch_state({'command' => 'night_mode'}, params)
 
-      expect(state['bulb_mode']).to eq('night')
-      expect(state['effect']).to    eq('night_mode')
+        expect(state['bulb_mode']).to eq('night')
+        expect(state['effect']).to    eq('night_mode')
+      end
     end
 
-    it 'should affect state when bulb is on' do
-      @client.patch_state({'status' => 'ON'}, @id_params)
-      state = @client.patch_state({'command' => 'night_mode'}, @id_params)
+    StateHelpers::ALL_REMOTE_TYPES
+      .reject { |x| %w(rgb).include?(x) } # Night mode not supported for these types
+      .each do |type|
+      it "should affect state when bulb is ON for #{type}" do
+        params = @id_params.merge(type: type)
+        @client.delete_state(params)
+        @client.patch_state({'status' => 'ON'}, params)
+        state = @client.patch_state({'command' => 'night_mode'}, params)
 
-      expect(state['status']).to    eq('ON')
-      expect(state['bulb_mode']).to eq('night')
-      expect(state['effect']).to    eq('night_mode')
+        # RGBW bulbs have to be OFF in order for night mode to take affect
+        expect(state['status']).to    eq('ON') if type != 'rgbw'
+        expect(state['bulb_mode']).to eq('night')
+        expect(state['effect']).to    eq('night_mode')
+      end
     end
 
     it 'should revert to previous mode when status is toggled' do
