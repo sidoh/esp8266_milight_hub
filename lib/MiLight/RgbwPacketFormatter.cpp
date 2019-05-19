@@ -124,9 +124,8 @@ BulbId RgbwPacketFormatter::parsePacket(const uint8_t* packet, JsonObject result
     // the last packet sent, not the current one, and that can be wrong for
     // on/off commands.
     bulbId.groupId = GROUP_FOR_STATUS_COMMAND(command);
-  } else if (command >= RGBW_ALL_MAX_LEVEL && command <= RGBW_GROUP_4_MIN_LEVEL) {
+  } else if (command & 0x10) {
     if ((command % 2) == 0) {
-      result["state"] = "ON";
       result["command"] = "night_mode";
     } else {
       result["command"] = "set_white";
