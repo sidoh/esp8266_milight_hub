@@ -44,22 +44,21 @@ RSpec.describe 'State' do
   end
 
   context 'client status topic' do
-    # Unfortunately, no way to easily simulate an unclean disconnect, so only test birth
+    before(:all) do
+      @status_topic = "#{@topic_prefix}client_status"
+      @client.patch_settings(mqtt_client_status_topic: @status_topic)
+    end
+
     it 'should send client status messages when configured' do
-      status_topic = "#{@topic_prefix}client_status"
-
-      @client.put(
-        '/settings',
-        mqtt_client_status_topic: status_topic
-      )
-
       # Clear any retained messages
-      @mqtt_client.publish(status_topic, nil)
+      @mqtt_client.publish(@status_topic, nil)
 
+      # Unfortunately, no way to easily simulate an unclean disconnect, so only test birth
+      # and forced disconnect
       seen_statuses = Set.new
       required_statuses = %w(connected disconnected_clean)
 
-      @mqtt_client.on_message(status_topic, 20) do |topic, message|
+      @mqtt_client.on_message(@status_topic, 20) do |topic, message|
         message = JSON.parse(message)
 
         seen_statuses << message['status']
@@ -68,6 +67,30 @@ RSpec.describe 'State' do
 
       # Force MQTT reconnect by updating settings
       @client.put('/settings', fakekey: 'fakevalue')
+
+      @mqtt_client.wait_for_listeners
+
+      expect(seen_statuses).to include(*required_statuses)
+    end
+
+    it 'should send simple client status message when configured' do
+      @client.patch_settings(simple_mqtt_client_status: true)
+
+      # Clear any retained messages
+      @mqtt_client.publish(@status_topic, nil)
+
+      # Unfortunately, no way to easily simulate an unclean disconnect, so only test birth
+      # and forced disconnect
+      seen_statuses = Set.new
+      required_statuses = %w(connected disconnected)
+
+      @mqtt_client.on_message(@status_topic, 20) do |topic, message|
+        seen_statuses << message
+        required_statuses.all? { |x| seen_statuses.include?(x) }
+      end
+
+      # Force MQTT reconnect by updating settings
+      @client.patch_settings(fakekey: 'fakevalue')
 
       @mqtt_client.wait_for_listeners
 
