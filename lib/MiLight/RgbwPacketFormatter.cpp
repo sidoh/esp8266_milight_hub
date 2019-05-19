@@ -96,7 +96,15 @@ void RgbwPacketFormatter::updateColorWhite() {
 void RgbwPacketFormatter::enableNightMode() {
   uint8_t button = STATUS_COMMAND(OFF, groupId);
 
-  command(button, 0);
+  // Bulbs must be OFF for night mode to work in RGBW.
+  // Turn it off if it isn't already off.
+  const GroupState* state = stateStore->get(deviceId, groupId, REMOTE_TYPE_RGBW);
+  if (state == NULL || state->getState() == MiLightStatus::ON) {
+    command(button, 0);
+  }
+
+  // Night mode command has 0x10 bit set, but is otherwise
+  // a repeat of the OFF command.
   command(button | 0x10, 0);
 }
 
