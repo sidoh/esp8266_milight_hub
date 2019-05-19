@@ -23,6 +23,19 @@ RSpec.describe 'Settings' do
     @client.clear_auth!
   end
 
+  context 'keys' do
+    it 'should persist known settings keys' do
+      {
+        'simple_mqtt_client_status' => [true, false]
+      }.each do |key, values|
+        values.each do |v|
+          @client.patch_settings({key => v})
+          expect(@client.get('/settings')[key]).to eq(v)
+        end
+      end
+    end
+  end
+
   context 'POST settings file' do
     it 'should clobber patched settings' do
       file = Tempfile.new('espmh-settings.json')
