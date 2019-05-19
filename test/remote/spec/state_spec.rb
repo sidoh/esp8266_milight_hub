@@ -419,4 +419,28 @@ RSpec.describe 'State' do
       expect(state).to include('status')
     end
   end
+
+  context 'fut089' do
+    # FUT089 uses the same command ID for both kelvin and saturation command, so
+    # interpreting such a command depends on knowledge of the state that the bulb
+    # is in.
+    it 'should keep enough group 0 state to interpret ambiguous kelvin/saturation commands as saturation commands when in color mode' do
+      group0_params = @id_params.merge(type: 'fut089', group_id: 0)
+
+      (0..8).each do |group_id|
+        @client.delete_state(group0_params.merge(group_id: group_id))
+      end
+
+      # Patch in separate commands so state must be kept
+      @client.patch_state({'status' => 'ON', 'hue' => 0}, group0_params)
+      @client.patch_state({'saturation' => 100}, group0_params)
+
+      (0..8).each do |group_id|
+        state = @client.get_state(group0_params.merge(group_id: group_id))
+        expect(state['bulb_mode']).to eq('color')
+        expect(state['saturation']).to eq(100)
+        expect(state['hue']).to eq(0)
+      end
+    end
+  end
 end
