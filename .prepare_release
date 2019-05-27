@@ -6,7 +6,7 @@ prepare_log() {
   echo "[prepare release] -- $@"
 }
 
-if ! git describe --exact-match HEAD 2>/dev/null; then
+if [ -z "$(git tag -l --points-at HEAD)" ]; then
   prepare_log "Skipping non-tagged commit."
   exit 0
 fi
@@ -17,7 +17,13 @@ prepare_log "Preparing release for tagged version: $VERSION"
 
 mkdir -p dist
 
-for file in $(ls .pioenvs/**/firmware.bin); do
+if [ -d .pio/build ]; then
+  firmware_prefix=".pio/build"
+else
+  firmware_prefix=".pioenvs"
+fi
+
+for file in $(ls ${firmware_prefix}/**/firmware.bin); do
   env_dir=$(dirname "$file")
   env=$(basename "$env_dir")
 
