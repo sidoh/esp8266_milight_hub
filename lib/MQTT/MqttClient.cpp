@@ -6,21 +6,27 @@
 #include <ArduinoJson.h>
 #include <WiFiClient.h>
 #include <MiLightRadioConfig.h>
+#include <AboutHelper.h>
+
+static const char* STATUS_CONNECTED = "connected";
+static const char* STATUS_DISCONNECTED = "disconnected_clean";
+static const char* STATUS_LWT_DISCONNECTED = "disconnected_unclean";
 
 MqttClient::MqttClient(Settings& settings, MiLightClient*& milightClient)
-  : milightClient(milightClient),
+  : mqttClient(tcpClient),
+    milightClient(milightClient),
     settings(settings),
     lastConnectAttempt(0)
 {
   String strDomain = settings.mqttServer();
   this->domain = new char[strDomain.length() + 1];
   strcpy(this->domain, strDomain.c_str());
-
-  this->mqttClient = new PubSubClient(tcpClient);
 }
 
 MqttClient::~MqttClient() {
-  mqttClient->disconnect();
+  String aboutStr = generateConnectionStatusMessage(STATUS_DISCONNECTED);
+  mqttClient.publish(settings.mqttClientStatusTopic.c_str(), aboutStr.c_str(), true);
+  mqttClient.disconnect();
   delete this->domain;
 }
 
@@ -34,8 +40,8 @@ void MqttClient::begin() {
   );
 #endif
 
-  mqttClient->setServer(this->domain, settings.mqttPort());
-  mqttClient->setCallback(
+  mqttClient.setServer(this->domain, settings.mqttPort());
+  mqttClient.setCallback(
     [this](char* topic, byte* payload, int length) {
       this->publishCallback(topic, payload, length);
     }
@@ -51,14 +57,39 @@ bool MqttClient::connect() {
     Serial.println(F("MqttClient - connecting"));
 #endif
 
-  if (settings.mqttUsername.length() > 0) {
-    return mqttClient->connect(
+  if (settings.mqttUsername.length() > 0 && settings.mqttClientStatusTopic.length() > 0) {
+    return mqttClient.connect(
+      nameBuffer,
+      settings.mqttUsername.c_str(),
+      settings.mqttPassword.c_str(),
+      settings.mqttClientStatusTopic.c_str(),
+      2,
+      true,
+      generateConnectionStatusMessage(STATUS_LWT_DISCONNECTED).c_str()
+    );
+  } else if (settings.mqttUsername.length() > 0) {
+    return mqttClient.connect(
       nameBuffer,
       settings.mqttUsername.c_str(),
       settings.mqttPassword.c_str()
     );
+  } else if (settings.mqttClientStatusTopic.length() > 0) {
+    return mqttClient.connect(
+      nameBuffer,
+      settings.mqttClientStatusTopic.c_str(),
+      2,
+      true,
+      generateConnectionStatusMessage(STATUS_LWT_DISCONNECTED).c_str()
+    );
   } else {
-    return mqttClient->connect(nameBuffer);
+    return mqttClient.connect(nameBuffer);
+  }
+}
+
+void MqttClient::sendBirthMessage() {
+  if (settings.mqttClientStatusTopic.length() > 0) {
+    String aboutStr = generateConnectionStatusMessage(STATUS_CONNECTED);
+    mqttClient.publish(settings.mqttClientStatusTopic.c_str(), aboutStr.c_str(), true);
   }
 }
 
@@ -67,9 +98,10 @@ void MqttClient::reconnect() {
     return;
   }
 
-  if (! mqttClient->connected()) {
+  if (! mqttClient.connected()) {
     if (connect()) {
       subscribe();
+      sendBirthMessage();
 
 #ifdef MQTT_DEBUG
       Serial.println(F("MqttClient - Successfully connected to MQTT server"));
@@ -84,7 +116,7 @@ void MqttClient::reconnect() {
 
 void MqttClient::handleClient() {
   reconnect();
-  mqttClient->loop();
+  mqttClient.loop();
 }
 
 void MqttClient::sendUpdate(const MiLightRemoteConfig& remoteConfig, uint16_t deviceId, uint16_t groupId, const char* update) {
@@ -99,6 +131,8 @@ void MqttClient::subscribe() {
   String topic = settings.mqttTopicPattern;
 
   topic.replace(":device_id", "+");
+  topic.replace(":hex_device_id", "+");
+  topic.replace(":dec_device_id", "+");
   topic.replace(":group_id", "+");
   topic.replace(":device_type", "+");
 
@@ -106,7 +140,7 @@ void MqttClient::subscribe() {
   printf_P(PSTR("MqttClient - subscribing to topic: %s\n"), topic.c_str());
 #endif
 
-  mqttClient->subscribe(topic.c_str());
+  mqttClient.subscribe(topic.c_str());
 }
 
 void MqttClient::publish(
@@ -128,7 +162,7 @@ void MqttClient::publish(
   printf("MqttClient - publishing update to %s\n", topic.c_str());
 #endif
 
-  mqttClient->publish(topic.c_str(), message, retain);
+  mqttClient.publish(topic.c_str(), message, retain);
 }
 
 void MqttClient::publishCallback(char* topic, byte* payload, int length) {
@@ -152,6 +186,10 @@ void MqttClient::publishCallback(char* topic, byte* payload, int length) {
 
   if (tokenBindings.hasBinding("device_id")) {
     deviceId = parseInt<uint16_t>(tokenBindings.get("device_id"));
+  } else if (tokenBindings.hasBinding("hex_device_id")) {
+    deviceId = parseInt<uint16_t>(tokenBindings.get("hex_device_id"));
+  } else if (tokenBindings.hasBinding("dec_device_id")) {
+    deviceId = parseInt<uint16_t>(tokenBindings.get("dec_device_id"));
   }
 
   if (tokenBindings.hasBinding("group_id")) {
@@ -169,8 +207,9 @@ void MqttClient::publishCallback(char* topic, byte* payload, int length) {
     Serial.println(F("MqttClient - WARNING: could not find device_type token.  Defaulting to FUT092.\n"));
   }
 
-  StaticJsonBuffer<400> buffer;
-  JsonObject& obj = buffer.parseObject(cstrPayload);
+  StaticJsonDocument<400> buffer;
+  deserializeJson(buffer, cstrPayload);
+  JsonObject obj = buffer.as<JsonObject>();
 
 #ifdef MQTT_DEBUG
   printf("MqttClient - device %04X, group %u\n", deviceId, groupId);
@@ -195,4 +234,26 @@ inline void MqttClient::bindTopicString(
   topicPattern.replace(":dec_device_id", String(deviceId));
   topicPattern.replace(":group_id", String(groupId));
   topicPattern.replace(":device_type", remoteConfig.name);
+}
+
+String MqttClient::generateConnectionStatusMessage(const char* connectionStatus) {
+  if (settings.simpleMqttClientStatus) {
+    // Don't expand disconnect type for simple status
+    if (0 == strcmp(connectionStatus, STATUS_CONNECTED)) {
+      return connectionStatus;
+    } else {
+      return "disconnected";
+    }
+  } else {
+    StaticJsonDocument<1024> json;
+    json["status"] = connectionStatus;
+
+    // Fill other fields
+    AboutHelper::generateAboutObject(json, true);
+
+    String response;
+    serializeJson(json, response);
+
+    return response;
+  }
 }

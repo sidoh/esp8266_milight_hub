@@ -16,6 +16,7 @@ MiLightDiscoveryServer::MiLightDiscoveryServer(MiLightDiscoveryServer& other)
 MiLightDiscoveryServer& MiLightDiscoveryServer::operator=(MiLightDiscoveryServer other) {
   this->settings = other.settings;
   this->socket = other.socket;
+  return *this;
 }
 
 MiLightDiscoveryServer::~MiLightDiscoveryServer() {
@@ -48,15 +49,15 @@ void MiLightDiscoveryServer::handleClient() {
 
 void MiLightDiscoveryServer::handleDiscovery(uint8_t version) {
 #ifdef MILIGHT_UDP_DEBUG
-  printf("Handling discovery for version: %u, %d configs to consider\n", version, settings.numGatewayConfigs);
+  printf_P(PSTR("Handling discovery for version: %u, %d configs to consider\n"), version, settings.gatewayConfigs.size());
 #endif
 
   char buffer[40];
 
-  for (size_t i = 0; i < settings.numGatewayConfigs; i++) {
-    GatewayConfig* config = settings.gatewayConfigs[i];
+  for (size_t i = 0; i < settings.gatewayConfigs.size(); i++) {
+    const GatewayConfig& config = *settings.gatewayConfigs[i];
 
-    if (config->protocolVersion != version) {
+    if (config.protocolVersion != version) {
       continue;
     }
 
@@ -66,10 +67,10 @@ void MiLightDiscoveryServer::handleDiscovery(uint8_t version) {
       buffer,
       PSTR("%d.%d.%d.%d,00000000%02X%02X"),
       addr[0], addr[1], addr[2], addr[3],
-      (config->deviceId >> 8), (config->deviceId & 0xFF)
+      (config.deviceId >> 8), (config.deviceId & 0xFF)
     );
 
-    if (config->protocolVersion == 5) {
+    if (config.protocolVersion == 5) {
       sendResponse(buffer);
     } else {
       sprintf_P(ptr, PSTR(",HF-LPB100"));
@@ -79,6 +80,10 @@ void MiLightDiscoveryServer::handleDiscovery(uint8_t version) {
 }
 
 void MiLightDiscoveryServer::sendResponse(char* buffer) {
+#ifdef MILIGHT_UDP_DEBUG
+  printf_P(PSTR("Sending response: %s\n"), buffer);
+#endif
+
   socket.beginPacket(socket.remoteIP(), socket.remotePort());
   socket.write(buffer);
   socket.endPacket();

@@ -1,0 +1,38 @@
+{
+  "admin_username": "",
+  "admin_password": "",
+  "ce_pin": 16,
+  "csn_pin": 15,
+  "reset_pin": 0,
+  "led_pin": -2,
+  "radio_interface_type": "nRF24",
+  "packet_repeats": 50,
+  "http_repeat_factor": 1,
+  "auto_restart_period": 0,
+  "discovery_port": 0,
+  "listen_repeats": 3,
+  "state_flush_interval": 2000,
+  "mqtt_state_rate_limit": 1000,
+  "packet_repeat_throttle_sensitivity": 0,
+  "packet_repeat_throttle_threshold": 200,
+  "packet_repeat_minimum": 3,
+  "enable_automatic_mode_switching": false,
+  "led_mode_wifi_config": "Fast toggle",
+  "led_mode_wifi_failed": "On",
+  "led_mode_operating": "Off",
+  "led_mode_packet": "Flicker",
+  "led_mode_packet_count": 3,
+  "hostname": "milight-hub-test",
+  "rf24_power_level": "MAX",
+  "device_ids": [
+  ],
+  "group_state_fields": [
+    "status",
+    "level",
+    "color_temp",
+    "bulb_mode",
+    "hue",
+    "saturation",
+    "effect"
+  ]
+}

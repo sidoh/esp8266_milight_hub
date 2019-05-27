@@ -3,39 +3,37 @@
 #include <Arduino.h>
 #include <RGBConverter.h>
 #include <Units.h>
+#include <TokenIterator.h>
 
 MiLightClient::MiLightClient(
-  MiLightRadioFactory* radioFactory,
+  std::shared_ptr<MiLightRadioFactory> radioFactory,
   GroupStateStore* stateStore,
   Settings* settings
 )
-  : baseResendCount(MILIGHT_DEFAULT_RESEND_COUNT),
-    currentRadio(NULL),
+  : currentRadio(NULL),
     currentRemote(NULL),
-    numRadios(MiLightRadioConfig::NUM_CONFIGS),
     packetSentHandler(NULL),
     updateBeginHandler(NULL),
     updateEndHandler(NULL),
     stateStore(stateStore),
     settings(settings),
-    lastSend(0)
+    lastSend(0),
+    baseResendCount(MILIGHT_DEFAULT_RESEND_COUNT)
 {
-  radios = new MiLightRadio*[numRadios];
-
-  for (size_t i = 0; i < numRadios; i++) {
-    radios[i] = radioFactory->create(MiLightRadioConfig::ALL_CONFIGS[i]);
+  for (size_t i = 0; i < MiLightRadioConfig::NUM_CONFIGS; i++) {
+    radios.push_back(radioFactory->create(MiLightRadioConfig::ALL_CONFIGS[i]));
   }
 }
 
 void MiLightClient::begin() {
-  for (size_t i = 0; i < numRadios; i++) {
+  for (size_t i = 0; i < radios.size(); i++) {
     radios[i]->begin();
   }
 
   switchRadio(static_cast<size_t>(0));
 
   // Little gross to do this here as it's relying on global state.  A better alternative
-  // would be to statically construct remote config factories which take in a stateStore 
+  // would be to statically construct remote config factories which take in a stateStore
   // and settings pointer.  The objects could then be initialized by calling the factory
   // in main.
   for (size_t i = 0; i < MiLightRemoteConfig::NUM_REMOTES; i++) {
@@ -48,10 +46,10 @@ void MiLightClient::setHeld(bool held) {
 }
 
 size_t MiLightClient::getNumRadios() const {
-  return numRadios;
+  return radios.size();
 }
 
-MiLightRadio* MiLightClient::switchRadio(size_t radioIx) {
+std::shared_ptr<MiLightRadio> MiLightClient::switchRadio(size_t radioIx) {
   if (radioIx >= getNumRadios()) {
     return NULL;
   }
@@ -64,10 +62,10 @@ MiLightRadio* MiLightClient::switchRadio(size_t radioIx) {
   return this->currentRadio;
 }
 
-MiLightRadio* MiLightClient::switchRadio(const MiLightRemoteConfig* remoteConfig) {
-  MiLightRadio* radio;
+std::shared_ptr<MiLightRadio> MiLightClient::switchRadio(const MiLightRemoteConfig* remoteConfig) {
+  std::shared_ptr<MiLightRadio> radio = NULL;
 
-  for (int i = 0; i < numRadios; i++) {
+  for (size_t i = 0; i < radios.size(); i++) {
     if (&this->radios[i]->config() == &remoteConfig->radioConfig) {
       radio = switchRadio(i);
       break;
@@ -321,7 +319,15 @@ void MiLightClient::command(uint8_t command, uint8_t arg) {
   flushPacket();
 }
 
-void MiLightClient::update(const JsonObject& request) {
+void MiLightClient::toggleStatus() {
+#ifdef DEBUG_CLIENT_COMMANDS
+  Serial.printf_P(PSTR("MiLightClient::toggleStatus"));
+#endif
+  currentRemote->packetFormatter->toggleStatus();
+  flushPacket();
+}
+
+void MiLightClient::update(JsonObject request) {
   if (this->updateBeginHandler) {
     this->updateBeginHandler();
   }
@@ -338,11 +344,11 @@ void MiLightClient::update(const JsonObject& request) {
   }
 
   if (request.containsKey("commands")) {
-    JsonArray& commands = request["commands"];
+    JsonArray commands = request["commands"];
 
-    if (commands.success()) {
+    if (! commands.isNull()) {
       for (size_t i = 0; i < commands.size(); i++) {
-        this->handleCommand(commands.get<String>(i));
+        this->handleCommand(commands[i].as<const char*>());
       }
     }
   }
@@ -361,11 +367,33 @@ void MiLightClient::update(const JsonObject& request) {
 
   // Convert RGB to HSV
   if (request.containsKey("color")) {
-    JsonObject& color = request["color"];
+    uint16_t r, g, b;
 
-    int16_t r = color["r"];
-    int16_t g = color["g"];
-    int16_t b = color["b"];
+    if (request["color"].is<JsonObject>()) {
+      JsonObject color = request["color"];
+
+      r = color["r"];
+      g = color["g"];
+      b = color["b"];
+    } else if (request["color"].is<const char*>()) {
+      String colorStr = request["color"];
+      char colorCStr[colorStr.length()];
+      uint8_t parsedRgbColors[3] = {0, 0, 0};
+
+      strcpy(colorCStr, colorStr.c_str());
+      TokenIterator colorValueItr(colorCStr, strlen(colorCStr), ',');
+
+      for (size_t i = 0; i < 3 && colorValueItr.hasNext(); ++i) {
+        parsedRgbColors[i] = atoi(colorValueItr.nextToken());
+      }
+
+      r = parsedRgbColors[0];
+      g = parsedRgbColors[1];
+      b = parsedRgbColors[2];
+    } else {
+      Serial.println(F("Unknown format for `color' command"));
+      return;
+    }
 
     // We consider an RGB color "white" if all color intensities are roughly the
     // same value.  An unscientific value of 10 (~4%) is chosen.
@@ -391,12 +419,15 @@ void MiLightClient::update(const JsonObject& request) {
   }
   // HomeAssistant
   if (request.containsKey("brightness")) {
-    uint8_t scaledBrightness = Units::rescale(request.get<uint8_t>("brightness"), 100, 255);
+    uint8_t scaledBrightness = Units::rescale(request["brightness"].as<uint8_t>(), 100, 255);
     this->updateBrightness(scaledBrightness);
   }
 
   if (request.containsKey("temperature")) {
     this->updateTemperature(request["temperature"]);
+  }
+  if (request.containsKey("kelvin")) {
+    this->updateTemperature(request["kelvin"]);
   }
   // HomeAssistant
   if (request.containsKey("color_temp")) {
@@ -449,6 +480,8 @@ void MiLightClient::handleCommand(const String& command) {
     this->modeSpeedDown();
   } else if (command == "mode_speed_up") {
     this->modeSpeedUp();
+  } else if (command == "toggle") {
+    this->toggleStatus();
   }
 }
 
@@ -462,13 +495,13 @@ void MiLightClient::handleEffect(const String& effect) {
   }
 }
 
-uint8_t MiLightClient::parseStatus(const JsonObject& object) {
+uint8_t MiLightClient::parseStatus(JsonObject object) {
   String strStatus;
 
   if (object.containsKey("status")) {
-    strStatus = object.get<char*>("status");
+    strStatus = object["status"].as<char*>();
   } else if (object.containsKey("state")) {
-    strStatus = object.get<char*>("state");
+    strStatus = object["state"].as<char*>();
   } else {
     return 255;
   }
@@ -482,7 +515,11 @@ void MiLightClient::updateResendCount() {
   long x = (millisSinceLastSend - settings->packetRepeatThrottleThreshold);
   long delta = x * throttleMultiplier;
 
-  this->currentResendCount = constrain(this->currentResendCount + delta, settings->packetRepeatMinimum, this->baseResendCount);
+  this->currentResendCount = constrain(
+    static_cast<size_t>(this->currentResendCount + delta),
+    settings->packetRepeatMinimum,
+    this->baseResendCount
+  );
   this->lastSend = now;
 }
 

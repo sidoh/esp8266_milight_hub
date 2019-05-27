@@ -4,8 +4,7 @@ bool V6RgbCommandHandler::handlePreset(
     MiLightClient* client,
     uint8_t commandLsb,
     uint32_t commandArg)
-{
-}
+{ return true; }
 
 bool V6RgbCommandHandler::handleCommand(
     MiLightClient* client,

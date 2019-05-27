@@ -24,12 +24,13 @@ public:
 
 private:
   WiFiClient tcpClient;
-  PubSubClient* mqttClient;
+  PubSubClient mqttClient;
   MiLightClient*& milightClient;
   Settings& settings;
   char* domain;
   unsigned long lastConnectAttempt;
 
+  void sendBirthMessage();
   bool connect();
   void subscribe();
   void publishCallback(char* topic, byte* payload, int length);
@@ -48,6 +49,8 @@ private:
     const uint16_t deviceId,
     const uint16_t groupId
   );
+
+  String generateConnectionStatusMessage(const char* status);
 };
 
 #endif

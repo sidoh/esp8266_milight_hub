@@ -31,15 +31,8 @@ enum BulbMode {
 };
 
 enum class IncrementDirection : unsigned {
-  INCREASE = 1, 
+  INCREASE = 1,
   DECREASE = -1U
-};
-
-static const char* BULB_MODE_NAMES[] = {
-  "white",
-  "color",
-  "scene",
-  "night"
 };
 
 class GroupState {
@@ -49,14 +42,20 @@ public:
   GroupState(const GroupState& other);
   GroupState& operator=(const GroupState& other);
 
+  // Convenience constructor that patches transient state from a previous GroupState,
+  // and defaults with JSON state
+  GroupState(const GroupState* previousState, JsonObject jsonState);
+
+  void initFields();
+
   bool operator==(const GroupState& other) const;
   bool isEqualIgnoreDirty(const GroupState& other) const;
   void print(Stream& stream) const;
 
-
   bool isSetField(GroupStateField field) const;
   uint16_t getFieldValue(GroupStateField field) const;
   void setFieldValue(GroupStateField field, uint16_t value);
+  bool clearField(GroupStateField field);
 
   bool isSetScratchField(GroupStateField field) const;
   uint16_t getScratchFieldValue(GroupStateField field) const;
@@ -73,6 +72,7 @@ public:
   bool isSetBrightness() const;
   uint8_t getBrightness() const;
   bool setBrightness(uint8_t brightness);
+  bool clearBrightness();
 
   // 8 bits
   bool isSetHue() const;
@@ -115,26 +115,29 @@ public:
   inline bool setMqttDirty();
   bool clearMqttDirty();
 
-  // Patches this state with ONLY the set fields in the other. Returns 
-  // true if there were any changes.
-  bool patch(const GroupState& other);
+  // Clears all of the fields in THIS GroupState that have different values
+  // than the provided group state.
+  bool clearNonMatchingFields(const GroupState& other);
 
-  // Patches this state with the fields defined in the JSON state.  Returns 
+  // Patches this state with ONLY the set fields in the other.
+  void patch(const GroupState& other);
+
+  // Patches this state with the fields defined in the JSON state.  Returns
   // true if there were any changes.
-  bool patch(const JsonObject& state);
+  bool patch(JsonObject state);
 
   // It's a little weird to need to pass in a BulbId here.  The purpose is to
   // support fields like DEVICE_ID, which aren't otherweise available to the
   // state in this class.  The alternative is to have every GroupState object
   // keep a reference to its BulbId, which feels too heavy-weight.
-  void applyField(JsonObject& state, const BulbId& bulbId, GroupStateField field);
-  void applyState(JsonObject& state, const BulbId& bulbId, GroupStateField* fields, size_t numFields);
+  void applyField(JsonObject state, const BulbId& bulbId, GroupStateField field) const;
+  void applyState(JsonObject state, const BulbId& bulbId, std::vector<GroupStateField>& fields) const;
 
   // Attempt to keep track of increment commands in such a way that we can
-  // know what state it's in.  When we get an increment command (like "increase 
+  // know what state it's in.  When we get an increment command (like "increase
   // brightness"):
-  //   1. If there is no value in the scratch state: assume real state is in 
-  //      the furthest value from the direction of the command.  For example, 
+  //   1. If there is no value in the scratch state: assume real state is in
+  //      the furthest value from the direction of the command.  For example,
   //      if we get "increase," assume the value was 0.
   //   2. If there is a value in the scratch state, apply the command to it.
   //      For example, if we get "decrease," subtract 1 from the scratch.
@@ -142,14 +145,14 @@ public:
   //      persistent field to that value
   //   4. If there is already a known value for the state, apply it rather
   //      than messing with scratch state.
-  // 
+  //
   // returns true if a (real, not scratch) state change was made
   bool applyIncrementCommand(GroupStateField field, IncrementDirection dir);
 
   void load(Stream& stream);
   void dump(Stream& stream) const;
 
-  void debugState(char const *debugMessage);
+  void debugState(char const *debugMessage) const;
 
   static const GroupState& defaultState(MiLightRemoteType remoteType);
 
@@ -190,7 +193,7 @@ private:
   union TransientData {
     uint16_t rawData;
     struct Fields {
-      uint16_t 
+      uint16_t
         _isSetKelvinScratch     : 1,
         _kelvinScratch          : 7,
         _isSetBrightnessScratch : 1,
@@ -201,8 +204,16 @@ private:
   StateData state;
   TransientData scratchpad;
 
-  void applyColor(JsonObject& state, uint8_t r, uint8_t g, uint8_t b);
-  void applyColor(JsonObject& state);
+  // State is constructed from individual command packets.  A command packet is parsed in
+  // isolation, and the result is patched onto previous state.  There are a few cases where
+  // it's necessary to know some things from the previous state, so we keep a reference to
+  // it here.
+  const GroupState* previousState;
+
+  void applyColor(JsonObject state, uint8_t r, uint8_t g, uint8_t b) const;
+  void applyColor(JsonObject state) const;
+  // Apply OpenHAB-style color, e.g., {"color":"0,0,0"}
+  void applyOhColor(JsonObject state) const;
 };
 
 extern const BulbId DEFAULT_BULB_ID;

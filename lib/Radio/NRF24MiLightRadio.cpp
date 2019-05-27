@@ -5,10 +5,17 @@
 
 #define PACKET_ID(packet, packet_length) ( (packet[1] << 8) | packet[packet_length - 1] )
 
-NRF24MiLightRadio::NRF24MiLightRadio(RF24& rf24, const MiLightRadioConfig& config)
-  : _pl1167(PL1167_nRF24(rf24)),
-    _waiting(false),
-    _config(config)
+NRF24MiLightRadio::NRF24MiLightRadio(
+  RF24& rf24,
+  const MiLightRadioConfig& config,
+  const std::vector<RF24Channel>& channels,
+  RF24Channel listenChannel
+)
+  : channels(channels),
+    listenChannelIx(static_cast<size_t>(listenChannel)),
+    _pl1167(PL1167_nRF24(rf24)),
+    _config(config),
+    _waiting(false)
 { }
 
 int NRF24MiLightRadio::begin() {
@@ -65,7 +72,7 @@ bool NRF24MiLightRadio::available() {
     return true;
   }
 
-  if (_pl1167.receive(_config.channels[0]) > 0) {
+  if (_pl1167.receive(_config.channels[listenChannelIx]) > 0) {
 #ifdef DEBUG_PRINTF
   printf("NRF24MiLightRadio - received packet!\n");
 #endif
@@ -131,10 +138,14 @@ int NRF24MiLightRadio::write(uint8_t frame[], size_t frame_length) {
 }
 
 int NRF24MiLightRadio::resend() {
-  for (size_t i = 0; i < MiLightRadioConfig::NUM_CHANNELS; i++) {
+  for (std::vector<RF24Channel>::const_iterator it = channels.begin(); it != channels.end(); ++it) {
+    size_t channelIx = static_cast<uint8_t>(*it);
+    uint8_t channel = _config.channels[channelIx];
+
     _pl1167.writeFIFO(_out_packet, _out_packet[0] + 1);
-    _pl1167.transmit(_config.channels[i]);
+    _pl1167.transmit(channel);
   }
+
   return 0;
 }
 

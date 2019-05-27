@@ -442,6 +442,8 @@ bool LT8900MiLightRadio::sendPacket(uint8_t *data, size_t packetSize, byte byCha
 
     return true;
   }
+
+  return false;
 }
 
 const MiLightRadioConfig& LT8900MiLightRadio::config() {

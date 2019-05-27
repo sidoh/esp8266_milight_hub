@@ -28,7 +28,7 @@ template <typename T>
 class LinkedList {
 
 protected:
-  int _size;
+  size_t _size;
   ListNode<T> *root;
   ListNode<T>  *last;
 
@@ -39,7 +39,7 @@ public:
   /*
     Returns current size of LinkedList
   */
-  virtual int size() const;
+  virtual size_t size() const;
   /*
     Adds a T object in the specified index;
     Unlink and link the LinkedList correcly;
@@ -159,7 +159,7 @@ ListNode<T>* LinkedList<T>::getNode(int index){
 }
 
 template<typename T>
-int LinkedList<T>::size() const{
+size_t LinkedList<T>::size() const{
   return _size;
 }
 

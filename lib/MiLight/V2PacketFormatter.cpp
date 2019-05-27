@@ -3,8 +3,8 @@
 
 #define GROUP_COMMAND_ARG(status, groupId, numGroups) ( groupId + (status == OFF ? (numGroups + 1) : 0) )
 
-V2PacketFormatter::V2PacketFormatter(uint8_t protocolId, uint8_t numGroups)
-  : PacketFormatter(9),
+V2PacketFormatter::V2PacketFormatter(const MiLightRemoteType deviceType, uint8_t protocolId, uint8_t numGroups)
+  : PacketFormatter(deviceType, 9),
     protocolId(protocolId),
     numGroups(numGroups)
 { }
@@ -13,6 +13,11 @@ bool V2PacketFormatter::canHandle(const uint8_t *packet, const size_t packetLen)
   uint8_t packetCopy[V2_PACKET_LEN];
   memcpy(packetCopy, packet, V2_PACKET_LEN);
   V2RFEncoding::decodeV2Packet(packetCopy);
+
+#ifdef DEBUG_PRINTF
+  Serial.printf_P(PSTR("Testing whether formater for ID %d can handle packet: with protocol ID %d...\n"), protocolId, packetCopy[V2_PROTOCOL_ID_INDEX]);
+#endif
+
   return packetCopy[V2_PROTOCOL_ID_INDEX] == protocolId;
 }
 
@@ -57,7 +62,7 @@ void V2PacketFormatter::finalizePacket(uint8_t* packet) {
 
 void V2PacketFormatter::format(uint8_t const* packet, char* buffer) {
   buffer += sprintf_P(buffer, PSTR("Raw packet: "));
-  for (int i = 0; i < packetLength; i++) {
+  for (size_t i = 0; i < packetLength; i++) {
     buffer += sprintf_P(buffer, PSTR("%02X "), packet[i]);
   }
 
@@ -101,7 +106,7 @@ void V2PacketFormatter::switchMode(const GroupState& currentState, BulbMode desi
       Serial.printf_P(PSTR("V2PacketFormatter::switchMode: Request to switch to unknown mode %d\n"), desiredMode);
       break;
   }
-  
+
 }
 
 uint8_t V2PacketFormatter::tov2scale(uint8_t value, uint8_t endValue, uint8_t interval, bool reverse) {
@@ -113,10 +118,19 @@ uint8_t V2PacketFormatter::tov2scale(uint8_t value, uint8_t endValue, uint8_t in
 }
 
 uint8_t V2PacketFormatter::fromv2scale(uint8_t value, uint8_t endValue, uint8_t interval, bool reverse, uint8_t buffer) {
-  value = (((value + (0x100 - endValue))%0x100) / interval);
+  value -= endValue;
+
+  // Deal with underflow
+  if (value >= (0xFF - buffer)) {
+    value = 0;
+  }
+
+  value /= interval;
+
   if (reverse) {
     value = 100 - value;
   }
+
   if (value > 100) {
     // overflow
     if (value <= (100 + buffer)) {

@@ -4,7 +4,11 @@
 #include <MiLightRadio.h>
 #include <NRF24MiLightRadio.h>
 #include <LT8900MiLightRadio.h>
+#include <RF24PowerLevel.h>
+#include <RF24Channel.h>
 #include <Settings.h>
+#include <vector>
+#include <memory>
 
 #ifndef _MILIGHT_RADIO_FACTORY_H
 #define _MILIGHT_RADIO_FACTORY_H
@@ -12,22 +16,31 @@
 class MiLightRadioFactory {
 public:
 
-  virtual MiLightRadio* create(const MiLightRadioConfig& config) = 0;
+  virtual ~MiLightRadioFactory() { };
+  virtual std::shared_ptr<MiLightRadio> create(const MiLightRadioConfig& config) = 0;
 
-  static MiLightRadioFactory* fromSettings(const Settings& settings);
+  static std::shared_ptr<MiLightRadioFactory> fromSettings(const Settings& settings);
 
 };
 
 class NRF24Factory : public MiLightRadioFactory {
 public:
 
-  NRF24Factory(uint8_t cePin, uint8_t csnPin);
+  NRF24Factory(
+    uint8_t cePin,
+    uint8_t csnPin,
+    RF24PowerLevel rF24PowerLevel,
+    const std::vector<RF24Channel>& channels,
+    RF24Channel listenChannel
+  );
 
-  virtual MiLightRadio* create(const MiLightRadioConfig& config);
+  virtual std::shared_ptr<MiLightRadio> create(const MiLightRadioConfig& config);
 
 protected:
 
   RF24 rf24;
+  const std::vector<RF24Channel>& channels;
+  const RF24Channel listenChannel;
 
 };
 
@@ -36,7 +49,7 @@ public:
 
   LT8900Factory(uint8_t csPin, uint8_t resetPin, uint8_t pktFlag);
 
-  virtual MiLightRadio* create(const MiLightRadioConfig& config);
+  virtual std::shared_ptr<MiLightRadio> create(const MiLightRadioConfig& config);
 
 protected:
 

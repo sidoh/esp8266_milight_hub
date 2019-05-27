@@ -23,7 +23,6 @@ int PL1167_nRF24::open()
 {
   _radio.begin();
   _radio.setAutoAck(false);
-  _radio.setPALevel(RF24_PA_MAX);
   _radio.setDataRate(RF24_1MBPS);
   _radio.disableCRC();
 

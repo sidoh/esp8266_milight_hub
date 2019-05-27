@@ -19,8 +19,9 @@ uint8_t* PacketStream::next() {
   return packet;
 }
 
-PacketFormatter::PacketFormatter(const size_t packetLength, const size_t maxPackets)
-  : packetLength(packetLength),
+PacketFormatter::PacketFormatter(const MiLightRemoteType deviceType, const size_t packetLength, const size_t maxPackets)
+  : deviceType(deviceType),
+    packetLength(packetLength),
     numPackets(0),
     currentPacket(NULL),
     held(false)
@@ -41,6 +42,16 @@ void PacketFormatter::finalizePacket(uint8_t* packet) { }
 
 void PacketFormatter::updateStatus(MiLightStatus status) {
   updateStatus(status, groupId);
+}
+
+void PacketFormatter::toggleStatus() {
+  const GroupState* state = stateStore->get(deviceId, groupId, deviceType);
+
+  if (state && state->isSetState() && state->getState() == MiLightStatus::ON) {
+    updateStatus(MiLightStatus::OFF);
+  } else {
+    updateStatus(MiLightStatus::ON);
+  }
 }
 
 void PacketFormatter::setHeld(bool held) {
@@ -69,7 +80,7 @@ void PacketFormatter::enableNightMode() { }
 void PacketFormatter::updateTemperature(uint8_t value) { }
 void PacketFormatter::updateSaturation(uint8_t value) { }
 
-BulbId PacketFormatter::parsePacket(const uint8_t *packet, JsonObject &result) {
+BulbId PacketFormatter::parsePacket(const uint8_t *packet, JsonObject result) {
   return DEFAULT_BULB_ID;
 }
 
@@ -113,6 +124,8 @@ void PacketFormatter::valueByStepFunction(StepFunction increase, StepFunction de
   } else if (targetValue > knownValue) {
     fn = increase;
     numCommands = (targetValue - knownValue);
+  } else {
+    return;
   }
 
   // Get to the desired value
@@ -150,7 +163,7 @@ void PacketFormatter::pushPacket() {
 }
 
 void PacketFormatter::format(uint8_t const* packet, char* buffer) {
-  for (int i = 0; i < packetLength; i++) {
+  for (size_t i = 0; i < packetLength; i++) {
     sprintf_P(buffer, "%02X ", packet[i]);
     buffer += 3;
   }

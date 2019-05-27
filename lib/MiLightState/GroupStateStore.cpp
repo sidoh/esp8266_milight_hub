@@ -11,22 +11,25 @@ GroupState* GroupStateStore::get(const BulbId& id) {
   GroupState* state = cache.get(id);
 
   if (state == NULL) {
+#if STATE_DEBUG
+    printf(
+      "Couldn't fetch state for 0x%04X / %d / %s in the cache, getting it from persistence\n",
+      id.deviceId,
+      id.groupId,
+      MiLightRemoteConfig::fromType(id.deviceType)->name.c_str()
+    );
+#endif
     trackEviction();
     GroupState loadedState = GroupState::defaultState(id.deviceType);
 
-    // For device types with groups, group 0 is a "virtual" group.  All devices paired with the same ID will respond
-    // to group 0.  So it doesn't make sense to store group 0 state by itself.
-    //
-    // For devices that don't have groups, we made the unfortunate decision to represent state using the fake group
-    // ID 0, so we can't always ignore group 0.
     const MiLightRemoteConfig* remoteConfig = MiLightRemoteConfig::fromType(id.deviceType);
 
-    if (id.groupId != 0 || remoteConfig == NULL || remoteConfig->numGroups == 0) {
-      persistence.get(id, loadedState);
-      state = cache.set(id, loadedState);
-    } else {
+    if (remoteConfig == NULL) {
       return NULL;
     }
+
+    persistence.get(id, loadedState);
+    state = cache.set(id, loadedState);
   }
 
   return state;
@@ -37,24 +40,42 @@ GroupState* GroupStateStore::get(const uint16_t deviceId, const uint8_t groupId,
   return get(bulbId);
 }
 
-// save state for a bulb.  If id.groupId == 0, will iterate across all groups
-// and individually save each group (recursively)
+// Save state for a bulb.
+//
+// Notes:
+//
+// * For device types with groups, group 0 is a "virtual" group.  All devices paired with the same ID will
+//   respond to group 0.  When state for an individual (i.e., != 0) group is changed, the state for
+//   group 0 becomes out of sync and should be cleared.
+//
+// * If id.groupId == 0, will iterate across all groups and individually save each group (recursively)
+//
 GroupState* GroupStateStore::set(const BulbId &id, const GroupState& state) {
+  BulbId otherId(id);
   GroupState* storedState = get(id);
-  *storedState = state;
+  storedState->patch(state);
 
   if (id.groupId == 0) {
     const MiLightRemoteConfig* remote = MiLightRemoteConfig::fromType(id.deviceType);
-    BulbId individualBulb(id);
+
+#ifdef STATE_DEBUG
+    Serial.printf_P(PSTR("Fanning out group 0 state for device ID 0x%04X (%d groups in total)\n"), id.deviceId, remote->numGroups);
+    state.debugState("group 0 state = ");
+#endif
 
     for (size_t i = 1; i <= remote->numGroups; i++) {
-      individualBulb.groupId = i;
+      otherId.groupId = i;
 
-      GroupState* individualState = get(individualBulb);
+      GroupState* individualState = get(otherId);
       individualState->patch(state);
     }
+  } else {
+    otherId.groupId = 0;
+    GroupState* group0State = get(otherId);
+
+    group0State->clearNonMatchingFields(state);
   }
-  
+
   return storedState;
 }
 
@@ -63,9 +84,27 @@ GroupState* GroupStateStore::set(const uint16_t deviceId, const uint8_t groupId,
   return set(bulbId, state);
 }
 
+void GroupStateStore::clear(const BulbId& bulbId) {
+  GroupState* state = get(bulbId);
+
+  if (state != NULL) {
+    state->initFields();
+  }
+}
+
 void GroupStateStore::trackEviction() {
   if (cache.isFull()) {
     evictedIds.add(cache.getLru());
+
+#ifdef STATE_DEBUG
+    BulbId bulbId = evictedIds.getLast();
+    printf(
+      "Evicting from cache: 0x%04X / %d / %s\n",
+      bulbId.deviceId,
+      bulbId.groupId,
+      MiLightRemoteConfig::fromType(bulbId.deviceType)->name.c_str()
+    );
+#endif
   }
 }
 

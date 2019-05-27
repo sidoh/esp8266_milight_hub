@@ -63,9 +63,9 @@ protected:
 
   static uint8_t OPEN_COMMAND_RESPONSE[];
 
-  V6Session* firstSession;
-  size_t numSessions;
   uint16_t sessionId;
+  size_t numSessions;
+  V6Session* firstSession;
 
   uint16_t beginSession();
   bool sendResponse(uint16_t sessionId, uint8_t* responseBuffer, size_t responseSize);

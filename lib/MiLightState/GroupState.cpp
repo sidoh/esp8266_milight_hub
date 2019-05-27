@@ -3,15 +3,27 @@
 #include <MiLightRemoteConfig.h>
 #include <RGBConverter.h>
 
+static const char* BULB_MODE_NAMES[] = {
+  "white",
+  "color",
+  "scene",
+  "night"
+};
+
 const BulbId DEFAULT_BULB_ID;
 static const GroupStateField ALL_PHYSICAL_FIELDS[] = {
-  GroupStateField::BRIGHTNESS,
   GroupStateField::BULB_MODE,
   GroupStateField::HUE,
   GroupStateField::KELVIN,
   GroupStateField::MODE,
   GroupStateField::SATURATION,
-  GroupStateField::STATE
+  GroupStateField::STATE,
+  GroupStateField::BRIGHTNESS
+};
+
+static const GroupStateField ALL_SCRATCH_FIELDS[] = {
+  GroupStateField::BRIGHTNESS,
+  GroupStateField::KELVIN
 };
 
 // Number of units each increment command counts for
@@ -27,6 +39,10 @@ const GroupState& GroupState::defaultState(MiLightRemoteType remoteType) {
       break;
     case REMOTE_TYPE_CCT:
       state.setBulbMode(BULB_MODE_WHITE);
+      break;
+
+    default:
+      // No modifications needed
       break;
   }
 
@@ -68,7 +84,7 @@ bool BulbId::operator==(const BulbId &other) {
     && deviceType == other.deviceType;
 }
 
-GroupState::GroupState() {
+void GroupState::initFields() {
   state.fields._state                = 0;
   state.fields._brightness           = 0;
   state.fields._brightnessColor      = 0;
@@ -101,11 +117,32 @@ GroupState::GroupState() {
 GroupState& GroupState::operator=(const GroupState& other) {
   memcpy(state.rawData, other.state.rawData, DATA_LONGS * sizeof(uint32_t));
   scratchpad.rawData = other.scratchpad.rawData;
+  return *this;
 }
 
-GroupState::GroupState(const GroupState& other) {
+GroupState::GroupState()
+  : previousState(NULL)
+{
+  initFields();
+}
+
+GroupState::GroupState(const GroupState& other)
+  : previousState(NULL)
+{
   memcpy(state.rawData, other.state.rawData, DATA_LONGS * sizeof(uint32_t));
   scratchpad.rawData = other.scratchpad.rawData;
+}
+
+GroupState::GroupState(const GroupState* previousState, JsonObject jsonState)
+  : previousState(previousState)
+{
+  initFields();
+
+  if (previousState != NULL) {
+    this->scratchpad = previousState->scratchpad;
+  }
+
+  patch(jsonState);
 }
 
 bool GroupState::operator==(const GroupState& other) const {
@@ -128,6 +165,68 @@ void GroupState::print(Stream& stream) const {
   stream.printf("State: %08X %08X\n", state.rawData[0], state.rawData[1]);
 }
 
+bool GroupState::clearField(GroupStateField field) {
+  bool clearedAny = false;
+
+  switch (field) {
+    // Always set and can't be cleared
+    case GroupStateField::COMPUTED_COLOR:
+    case GroupStateField::DEVICE_ID:
+    case GroupStateField::GROUP_ID:
+    case GroupStateField::DEVICE_TYPE:
+      break;
+
+    case GroupStateField::STATE:
+    case GroupStateField::STATUS:
+      clearedAny = isSetState();
+      state.fields._isSetState = 0;
+      break;
+
+    case GroupStateField::BRIGHTNESS:
+    case GroupStateField::LEVEL:
+      clearedAny = clearBrightness();
+      break;
+
+    case GroupStateField::COLOR:
+    case GroupStateField::HUE:
+    case GroupStateField::OH_COLOR:
+      clearedAny = isSetHue();
+      state.fields._isSetHue = 0;
+      break;
+
+    case GroupStateField::SATURATION:
+      clearedAny = isSetSaturation();
+      state.fields._isSetSaturation = 0;
+      break;
+
+    case GroupStateField::MODE:
+    case GroupStateField::EFFECT:
+      clearedAny = isSetMode();
+      state.fields._isSetMode = 0;
+      break;
+
+    case GroupStateField::KELVIN:
+    case GroupStateField::COLOR_TEMP:
+      clearedAny = isSetKelvin();
+      state.fields._isSetKelvin = 0;
+      break;
+
+    case GroupStateField::BULB_MODE:
+      clearedAny = isSetBulbMode();
+      state.fields._isSetBulbMode = 0;
+
+      // Clear brightness as well
+      clearedAny = clearBrightness() || clearedAny;
+      break;
+
+    default:
+      Serial.printf_P(PSTR("Attempted to clear unknown field: %d\n"), static_cast<uint8_t>(field));
+      break;
+  }
+
+  return clearedAny;
+}
+
 bool GroupState::isSetField(GroupStateField field) const {
   switch (field) {
     case GroupStateField::COMPUTED_COLOR:
@@ -146,6 +245,7 @@ bool GroupState::isSetField(GroupStateField field) const {
       return isSetBrightness();
     case GroupStateField::COLOR:
     case GroupStateField::HUE:
+    case GroupStateField::OH_COLOR:
       return isSetHue();
     case GroupStateField::SATURATION:
       return isSetSaturation();
@@ -158,10 +258,11 @@ bool GroupState::isSetField(GroupStateField field) const {
       return isSetKelvin();
     case GroupStateField::BULB_MODE:
       return isSetBulbMode();
+    default:
+      Serial.print(F("WARNING: tried to check if unknown field was set: "));
+      Serial.println(static_cast<unsigned int>(field));
+      break;
   }
-
-  Serial.print(F("WARNING: tried to check if unknown field was set: "));
-  Serial.println(static_cast<unsigned int>(field));
 
   return false;
 }
@@ -172,10 +273,11 @@ bool GroupState::isSetScratchField(GroupStateField field) const {
       return scratchpad.fields._isSetBrightnessScratch;
     case GroupStateField::KELVIN:
       return scratchpad.fields._isSetKelvinScratch;
+    default:
+      Serial.print(F("WARNING: tried to check if unknown scratch field was set: "));
+      Serial.println(static_cast<unsigned int>(field));
+      break;
   }
-
-  Serial.print(F("WARNING: tried to check if unknown scratch field was set: "));
-  Serial.println(static_cast<unsigned int>(field));
 
   return false;
 }
@@ -197,10 +299,11 @@ uint16_t GroupState::getFieldValue(GroupStateField field) const {
       return getKelvin();
     case GroupStateField::BULB_MODE:
       return getBulbMode();
+    default:
+      Serial.print(F("WARNING: tried to fetch value for unknown field: "));
+      Serial.println(static_cast<unsigned int>(field));
+      break;
   }
-
-  Serial.print(F("WARNING: tried to fetch value for unknown field: "));
-  Serial.println(static_cast<unsigned int>(field));
 
   return 0;
 }
@@ -211,10 +314,11 @@ uint16_t GroupState::getScratchFieldValue(GroupStateField field) const {
       return scratchpad.fields._brightnessScratch;
     case GroupStateField::KELVIN:
       return scratchpad.fields._kelvinScratch;
+    default:
+      Serial.print(F("WARNING: tried to fetch value for unknown scratch field: "));
+      Serial.println(static_cast<unsigned int>(field));
+      break;
   }
-
-  Serial.print(F("WARNING: tried to fetch value for unknown scratch field: "));
-  Serial.println(static_cast<unsigned int>(field));
 
   return 0;
 }
@@ -288,7 +392,11 @@ bool GroupState::setState(const MiLightStatus status) {
 }
 
 bool GroupState::isSetBrightness() const {
-  if (! state.fields._isSetBulbMode) {
+  // If we don't know what mode we're in, just assume white mode.  Do this for a few
+  // reasons:
+  //   * Some bulbs don't have multiple modes
+  //   * It's confusing to not have a default
+  if (! isSetBulbMode()) {
     return state.fields._isSetBrightness;
   }
 
@@ -302,6 +410,33 @@ bool GroupState::isSetBrightness() const {
   }
 
   return false;
+}
+bool GroupState::clearBrightness() {
+  bool cleared = false;
+
+  if (!state.fields._isSetBulbMode) {
+    cleared = state.fields._isSetBrightness;
+    state.fields._isSetBrightness = 0;
+  } else {
+    switch (state.fields._bulbMode) {
+      case BULB_MODE_COLOR:
+        cleared = state.fields._isSetBrightnessColor;
+        state.fields._isSetBrightnessColor = 0;
+        break;
+
+      case BULB_MODE_SCENE:
+        cleared = state.fields._isSetBrightnessMode;
+        state.fields._isSetBrightnessMode = 0;
+        break;
+
+      case BULB_MODE_WHITE:
+        cleared = state.fields._isSetBrightness;
+        state.fields._isSetBrightness = 0;
+        break;
+    }
+  }
+
+  return cleared;
 }
 uint8_t GroupState::getBrightness() const {
   switch (state.fields._bulbMode) {
@@ -414,10 +549,10 @@ bool GroupState::setMireds(uint16_t mireds) {
   return setKelvin(Units::miredsToWhiteVal(mireds, 100));
 }
 
-bool GroupState::isSetBulbMode() const { return state.fields._isSetBulbMode; }
+bool GroupState::isSetBulbMode() const {
+  return  (isSetNightMode() && isNightMode()) || state.fields._isSetBulbMode;
+}
 BulbMode GroupState::getBulbMode() const {
-  BulbMode mode;
-
   // Night mode is a transient state.  When power is toggled, the bulb returns
   // to the state it was last in.  To handle this case, night mode state is
   // stored separately.
@@ -463,11 +598,19 @@ bool GroupState::isDirty() const { return state.fields._dirty; }
 inline bool GroupState::setDirty() {
   state.fields._dirty = 1;
   state.fields._mqttDirty = 1;
+
+  return true;
 }
-bool GroupState::clearDirty() { state.fields._dirty = 0; }
+bool GroupState::clearDirty() {
+  state.fields._dirty = 0;
+  return true;
+}
 
 bool GroupState::isMqttDirty() const { return state.fields._mqttDirty; }
-bool GroupState::clearMqttDirty() { state.fields._mqttDirty = 0; }
+bool GroupState::clearMqttDirty() {
+  state.fields._mqttDirty = 0;
+  return true;
+}
 
 void GroupState::load(Stream& stream) {
   for (size_t i = 0; i < DATA_LONGS; i++) {
@@ -492,16 +635,17 @@ bool GroupState::applyIncrementCommand(GroupStateField field, IncrementDirection
   int8_t dirValue = static_cast<int8_t>(dir);
 
   // If there's already a known value, update it
-  if (isSetField(field)) {
-    int8_t currentValue = static_cast<int8_t>(getFieldValue(field));
+  if (previousState != NULL && previousState->isSetField(field)) {
+    int8_t currentValue = static_cast<int8_t>(previousState->getFieldValue(field));
     int8_t newValue = currentValue + (dirValue * INCREMENT_COMMAND_VALUE);
 
 #ifdef STATE_DEBUG
-    debugState("Updating field from increment command");
+    previousState->debugState("Updating field from increment command");
 #endif
 
     // For now, assume range for both brightness and kelvin is [0, 100]
     setFieldValue(field, constrain(newValue, 0, 100));
+
     return true;
   // Otherwise start or update scratch state
   } else {
@@ -531,12 +675,59 @@ bool GroupState::applyIncrementCommand(GroupStateField field, IncrementDirection
   return false;
 }
 
-bool GroupState::patch(const GroupState& other) {
+bool GroupState::clearNonMatchingFields(const GroupState& other) {
+#ifdef STATE_DEBUG
+  this->debugState("Clearing fields.  Current state");
+  other.debugState("Other state");
+#endif
+
+  bool clearedAny = false;
+
   for (size_t i = 0; i < size(ALL_PHYSICAL_FIELDS); ++i) {
     GroupStateField field = ALL_PHYSICAL_FIELDS[i];
 
-    if (other.isSetField(field)) {
+    if (other.isSetField(field) && isSetField(field) && getFieldValue(field) != other.getFieldValue(field)) {
+      if (clearField(field)) {
+        clearedAny = true;
+      }
+    }
+  }
+
+#ifdef STATE_DEBUG
+  this->debugState("Result");
+#endif
+
+  return clearedAny;
+}
+
+void GroupState::patch(const GroupState& other) {
+#ifdef STATE_DEBUG
+  other.debugState("Patching existing state with: ");
+  Serial.println();
+#endif
+
+  for (size_t i = 0; i < size(ALL_PHYSICAL_FIELDS); ++i) {
+    GroupStateField field = ALL_PHYSICAL_FIELDS[i];
+
+    // Handle night mode separately.  Should always set this field.
+    if (field == GroupStateField::BULB_MODE && other.isNightMode()) {
       setFieldValue(field, other.getFieldValue(field));
+    }
+    // Otherwise...
+    // Conditions:
+    //   * Only set anything if field is set in other state
+    //   * Do not patch anything other than STATE if bulb is off
+    else if (other.isSetField(field) && (field == GroupStateField::STATE || isOn())) {
+      setFieldValue(field, other.getFieldValue(field));
+    }
+  }
+
+  for (size_t i = 0; i < size(ALL_SCRATCH_FIELDS); ++i) {
+    GroupStateField field = ALL_SCRATCH_FIELDS[i];
+
+    // All scratch field updates require that the bulb is on.
+    if (isOn() && other.isSetScratchField(field)) {
+      setScratchFieldValue(field, other.getScratchFieldValue(field));
     }
   }
 }
@@ -549,12 +740,12 @@ bool GroupState::patch(const GroupState& other) {
 
   Returns true if the packet changes affects a state change
 */
-bool GroupState::patch(const JsonObject& state) {
+bool GroupState::patch(JsonObject state) {
   bool changes = false;
 
 #ifdef STATE_DEBUG
   Serial.print(F("Patching existing state with: "));
-  state.printTo(Serial);
+  serializeJson(state, Serial);
   Serial.println();
 #endif
 
@@ -567,7 +758,7 @@ bool GroupState::patch(const JsonObject& state) {
   // changes to devices we know are off.
 
   if (isOn() && state.containsKey("brightness")) {
-    bool stateChange = setBrightness(Units::rescale(state.get<uint8_t>("brightness"), 100, 255));
+    bool stateChange = setBrightness(Units::rescale(state["brightness"].as<uint8_t>(), 100, 255));
     changes |= stateChange;
   }
   if (isOn() && state.containsKey("hue")) {
@@ -599,8 +790,10 @@ bool GroupState::patch(const JsonObject& state) {
       changes |= applyIncrementCommand(GroupStateField::BRIGHTNESS, IncrementDirection::DECREASE);
     } else if (isOn() && command == "temperature_up") {
       changes |= applyIncrementCommand(GroupStateField::KELVIN, IncrementDirection::INCREASE);
+      changes |= setBulbMode(BULB_MODE_WHITE);
     } else if (isOn() && command == "temperature_down") {
       changes |= applyIncrementCommand(GroupStateField::KELVIN, IncrementDirection::DECREASE);
+      changes |= setBulbMode(BULB_MODE_WHITE);
     }
   }
 
@@ -614,7 +807,7 @@ bool GroupState::patch(const JsonObject& state) {
   return changes;
 }
 
-void GroupState::applyColor(ArduinoJson::JsonObject& state) {
+void GroupState::applyColor(JsonObject state) const {
   uint8_t rgb[3];
   RGBConverter converter;
   converter.hsvToRgb(
@@ -627,15 +820,30 @@ void GroupState::applyColor(ArduinoJson::JsonObject& state) {
   applyColor(state, rgb[0], rgb[1], rgb[2]);
 }
 
-void GroupState::applyColor(ArduinoJson::JsonObject& state, uint8_t r, uint8_t g, uint8_t b) {
-  JsonObject& color = state.createNestedObject("color");
+void GroupState::applyColor(JsonObject state, uint8_t r, uint8_t g, uint8_t b) const {
+  JsonObject color = state.createNestedObject("color");
   color["r"] = r;
   color["g"] = g;
   color["b"] = b;
 }
 
+void GroupState::applyOhColor(JsonObject state) const {
+  uint8_t rgb[3];
+  RGBConverter converter;
+  converter.hsvToRgb(
+    getHue()/360.0,
+    // Default to fully saturated
+    (isSetSaturation() ? getSaturation() : 100)/100.0,
+    1,
+    rgb
+  );
+  char ohColorStr[13];
+  sprintf(ohColorStr, "%d,%d,%d", rgb[0], rgb[1], rgb[2]);
+  state["color"] = ohColorStr;
+}
+
 // gather partial state for a single field; see GroupState::applyState to gather many fields
-void GroupState::applyField(JsonObject& partialState, const BulbId& bulbId, GroupStateField field) {
+void GroupState::applyField(JsonObject partialState, const BulbId& bulbId, GroupStateField field) const {
   if (isSetField(field)) {
     switch (field) {
       case GroupStateField::STATE:
@@ -658,6 +866,12 @@ void GroupState::applyField(JsonObject& partialState, const BulbId& bulbId, Grou
       case GroupStateField::COLOR:
         if (getBulbMode() == BULB_MODE_COLOR) {
           applyColor(partialState);
+        }
+        break;
+
+      case GroupStateField::OH_COLOR:
+        if (getBulbMode() == BULB_MODE_COLOR) {
+          applyOhColor(partialState);
         }
         break;
 
@@ -690,7 +904,7 @@ void GroupState::applyField(JsonObject& partialState, const BulbId& bulbId, Grou
       case GroupStateField::EFFECT:
         if (getBulbMode() == BULB_MODE_SCENE) {
           partialState["effect"] = String(getMode());
-        } else if (getBulbMode() == BULB_MODE_WHITE) {
+        } else if (isSetBulbMode() && getBulbMode() == BULB_MODE_WHITE) {
           partialState["effect"] = "white_mode";
         } else if (getBulbMode() == BULB_MODE_NIGHT) {
           partialState["effect"] = "night_mode";
@@ -698,13 +912,13 @@ void GroupState::applyField(JsonObject& partialState, const BulbId& bulbId, Grou
         break;
 
       case GroupStateField::COLOR_TEMP:
-        if (getBulbMode() == BULB_MODE_WHITE) {
+        if (isSetBulbMode() && getBulbMode() == BULB_MODE_WHITE) {
           partialState["color_temp"] = getMireds();
         }
         break;
 
       case GroupStateField::KELVIN:
-        if (getBulbMode() == BULB_MODE_WHITE) {
+        if (isSetBulbMode() && getBulbMode() == BULB_MODE_WHITE) {
           partialState["kelvin"] = getKelvin();
         }
         break;
@@ -718,57 +932,58 @@ void GroupState::applyField(JsonObject& partialState, const BulbId& bulbId, Grou
         break;
 
       case GroupStateField::DEVICE_TYPE:
-        const MiLightRemoteConfig* remoteConfig = MiLightRemoteConfig::fromType(bulbId.deviceType);
-        if (remoteConfig) {
-          partialState["device_type"] = remoteConfig->name;
+        {
+          const MiLightRemoteConfig* remoteConfig = MiLightRemoteConfig::fromType(bulbId.deviceType);
+          if (remoteConfig) {
+            partialState["device_type"] = remoteConfig->name;
+          }
         }
+        break;
+
+      default:
+        Serial.printf_P(PSTR("Tried to apply unknown field: %d\n"), static_cast<uint8_t>(field));
         break;
     }
   }
 }
 
 // helper function to debug the current state (in JSON) to the serial port
-void GroupState::debugState(char const *debugMessage) {
+void GroupState::debugState(char const *debugMessage) const {
 #ifdef STATE_DEBUG
   // using static to keep large buffers off the call stack
-  static StaticJsonBuffer<500> jsonBuffer;
+  StaticJsonDocument<500> jsonDoc;
+  JsonObject jsonState = jsonDoc.to<JsonObject>();
 
   // define fields to show (if count changes, make sure to update count to applyState below)
-  GroupStateField fields[] {
-      GroupStateField::BRIGHTNESS,
+  std::vector<GroupStateField> fields({
+      GroupStateField::LEVEL,
       GroupStateField::BULB_MODE,
-      GroupStateField::COLOR,
       GroupStateField::COLOR_TEMP,
-      GroupStateField::COMPUTED_COLOR,
       GroupStateField::EFFECT,
       GroupStateField::HUE,
       GroupStateField::KELVIN,
-      GroupStateField::LEVEL,
       GroupStateField::MODE,
       GroupStateField::SATURATION,
-      GroupStateField::STATE,
-      GroupStateField::STATUS };
-
-  // since our buffer is reused, make sure to clear it every time
-  jsonBuffer.clear();
-  JsonObject& jsonState = jsonBuffer.createObject();
+      GroupStateField::STATE
+  });
 
   // Fake id
   BulbId id;
 
   // use applyState to build JSON of all fields (from above)
-  applyState(jsonState, id, fields, 13);
+  applyState(jsonState, id, fields);
   // convert to string and print
   Serial.printf("%s: ", debugMessage);
-  jsonState.printTo(Serial);
+  serializeJson(jsonState, Serial);
   Serial.println("");
+  Serial.printf("Raw data: %08X %08X\n", state.rawData[0], state.rawData[1]);
 #endif
 }
 
 // build up a partial state representation based on the specified GrouipStateField array.  Used
 // to gather a subset of states (configurable in the UI) for sending to MQTT and web responses.
-void GroupState::applyState(JsonObject& partialState, const BulbId& bulbId, GroupStateField* fields, size_t numFields) {
-  for (size_t i = 0; i < numFields; i++) {
-    applyField(partialState, bulbId, fields[i]);
+void GroupState::applyState(JsonObject partialState, const BulbId& bulbId, std::vector<GroupStateField>& fields) const {
+  for (std::vector<GroupStateField>::const_iterator itr = fields.begin(); itr != fields.end(); ++itr) {
+    applyField(partialState, bulbId, *itr);
   }
 }
