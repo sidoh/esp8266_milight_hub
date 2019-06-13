@@ -165,4 +165,27 @@ RSpec.describe 'Settings' do
       expect(ping_test.ping?).to be(true)
     end
   end
+
+  context 'defaults' do
+    before(:all) do
+      # Clobber all settings
+      file = Tempfile.new('espmh-settings.json')
+      file.close
+
+      @client.upload_json('/settings', file.path)
+    end
+
+    it 'should have some group state fields defined' do
+      settings = @client.get('/settings')
+
+      expect(settings['group_state_fields']).to_not be_empty
+    end
+
+    it 'should allow for empty group state fields if set' do
+      @client.patch_settings(group_state_fields: [])
+      settings = @client.get('/settings')
+
+      expect(settings['group_state_fields']).to eq([])
+    end
+  end
 end

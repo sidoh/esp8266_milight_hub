@@ -58,14 +58,14 @@ enum RadioInterfaceType {
   LT8900 = 1,
 };
 
-static const GroupStateField DEFAULT_GROUP_STATE_FIELDS[] = {
+static const std::vector<GroupStateField> DEFAULT_GROUP_STATE_FIELDS({
   GroupStateField::STATE,
   GroupStateField::BRIGHTNESS,
   GroupStateField::COMPUTED_COLOR,
   GroupStateField::MODE,
   GroupStateField::COLOR_TEMP,
   GroupStateField::BULB_MODE
-};
+});
 
 struct GatewayConfig {
   GatewayConfig(uint16_t deviceId, uint16_t port, uint8_t protocolVersion);
@@ -105,6 +105,7 @@ public:
     hostname("milight-hub"),
     rf24PowerLevel(RF24PowerLevelHelpers::defaultValue()),
     rf24Channels(RF24ChannelHelpers::allValues()),
+    groupStateFields(DEFAULT_GROUP_STATE_FIELDS),
     rf24ListenChannel(RF24Channel::RF24_LOW),
     _autoRestartPeriod(0)
   { }
