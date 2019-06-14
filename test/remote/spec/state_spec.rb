@@ -264,6 +264,24 @@ RSpec.describe 'State' do
   end
 
   context 'fields' do
+    it 'should support on/off' do
+      @client.patch_state({status: 'on'}, @id_params)
+      expect(@client.get_state(@id_params)['status']).to eq('ON')
+
+      # test "state", which is an alias for "status"
+      @client.patch_state({state: 'off'}, @id_params)
+      expect(@client.get_state(@id_params)['status']).to eq('OFF')
+    end
+
+    it 'should support boolean values for status' do
+      # test boolean value "true", which should be the same as "ON".
+      @client.patch_state({status: true}, @id_params)
+      expect(@client.get_state(@id_params)['status']).to eq('ON')
+
+      @client.patch_state({state: false}, @id_params)
+      expect(@client.get_state(@id_params)['status']).to eq('OFF')
+    end
+
     it 'should support the color field' do
       desired_state = {
         'hue' => 0,
