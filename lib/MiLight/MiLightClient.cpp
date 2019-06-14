@@ -496,17 +496,22 @@ void MiLightClient::handleEffect(const String& effect) {
 }
 
 uint8_t MiLightClient::parseStatus(JsonObject object) {
-  String strStatus;
+  JsonVariant status;
 
   if (object.containsKey("status")) {
-    strStatus = object["status"].as<char*>();
+    status = object["status"];
   } else if (object.containsKey("state")) {
-    strStatus = object["state"].as<char*>();
+    status = object["state"];
   } else {
     return 255;
   }
 
-  return (strStatus.equalsIgnoreCase("on") || strStatus.equalsIgnoreCase("true")) ? ON : OFF;
+  if (status.is<bool>()) {
+    return status.as<bool>() ? ON : OFF;
+  } else {
+    String strStatus(status.as<const char*>());
+    return (strStatus.equalsIgnoreCase("on") || strStatus.equalsIgnoreCase("true")) ? ON : OFF;
+  }
 }
 
 void MiLightClient::updateResendCount() {
