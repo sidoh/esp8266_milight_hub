@@ -26,7 +26,8 @@ RSpec.describe 'Settings' do
   context 'keys' do
     it 'should persist known settings keys' do
       {
-        'simple_mqtt_client_status' => [true, false]
+        'simple_mqtt_client_status' => [true, false],
+        'packet_repeats_per_loop' => [10]
       }.each do |key, values|
         values.each do |v|
           @client.patch_settings({key => v})
