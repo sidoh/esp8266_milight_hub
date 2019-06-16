@@ -1,5 +1,5 @@
 #include <PacketSender.h>
-#include <MiLightradioConfig.h>
+#include <MiLightRadioConfig.h>
 
 PacketSender::PacketSender(
   RadioSwitchboard& radioSwitchboard,
