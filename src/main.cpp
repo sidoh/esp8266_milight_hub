@@ -137,7 +137,8 @@ void onPacketSentHandler(uint8_t* packet, const MiLightRemoteConfig& config) {
  * called.
  */
 void handleListen() {
-  if (! settings.listenRepeats) {
+  // Do not handle listens while there are packets enqueued to be sent
+  if (! settings.listenRepeats || packetSender->isSending()) {
     return;
   }
 
