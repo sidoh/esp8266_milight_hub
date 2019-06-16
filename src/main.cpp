@@ -141,12 +141,12 @@ void handleListen() {
     return;
   }
 
-  std::shared_ptr<MiLightRadio> radio = milightClient->switchRadio(currentRadioType++ % milightClient->getNumRadios());
+  std::shared_ptr<MiLightRadio> radio = radios->switchRadio(currentRadioType++ % radios->getNumRadios());
 
   for (size_t i = 0; i < settings.listenRepeats; i++) {
-    if (milightClient->available()) {
+    if (radios->available()) {
       uint8_t readPacket[MILIGHT_MAX_PACKET_LENGTH];
-      size_t packetLen = milightClient->read(readPacket);
+      size_t packetLen = radios->read(readPacket);
 
       const MiLightRemoteConfig* remoteConfig = MiLightRemoteConfig::fromReceivedPacket(
         radio->config(),
