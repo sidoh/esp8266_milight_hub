@@ -96,7 +96,11 @@ RSpec.describe 'REST Server' do
       @client.delete_state(id)
 
       # Hard-coded packet which should turn the bulb on
-      result = @client.post('/raw_commands/rgb_cct', packet: '00 DB BF 01 66 D1 BB 66 F7')
+      result = @client.post(
+        '/raw_commands/rgb_cct',
+        packet: '00 DB BF 01 66 D1 BB 66 F7',
+        num_repeats: 1
+      )
       expect(result['success']).to be_truthy
 
       sleep(1)
