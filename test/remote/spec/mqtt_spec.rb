@@ -1,6 +1,6 @@
 require 'api_client'
 
-RSpec.describe 'State' do
+RSpec.describe 'MQTT' do
   before(:all) do
     @client = ApiClient.new(ENV.fetch('ESPMH_HOSTNAME'), ENV.fetch('ESPMH_TEST_DEVICE_ID_BASE'))
     @client.upload_json('/settings', 'settings.json')
