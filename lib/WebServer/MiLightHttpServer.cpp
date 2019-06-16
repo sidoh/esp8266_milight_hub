@@ -412,6 +412,12 @@ void MiLightHttpServer::handleUpdateGroup(RequestContext& request) {
   }
 
   if (groupCount == 1) {
+    // Wait for packet queue to flush out.  State will not have been updated before that.
+    // Bit hacky to call loop outside of main loop, but should be fine.
+    while (packetSender->isSending()) {
+      packetSender->loop();
+    }
+
     sendGroupState(foundBulbId, stateStore->get(foundBulbId), request.response);
   } else {
     request.response.json["success"] = true;
