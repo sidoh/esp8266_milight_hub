@@ -22,6 +22,8 @@
 #include <MiLightClient.h>
 #include <BulbStateUpdater.h>
 #include <LEDStatus.h>
+#include <RadioSwitchboard.h>
+#include <PacketSender.h>
 
 #include <vector>
 #include <memory>
@@ -37,6 +39,8 @@ static LEDStatus *ledStatus;
 Settings settings;
 
 MiLightClient* milightClient = NULL;
+std::shared_ptr<RadioSwitchboard> radios = nullptr;
+std::shared_ptr<PacketSender> packetSender = nullptr;
 std::shared_ptr<MiLightRadioFactory> radioFactory;
 MiLightHttpServer *httpServer = NULL;
 MqttClient* mqttClient = NULL;
@@ -210,16 +214,17 @@ void applySettings() {
 
   stateStore = new GroupStateStore(MILIGHT_MAX_STATE_ITEMS, settings.stateFlushInterval);
 
+  radios = std::make_shared<RadioSwitchboard>(radioFactory, stateStore, settings);
+  packetSender = std::make_shared<PacketSender>(*radios, settings, onPacketSentHandler);
+
   milightClient = new MiLightClient(
-    radioFactory,
+    *radios,
+    *packetSender,
     stateStore,
-    &settings
+    settings
   );
-  milightClient->begin();
-  milightClient->onPacketSent(onPacketSentHandler);
   milightClient->onUpdateBegin(onUpdateBegin);
   milightClient->onUpdateEnd(onUpdateEnd);
-  milightClient->setResendCount(settings.packetRepeats);
 
   if (settings.mqttServer().length() > 0) {
     mqttClient = new MqttClient(settings, milightClient);
@@ -403,6 +408,7 @@ void loop() {
   handleListen();
 
   stateStore->limitedFlush();
+  packetSender->loop();
 
   // update LED with status
   ledStatus->handle();
