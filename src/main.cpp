@@ -40,7 +40,7 @@ Settings settings;
 
 MiLightClient* milightClient = NULL;
 std::shared_ptr<RadioSwitchboard> radios = nullptr;
-std::shared_ptr<PacketSender> packetSender = nullptr;
+PacketSender* packetSender = nullptr;
 std::shared_ptr<MiLightRadioFactory> radioFactory;
 MiLightHttpServer *httpServer = NULL;
 MqttClient* mqttClient = NULL;
@@ -205,6 +205,9 @@ void applySettings() {
   if (stateStore) {
     delete stateStore;
   }
+  if (packetSender) {
+    delete packetSender;
+  }
 
   radioFactory = MiLightRadioFactory::fromSettings(settings);
 
@@ -215,7 +218,7 @@ void applySettings() {
   stateStore = new GroupStateStore(MILIGHT_MAX_STATE_ITEMS, settings.stateFlushInterval);
 
   radios = std::make_shared<RadioSwitchboard>(radioFactory, stateStore, settings);
-  packetSender = std::make_shared<PacketSender>(*radios, settings, onPacketSentHandler);
+  packetSender = new PacketSender(*radios, settings, onPacketSentHandler);
 
   milightClient = new MiLightClient(
     *radios,
