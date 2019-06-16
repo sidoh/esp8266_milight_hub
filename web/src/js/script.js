@@ -109,6 +109,12 @@ var UI_FIELDS = [ {
     type: "string",
     tab: "tab-radio"
   }, {
+    tag: "packet_repeats_per_loop",
+    friendly: "Packet repeats per loop",
+    help: "Number of repeats to send in a single go.  Higher values mean more throughput, but less multitasking.",
+    type: "string",
+    tab: "tab-radio"
+  }, {
     tag: "http_repeat_factor",
     friendly: "HTTP repeat factor",
     help: "Multiplicative factor on packet_repeats for requests initiated by the HTTP API. UDP API typically receives " +

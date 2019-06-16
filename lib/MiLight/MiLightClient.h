@@ -5,6 +5,7 @@
 #include <MiLightRemoteConfig.h>
 #include <Settings.h>
 #include <GroupStateStore.h>
+#include <PacketSender.h>
 
 #ifndef _MILIGHTCLIENT_H
 #define _MILIGHTCLIENT_H
@@ -12,25 +13,22 @@
 //#define DEBUG_PRINTF
 //#define DEBUG_CLIENT_COMMANDS     // enable to show each individual change command (like hue, brightness, etc)
 
-#define MILIGHT_DEFAULT_RESEND_COUNT 10
-
 // Used to determine RGB colros that are approximately white
 #define RGB_WHITE_THRESHOLD 10
 
 class MiLightClient {
 public:
   MiLightClient(
-    std::shared_ptr<MiLightRadioFactory> radioFactory,
+    RadioSwitchboard& radioSwitchboard,
+    PacketSender& packetSender,
     GroupStateStore* stateStore,
-    Settings* settings
+    Settings& settings
   );
 
   ~MiLightClient() { }
 
-  typedef std::function<void(uint8_t* packet, const MiLightRemoteConfig& config)> PacketSentHandler;
   typedef std::function<void(void)> EventHandler;
 
-  void begin();
   void prepare(const MiLightRemoteConfig* remoteConfig, const uint16_t deviceId = -1, const uint8_t groupId = -1);
   void prepare(const MiLightRemoteType type, const uint16_t deviceId = -1, const uint8_t groupId = -1);
 
@@ -74,7 +72,6 @@ public:
   void handleCommand(const String& command);
   void handleEffect(const String& effect);
 
-  void onPacketSent(PacketSentHandler handler);
   void onUpdateBegin(EventHandler handler);
   void onUpdateEnd(EventHandler handler);
 
@@ -83,42 +80,27 @@ public:
   std::shared_ptr<MiLightRadio> switchRadio(const MiLightRemoteConfig* remoteConfig);
   MiLightRemoteConfig& currentRemoteConfig() const;
 
-protected:
+  // Call to override the number of packet repeats that are sent.  Clear with clearRepeatsOverride
+  void setRepeatsOverride(size_t repeatsOverride);
 
+  // Clear the repeats override so that the default is used
+  void clearRepeatsOverride();
+
+protected:
+  RadioSwitchboard& radioSwitchboard;
   std::vector<std::shared_ptr<MiLightRadio>> radios;
   std::shared_ptr<MiLightRadio> currentRadio;
   const MiLightRemoteConfig* currentRemote;
 
-  PacketSentHandler packetSentHandler;
   EventHandler updateBeginHandler;
   EventHandler updateEndHandler;
 
   GroupStateStore* stateStore;
-  const Settings* settings;
+  Settings& settings;
+  PacketSender& packetSender;
 
-  // Used to track auto repeat limiting
-  unsigned long lastSend;
-  uint8_t currentResendCount;
-  unsigned int baseResendCount;
-
-  // This will be pre-computed, but is simply:
-  //
-  //    (sensitivity / 1000.0) * R
-  //
-  // Where R is the base number of repeats.
-  size_t throttleMultiplier;
-
-  /*
-   * Calculates the number of resend packets based on when the last packet
-   * was sent using this function:
-   *
-   *    lastRepeatsValue + (millisSinceLastSend - THRESHOLD) * throttleMultiplier
-   *
-   * When the last send was more recent than THRESHOLD, the number of repeats
-   * will be decreased to a minimum of zero.  When less recent, it will be
-   * increased up to a maximum of the default resend count.
-   */
-  void updateResendCount();
+  // If set, override the number of packet repeats used.
+  size_t repeatsOverride;
 
   uint8_t parseStatus(JsonObject object);
 

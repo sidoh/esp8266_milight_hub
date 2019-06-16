@@ -85,4 +85,29 @@ RSpec.describe 'REST Server' do
       expect(result).to include('rgb_cct')
     end
   end
+
+  context 'sending raw packets' do
+    it 'should support sending a raw packet' do
+      id = {
+        id: 0x2222,
+        type: 'rgb_cct',
+        group_id: 1
+      }
+      @client.delete_state(id)
+
+      # Hard-coded packet which should turn the bulb on
+      result = @client.post(
+        '/raw_commands/rgb_cct',
+        packet: '00 DB BF 01 66 D1 BB 66 F7',
+        num_repeats: 1
+      )
+      expect(result['success']).to be_truthy
+
+      sleep(1)
+
+      state = @client.get_state(id)
+      puts state.inspect
+      expect(state['status']).to eq('ON')
+    end
+  end
 end

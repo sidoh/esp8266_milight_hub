@@ -22,6 +22,8 @@
 #include <MiLightClient.h>
 #include <BulbStateUpdater.h>
 #include <LEDStatus.h>
+#include <RadioSwitchboard.h>
+#include <PacketSender.h>
 
 #include <vector>
 #include <memory>
@@ -37,6 +39,8 @@ static LEDStatus *ledStatus;
 Settings settings;
 
 MiLightClient* milightClient = NULL;
+RadioSwitchboard* radios = nullptr;
+PacketSender* packetSender = nullptr;
 std::shared_ptr<MiLightRadioFactory> radioFactory;
 MiLightHttpServer *httpServer = NULL;
 MqttClient* mqttClient = NULL;
@@ -133,16 +137,19 @@ void onPacketSentHandler(uint8_t* packet, const MiLightRemoteConfig& config) {
  * called.
  */
 void handleListen() {
-  if (! settings.listenRepeats) {
+  // Do not handle listens while there are packets enqueued to be sent
+  // Doing so causes the radio module to need to be reinitialized inbetween
+  // repeats, which slows things down.
+  if (! settings.listenRepeats || packetSender->isSending()) {
     return;
   }
 
-  std::shared_ptr<MiLightRadio> radio = milightClient->switchRadio(currentRadioType++ % milightClient->getNumRadios());
+  std::shared_ptr<MiLightRadio> radio = radios->switchRadio(currentRadioType++ % radios->getNumRadios());
 
   for (size_t i = 0; i < settings.listenRepeats; i++) {
-    if (milightClient->available()) {
+    if (radios->available()) {
       uint8_t readPacket[MILIGHT_MAX_PACKET_LENGTH];
-      size_t packetLen = milightClient->read(readPacket);
+      size_t packetLen = radios->read(readPacket);
 
       const MiLightRemoteConfig* remoteConfig = MiLightRemoteConfig::fromReceivedPacket(
         radio->config(),
@@ -201,6 +208,12 @@ void applySettings() {
   if (stateStore) {
     delete stateStore;
   }
+  if (packetSender) {
+    delete packetSender;
+  }
+  if (radios) {
+    delete radios;
+  }
 
   radioFactory = MiLightRadioFactory::fromSettings(settings);
 
@@ -210,16 +223,17 @@ void applySettings() {
 
   stateStore = new GroupStateStore(MILIGHT_MAX_STATE_ITEMS, settings.stateFlushInterval);
 
+  radios = new RadioSwitchboard(radioFactory, stateStore, settings);
+  packetSender = new PacketSender(*radios, settings, onPacketSentHandler);
+
   milightClient = new MiLightClient(
-    radioFactory,
+    *radios,
+    *packetSender,
     stateStore,
-    &settings
+    settings
   );
-  milightClient->begin();
-  milightClient->onPacketSent(onPacketSentHandler);
   milightClient->onUpdateBegin(onUpdateBegin);
   milightClient->onUpdateEnd(onUpdateEnd);
-  milightClient->setResendCount(settings.packetRepeats);
 
   if (settings.mqttServer().length() > 0) {
     mqttClient = new MqttClient(settings, milightClient);
@@ -375,7 +389,7 @@ void setup() {
   SSDP.setDeviceType("upnp:rootdevice");
   SSDP.begin();
 
-  httpServer = new MiLightHttpServer(settings, milightClient, stateStore);
+  httpServer = new MiLightHttpServer(settings, milightClient, stateStore, packetSender, radios);
   httpServer->onSettingsSaved(applySettings);
   httpServer->onGroupDeleted(onGroupDeleted);
   httpServer->on("/description.xml", HTTP_GET, []() { SSDP.schema(httpServer->client()); });
@@ -403,6 +417,7 @@ void loop() {
   handleListen();
 
   stateStore->limitedFlush();
+  packetSender->loop();
 
   // update LED with status
   ledStatus->handle();

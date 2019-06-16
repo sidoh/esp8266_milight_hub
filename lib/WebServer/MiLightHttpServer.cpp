@@ -270,7 +270,7 @@ void MiLightHttpServer::handleListenGateway(RequestContext& request) {
   }
 
   if (tmpRemoteConfig != NULL) {
-    radio = milightClient->switchRadio(tmpRemoteConfig);
+    radio = radios->switchRadio(tmpRemoteConfig);
   }
 
   while (remoteConfig == NULL) {
@@ -279,13 +279,13 @@ void MiLightHttpServer::handleListenGateway(RequestContext& request) {
     }
 
     if (listenAll) {
-      radio = milightClient->switchRadio(configIx++ % milightClient->getNumRadios());
+      radio = radios->switchRadio(configIx++ % radios->getNumRadios());
     } else {
       radio->configure();
     }
 
-    if (milightClient->available()) {
-      size_t packetLen = milightClient->read(packet);
+    if (radios->available()) {
+      size_t packetLen = radios->read(packet);
       remoteConfig = MiLightRemoteConfig::fromReceivedPacket(
         radio->config(),
         packet,
@@ -362,7 +362,7 @@ void MiLightHttpServer::handleDeleteGroup(RequestContext& request) {
 void MiLightHttpServer::handleUpdateGroup(RequestContext& request) {
   JsonObject reqObj = request.getJsonBody().as<JsonObject>();
 
-  milightClient->setResendCount(
+  milightClient->setRepeatsOverride(
     settings.httpRepeatFactor * settings.packetRepeats
   );
 
@@ -411,7 +411,15 @@ void MiLightHttpServer::handleUpdateGroup(RequestContext& request) {
     }
   }
 
+  milightClient->clearRepeatsOverride();
+
   if (groupCount == 1) {
+    // Wait for packet queue to flush out.  State will not have been updated before that.
+    // Bit hacky to call loop outside of main loop, but should be fine.
+    while (packetSender->isSending()) {
+      packetSender->loop();
+    }
+
     sendGroupState(foundBulbId, stateStore->get(foundBulbId), request.response);
   } else {
     request.response.json["success"] = true;
@@ -438,15 +446,16 @@ void MiLightHttpServer::handleSendRaw(RequestContext& request) {
   const String& hexPacket = requestBody["packet"];
   hexStrToBytes<uint8_t>(hexPacket.c_str(), hexPacket.length(), packet, MILIGHT_MAX_PACKET_LENGTH);
 
-  size_t numRepeats = MILIGHT_DEFAULT_RESEND_COUNT;
+  size_t numRepeats = settings.packetRepeats;
   if (requestBody.containsKey("num_repeats")) {
     numRepeats = requestBody["num_repeats"];
   }
 
-  milightClient->prepare(config, 0, 0);
+  packetSender->enqueue(packet, config, numRepeats);
 
-  for (size_t i = 0; i < numRepeats; i++) {
-    milightClient->write(packet);
+  // To make this response synchronous, wait for packet to be flushed
+  while (packetSender->isSending()) {
+    packetSender->loop();
   }
 
   request.response.json["success"] = true;
