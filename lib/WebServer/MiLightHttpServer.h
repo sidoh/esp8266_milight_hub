@@ -3,6 +3,8 @@
 #include <Settings.h>
 #include <WebSocketsServer.h>
 #include <GroupStateStore.h>
+#include <RadioSwitchboard.h>
+#include <PacketSender.h>
 
 #ifndef _MILIGHT_HTTP_SERVER
 #define _MILIGHT_HTTP_SERVER
@@ -20,7 +22,13 @@ const char APPLICATION_JSON[] = "application/json";
 
 class MiLightHttpServer {
 public:
-  MiLightHttpServer(Settings& settings, MiLightClient*& milightClient, GroupStateStore*& stateStore, PacketSender*& packetSender)
+  MiLightHttpServer(
+    Settings& settings,
+    MiLightClient*& milightClient,
+    GroupStateStore*& stateStore,
+    PacketSender*& packetSender,
+    RadioSwitchboard*& radios
+  )
     : authProvider(settings)
     , server(80, authProvider)
     , wsServer(WebSocketsServer(81))
@@ -29,6 +37,7 @@ public:
     , settings(settings)
     , stateStore(stateStore)
     , packetSender(packetSender)
+    , radios(radios)
   { }
 
   void begin();
@@ -78,6 +87,7 @@ protected:
   GroupDeletedHandler groupDeletedHandler;
   ESP8266WebServer::THandlerFunction _handleRootPage;
   PacketSender*& packetSender;
+  RadioSwitchboard*& radios;
 
 };
 
