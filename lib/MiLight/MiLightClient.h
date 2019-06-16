@@ -82,6 +82,12 @@ public:
   std::shared_ptr<MiLightRadio> switchRadio(const MiLightRemoteConfig* remoteConfig);
   MiLightRemoteConfig& currentRemoteConfig() const;
 
+  // Call to override the number of packet repeats that are sent.  Clear with clearRepeatsOverride
+  void setRepeatsOverride(size_t repeatsOverride);
+
+  // Clear the repeats override so that the default is used
+  void clearRepeatsOverride();
+
 protected:
   RadioSwitchboard& radioSwitchboard;
   std::vector<std::shared_ptr<MiLightRadio>> radios;
@@ -106,6 +112,9 @@ protected:
   //
   // Where R is the base number of repeats.
   size_t throttleMultiplier;
+
+  // If set, override the number of packet repeats used.
+  size_t repeatsOverride;
 
   /*
    * Calculates the number of resend packets based on when the last packet

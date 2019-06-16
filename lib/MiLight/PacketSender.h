@@ -8,6 +8,7 @@
 class PacketSender {
 public:
   typedef std::function<void(uint8_t* packet, const MiLightRemoteConfig& config)> PacketSentHandler;
+  static const size_t DEFAULT_PACKET_SENDS_VALUE = 0;
 
   PacketSender(
     RadioSwitchboard& radioSwitchboard,

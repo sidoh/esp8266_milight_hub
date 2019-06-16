@@ -18,6 +18,7 @@ MiLightClient::MiLightClient(
   , packetSender(packetSender)
   , lastSend(0)
   , baseResendCount(MILIGHT_DEFAULT_RESEND_COUNT)
+  , repeatsOverride(0)
 { }
 
 void MiLightClient::setHeld(bool held) {
@@ -404,6 +405,14 @@ uint8_t MiLightClient::parseStatus(JsonObject object) {
     String strStatus(status.as<const char*>());
     return (strStatus.equalsIgnoreCase("on") || strStatus.equalsIgnoreCase("true")) ? ON : OFF;
   }
+}
+
+void MiLightClient::setRepeatsOverride(size_t repeats) {
+  this->repeatsOverride = repeats;
+}
+
+void MiLightClient::clearRepeatsOverride() {
+  this->repeatsOverride = PacketSender::DEFAULT_PACKET_SENDS_VALUE;
 }
 
 void MiLightClient::updateResendCount() {
