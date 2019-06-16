@@ -386,7 +386,7 @@ void setup() {
   SSDP.setDeviceType("upnp:rootdevice");
   SSDP.begin();
 
-  httpServer = new MiLightHttpServer(settings, milightClient, stateStore, packetSender);
+  httpServer = new MiLightHttpServer(settings, milightClient, stateStore, packetSender, radios);
   httpServer->onSettingsSaved(applySettings);
   httpServer->onGroupDeleted(onGroupDeleted);
   httpServer->on("/description.xml", HTTP_GET, []() { SSDP.schema(httpServer->client()); });
