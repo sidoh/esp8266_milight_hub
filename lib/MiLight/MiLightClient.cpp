@@ -434,7 +434,7 @@ void MiLightClient::flushPacket() {
   updateResendCount();
 
   while (stream.hasNext()) {
-    packetSender.enqueue(stream.next(), currentRemote);
+    packetSender.enqueue(stream.next(), currentRemote, repeatsOverride);
   }
 
   currentRemote->packetFormatter->reset();

@@ -362,7 +362,7 @@ void MiLightHttpServer::handleDeleteGroup(RequestContext& request) {
 void MiLightHttpServer::handleUpdateGroup(RequestContext& request) {
   JsonObject reqObj = request.getJsonBody().as<JsonObject>();
 
-  milightClient->setResendCount(
+  milightClient->setRepeatsOverride(
     settings.httpRepeatFactor * settings.packetRepeats
   );
 
@@ -410,6 +410,8 @@ void MiLightHttpServer::handleUpdateGroup(RequestContext& request) {
       }
     }
   }
+
+  milightClient->clearRepeatsOverride();
 
   if (groupCount == 1) {
     // Wait for packet queue to flush out.  State will not have been updated before that.
