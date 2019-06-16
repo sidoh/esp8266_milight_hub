@@ -138,6 +138,8 @@ void onPacketSentHandler(uint8_t* packet, const MiLightRemoteConfig& config) {
  */
 void handleListen() {
   // Do not handle listens while there are packets enqueued to be sent
+  // Doing so causes the radio module to need to be reinitialized inbetween
+  // repeats, which slows things down.
   if (! settings.listenRepeats || packetSender->isSending()) {
     return;
   }
