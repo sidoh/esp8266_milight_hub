@@ -44,4 +44,27 @@ private:
 
   // Send repeats of the current packet N times
   void sendRepeats(size_t num);
+
+  // Used to track auto repeat limiting
+  unsigned long lastSend;
+  uint8_t currentResendCount;
+
+  // This will be pre-computed, but is simply:
+  //
+  //    (sensitivity / 1000.0) * R
+  //
+  // Where R is the base number of repeats.
+  size_t throttleMultiplier;
+
+  /*
+   * Calculates the number of resend packets based on when the last packet
+   * was sent using this function:
+   *
+   *    lastRepeatsValue + (millisSinceLastSend - THRESHOLD) * throttleMultiplier
+   *
+   * When the last send was more recent than THRESHOLD, the number of repeats
+   * will be decreased to a minimum of zero.  When less recent, it will be
+   * increased up to a maximum of the default resend count.
+   */
+  void updateResendCount();
 };

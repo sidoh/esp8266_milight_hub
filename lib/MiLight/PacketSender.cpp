@@ -11,13 +11,24 @@ PacketSender::PacketSender(
   , currentPacket(nullptr)
   , packetRepeatsRemaining(0)
   , packetSentHandler(packetSentHandler)
+  , lastSend(0)
+  , currentResendCount(settings.packetRepeats)
+  , throttleMultiplier(
+      std::ceil(
+        (settings.packetRepeatThrottleSensitivity / 1000.0) * settings.packetRepeats
+      )
+    )
 { }
 
 void PacketSender::enqueue(uint8_t* packet, const MiLightRemoteConfig* remoteConfig, const size_t repeatsOverride) {
 #ifdef DEBUG_PRINTF
   Serial.println("Enqueuing packet");
 #endif
-  queue.push(packet, remoteConfig, repeatsOverride);
+  size_t repeats = repeatsOverride == DEFAULT_PACKET_SENDS_VALUE
+    ? this->currentResendCount
+    : repeatsOverride;
+
+  queue.push(packet, remoteConfig, repeats);
 }
 
 void PacketSender::loop() {
@@ -47,6 +58,9 @@ void PacketSender::nextPacket() {
   } else {
     packetRepeatsRemaining = settings.packetRepeats;
   }
+
+  // Adjust resend count according to throttling rules
+  updateResendCount();
 }
 
 void PacketSender::handleCurrentPacket() {
@@ -84,4 +98,21 @@ void PacketSender::sendRepeats(size_t num) {
   Serial.print("Elapsed: ");
   Serial.println(iElapsed);
 #endif
+}
+
+void PacketSender::updateResendCount() {
+  unsigned long now = millis();
+  long millisSinceLastSend = now - lastSend;
+  long x = (millisSinceLastSend - settings.packetRepeatThrottleThreshold);
+  long delta = x * throttleMultiplier;
+  int signedResends = static_cast<int>(this->currentResendCount) + delta;
+
+  if (signedResends < static_cast<int>(settings.packetRepeatMinimum)) {
+    signedResends = settings.packetRepeatMinimum;
+  } else if (signedResends > settings.packetRepeats) {
+    signedResends = settings.packetRepeats;
+  }
+
+  this->currentResendCount = signedResends;
+  this->lastSend = now;
 }

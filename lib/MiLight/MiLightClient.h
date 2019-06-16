@@ -13,8 +13,6 @@
 //#define DEBUG_PRINTF
 //#define DEBUG_CLIENT_COMMANDS     // enable to show each individual change command (like hue, brightness, etc)
 
-#define MILIGHT_DEFAULT_RESEND_COUNT 10
-
 // Used to determine RGB colros that are approximately white
 #define RGB_WHITE_THRESHOLD 10
 
@@ -101,32 +99,8 @@ protected:
   Settings& settings;
   PacketSender& packetSender;
 
-  // Used to track auto repeat limiting
-  unsigned long lastSend;
-  uint8_t currentResendCount;
-  unsigned int baseResendCount;
-
-  // This will be pre-computed, but is simply:
-  //
-  //    (sensitivity / 1000.0) * R
-  //
-  // Where R is the base number of repeats.
-  size_t throttleMultiplier;
-
   // If set, override the number of packet repeats used.
   size_t repeatsOverride;
-
-  /*
-   * Calculates the number of resend packets based on when the last packet
-   * was sent using this function:
-   *
-   *    lastRepeatsValue + (millisSinceLastSend - THRESHOLD) * throttleMultiplier
-   *
-   * When the last send was more recent than THRESHOLD, the number of repeats
-   * will be decreased to a minimum of zero.  When less recent, it will be
-   * increased up to a maximum of the default resend count.
-   */
-  void updateResendCount();
 
   uint8_t parseStatus(JsonObject object);
 

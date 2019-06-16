@@ -16,8 +16,6 @@ MiLightClient::MiLightClient(
   , stateStore(stateStore)
   , settings(settings)
   , packetSender(packetSender)
-  , lastSend(0)
-  , baseResendCount(MILIGHT_DEFAULT_RESEND_COUNT)
   , repeatsOverride(0)
 { }
 
@@ -415,23 +413,8 @@ void MiLightClient::clearRepeatsOverride() {
   this->repeatsOverride = PacketSender::DEFAULT_PACKET_SENDS_VALUE;
 }
 
-void MiLightClient::updateResendCount() {
-  unsigned long now = millis();
-  long millisSinceLastSend = now - lastSend;
-  long x = (millisSinceLastSend - settings->packetRepeatThrottleThreshold);
-  long delta = x * throttleMultiplier;
-
-  this->currentResendCount = constrain(
-    static_cast<size_t>(this->currentResendCount + delta),
-    settings->packetRepeatMinimum,
-    this->baseResendCount
-  );
-  this->lastSend = now;
-}
-
 void MiLightClient::flushPacket() {
   PacketStream& stream = currentRemote->packetFormatter->buildPackets();
-  updateResendCount();
 
   while (stream.hasNext()) {
     packetSender.enqueue(stream.next(), currentRemote, repeatsOverride);
