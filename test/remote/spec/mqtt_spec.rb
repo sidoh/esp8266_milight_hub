@@ -104,6 +104,10 @@ RSpec.describe 'State' do
       @client.patch_state({level: 50, status: 'off'}, @id_params)
 
       @mqtt_client.patch_state(@id_params, status: 'on', level: 70)
+
+      # wait for packet to be sent...
+      sleep(1)
+
       state = @client.get_state(@id_params)
 
       expect(state.keys).to      include(*%w(level status))
