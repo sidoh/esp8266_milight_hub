@@ -32,6 +32,10 @@ void PacketSender::loop() {
   }
 }
 
+bool PacketSender::isSending() {
+  return packetRepeatsRemaining > 0 || !queue.isEmpty();
+}
+
 void PacketSender::nextPacket() {
 #ifdef DEBUG_PRINTF
   Serial.printf("Switching to next packet, %d packets in queue\n", queue.size());
