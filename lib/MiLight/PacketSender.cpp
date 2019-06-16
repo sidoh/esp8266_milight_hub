@@ -13,11 +13,11 @@ PacketSender::PacketSender(
   , packetSentHandler(packetSentHandler)
 { }
 
-void PacketSender::enqueue(uint8_t* packet, const MiLightRemoteConfig* remoteConfig) {
+void PacketSender::enqueue(uint8_t* packet, const MiLightRemoteConfig* remoteConfig, const size_t repeatsOverride) {
 #ifdef DEBUG_PRINTF
   Serial.println("Enqueuing packet");
 #endif
-  queue.push(packet, remoteConfig);
+  queue.push(packet, remoteConfig, repeatsOverride);
 }
 
 void PacketSender::loop() {
@@ -41,7 +41,12 @@ void PacketSender::nextPacket() {
   Serial.printf("Switching to next packet, %d packets in queue\n", queue.size());
 #endif
   currentPacket = queue.pop();
-  packetRepeatsRemaining = settings.packetRepeats;
+
+  if (currentPacket->repeatsOverride > 0) {
+    packetRepeatsRemaining = currentPacket->repeatsOverride;
+  } else {
+    packetRepeatsRemaining = settings.packetRepeats;
+  }
 }
 
 void PacketSender::handleCurrentPacket() {

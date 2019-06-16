@@ -15,7 +15,7 @@ public:
     PacketSentHandler packetSentHandler
   );
 
-  void enqueue(uint8_t* packet, const MiLightRemoteConfig* remoteConfig);
+  void enqueue(uint8_t* packet, const MiLightRemoteConfig* remoteConfig, const size_t repeatsOverride = 0);
   void loop();
 
   // Return true if there are queued packets

@@ -444,12 +444,12 @@ void MiLightHttpServer::handleSendRaw(RequestContext& request) {
   const String& hexPacket = requestBody["packet"];
   hexStrToBytes<uint8_t>(hexPacket.c_str(), hexPacket.length(), packet, MILIGHT_MAX_PACKET_LENGTH);
 
-  size_t numRepeats = MILIGHT_DEFAULT_RESEND_COUNT;
+  size_t numRepeats = settings.packetRepeats;
   if (requestBody.containsKey("num_repeats")) {
     numRepeats = requestBody["num_repeats"];
   }
 
-  packetSender->enqueue(packet, config);
+  packetSender->enqueue(packet, config, numRepeats);
 
   // To make this response synchronous, wait for packet to be flushed
   while (packetSender->isSending()) {

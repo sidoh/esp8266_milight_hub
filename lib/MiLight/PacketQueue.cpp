@@ -1,9 +1,10 @@
 #include <PacketQueue.h>
 
-void PacketQueue::push(const uint8_t* packet, const MiLightRemoteConfig* remoteConfig) {
+void PacketQueue::push(const uint8_t* packet, const MiLightRemoteConfig* remoteConfig, const size_t repeatsOverride) {
   std::shared_ptr<QueuedPacket> qp = checkoutPacket();
   memcpy(qp->packet, packet, remoteConfig->packetFormatter->getPacketLength());
   qp->remoteConfig = remoteConfig;
+  qp->repeatsOverride = repeatsOverride;
 }
 
 bool PacketQueue::isEmpty() {

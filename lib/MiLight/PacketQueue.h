@@ -13,11 +13,12 @@
 struct QueuedPacket {
   uint8_t packet[MILIGHT_MAX_PACKET_LENGTH];
   const MiLightRemoteConfig* remoteConfig;
+  size_t repeatsOverride;
 };
 
 class PacketQueue {
 public:
-  void push(const uint8_t* packet, const MiLightRemoteConfig* remoteConfig);
+  void push(const uint8_t* packet, const MiLightRemoteConfig* remoteConfig, const size_t repeatsOverride);
   std::shared_ptr<QueuedPacket> pop();
   bool isEmpty();
   size_t size();
