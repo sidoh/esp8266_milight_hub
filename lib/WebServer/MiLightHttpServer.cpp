@@ -270,7 +270,7 @@ void MiLightHttpServer::handleListenGateway(RequestContext& request) {
   }
 
   if (tmpRemoteConfig != NULL) {
-    radio = milightClient->switchRadio(tmpRemoteConfig);
+    radio = radios->switchRadio(tmpRemoteConfig);
   }
 
   while (remoteConfig == NULL) {
@@ -279,13 +279,13 @@ void MiLightHttpServer::handleListenGateway(RequestContext& request) {
     }
 
     if (listenAll) {
-      radio = milightClient->switchRadio(configIx++ % milightClient->getNumRadios());
+      radio = radios->switchRadio(configIx++ % radios->getNumRadios());
     } else {
       radio->configure();
     }
 
-    if (milightClient->available()) {
-      size_t packetLen = milightClient->read(packet);
+    if (radios->available()) {
+      size_t packetLen = radios->read(packet);
       remoteConfig = MiLightRemoteConfig::fromReceivedPacket(
         radio->config(),
         packet,
