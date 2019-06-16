@@ -20,7 +20,7 @@ const char APPLICATION_JSON[] = "application/json";
 
 class MiLightHttpServer {
 public:
-  MiLightHttpServer(Settings& settings, MiLightClient*& milightClient, GroupStateStore*& stateStore)
+  MiLightHttpServer(Settings& settings, MiLightClient*& milightClient, GroupStateStore*& stateStore, PacketSender*& packetSender)
     : authProvider(settings)
     , server(80, authProvider)
     , wsServer(WebSocketsServer(81))
@@ -28,6 +28,7 @@ public:
     , milightClient(milightClient)
     , settings(settings)
     , stateStore(stateStore)
+    , packetSender(packetSender)
   { }
 
   void begin();
@@ -76,6 +77,7 @@ protected:
   SettingsSavedHandler settingsSavedHandler;
   GroupDeletedHandler groupDeletedHandler;
   ESP8266WebServer::THandlerFunction _handleRootPage;
+  PacketSender*& packetSender;
 
 };
 
