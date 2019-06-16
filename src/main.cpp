@@ -39,7 +39,7 @@ static LEDStatus *ledStatus;
 Settings settings;
 
 MiLightClient* milightClient = NULL;
-std::shared_ptr<RadioSwitchboard> radios = nullptr;
+RadioSwitchboard* radios = nullptr;
 PacketSender* packetSender = nullptr;
 std::shared_ptr<MiLightRadioFactory> radioFactory;
 MiLightHttpServer *httpServer = NULL;
@@ -208,6 +208,9 @@ void applySettings() {
   if (packetSender) {
     delete packetSender;
   }
+  if (radios) {
+    delete radios;
+  }
 
   radioFactory = MiLightRadioFactory::fromSettings(settings);
 
@@ -217,7 +220,7 @@ void applySettings() {
 
   stateStore = new GroupStateStore(MILIGHT_MAX_STATE_ITEMS, settings.stateFlushInterval);
 
-  radios = std::make_shared<RadioSwitchboard>(radioFactory, stateStore, settings);
+  radios = new RadioSwitchboard(radioFactory, stateStore, settings);
   packetSender = new PacketSender(*radios, settings, onPacketSentHandler);
 
   milightClient = new MiLightClient(
