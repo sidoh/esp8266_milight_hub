@@ -449,10 +449,11 @@ void MiLightHttpServer::handleSendRaw(RequestContext& request) {
     numRepeats = requestBody["num_repeats"];
   }
 
-  milightClient->prepare(config, 0, 0);
+  packetSender->enqueue(packet, config);
 
-  for (size_t i = 0; i < numRepeats; i++) {
-    milightClient->write(packet);
+  // To make this response synchronous, wait for packet to be flushed
+  while (packetSender->isSending()) {
+    packetSender->loop();
   }
 
   request.response.json["success"] = true;
