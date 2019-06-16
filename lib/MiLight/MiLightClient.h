@@ -5,6 +5,7 @@
 #include <MiLightRemoteConfig.h>
 #include <Settings.h>
 #include <GroupStateStore.h>
+#include <PacketSender.h>
 
 #ifndef _MILIGHTCLIENT_H
 #define _MILIGHTCLIENT_H
@@ -20,17 +21,16 @@
 class MiLightClient {
 public:
   MiLightClient(
-    std::shared_ptr<MiLightRadioFactory> radioFactory,
+    RadioSwitchboard& radioSwitchboard,
+    PacketSender& packetSender,
     GroupStateStore* stateStore,
-    Settings* settings
+    Settings& settings
   );
 
   ~MiLightClient() { }
 
-  typedef std::function<void(uint8_t* packet, const MiLightRemoteConfig& config)> PacketSentHandler;
   typedef std::function<void(void)> EventHandler;
 
-  void begin();
   void prepare(const MiLightRemoteConfig* remoteConfig, const uint16_t deviceId = -1, const uint8_t groupId = -1);
   void prepare(const MiLightRemoteType type, const uint16_t deviceId = -1, const uint8_t groupId = -1);
 
@@ -74,7 +74,6 @@ public:
   void handleCommand(const String& command);
   void handleEffect(const String& effect);
 
-  void onPacketSent(PacketSentHandler handler);
   void onUpdateBegin(EventHandler handler);
   void onUpdateEnd(EventHandler handler);
 
@@ -84,17 +83,17 @@ public:
   MiLightRemoteConfig& currentRemoteConfig() const;
 
 protected:
-
+  RadioSwitchboard& radioSwitchboard;
   std::vector<std::shared_ptr<MiLightRadio>> radios;
   std::shared_ptr<MiLightRadio> currentRadio;
   const MiLightRemoteConfig* currentRemote;
 
-  PacketSentHandler packetSentHandler;
   EventHandler updateBeginHandler;
   EventHandler updateEndHandler;
 
   GroupStateStore* stateStore;
-  const Settings* settings;
+  Settings& settings;
+  PacketSender& packetSender;
 
   // Used to track auto repeat limiting
   unsigned long lastSend;

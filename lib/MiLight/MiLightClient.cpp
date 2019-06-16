@@ -6,81 +6,29 @@
 #include <TokenIterator.h>
 
 MiLightClient::MiLightClient(
-  std::shared_ptr<MiLightRadioFactory> radioFactory,
+  RadioSwitchboard& radioSwitchboard,
+  PacketSender& packetSender,
   GroupStateStore* stateStore,
-  Settings* settings
-)
-  : currentRadio(NULL),
-    currentRemote(NULL),
-    packetSentHandler(NULL),
-    updateBeginHandler(NULL),
-    updateEndHandler(NULL),
-    stateStore(stateStore),
-    settings(settings),
-    lastSend(0),
-    baseResendCount(MILIGHT_DEFAULT_RESEND_COUNT)
-{
-  for (size_t i = 0; i < MiLightRadioConfig::NUM_CONFIGS; i++) {
-    radios.push_back(radioFactory->create(MiLightRadioConfig::ALL_CONFIGS[i]));
-  }
-}
-
-void MiLightClient::begin() {
-  for (size_t i = 0; i < radios.size(); i++) {
-    radios[i]->begin();
-  }
-
-  switchRadio(static_cast<size_t>(0));
-
-  // Little gross to do this here as it's relying on global state.  A better alternative
-  // would be to statically construct remote config factories which take in a stateStore
-  // and settings pointer.  The objects could then be initialized by calling the factory
-  // in main.
-  for (size_t i = 0; i < MiLightRemoteConfig::NUM_REMOTES; i++) {
-    MiLightRemoteConfig::ALL_REMOTES[i]->packetFormatter->initialize(stateStore, settings);
-  }
-}
+  Settings& settings
+) : radioSwitchboard(radioSwitchboard)
+  , updateBeginHandler(NULL)
+  , updateEndHandler(NULL)
+  , stateStore(stateStore)
+  , settings(settings)
+  , packetSender(packetSender)
+  , lastSend(0)
+  , baseResendCount(MILIGHT_DEFAULT_RESEND_COUNT)
+{ }
 
 void MiLightClient::setHeld(bool held) {
   currentRemote->packetFormatter->setHeld(held);
 }
 
-size_t MiLightClient::getNumRadios() const {
-  return radios.size();
-}
-
-std::shared_ptr<MiLightRadio> MiLightClient::switchRadio(size_t radioIx) {
-  if (radioIx >= getNumRadios()) {
-    return NULL;
-  }
-
-  if (this->currentRadio != radios[radioIx]) {
-    this->currentRadio = radios[radioIx];
-    this->currentRadio->configure();
-  }
-
-  return this->currentRadio;
-}
-
-std::shared_ptr<MiLightRadio> MiLightClient::switchRadio(const MiLightRemoteConfig* remoteConfig) {
-  std::shared_ptr<MiLightRadio> radio = NULL;
-
-  for (size_t i = 0; i < radios.size(); i++) {
-    if (&this->radios[i]->config() == &remoteConfig->radioConfig) {
-      radio = switchRadio(i);
-      break;
-    }
-  }
-
-  return radio;
-}
-
-void MiLightClient::prepare(const MiLightRemoteConfig* config,
+void MiLightClient::prepare(
+  const MiLightRemoteConfig* config,
   const uint16_t deviceId,
   const uint8_t groupId
 ) {
-  switchRadio(config);
-
   this->currentRemote = config;
 
   if (deviceId >= 0 && groupId >= 0) {
@@ -88,68 +36,12 @@ void MiLightClient::prepare(const MiLightRemoteConfig* config,
   }
 }
 
-void MiLightClient::prepare(const MiLightRemoteType type,
+void MiLightClient::prepare(
+  const MiLightRemoteType type,
   const uint16_t deviceId,
   const uint8_t groupId
 ) {
   prepare(MiLightRemoteConfig::fromType(type), deviceId, groupId);
-}
-
-void MiLightClient::setResendCount(const unsigned int resendCount) {
-  this->baseResendCount = resendCount;
-  this->currentResendCount = resendCount;
-  this->throttleMultiplier = ceil((settings->packetRepeatThrottleSensitivity / 1000.0) * this->baseResendCount);
-}
-
-bool MiLightClient::available() {
-  if (currentRadio == NULL) {
-    return false;
-  }
-
-  return currentRadio->available();
-}
-
-size_t MiLightClient::read(uint8_t packet[]) {
-  if (currentRadio == NULL) {
-    return 0;
-  }
-
-  size_t length;
-  currentRadio->read(packet, length);
-
-  return length;
-}
-
-void MiLightClient::write(uint8_t packet[]) {
-  if (currentRadio == NULL) {
-    return;
-  }
-
-#ifdef DEBUG_PRINTF
-  Serial.printf_P(PSTR("Sending packet (%d repeats): \n"), this->currentResendCount);
-  for (int i = 0; i < currentRemote->packetFormatter->getPacketLength(); i++) {
-    Serial.printf_P(PSTR("%02X "), packet[i]);
-  }
-  Serial.println();
-  int iStart = millis();
-#endif
-
-  // send the packet out (multiple times for "reliability")
-  for (int i = 0; i < this->currentResendCount; i++) {
-    currentRadio->write(packet, currentRemote->packetFormatter->getPacketLength());
-  }
-
-  // if we have a packetSendHandler defined (see MiLightClient::onPacketSent), call it now that
-  // the packet has been dispatched
-  if (this->packetSentHandler) {
-    this->packetSentHandler(packet, *currentRemote);
-  }
-
-#ifdef DEBUG_PRINTF
-  int iElapsed = millis() - iStart;
-  Serial.print("Elapsed: ");
-  Serial.println(iElapsed);
-#endif
 }
 
 void MiLightClient::updateColorRaw(const uint8_t color) {
@@ -533,21 +425,10 @@ void MiLightClient::flushPacket() {
   updateResendCount();
 
   while (stream.hasNext()) {
-    write(stream.next());
-
-    if (stream.hasNext()) {
-      delay(10);
-    }
+    packetSender.enqueue(stream.next(), currentRemote);
   }
 
   currentRemote->packetFormatter->reset();
-}
-
-/*
-  Register a callback for when packets are sent
-*/
-void MiLightClient::onPacketSent(PacketSentHandler handler) {
-  this->packetSentHandler = handler;
 }
 
 void MiLightClient::onUpdateBegin(EventHandler handler) {
