@@ -107,6 +107,7 @@ public:
     rf24Channels(RF24ChannelHelpers::allValues()),
     groupStateFields(DEFAULT_GROUP_STATE_FIELDS),
     rf24ListenChannel(RF24Channel::RF24_LOW),
+    packetRepeatsPerLoop(10),
     _autoRestartPeriod(0)
   { }
 
@@ -174,6 +175,7 @@ public:
   String wifiStaticIP;
   String wifiStaticIPNetmask;
   String wifiStaticIPGateway;
+  size_t packetRepeatsPerLoop;
 
 protected:
   size_t _autoRestartPeriod;

@@ -97,6 +97,7 @@ void Settings::patch(JsonObject parsedSettings) {
   this->setIfPresent(parsedSettings, "wifi_static_ip", wifiStaticIP);
   this->setIfPresent(parsedSettings, "wifi_static_ip_gateway", wifiStaticIPGateway);
   this->setIfPresent(parsedSettings, "wifi_static_ip_netmask", wifiStaticIPNetmask);
+  this->setIfPresent(parsedSettings, "packet_repeats_per_loop", packetRepeatsPerLoop);
 
   if (parsedSettings.containsKey("rf24_channels")) {
     JsonArray arr = parsedSettings["rf24_channels"];
@@ -226,6 +227,7 @@ void Settings::serialize(Print& stream, const bool prettyPrint) {
   root["wifi_static_ip"] = this->wifiStaticIP;
   root["wifi_static_ip_gateway"] = this->wifiStaticIPGateway;
   root["wifi_static_ip_netmask"] = this->wifiStaticIPNetmask;
+  root["packet_repeats_per_loop"] = this->packetRepeatsPerLoop;
 
   JsonArray channelArr = root.createNestedArray("rf24_channels");
   JsonHelpers::vectorToJsonArr<RF24Channel, String>(channelArr, rf24Channels, RF24ChannelHelpers::nameFromValue);
