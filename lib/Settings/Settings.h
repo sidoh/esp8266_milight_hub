@@ -7,8 +7,13 @@
 #include <Size.h>
 #include <LEDStatus.h>
 #include <AuthProviders.h>
+
+#include <MiLightRemoteType.h>
+#include <BulbId.h>
+
 #include <vector>
 #include <memory>
+#include <map>
 
 #ifndef _SETTINGS_H_INCLUDED
 #define _SETTINGS_H_INCLUDED

@@ -1,27 +1,17 @@
 #include <stddef.h>
 #include <inttypes.h>
-#include <MiLightConstants.h>
+#include <MiLightRemoteType.h>
+#include <MiLightStatus.h>
 #include <MiLightRadioConfig.h>
 #include <GroupStateField.h>
 #include <ArduinoJson.h>
+#include <BulbId.h>
 
 #ifndef _GROUP_STATE_H
 #define _GROUP_STATE_H
 
 // enable to add debugging on state
 // #define DEBUG_STATE
-
-struct BulbId {
-  uint16_t deviceId;
-  uint8_t groupId;
-  MiLightRemoteType deviceType;
-
-  BulbId();
-  BulbId(const BulbId& other);
-  BulbId(const uint16_t deviceId, const uint8_t groupId, const MiLightRemoteType deviceType);
-  bool operator==(const BulbId& other);
-  void operator=(const BulbId& other);
-};
 
 enum BulbMode {
   BULB_MODE_WHITE,
