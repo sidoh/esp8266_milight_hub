@@ -181,9 +181,13 @@ public:
   String wifiStaticIPNetmask;
   String wifiStaticIPGateway;
   size_t packetRepeatsPerLoop;
+  std::map<String, BulbId> groupIdAliases;
 
 protected:
   size_t _autoRestartPeriod;
+
+  void parseGroupIdAliases(JsonObject json);
+  void dumpGroupIdAliases(JsonObject json);
 
   template <typename T>
   void setIfPresent(JsonObject obj, const char* key, T& var) {
