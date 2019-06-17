@@ -110,4 +110,49 @@ RSpec.describe 'REST Server' do
       expect(state['status']).to eq('ON')
     end
   end
+
+  context 'device aliases' do
+    before(:all) do
+      @device_id = {
+        id: @client.generate_id,
+        type: 'rgb_cct',
+        group_id: 1
+      }
+      @alias = 'test'
+
+      @client.patch_settings(
+        group_id_aliases: {
+          @alias => [
+            @device_id[:type],
+            @device_id[:id],
+            @device_id[:group_id]
+          ]
+        }
+      )
+
+      @client.delete_state(@device_id)
+    end
+
+    it 'should respond with a 404 for an alias that doesn\'t exist' do
+      expect {
+        @client.put("/gateways/__#{@alias}", status: 'on')
+      }.to raise_error(Net::HTTPServerException)
+    end
+
+    it 'should update state for known alias' do
+      path = "/gateways/#{@alias}"
+
+      @client.put(path, status: 'ON', hue: 100)
+      state = @client.get(path)
+
+      expect(state['status']).to eq('ON')
+      expect(state['hue']).to eq(100)
+
+      # ensure state for the non-aliased ID is the same
+      state = @client.get_state(@device_id)
+
+      expect(state['status']).to eq('ON')
+      expect(state['hue']).to eq(100)
+    end
+  end
 end

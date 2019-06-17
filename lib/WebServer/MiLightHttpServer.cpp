@@ -47,6 +47,13 @@ void MiLightHttpServer::begin() {
     .on(HTTP_GET, std::bind(&MiLightHttpServer::handleGetGroup, this, _1));
 
   server
+    .buildHandler("/gateways/:device_alias")
+    .on(HTTP_PUT, std::bind(&MiLightHttpServer::handleUpdateGroupAlias, this, _1))
+    .on(HTTP_POST, std::bind(&MiLightHttpServer::handleUpdateGroupAlias, this, _1))
+    .on(HTTP_DELETE, std::bind(&MiLightHttpServer::handleDeleteGroupAlias, this, _1))
+    .on(HTTP_GET, std::bind(&MiLightHttpServer::handleGetGroupAlias, this, _1));
+
+  server
     .buildHandler("/raw_commands/:type")
     .on(HTTP_ANY, std::bind(&MiLightHttpServer::handleSendRaw, this, _1));
 
@@ -311,12 +318,36 @@ void MiLightHttpServer::handleListenGateway(RequestContext& request) {
 }
 
 void MiLightHttpServer::sendGroupState(BulbId& bulbId, GroupState* state, RichHttp::Response& response) {
+  // Wait for packet queue to flush out.  State will not have been updated before that.
+  // Bit hacky to call loop outside of main loop, but should be fine.
+  while (packetSender->isSending()) {
+    packetSender->loop();
+  }
+
   JsonObject obj = response.json.to<JsonObject>();
 
   if (state != NULL) {
     state->applyState(obj, bulbId, settings.groupStateFields);
     state->debugState("test");
   }
+}
+
+void MiLightHttpServer::_handleGetGroup(BulbId bulbId, RequestContext& request) {
+  sendGroupState(bulbId, stateStore->get(bulbId), request.response);
+}
+
+void MiLightHttpServer::handleGetGroupAlias(RequestContext& request) {
+  const String alias = request.pathVariables.get("device_alias");
+
+  std::map<String, BulbId>::iterator it = settings.groupIdAliases.find(alias);
+
+  if (it == settings.groupIdAliases.end()) {
+    request.response.setCode(404);
+    request.response.json[F("error")] = F("Device alias not found");
+    return;
+  }
+
+  _handleGetGroup(it->second, request);
 }
 
 void MiLightHttpServer::handleGetGroup(RequestContext& request) {
@@ -333,7 +364,7 @@ void MiLightHttpServer::handleGetGroup(RequestContext& request) {
   }
 
   BulbId bulbId(parseInt<uint16_t>(_deviceId), _groupId, _remoteType->type);
-  sendGroupState(bulbId, stateStore->get(bulbId), request.response);
+  _handleGetGroup(bulbId, request);
 }
 
 void MiLightHttpServer::handleDeleteGroup(RequestContext& request) {
@@ -350,6 +381,24 @@ void MiLightHttpServer::handleDeleteGroup(RequestContext& request) {
   }
 
   BulbId bulbId(parseInt<uint16_t>(_deviceId), _groupId, _remoteType->type);
+  _handleDeleteGroup(bulbId, request);
+}
+
+void MiLightHttpServer::handleDeleteGroupAlias(RequestContext& request) {
+  const String alias = request.pathVariables.get("device_alias");
+
+  std::map<String, BulbId>::iterator it = settings.groupIdAliases.find(alias);
+
+  if (it == settings.groupIdAliases.end()) {
+    request.response.setCode(404);
+    request.response.json[F("error")] = F("Device alias not found");
+    return;
+  }
+
+  _handleDeleteGroup(it->second, request);
+}
+
+void MiLightHttpServer::_handleDeleteGroup(BulbId bulbId, RequestContext& request) {
   stateStore->clear(bulbId);
 
   if (groupDeletedHandler != NULL) {
@@ -359,12 +408,35 @@ void MiLightHttpServer::handleDeleteGroup(RequestContext& request) {
   request.response.json["success"] = true;
 }
 
+void MiLightHttpServer::handleUpdateGroupAlias(RequestContext& request) {
+  const String alias = request.pathVariables.get("device_alias");
+
+  std::map<String, BulbId>::iterator it = settings.groupIdAliases.find(alias);
+
+  if (it == settings.groupIdAliases.end()) {
+    request.response.setCode(404);
+    request.response.json[F("error")] = F("Device alias not found");
+    return;
+  }
+
+  BulbId& bulbId = it->second;
+  const MiLightRemoteConfig* config = MiLightRemoteConfig::fromType(bulbId.deviceType);
+
+  if (config == NULL) {
+    char buffer[40];
+    sprintf_P(buffer, PSTR("Unknown device type: %s"), bulbId.deviceType);
+    request.response.setCode(400);
+    request.response.json["error"] = buffer;
+    return;
+  }
+
+  milightClient->prepare(config, bulbId.deviceId, bulbId.groupId);
+  handleRequest(request.getJsonBody().as<JsonObject>());
+  sendGroupState(bulbId, stateStore->get(bulbId), request.response);
+}
+
 void MiLightHttpServer::handleUpdateGroup(RequestContext& request) {
   JsonObject reqObj = request.getJsonBody().as<JsonObject>();
-
-  milightClient->setRepeatsOverride(
-    settings.httpRepeatFactor * settings.packetRepeats
-  );
 
   String _deviceIds = request.pathVariables.get("device_id");
   String _groupIds = request.pathVariables.get("group_id");
@@ -411,15 +483,7 @@ void MiLightHttpServer::handleUpdateGroup(RequestContext& request) {
     }
   }
 
-  milightClient->clearRepeatsOverride();
-
   if (groupCount == 1) {
-    // Wait for packet queue to flush out.  State will not have been updated before that.
-    // Bit hacky to call loop outside of main loop, but should be fine.
-    while (packetSender->isSending()) {
-      packetSender->loop();
-    }
-
     sendGroupState(foundBulbId, stateStore->get(foundBulbId), request.response);
   } else {
     request.response.json["success"] = true;
@@ -427,7 +491,11 @@ void MiLightHttpServer::handleUpdateGroup(RequestContext& request) {
 }
 
 void MiLightHttpServer::handleRequest(const JsonObject& request) {
+  milightClient->setRepeatsOverride(
+    settings.httpRepeatFactor * settings.packetRepeats
+  );
   milightClient->update(request);
+  milightClient->clearRepeatsOverride();
 }
 
 void MiLightHttpServer::handleSendRaw(RequestContext& request) {
