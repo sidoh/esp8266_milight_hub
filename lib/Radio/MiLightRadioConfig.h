@@ -1,5 +1,5 @@
 #include <Arduino.h>
-#include <MiLightConstants.h>
+#include <MiLightRemoteType.h>
 #include <Size.h>
 
 #ifndef _MILIGHT_RADIO_CONFIG

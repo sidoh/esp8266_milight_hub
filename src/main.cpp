@@ -8,10 +8,12 @@
 #include <IntParsing.h>
 #include <Size.h>
 #include <LinkedList.h>
+#include <LEDStatus.h>
 #include <GroupStateStore.h>
 #include <MiLightRadioConfig.h>
 #include <MiLightRemoteConfig.h>
 #include <MiLightHttpServer.h>
+#include <MiLightRemoteType.h>
 #include <Settings.h>
 #include <MiLightUdpServer.h>
 #include <ESP8266mDNS.h>
@@ -21,7 +23,6 @@
 #include <MiLightDiscoveryServer.h>
 #include <MiLightClient.h>
 #include <BulbStateUpdater.h>
-#include <LEDStatus.h>
 #include <RadioSwitchboard.h>
 #include <PacketSender.h>
 
