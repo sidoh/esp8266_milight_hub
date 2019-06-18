@@ -154,5 +154,23 @@ RSpec.describe 'REST Server' do
       expect(state['status']).to eq('ON')
       expect(state['hue']).to eq(100)
     end
+
+    it 'should handle saving bad input gracefully' do
+      values_to_try = [
+        'string',
+        123,
+        [ ],
+        { 'test' => [ 'rgb_cct' ] },
+        { 'test' => [ 'rgb_cct', 1 ] },
+        { 'test' => [ 'rgb_cct', '1', 2 ] },
+        { 'test' => [ 'abc' ] }
+      ]
+
+      values_to_try.each do |v|
+        expect {
+          @client.patch_settings(group_id_aliases: v)
+        }.to_not raise_error
+      end
+    end
   end
 end
