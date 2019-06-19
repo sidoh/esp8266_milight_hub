@@ -438,6 +438,31 @@ RSpec.describe 'MQTT' do
         expect(seen_state['status']).to eq('ON')
       end
 
+      it 'should support publishing updates to device alias topic' do
+        @client.patch_settings(
+          mqtt_topic_pattern: @aliases_topic,
+          mqtt_update_topic_pattern: "#{mqtt_topic_prefix()}updates/:device_alias"
+        )
+
+        seen_alias = nil
+        seen_state = nil
+
+        @mqtt_client.on_message("#{mqtt_topic_prefix()}updates/+") do |topic, message|
+          parts = topic.split('/')
+
+          seen_alias = parts.last
+          seen_state = JSON.parse(message)
+
+          seen_alias == 'test_group'
+        end
+        @mqtt_client.publish("#{mqtt_topic_prefix()}commands/test_group", status: 'ON')
+
+        @mqtt_client.wait_for_listeners
+
+        expect(seen_alias).to eq('test_group')
+        expect(seen_state['status']).to eq('ON')
+      end
+
       it 'should delete retained alias messages' do
         seen_empty_message = false
 
