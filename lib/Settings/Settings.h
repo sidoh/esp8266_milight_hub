@@ -139,6 +139,7 @@ public:
   void patch(JsonObject obj);
   String mqttServer();
   uint16_t mqttPort();
+  std::map<String, BulbId>::const_iterator findAlias(MiLightRemoteType deviceType, uint16_t deviceId, uint8_t groupId);
 
   String adminUsername;
   String adminPassword;

@@ -135,6 +135,7 @@ void MqttClient::subscribe() {
   topic.replace(":dec_device_id", "+");
   topic.replace(":group_id", "+");
   topic.replace(":device_type", "+");
+  topic.replace(":device_alias", "+");
 
 #ifdef MQTT_DEBUG
   printf_P(PSTR("MqttClient - subscribing to topic: %s\n"), topic.c_str());
@@ -184,27 +185,43 @@ void MqttClient::publishCallback(char* topic, byte* payload, int length) {
   TokenIterator topicIterator(topic, strlen(topic), '/');
   UrlTokenBindings tokenBindings(patternIterator, topicIterator);
 
-  if (tokenBindings.hasBinding("device_id")) {
-    deviceId = parseInt<uint16_t>(tokenBindings.get("device_id"));
-  } else if (tokenBindings.hasBinding("hex_device_id")) {
-    deviceId = parseInt<uint16_t>(tokenBindings.get("hex_device_id"));
-  } else if (tokenBindings.hasBinding("dec_device_id")) {
-    deviceId = parseInt<uint16_t>(tokenBindings.get("dec_device_id"));
-  }
+  if (tokenBindings.hasBinding("device_alias")) {
+    String alias = tokenBindings.get("device_alias");
+    auto itr = settings.groupIdAliases.find(alias);
 
-  if (tokenBindings.hasBinding("group_id")) {
-    groupId = parseInt<uint16_t>(tokenBindings.get("group_id"));
-  }
-
-  if (tokenBindings.hasBinding("device_type")) {
-    config = MiLightRemoteConfig::fromType(tokenBindings.get("device_type"));
-
-    if (config == NULL) {
-      Serial.println(F("MqttClient - ERROR: could not extract device_type from topic"));
+    if (itr == settings.groupIdAliases.end()) {
+      Serial.printf_P(PSTR("MqttClient - WARNING: could not find device alias: `%s'. Ignoring packet.\n"), alias.c_str());
       return;
+    } else {
+      BulbId bulbId = itr->second;
+
+      deviceId = bulbId.deviceId;
+      config = MiLightRemoteConfig::fromType(bulbId.deviceType);
+      groupId = bulbId.groupId;
     }
   } else {
-    Serial.println(F("MqttClient - WARNING: could not find device_type token.  Defaulting to FUT092.\n"));
+    if (tokenBindings.hasBinding("device_id")) {
+      deviceId = parseInt<uint16_t>(tokenBindings.get("device_id"));
+    } else if (tokenBindings.hasBinding("hex_device_id")) {
+      deviceId = parseInt<uint16_t>(tokenBindings.get("hex_device_id"));
+    } else if (tokenBindings.hasBinding("dec_device_id")) {
+      deviceId = parseInt<uint16_t>(tokenBindings.get("dec_device_id"));
+    }
+
+    if (tokenBindings.hasBinding("group_id")) {
+      groupId = parseInt<uint16_t>(tokenBindings.get("group_id"));
+    }
+
+    if (tokenBindings.hasBinding("device_type")) {
+      config = MiLightRemoteConfig::fromType(tokenBindings.get("device_type"));
+    } else {
+      Serial.println(F("MqttClient - WARNING: could not find device_type token.  Defaulting to FUT092.\n"));
+    }
+  }
+
+  if (config == NULL) {
+    Serial.println(F("MqttClient - ERROR: unknown device_type specified"));
+    return;
   }
 
   StaticJsonDocument<400> buffer;
@@ -234,6 +251,13 @@ inline void MqttClient::bindTopicString(
   topicPattern.replace(":dec_device_id", String(deviceId));
   topicPattern.replace(":group_id", String(groupId));
   topicPattern.replace(":device_type", remoteConfig.name);
+
+  auto it = settings.findAlias(remoteConfig.type, deviceId, groupId);
+  if (it != settings.groupIdAliases.end()) {
+    topicPattern.replace(":device_alias", it->first);
+  } else {
+    topicPattern.replace(":device_alias", "__unnamed_group");
+  }
 }
 
 String MqttClient::generateConnectionStatusMessage(const char* connectionStatus) {

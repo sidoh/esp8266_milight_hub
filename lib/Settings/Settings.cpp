@@ -150,6 +150,18 @@ void Settings::patch(JsonObject parsedSettings) {
   }
 }
 
+std::map<String, BulbId>::const_iterator Settings::findAlias(MiLightRemoteType deviceType, uint16_t deviceId, uint8_t groupId) {
+  BulbId searchId{ deviceId, groupId, deviceType };
+
+  for (auto it = groupIdAliases.begin(); it != groupIdAliases.end(); ++it) {
+    if (searchId == it->second) {
+      return it;
+    }
+  }
+
+  return groupIdAliases.end();
+}
+
 void Settings::parseGroupIdAliases(JsonObject json) {
   JsonObject aliases = json["group_id_aliases"];
   groupIdAliases.clear();
