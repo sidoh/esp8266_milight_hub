@@ -134,6 +134,14 @@ You can configure the LED pin from the web console.  Note that pin means the GPI
 
 If you want to wire up your own LED on a pin, such as on D2/GPIO4, put a wire from D2 to one side of a 220 ohm resister.  On the other side, connect it to the positive side (the longer wire) of a 3.3V LED.  Then connect the negative side of the LED (the shorter wire) to ground.  If you use a different voltage LED, or a high current LED, you will need to add a driver circuit.
 
+## Device Aliases
+
+You can configure aliases or labels for a given _(Device Type, Device ID, Group ID)_ tuple.  For example, you might want to call the RGB+CCT remote with the ID `0x1111` and the Group ID `1` to be called `living_room`.  Aliases are useful in a couple of different ways:
+
+* **In the UI**: the aliases dropdown shows all previously set aliases.  When one is selected, the corresponding Device ID, Device Type, and Group ID are selected.  This allows you to not need to memorize the ID parameters for each lighting device if you're controlling them through the UI.
+* **In the REST API**: standard CRUD verbs (`GET`, `PUT`, and `DELETE`) allow you to interact with aliases via the `/gateways/:device_alias` route.
+* **MQTT**: you can configure topics to listen for commands and publish updates/state using aliases rather than IDs.
+
 ## REST endpoints
 
 1. `GET /`. Opens web UI.
@@ -147,6 +155,7 @@ If you want to wire up your own LED on a pin, such as on D2/GPIO4, put a wire fr
 1. `PUT /gateways/:device_id/:device_type/:group_id`. Controls or sends commands to `:group_id` from `:device_id`. Accepts a JSON blob. The schema is documented below in the _Bulb commands_ section.
 1. `GET /gateways/:device_id/:device_type/:group_id`. Returns a JSON blob describing the state of the the provided group.
 1. `DELETE /gateways/:device_id/:device_type/:group_id`. Deletes state associated with the provided group.
+1. `(GET|PUT|DELETE) /gateways/:device_alias`.  Same as the previous three routes except acting on aliases instead of IDs.  404 is returned if the alias does not exist.
 1. `POST /raw_commands/:device_type`. Sends a raw RF packet with radio configs associated with `:device_type`. Example body:
     ```
     {"packet": "01 02 03 04 05 06 07 08 09", "num_repeats": 10}
