@@ -43,7 +43,7 @@ private:
     const bool retain = false
   );
 
-  inline static void bindTopicString(
+  inline void bindTopicString(
     String& topicPattern,
     const MiLightRemoteConfig& remoteConfig,
     const uint16_t deviceId,

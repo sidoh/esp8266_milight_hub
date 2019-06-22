@@ -67,9 +67,17 @@ protected:
   void handleFirmwarePost();
   void handleListenGateway(RequestContext& request);
   void handleSendRaw(RequestContext& request);
+
   void handleUpdateGroup(RequestContext& request);
-  void handleDeleteGroup(RequestContext& request);
+  void handleUpdateGroupAlias(RequestContext& request);
+
   void handleGetGroup(RequestContext& request);
+  void handleGetGroupAlias(RequestContext& request);
+  void _handleGetGroup(BulbId bulbId, RequestContext& request);
+
+  void handleDeleteGroup(RequestContext& request);
+  void handleDeleteGroupAlias(RequestContext& request);
+  void _handleDeleteGroup(BulbId bulbId, RequestContext& request);
 
   void handleRequest(const JsonObject& request);
   void handleWsEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length);

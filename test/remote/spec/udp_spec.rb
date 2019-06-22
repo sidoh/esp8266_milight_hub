@@ -73,7 +73,7 @@ RSpec.describe 'UDP servers' do
       seen_state = false
 
       @mqtt_client.on_state(@id_params) do |id, message|
-        seen_state = (id == @id_params && desired_state.all? { |k,v| v == message[k] })
+        seen_state = desired_state.all? { |k,v| v == message[k] }
       end
       @udp_client.group(@id_params[:group_id]).on.brightness(48)
       @mqtt_client.wait_for_listeners
@@ -92,7 +92,7 @@ RSpec.describe 'UDP servers' do
       seen_state = false
 
       @mqtt_client.on_state(@id_params) do |id, message|
-        seen_state = (id == @id_params && desired_state.all? { |k,v| v == message[k] })
+        seen_state = desired_state.all? { |k,v| v == message[k] }
       end
 
       @udp_client.group(@id_params[:group_id])

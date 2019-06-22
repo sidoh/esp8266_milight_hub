@@ -144,6 +144,49 @@ void Settings::patch(JsonObject parsedSettings) {
     JsonArray arr = parsedSettings["group_state_fields"];
     groupStateFields = JsonHelpers::jsonArrToVector<GroupStateField, const char*>(arr, GroupStateFieldHelpers::getFieldByName);
   }
+
+  if (parsedSettings.containsKey("group_id_aliases")) {
+    parseGroupIdAliases(parsedSettings);
+  }
+}
+
+std::map<String, BulbId>::const_iterator Settings::findAlias(MiLightRemoteType deviceType, uint16_t deviceId, uint8_t groupId) {
+  BulbId searchId{ deviceId, groupId, deviceType };
+
+  for (auto it = groupIdAliases.begin(); it != groupIdAliases.end(); ++it) {
+    if (searchId == it->second) {
+      return it;
+    }
+  }
+
+  return groupIdAliases.end();
+}
+
+void Settings::parseGroupIdAliases(JsonObject json) {
+  JsonObject aliases = json["group_id_aliases"];
+  groupIdAliases.clear();
+
+  for (JsonPair kv : aliases) {
+    JsonArray bulbIdProps = kv.value();
+    BulbId bulbId = {
+      bulbIdProps[1].as<uint16_t>(),
+      bulbIdProps[2].as<uint8_t>(),
+      MiLightRemoteTypeHelpers::remoteTypeFromString(bulbIdProps[0].as<String>())
+    };
+    groupIdAliases[kv.key().c_str()] = bulbId;
+  }
+}
+
+void Settings::dumpGroupIdAliases(JsonObject json) {
+  JsonObject aliases = json.createNestedObject("group_id_aliases");
+
+  for (std::map<String, BulbId>::iterator itr = groupIdAliases.begin(); itr != groupIdAliases.end(); ++itr) {
+    JsonArray bulbProps = aliases.createNestedArray(itr->first);
+    BulbId bulbId = itr->second;
+    bulbProps.add(MiLightRemoteTypeHelpers::remoteTypeToString(bulbId.deviceType));
+    bulbProps.add(bulbId.deviceId);
+    bulbProps.add(bulbId.groupId);
+  }
 }
 
 void Settings::load(Settings& settings) {
@@ -245,6 +288,8 @@ void Settings::serialize(Print& stream, const bool prettyPrint) {
 
   JsonArray groupStateFieldArr = root.createNestedArray("group_state_fields");
   JsonHelpers::vectorToJsonArr<GroupStateField, const char*>(groupStateFieldArr, groupStateFields, GroupStateFieldHelpers::getFieldName);
+
+  dumpGroupIdAliases(root.as<JsonObject>());
 
   if (prettyPrint) {
     serializeJsonPretty(root, stream);

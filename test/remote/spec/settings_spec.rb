@@ -128,6 +128,23 @@ RSpec.describe 'Settings' do
     end
   end
 
+  context 'group id labels' do
+    it 'should store ID labels' do
+      id = 1
+
+      aliases = Hash[
+        StateHelpers::ALL_REMOTE_TYPES.map do |remote_type|
+          ["test_#{id += 1}", [remote_type, id, 1]]
+        end
+      ]
+
+      @client.patch_settings(group_id_aliases: aliases)
+      settings = @client.get('/settings')
+
+      expect(settings['group_id_aliases']).to eq(aliases)
+    end
+  end
+
   context 'static ip' do
     it 'should boot with static IP when applied' do
       static_ip = ENV.fetch('ESPMH_STATIC_IP')

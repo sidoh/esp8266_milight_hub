@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include <inttypes.h>
 #include <functional>
-#include <MiLightConstants.h>
+#include <MiLightRemoteType.h>
 #include <ArduinoJson.h>
 #include <GroupState.h>
 #include <GroupStateStore.h>
