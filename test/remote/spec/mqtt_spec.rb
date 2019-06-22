@@ -360,8 +360,6 @@ RSpec.describe 'MQTT' do
           seen_update = (message['state'] == 'ON')
         end
 
-        sleep 1
-
         # Will use hex by default
         @mqtt_client.patch_state(@id_params, status: 'ON')
         @mqtt_client.wait_for_listeners
