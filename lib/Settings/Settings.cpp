@@ -98,6 +98,7 @@ void Settings::patch(JsonObject parsedSettings) {
   this->setIfPresent(parsedSettings, "wifi_static_ip_gateway", wifiStaticIPGateway);
   this->setIfPresent(parsedSettings, "wifi_static_ip_netmask", wifiStaticIPNetmask);
   this->setIfPresent(parsedSettings, "packet_repeats_per_loop", packetRepeatsPerLoop);
+  this->setIfPresent(parsedSettings, "home_assistant_discovery_prefix", homeAssistantDiscoveryPrefix);
 
   if (parsedSettings.containsKey("rf24_channels")) {
     JsonArray arr = parsedSettings["rf24_channels"];
@@ -271,6 +272,7 @@ void Settings::serialize(Print& stream, const bool prettyPrint) {
   root["wifi_static_ip_gateway"] = this->wifiStaticIPGateway;
   root["wifi_static_ip_netmask"] = this->wifiStaticIPNetmask;
   root["packet_repeats_per_loop"] = this->packetRepeatsPerLoop;
+  root["home_assistant_discovery_prefix"] = this->homeAssistantDiscoveryPrefix;
 
   JsonArray channelArr = root.createNestedArray("rf24_channels");
   JsonHelpers::vectorToJsonArr<RF24Channel, String>(channelArr, rf24Channels, RF24ChannelHelpers::nameFromValue);
