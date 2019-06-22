@@ -182,7 +182,6 @@ RSpec.describe 'MQTT' do
 
       (1..num_updates).each do |i|
         @mqtt_client.patch_state(@id_params, level: i)
-        sleep 0.1
       end
 
       @mqtt_client.wait_for_listeners
