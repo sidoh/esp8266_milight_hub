@@ -457,7 +457,7 @@ RSpec.describe 'MQTT' do
         @mqtt_client.wait_for_listeners
 
         expect(seen_alias).to eq('test_group')
-        expect(seen_state['status']).to eq('ON')
+        expect(seen_state['state']).to eq('ON')
       end
 
       it 'should delete retained alias messages' do
