@@ -190,7 +190,7 @@ RSpec.describe 'MQTT' do
       avg = update_timestamp_gaps.sum / update_timestamp_gaps.length
 
       expect(update_timestamp_gaps.length).to be >= 3
-      expect((avg - 0.5).abs).to be < 0.02
+      expect((avg - 0.5).abs).to be < 0.15, "Should be within margin of error of rate limit"
     end
   end
 
