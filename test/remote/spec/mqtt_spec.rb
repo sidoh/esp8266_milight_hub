@@ -122,7 +122,7 @@ RSpec.describe 'MQTT' do
       @client.patch_state({status: 'off'}, @id_params)
 
       @mqtt_client.on_state(@id_params) do |id, message|
-        seen_state = (id == @id_params && desired_state.all? { |k,v| v == message[k] })
+        seen_state = desired_state.all? { |k,v| v == message[k] }
       end
 
       @mqtt_client.patch_state(@id_params, desired_state)
