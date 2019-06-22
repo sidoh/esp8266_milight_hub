@@ -25,6 +25,7 @@
 #include <BulbStateUpdater.h>
 #include <RadioSwitchboard.h>
 #include <PacketSender.h>
+#include <HomeAssistantDiscoveryClient.h>
 
 #include <vector>
 #include <memory>
