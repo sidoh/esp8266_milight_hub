@@ -106,7 +106,6 @@ RSpec.describe 'REST Server' do
       sleep(1)
 
       state = @client.get_state(id)
-      puts state.inspect
       expect(state['status']).to eq('ON')
     end
   end
