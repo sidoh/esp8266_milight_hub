@@ -239,6 +239,13 @@ void applySettings() {
   if (settings.mqttServer().length() > 0) {
     mqttClient = new MqttClient(settings, milightClient);
     mqttClient->begin();
+    mqttClient->onConnect([settings, mqttClient]() {
+      if (settings.homeAssistantDiscoveryPrefix.length() > 0) {
+        HomeAssistantDiscoveryClient discoveryClient(settings, mqttClient);
+        discoveryClient.sendDiscoverableDevices(settings.groupIdAliases);
+      }
+    });
+
     bulbStateUpdater = new BulbStateUpdater(settings, *mqttClient, *stateStore);
   }
 

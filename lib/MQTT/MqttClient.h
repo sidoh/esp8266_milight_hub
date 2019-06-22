@@ -13,6 +13,8 @@
 
 class MqttClient {
 public:
+  using OnConnectFn = std::function<void()>;
+
   MqttClient(Settings& settings, MiLightClient*& milightClient);
   ~MqttClient();
 
@@ -21,6 +23,8 @@ public:
   void reconnect();
   void sendUpdate(const MiLightRemoteConfig& remoteConfig, uint16_t deviceId, uint16_t groupId, const char* update);
   void sendState(const MiLightRemoteConfig& remoteConfig, uint16_t deviceId, uint16_t groupId, const char* update);
+  void send(const char* topic, const char* message, const bool retain = false);
+  void onConnect(OnConnectFn fn);
 
 private:
   WiFiClient tcpClient;
@@ -29,6 +33,8 @@ private:
   Settings& settings;
   char* domain;
   unsigned long lastConnectAttempt;
+  OnConnectFn onConnectFn;
+  bool connected;
 
   void sendBirthMessage();
   bool connect();

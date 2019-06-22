@@ -16,7 +16,8 @@ MqttClient::MqttClient(Settings& settings, MiLightClient*& milightClient)
   : mqttClient(tcpClient),
     milightClient(milightClient),
     settings(settings),
-    lastConnectAttempt(0)
+    lastConnectAttempt(0),
+    connected(false)
 {
   String strDomain = settings.mqttServer();
   this->domain = new char[strDomain.length() + 1];
@@ -28,6 +29,10 @@ MqttClient::~MqttClient() {
   mqttClient.publish(settings.mqttClientStatusTopic.c_str(), aboutStr.c_str(), true);
   mqttClient.disconnect();
   delete this->domain;
+}
+
+void MqttClient::onConnect(OnConnectFn fn) {
+  this->onConnectFn = fn;
 }
 
 void MqttClient::begin() {
@@ -117,6 +122,13 @@ void MqttClient::reconnect() {
 void MqttClient::handleClient() {
   reconnect();
   mqttClient.loop();
+
+  if (!connected && mqttClient.connected()) {
+    this->connected = true;
+    this->onConnectFn();
+  } else if (!mqttClient.connected()) {
+    this->connected = false;
+  }
 }
 
 void MqttClient::sendUpdate(const MiLightRemoteConfig& remoteConfig, uint16_t deviceId, uint16_t groupId, const char* update) {
@@ -144,6 +156,10 @@ void MqttClient::subscribe() {
   mqttClient.subscribe(topic.c_str());
 }
 
+void MqttClient::send(const char* topic, const char* message, const bool retain) {
+  mqttClient.publish(topic, message, retain);
+}
+
 void MqttClient::publish(
   const String& _topic,
   const MiLightRemoteConfig &remoteConfig,
@@ -163,7 +179,7 @@ void MqttClient::publish(
   printf("MqttClient - publishing update to %s\n", topic.c_str());
 #endif
 
-  mqttClient.publish(topic.c_str(), message, retain);
+  send(topic.c_str(), message, retain);
 }
 
 void MqttClient::publishCallback(char* topic, byte* payload, int length) {
