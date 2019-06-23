@@ -165,6 +165,13 @@ std::map<String, BulbId>::const_iterator Settings::findAlias(MiLightRemoteType d
 
 void Settings::parseGroupIdAliases(JsonObject json) {
   JsonObject aliases = json["group_id_aliases"];
+
+  // Save group IDs that were deleted so that they can be processed by discovery
+  // if necessary
+  for (auto it = groupIdAliases.begin(); it != groupIdAliases.end(); ++it) {
+    deletedGroupIdAliases[it->second.getCompactId()] = it->second;
+  }
+
   groupIdAliases.clear();
 
   for (JsonPair kv : aliases) {
@@ -175,6 +182,9 @@ void Settings::parseGroupIdAliases(JsonObject json) {
       MiLightRemoteTypeHelpers::remoteTypeFromString(bulbIdProps[0].as<String>())
     };
     groupIdAliases[kv.key().c_str()] = bulbId;
+
+    // If added this round, do not mark as deleted.
+    deletedGroupIdAliases.erase(bulbId.getCompactId());
   }
 }
 
