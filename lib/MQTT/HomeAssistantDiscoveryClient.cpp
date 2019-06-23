@@ -122,8 +122,8 @@ String HomeAssistantDiscoveryClient::buildTopic(const BulbId& bulbId) {
   // make the object ID based on the actual parameters rather than the alias.
   topic += "/";
   topic += MiLightRemoteTypeHelpers::remoteTypeToString(bulbId.deviceType);
-  topic += "_0x";
-  topic += String(bulbId.deviceId, HEX);
+  topic += "_";
+  topic += bulbId.getHexDeviceId();
   topic += "_";
   topic += bulbId.groupId;
   topic += "/config";
@@ -133,10 +133,11 @@ String HomeAssistantDiscoveryClient::buildTopic(const BulbId& bulbId) {
 
 String HomeAssistantDiscoveryClient::bindTopicVariables(const String& topic, const char* alias, const BulbId& bulbId) {
   String boundTopic = topic;
+  String hexDeviceId = bulbId.getHexDeviceId();
 
   boundTopic.replace(":device_alias", alias);
-  boundTopic.replace(":device_id", String("0x") + String(bulbId.deviceId, HEX));
-  boundTopic.replace(":hex_device_id", String("0x") + String(bulbId.deviceId, HEX));
+  boundTopic.replace(":device_id", hexDeviceId);
+  boundTopic.replace(":hex_device_id", hexDeviceId);
   boundTopic.replace(":dec_device_id", String(bulbId.deviceId));
   boundTopic.replace(":device_type", MiLightRemoteTypeHelpers::remoteTypeToString(bulbId.deviceType));
   boundTopic.replace(":group_id", String(bulbId.groupId));

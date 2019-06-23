@@ -13,5 +13,7 @@ struct BulbId {
   BulbId(const uint16_t deviceId, const uint8_t groupId, const MiLightRemoteType deviceType);
   bool operator==(const BulbId& other);
   void operator=(const BulbId& other);
+
   uint32_t getCompactId() const;
+  String getHexDeviceId() const;
 };
