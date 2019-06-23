@@ -70,7 +70,7 @@ class MqttClient
     end
   end
 
-  def on_message(topic, timeout = 10, &block)
+  def on_message(topic, timeout = 10, raise_error = true, &block)
     @listen_threads << Thread.new do
       begin
         Timeout.timeout(timeout) do
@@ -81,7 +81,7 @@ class MqttClient
         end
       rescue Timeout::Error => e
         puts "Timed out listening for message on: #{topic}"
-        raise e
+        raise e if raise_error
       rescue BreakListenLoopError
       end
     end
