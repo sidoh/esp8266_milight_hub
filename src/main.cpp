@@ -244,6 +244,9 @@ void applySettings() {
       if (settings.homeAssistantDiscoveryPrefix.length() > 0) {
         HomeAssistantDiscoveryClient discoveryClient(settings, mqttClient);
         discoveryClient.sendDiscoverableDevices(settings.groupIdAliases);
+        discoveryClient.removeOldDevices(settings.deletedGroupIdAliases);
+
+        settings.deletedGroupIdAliases.clear();
       }
     });
 

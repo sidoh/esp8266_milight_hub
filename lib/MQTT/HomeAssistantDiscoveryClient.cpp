@@ -15,7 +15,17 @@ void HomeAssistantDiscoveryClient::sendDiscoverableDevices(const std::map<String
   }
 }
 
-void HomeAssistantDiscoveryClient::removeConfig(const char* alias, const BulbId& bulbId) {
+void HomeAssistantDiscoveryClient::removeOldDevices(const std::map<uint32_t, BulbId>& aliases) {
+#ifdef MQTT_DEBUG
+  Serial.println(F("HomeAssistantDiscoveryClient: Removing discoverable devices..."));
+#endif
+
+  for (auto itr = aliases.begin(); itr != aliases.end(); ++itr) {
+    removeConfig(itr->second);
+  }
+}
+
+void HomeAssistantDiscoveryClient::removeConfig(const BulbId& bulbId) {
   // Remove by publishing an empty message
   String topic = buildTopic(bulbId);
   mqttClient->send(topic.c_str(), "", true);

@@ -9,9 +9,10 @@ public:
   HomeAssistantDiscoveryClient(Settings& settings, MqttClient* mqttClient);
 
   void addConfig(const char* alias, const BulbId& bulbId);
-  void removeConfig(const char* alias, const BulbId& bulbId);
+  void removeConfig(const BulbId& bulbId);
 
   void sendDiscoverableDevices(const std::map<String, BulbId>& aliases);
+  void removeOldDevices(const std::map<uint32_t, BulbId>& aliases);
 
 private:
   Settings& settings;
