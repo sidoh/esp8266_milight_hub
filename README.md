@@ -228,6 +228,7 @@ To configure your ESP to integrate with MQTT, fill out the following settings:
 1. `:device_id` - Device ID. Can be hexadecimal (e.g. `0x1234`) or decimal (e.g. `4660`).
 1. `:device_type` - Remote type.  `rgbw`, `fut089`, etc.
 1. `:group_id` - Group.  0-4 for most remotes.  The "All" group is group 0.
+1. `:device_alias` - Alias for the given device.  Note that if an alias is not configured, a default token `__unnamed_group` will be substituted instead.
 
 Messages should be JSON objects using exactly the same schema that the REST gateway uses for the `/gateways/:device_id/:device_type/:group_id` endpoint. Documented above in the _Bulb commands_ section.
 
