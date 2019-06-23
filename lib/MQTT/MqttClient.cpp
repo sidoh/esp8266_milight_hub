@@ -157,7 +157,29 @@ void MqttClient::subscribe() {
 }
 
 void MqttClient::send(const char* topic, const char* message, const bool retain) {
-  mqttClient.publish(topic, message, retain);
+  size_t len = strlen(message);
+  size_t topicLen = strlen(topic);
+
+  if ((topicLen + len + 10) < MQTT_MAX_PACKET_SIZE ) {
+    mqttClient.publish(topic, message, retain);
+  } else {
+    const uint8_t* messageBuffer = reinterpret_cast<const uint8_t*>(message);
+    mqttClient.beginPublish(topic, len, retain);
+
+#ifdef MQTT_DEBUG
+    Serial.printf_P(PSTR("Printing message in parts because it's too large for the packet buffer (%d bytes)"), len);
+#endif
+
+    for (size_t i = 0; i < len; i += MQTT_PACKET_CHUNK_SIZE) {
+      size_t toWrite = std::min(static_cast<size_t>(MQTT_PACKET_CHUNK_SIZE), len - i);
+      mqttClient.write(messageBuffer+i, toWrite);
+#ifdef MQTT_DEBUG
+      Serial.printf_P(PSTR("  Wrote %d bytes\n"), toWrite);
+#endif
+    }
+
+    mqttClient.endPublish();
+  }
 }
 
 void MqttClient::publish(
