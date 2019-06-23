@@ -79,6 +79,16 @@ var UI_FIELDS = [ {
     type: "string",
     tab: "tab-wifi"
   }, {
+    tag: "wifi_force_b_mode",
+    friendly: "Force 802.11b Mode",
+    help: "If true, force the ESP8266 into 802.11b mode.  Try this if you're having wifi stability problems.",
+    type: "option_buttons",
+    options: {
+      'true': 'True',
+      'false': 'False'
+    },
+    tab: "tab-wifi"
+  }, {
     tag: "ce_pin",
     friendly: "CE / PKT pin",
     help: "Pin on ESP8266 used for 'CE' (for NRF24L01 interface) or 'PKT' (for 'PL1167/LT8900' interface)",

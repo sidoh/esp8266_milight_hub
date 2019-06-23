@@ -28,7 +28,8 @@ RSpec.describe 'Settings' do
       {
         'simple_mqtt_client_status' => [true, false],
         'packet_repeats_per_loop' => [10],
-        'home_assistant_discovery_prefix' => ['', 'abc', 'a/b/c']
+        'home_assistant_discovery_prefix' => ['', 'abc', 'a/b/c'],
+        'wifi_force_b_mode' => [true, false]
       }.each do |key, values|
         values.each do |v|
           @client.patch_settings({key => v})

@@ -113,6 +113,7 @@ public:
     groupStateFields(DEFAULT_GROUP_STATE_FIELDS),
     rf24ListenChannel(RF24Channel::RF24_LOW),
     packetRepeatsPerLoop(10),
+    wifiForceBMode(false),
     _autoRestartPeriod(0)
   { }
 
@@ -185,6 +186,7 @@ public:
   std::map<String, BulbId> groupIdAliases;
   std::map<uint32_t, BulbId> deletedGroupIdAliases;
   String homeAssistantDiscoveryPrefix;
+  bool wifiForceBMode;
 
 protected:
   size_t _autoRestartPeriod;
