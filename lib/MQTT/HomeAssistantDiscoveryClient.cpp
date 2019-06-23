@@ -117,7 +117,7 @@ String HomeAssistantDiscoveryClient::buildTopic(const BulbId& bulbId) {
 
   topic += "light/";
   // Use a static ID that doesn't depend on configuration.
-  topic += "milight_hub_" + (ESP.getChipId());
+  topic += "milight_hub_" + String(ESP.getChipId());
 
   // make the object ID based on the actual parameters rather than the alias.
   topic += "/";
