@@ -7,7 +7,6 @@ PacketSender::PacketSender(
   PacketSentHandler packetSentHandler
 ) : radioSwitchboard(radioSwitchboard)
   , settings(settings)
-  , stateStore(stateStore)
   , currentPacket(nullptr)
   , packetRepeatsRemaining(0)
   , packetSentHandler(packetSentHandler)
@@ -75,6 +74,14 @@ void PacketSender::handleCurrentPacket() {
   if (packetRepeatsRemaining == 0 && packetSentHandler != nullptr) {
     packetSentHandler(currentPacket->packet, *currentPacket->remoteConfig);
   }
+}
+
+size_t PacketSender::queueLength() const {
+  return queue.size();
+}
+
+size_t PacketSender::droppedPackets() const {
+  return queue.getDroppedPacketCount();
 }
 
 void PacketSender::sendRepeats(size_t num) {

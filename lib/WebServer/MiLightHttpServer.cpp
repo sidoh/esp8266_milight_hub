@@ -148,6 +148,10 @@ void MiLightHttpServer::onGroupDeleted(GroupDeletedHandler handler) {
 
 void MiLightHttpServer::handleAbout(RequestContext& request) {
   AboutHelper::generateAboutObject(request.response.json);
+
+  JsonObject queueStats = request.response.json.createNestedObject("queue_stats");
+  queueStats[F("length")] = packetSender->queueLength();
+  queueStats[F("dropped_packets")] = packetSender->droppedPackets();
 }
 
 void MiLightHttpServer::handleGetRadioConfigs(RequestContext& request) {

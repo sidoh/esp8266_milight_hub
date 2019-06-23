@@ -22,6 +22,10 @@ public:
   // Return true if there are queued packets
   bool isSending();
 
+  // Return the number of queued packets
+  size_t queueLength() const;
+  size_t droppedPackets() const;
+
 private:
   RadioSwitchboard& radioSwitchboard;
   Settings& settings;
