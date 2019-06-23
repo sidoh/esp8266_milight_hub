@@ -240,7 +240,7 @@ void applySettings() {
   if (settings.mqttServer().length() > 0) {
     mqttClient = new MqttClient(settings, milightClient);
     mqttClient->begin();
-    mqttClient->onConnect([settings, mqttClient]() {
+    mqttClient->onConnect([]() {
       if (settings.homeAssistantDiscoveryPrefix.length() > 0) {
         HomeAssistantDiscoveryClient discoveryClient(settings, mqttClient);
         discoveryClient.sendDiscoverableDevices(settings.groupIdAliases);
