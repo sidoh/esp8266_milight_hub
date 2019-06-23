@@ -87,8 +87,10 @@ class MqttClient
     end
   end
 
-  def publish(topic, state = {})
-    @client.publish(topic, state.to_json)
+  def publish(topic, state = {}, retain = false)
+    state = state.to_json unless state.is_a?(String)
+
+    @client.publish(topic, state, retain)
   end
 
   def patch_state(id_params, state = {})
