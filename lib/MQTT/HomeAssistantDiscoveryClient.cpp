@@ -37,8 +37,8 @@ void HomeAssistantDiscoveryClient::addConfig(const char* alias, const BulbId& bu
 
   config[F("schema")] = F("json");
   config[F("name")] = alias;
-  config[F("command_topic")] = bindTopicVariables(settings.mqttTopicPattern, alias, bulbId);
-  config[F("state_topic")] = bindTopicVariables(settings.mqttStateTopicPattern, alias, bulbId);
+  config[F("command_topic")] = mqttClient->bindTopicString(settings.mqttTopicPattern, bulbId);
+  config[F("state_topic")] = mqttClient->bindTopicString(settings.mqttStateTopicPattern, bulbId);
 
   // HomeAssistant only supports simple client availability
   if (settings.mqttClientStatusTopic.length() > 0 && settings.simpleMqttClientStatus) {

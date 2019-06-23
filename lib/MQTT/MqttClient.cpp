@@ -194,8 +194,8 @@ void MqttClient::publish(
     return;
   }
 
-  String topic = _topic;
-  MqttClient::bindTopicString(topic, remoteConfig, deviceId, groupId);
+  BulbId bulbId(deviceId, groupId, remoteConfig.type);
+  String topic = bindTopicString(_topic, bulbId);
 
 #ifdef MQTT_DEBUG
   printf("MqttClient - publishing update to %s\n", topic.c_str());
@@ -274,28 +274,24 @@ void MqttClient::publishCallback(char* topic, byte* payload, int length) {
   milightClient->update(obj);
 }
 
-inline void MqttClient::bindTopicString(
-  String& topicPattern,
-  const MiLightRemoteConfig& remoteConfig,
-  const uint16_t deviceId,
-  const uint16_t groupId
-) {
-  String deviceIdHex = String(deviceId, 16);
-  deviceIdHex.toUpperCase();
-  deviceIdHex = String("0x") + deviceIdHex;
+String MqttClient::bindTopicString(const String& topicPattern, const BulbId& bulbId) {
+  String boundTopic = topicPattern;
+  String deviceIdHex = bulbId.getHexDeviceId();
 
-  topicPattern.replace(":device_id", deviceIdHex);
-  topicPattern.replace(":hex_device_id", deviceIdHex);
-  topicPattern.replace(":dec_device_id", String(deviceId));
-  topicPattern.replace(":group_id", String(groupId));
-  topicPattern.replace(":device_type", remoteConfig.name);
+  boundTopic.replace(":device_id", deviceIdHex);
+  boundTopic.replace(":hex_device_id", deviceIdHex);
+  boundTopic.replace(":dec_device_id", String(bulbId.deviceId));
+  boundTopic.replace(":group_id", String(bulbId.groupId));
+  boundTopic.replace(":device_type", MiLightRemoteTypeHelpers::remoteTypeToString(bulbId.deviceType));
 
-  auto it = settings.findAlias(remoteConfig.type, deviceId, groupId);
+  auto it = settings.findAlias(bulbId.deviceType, bulbId.deviceId, bulbId.groupId);
   if (it != settings.groupIdAliases.end()) {
-    topicPattern.replace(":device_alias", it->first);
+    boundTopic.replace(":device_alias", it->first);
   } else {
-    topicPattern.replace(":device_alias", "__unnamed_group");
+    boundTopic.replace(":device_alias", "__unnamed_group");
   }
+
+  return boundTopic;
 }
 
 String MqttClient::generateConnectionStatusMessage(const char* connectionStatus) {

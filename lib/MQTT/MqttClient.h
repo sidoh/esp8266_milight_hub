@@ -30,6 +30,8 @@ public:
   void send(const char* topic, const char* message, const bool retain = false);
   void onConnect(OnConnectFn fn);
 
+  String bindTopicString(const String& topicPattern, const BulbId& bulbId);
+
 private:
   WiFiClient tcpClient;
   PubSubClient mqttClient;
@@ -51,13 +53,6 @@ private:
     uint16_t groupId,
     const char* update,
     const bool retain = false
-  );
-
-  inline void bindTopicString(
-    String& topicPattern,
-    const MiLightRemoteConfig& remoteConfig,
-    const uint16_t deviceId,
-    const uint16_t groupId
   );
 
   String generateConnectionStatusMessage(const char* status);
