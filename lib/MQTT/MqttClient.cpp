@@ -16,7 +16,8 @@ MqttClient::MqttClient(Settings& settings, MiLightClient*& milightClient)
   : mqttClient(tcpClient),
     milightClient(milightClient),
     settings(settings),
-    lastConnectAttempt(0)
+    lastConnectAttempt(0),
+    connected(false)
 {
   String strDomain = settings.mqttServer();
   this->domain = new char[strDomain.length() + 1];
@@ -28,6 +29,10 @@ MqttClient::~MqttClient() {
   mqttClient.publish(settings.mqttClientStatusTopic.c_str(), aboutStr.c_str(), true);
   mqttClient.disconnect();
   delete this->domain;
+}
+
+void MqttClient::onConnect(OnConnectFn fn) {
+  this->onConnectFn = fn;
 }
 
 void MqttClient::begin() {
@@ -117,6 +122,13 @@ void MqttClient::reconnect() {
 void MqttClient::handleClient() {
   reconnect();
   mqttClient.loop();
+
+  if (!connected && mqttClient.connected()) {
+    this->connected = true;
+    this->onConnectFn();
+  } else if (!mqttClient.connected()) {
+    this->connected = false;
+  }
 }
 
 void MqttClient::sendUpdate(const MiLightRemoteConfig& remoteConfig, uint16_t deviceId, uint16_t groupId, const char* update) {
@@ -144,6 +156,32 @@ void MqttClient::subscribe() {
   mqttClient.subscribe(topic.c_str());
 }
 
+void MqttClient::send(const char* topic, const char* message, const bool retain) {
+  size_t len = strlen(message);
+  size_t topicLen = strlen(topic);
+
+  if ((topicLen + len + 10) < MQTT_MAX_PACKET_SIZE ) {
+    mqttClient.publish(topic, message, retain);
+  } else {
+    const uint8_t* messageBuffer = reinterpret_cast<const uint8_t*>(message);
+    mqttClient.beginPublish(topic, len, retain);
+
+#ifdef MQTT_DEBUG
+    Serial.printf_P(PSTR("Printing message in parts because it's too large for the packet buffer (%d bytes)"), len);
+#endif
+
+    for (size_t i = 0; i < len; i += MQTT_PACKET_CHUNK_SIZE) {
+      size_t toWrite = std::min(static_cast<size_t>(MQTT_PACKET_CHUNK_SIZE), len - i);
+      mqttClient.write(messageBuffer+i, toWrite);
+#ifdef MQTT_DEBUG
+      Serial.printf_P(PSTR("  Wrote %d bytes\n"), toWrite);
+#endif
+    }
+
+    mqttClient.endPublish();
+  }
+}
+
 void MqttClient::publish(
   const String& _topic,
   const MiLightRemoteConfig &remoteConfig,
@@ -156,14 +194,14 @@ void MqttClient::publish(
     return;
   }
 
-  String topic = _topic;
-  MqttClient::bindTopicString(topic, remoteConfig, deviceId, groupId);
+  BulbId bulbId(deviceId, groupId, remoteConfig.type);
+  String topic = bindTopicString(_topic, bulbId);
 
 #ifdef MQTT_DEBUG
   printf("MqttClient - publishing update to %s\n", topic.c_str());
 #endif
 
-  mqttClient.publish(topic.c_str(), message, retain);
+  send(topic.c_str(), message, retain);
 }
 
 void MqttClient::publishCallback(char* topic, byte* payload, int length) {
@@ -236,28 +274,24 @@ void MqttClient::publishCallback(char* topic, byte* payload, int length) {
   milightClient->update(obj);
 }
 
-inline void MqttClient::bindTopicString(
-  String& topicPattern,
-  const MiLightRemoteConfig& remoteConfig,
-  const uint16_t deviceId,
-  const uint16_t groupId
-) {
-  String deviceIdHex = String(deviceId, 16);
-  deviceIdHex.toUpperCase();
-  deviceIdHex = String("0x") + deviceIdHex;
+String MqttClient::bindTopicString(const String& topicPattern, const BulbId& bulbId) {
+  String boundTopic = topicPattern;
+  String deviceIdHex = bulbId.getHexDeviceId();
 
-  topicPattern.replace(":device_id", deviceIdHex);
-  topicPattern.replace(":hex_device_id", deviceIdHex);
-  topicPattern.replace(":dec_device_id", String(deviceId));
-  topicPattern.replace(":group_id", String(groupId));
-  topicPattern.replace(":device_type", remoteConfig.name);
+  boundTopic.replace(":device_id", deviceIdHex);
+  boundTopic.replace(":hex_device_id", deviceIdHex);
+  boundTopic.replace(":dec_device_id", String(bulbId.deviceId));
+  boundTopic.replace(":group_id", String(bulbId.groupId));
+  boundTopic.replace(":device_type", MiLightRemoteTypeHelpers::remoteTypeToString(bulbId.deviceType));
 
-  auto it = settings.findAlias(remoteConfig.type, deviceId, groupId);
+  auto it = settings.findAlias(bulbId.deviceType, bulbId.deviceId, bulbId.groupId);
   if (it != settings.groupIdAliases.end()) {
-    topicPattern.replace(":device_alias", it->first);
+    boundTopic.replace(":device_alias", it->first);
   } else {
-    topicPattern.replace(":device_alias", "__unnamed_group");
+    boundTopic.replace(":device_alias", "__unnamed_group");
   }
+
+  return boundTopic;
 }
 
 String MqttClient::generateConnectionStatusMessage(const char* connectionStatus) {

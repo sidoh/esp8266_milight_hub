@@ -34,3 +34,14 @@ bool BulbId::operator==(const BulbId &other) {
     && groupId == other.groupId
     && deviceType == other.deviceType;
 }
+
+uint32_t BulbId::getCompactId() const {
+  uint32_t id = (deviceId << 24) | (deviceType << 8) | groupId;
+  return id;
+}
+
+String BulbId::getHexDeviceId() const {
+  char hexDeviceId[7];
+  sprintf_P(hexDeviceId, PSTR("0x%X"), deviceId);
+  return hexDeviceId;
+}

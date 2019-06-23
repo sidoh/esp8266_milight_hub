@@ -183,6 +183,8 @@ public:
   String wifiStaticIPGateway;
   size_t packetRepeatsPerLoop;
   std::map<String, BulbId> groupIdAliases;
+  std::map<uint32_t, BulbId> deletedGroupIdAliases;
+  String homeAssistantDiscoveryPrefix;
 
 protected:
   size_t _autoRestartPeriod;

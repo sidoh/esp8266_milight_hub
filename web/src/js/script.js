@@ -187,6 +187,12 @@ var UI_FIELDS = [ {
     },
     tab: "tab-mqtt"
   }, {
+    tag: "home_assistant_discovery_prefix",
+    friendly: "HomeAssistant MQTT Discovery Prefix",
+    help: "If set, will enable integration with HomeAssistant's MQTT discovery functionality to allow saved aliases to be detected automatically",
+    type: "string",
+    tab: "tab-mqtt"
+  }, {
     tag:   "radio_interface_type",
     friendly: "Radio interface type",
     help: "2.4 GHz radio model. Only change this if you know you're not using an NRF24L01!",

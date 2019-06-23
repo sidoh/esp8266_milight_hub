@@ -98,6 +98,7 @@ void Settings::patch(JsonObject parsedSettings) {
   this->setIfPresent(parsedSettings, "wifi_static_ip_gateway", wifiStaticIPGateway);
   this->setIfPresent(parsedSettings, "wifi_static_ip_netmask", wifiStaticIPNetmask);
   this->setIfPresent(parsedSettings, "packet_repeats_per_loop", packetRepeatsPerLoop);
+  this->setIfPresent(parsedSettings, "home_assistant_discovery_prefix", homeAssistantDiscoveryPrefix);
 
   if (parsedSettings.containsKey("rf24_channels")) {
     JsonArray arr = parsedSettings["rf24_channels"];
@@ -164,6 +165,13 @@ std::map<String, BulbId>::const_iterator Settings::findAlias(MiLightRemoteType d
 
 void Settings::parseGroupIdAliases(JsonObject json) {
   JsonObject aliases = json["group_id_aliases"];
+
+  // Save group IDs that were deleted so that they can be processed by discovery
+  // if necessary
+  for (auto it = groupIdAliases.begin(); it != groupIdAliases.end(); ++it) {
+    deletedGroupIdAliases[it->second.getCompactId()] = it->second;
+  }
+
   groupIdAliases.clear();
 
   for (JsonPair kv : aliases) {
@@ -174,6 +182,9 @@ void Settings::parseGroupIdAliases(JsonObject json) {
       MiLightRemoteTypeHelpers::remoteTypeFromString(bulbIdProps[0].as<String>())
     };
     groupIdAliases[kv.key().c_str()] = bulbId;
+
+    // If added this round, do not mark as deleted.
+    deletedGroupIdAliases.erase(bulbId.getCompactId());
   }
 }
 
@@ -271,6 +282,7 @@ void Settings::serialize(Print& stream, const bool prettyPrint) {
   root["wifi_static_ip_gateway"] = this->wifiStaticIPGateway;
   root["wifi_static_ip_netmask"] = this->wifiStaticIPNetmask;
   root["packet_repeats_per_loop"] = this->packetRepeatsPerLoop;
+  root["home_assistant_discovery_prefix"] = this->homeAssistantDiscoveryPrefix;
 
   JsonArray channelArr = root.createNestedArray("rf24_channels");
   JsonHelpers::vectorToJsonArr<RF24Channel, String>(channelArr, rf24Channels, RF24ChannelHelpers::nameFromValue);

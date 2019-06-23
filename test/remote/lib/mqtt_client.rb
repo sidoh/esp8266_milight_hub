@@ -70,7 +70,7 @@ class MqttClient
     end
   end
 
-  def on_message(topic, timeout = 10, &block)
+  def on_message(topic, timeout = 10, raise_error = true, &block)
     @listen_threads << Thread.new do
       begin
         Timeout.timeout(timeout) do
@@ -81,14 +81,16 @@ class MqttClient
         end
       rescue Timeout::Error => e
         puts "Timed out listening for message on: #{topic}"
-        raise e
+        raise e if raise_error
       rescue BreakListenLoopError
       end
     end
   end
 
-  def publish(topic, state = {})
-    @client.publish(topic, state.to_json)
+  def publish(topic, state = {}, retain = false)
+    state = state.to_json unless state.is_a?(String)
+
+    @client.publish(topic, state, retain)
   end
 
   def patch_state(id_params, state = {})

@@ -109,7 +109,7 @@ void PacketSender::updateResendCount() {
 
   if (signedResends < static_cast<int>(settings.packetRepeatMinimum)) {
     signedResends = settings.packetRepeatMinimum;
-  } else if (signedResends > settings.packetRepeats) {
+  } else if (signedResends > static_cast<int>(settings.packetRepeats)) {
     signedResends = settings.packetRepeats;
   }
 
