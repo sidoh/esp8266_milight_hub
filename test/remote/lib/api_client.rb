@@ -83,7 +83,7 @@ class ApiClient
   end
 
   def state_path(params = {})
-    "/gateways/#{params[:id]}/#{params[:type]}/#{params[:group_id]}"
+    "/gateways/#{params[:id]}/#{params[:type]}/#{params[:group_id]}?blockOnQueue=true"
   end
 
   def delete_state(params = {})

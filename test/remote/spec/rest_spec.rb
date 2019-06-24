@@ -139,7 +139,7 @@ RSpec.describe 'REST Server' do
     end
 
     it 'should update state for known alias' do
-      path = "/gateways/#{@alias}"
+      path = "/gateways/#{@alias}?blockOnQueue=true"
 
       @client.put(path, status: 'ON', hue: 100)
       state = @client.get(path)

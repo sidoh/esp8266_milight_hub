@@ -493,7 +493,7 @@ var updateGroup = _.throttle(
   function(params) {
     try {
       $.ajax({
-        url: activeUrl(),
+        url: activeUrl() + "?blockOnQueue=true",
         method: 'PUT',
         data: JSON.stringify(params),
         contentType: 'application/json',
