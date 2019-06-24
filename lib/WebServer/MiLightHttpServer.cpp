@@ -322,9 +322,11 @@ void MiLightHttpServer::handleListenGateway(RequestContext& request) {
 }
 
 void MiLightHttpServer::sendGroupState(BulbId& bulbId, GroupState* state, RichHttp::Response& response) {
+  bool blockOnQueue = server.arg("blockOnQueue").equalsIgnoreCase("true");
+
   // Wait for packet queue to flush out.  State will not have been updated before that.
   // Bit hacky to call loop outside of main loop, but should be fine.
-  while (packetSender->isSending()) {
+  while (blockOnQueue && packetSender->isSending()) {
     packetSender->loop();
   }
 
