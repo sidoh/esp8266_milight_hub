@@ -420,7 +420,6 @@ void loop() {
   httpServer->handleClient();
 
   if (mqttClient) {
-    mqttClient->handleClient();
     bulbStateUpdater->loop();
   }
 

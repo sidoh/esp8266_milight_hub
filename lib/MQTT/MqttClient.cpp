@@ -7,28 +7,44 @@
 #include <WiFiClient.h>
 #include <MiLightRadioConfig.h>
 #include <AboutHelper.h>
+#include <memory>
+
+#ifdef ESP32
+#include <AsyncTCP.h>
+#include <freertos/semphr.h>
+#elif defined(ESP8266)
+#include <ESPAsyncTCP.h>
+#else
+#error Platform not supported
+#endif
+
+#if ASYNC_TCP_SSL_ENABLED
+#include <tcp_axtls.h>
+#define SHA1_SIZE 20
+#endif
 
 static const char* STATUS_CONNECTED = "connected";
 static const char* STATUS_DISCONNECTED = "disconnected_clean";
 static const char* STATUS_LWT_DISCONNECTED = "disconnected_unclean";
 
+static const uint8_t MQTT_DEFAULT_QOS = 1;
+
 MqttClient::MqttClient(Settings& settings, MiLightClient*& milightClient)
-  : mqttClient(tcpClient),
-    milightClient(milightClient),
+  : milightClient(milightClient),
     settings(settings),
-    lastConnectAttempt(0),
-    connected(false)
+    lastConnectAttempt(0)
 {
   String strDomain = settings.mqttServer();
-  this->domain = new char[strDomain.length() + 1];
-  strcpy(this->domain, strDomain.c_str());
+  this->domain = std::shared_ptr<char>(new char[strDomain.length() + 1], std::default_delete<char[]>());
+  strcpy(this->domain.get(), strDomain.c_str());
 }
 
 MqttClient::~MqttClient() {
-  String aboutStr = generateConnectionStatusMessage(STATUS_DISCONNECTED);
-  mqttClient.publish(settings.mqttClientStatusTopic.c_str(), aboutStr.c_str(), true);
-  mqttClient.disconnect();
-  delete this->domain;
+  if (settings.mqttClientStatusTopic.length() > 0) {
+    String aboutStr = generateConnectionStatusMessage(STATUS_DISCONNECTED);
+    mqttClient.publish(settings.mqttClientStatusTopic.c_str(), MQTT_DEFAULT_QOS, true, aboutStr.c_str());
+  }
+  mqttClient.disconnect(true);
 }
 
 void MqttClient::onConnect(OnConnectFn fn) {
@@ -44,57 +60,74 @@ void MqttClient::begin() {
     settings.mqttPort()
   );
 #endif
-
-  mqttClient.setServer(this->domain, settings.mqttPort());
-  mqttClient.setCallback(
-    [this](char* topic, byte* payload, int length) {
-      this->publishCallback(topic, payload, length);
-    }
-  );
-  reconnect();
-}
-
-bool MqttClient::connect() {
   char nameBuffer[30];
   sprintf_P(nameBuffer, PSTR("milight-hub-%u"), ESP.getChipId());
 
+  mqttClient
+    .setServer(this->domain, settings.mqttPort())
+    .setClientId(nameBuffer);
+
+  if (settings.mqttUsername.length() > 0) {
+    mqttClient.setCredentials(settings.mqttUsername.c_str(), settings.mqttPassword.c_str());
+  }
+
+  if (settings.mqttClientStatusTopic.length() > 0) {
+    // Does not copy the buffer, so we'll have to create space ourselves.
+    String lwtMessage = generateConnectionStatusMessage(STATUS_LWT_DISCONNECTED);
+    this->lwtBuffer = std::shared_ptr<char>(new char[lwtMessage.length()+1], std::default_delete<char[]>());
+    strcpy(this->lwtBuffer.get(), lwtMessage.c_str());
+
+    mqttClient.setWill(
+      settings.mqttClientStatusTopic.c_str(),
+      MQTT_DEFAULT_QOS,
+      true,
+      this->lwtBuffer.get()
+    );
+  }
+
+  mqttClient.onMessage(
+    [this](char* topic, char* payload, AsyncMqttClientMessageProperties properties, size_t len, size_t index, size_t total) {
+      this->publishCallback(topic, payload, len);
+    }
+  );
+
+  mqttClient.onConnect(
+    [this](bool sessionPresent) {
+#ifdef MQTT_DEBUG
+      Serial.println(F("MqttClient - Successfully connected to MQTT server"));
+#endif
+      subscribe();
+      sendBirthMessage();
+
+      if (this->onConnectFn) {
+        this->onConnectFn();
+      }
+    }
+  );
+
+  mqttClient.onDisconnect(
+    [this](AsyncMqttClientDisconnectReason disconnectReason) {
+#ifdef MQTT_DEBUG
+      Serial.printf_P(PSTR("MqttClient - Disconnected: %d\n"), disconnectReason);
+#endif
+      reconnect();
+    }
+  );
+
+  reconnect();
+}
+
+void MqttClient::connect() {
 #ifdef MQTT_DEBUG
     Serial.println(F("MqttClient - connecting"));
 #endif
-
-  if (settings.mqttUsername.length() > 0 && settings.mqttClientStatusTopic.length() > 0) {
-    return mqttClient.connect(
-      nameBuffer,
-      settings.mqttUsername.c_str(),
-      settings.mqttPassword.c_str(),
-      settings.mqttClientStatusTopic.c_str(),
-      2,
-      true,
-      generateConnectionStatusMessage(STATUS_LWT_DISCONNECTED).c_str()
-    );
-  } else if (settings.mqttUsername.length() > 0) {
-    return mqttClient.connect(
-      nameBuffer,
-      settings.mqttUsername.c_str(),
-      settings.mqttPassword.c_str()
-    );
-  } else if (settings.mqttClientStatusTopic.length() > 0) {
-    return mqttClient.connect(
-      nameBuffer,
-      settings.mqttClientStatusTopic.c_str(),
-      2,
-      true,
-      generateConnectionStatusMessage(STATUS_LWT_DISCONNECTED).c_str()
-    );
-  } else {
-    return mqttClient.connect(nameBuffer);
-  }
+  mqttClient.connect();
 }
 
 void MqttClient::sendBirthMessage() {
   if (settings.mqttClientStatusTopic.length() > 0) {
     String aboutStr = generateConnectionStatusMessage(STATUS_CONNECTED);
-    mqttClient.publish(settings.mqttClientStatusTopic.c_str(), aboutStr.c_str(), true);
+    mqttClient.publish(settings.mqttClientStatusTopic.c_str(), MQTT_DEFAULT_QOS, true, aboutStr.c_str());
   }
 }
 
@@ -104,31 +137,10 @@ void MqttClient::reconnect() {
   }
 
   if (! mqttClient.connected()) {
-    if (connect()) {
-      subscribe();
-      sendBirthMessage();
-
-#ifdef MQTT_DEBUG
-      Serial.println(F("MqttClient - Successfully connected to MQTT server"));
-#endif
-    } else {
-      Serial.println(F("ERROR: Failed to connect to MQTT server"));
-    }
+    connect();
   }
 
   lastConnectAttempt = millis();
-}
-
-void MqttClient::handleClient() {
-  reconnect();
-  mqttClient.loop();
-
-  if (!connected && mqttClient.connected()) {
-    this->connected = true;
-    this->onConnectFn();
-  } else if (!mqttClient.connected()) {
-    this->connected = false;
-  }
 }
 
 void MqttClient::sendUpdate(const MiLightRemoteConfig& remoteConfig, uint16_t deviceId, uint16_t groupId, const char* update) {
@@ -153,33 +165,11 @@ void MqttClient::subscribe() {
   printf_P(PSTR("MqttClient - subscribing to topic: %s\n"), topic.c_str());
 #endif
 
-  mqttClient.subscribe(topic.c_str());
+  mqttClient.subscribe(topic.c_str(), MQTT_DEFAULT_QOS);
 }
 
 void MqttClient::send(const char* topic, const char* message, const bool retain) {
-  size_t len = strlen(message);
-  size_t topicLen = strlen(topic);
-
-  if ((topicLen + len + 10) < MQTT_MAX_PACKET_SIZE ) {
-    mqttClient.publish(topic, message, retain);
-  } else {
-    const uint8_t* messageBuffer = reinterpret_cast<const uint8_t*>(message);
-    mqttClient.beginPublish(topic, len, retain);
-
-#ifdef MQTT_DEBUG
-    Serial.printf_P(PSTR("Printing message in parts because it's too large for the packet buffer (%d bytes)"), len);
-#endif
-
-    for (size_t i = 0; i < len; i += MQTT_PACKET_CHUNK_SIZE) {
-      size_t toWrite = std::min(static_cast<size_t>(MQTT_PACKET_CHUNK_SIZE), len - i);
-      mqttClient.write(messageBuffer+i, toWrite);
-#ifdef MQTT_DEBUG
-      Serial.printf_P(PSTR("  Wrote %d bytes\n"), toWrite);
-#endif
-    }
-
-    mqttClient.endPublish();
-  }
+  mqttClient.publish(topic, MQTT_DEFAULT_QOS, retain, message);
 }
 
 void MqttClient::publish(
@@ -204,7 +194,11 @@ void MqttClient::publish(
   send(topic.c_str(), message, retain);
 }
 
-void MqttClient::publishCallback(char* topic, byte* payload, int length) {
+bool MqttClient::isConnected() {
+  return mqttClient.connected();
+}
+
+void MqttClient::publishCallback(char* topic, char* payload, size_t length) {
   uint16_t deviceId = 0;
   uint8_t groupId = 0;
   const MiLightRemoteConfig* config = &FUT092Config;

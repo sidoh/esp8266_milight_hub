@@ -1,8 +1,8 @@
 #include <MiLightClient.h>
 #include <Settings.h>
-#include <PubSubClient.h>
-#include <WiFiClient.h>
+#include <AsyncMqttClient.h>
 #include <MiLightRadioConfig.h>
+#include <memory>
 
 #ifndef MQTT_CONNECTION_ATTEMPT_FREQUENCY
 #define MQTT_CONNECTION_ATTEMPT_FREQUENCY 5000
@@ -23,29 +23,28 @@ public:
   ~MqttClient();
 
   void begin();
-  void handleClient();
   void reconnect();
   void sendUpdate(const MiLightRemoteConfig& remoteConfig, uint16_t deviceId, uint16_t groupId, const char* update);
   void sendState(const MiLightRemoteConfig& remoteConfig, uint16_t deviceId, uint16_t groupId, const char* update);
   void send(const char* topic, const char* message, const bool retain = false);
   void onConnect(OnConnectFn fn);
+  bool isConnected();
 
   String bindTopicString(const String& topicPattern, const BulbId& bulbId);
 
 private:
-  WiFiClient tcpClient;
-  PubSubClient mqttClient;
+  AsyncMqttClient mqttClient;
   MiLightClient*& milightClient;
   Settings& settings;
-  char* domain;
+  std::shared_ptr<char> domain;
   unsigned long lastConnectAttempt;
   OnConnectFn onConnectFn;
-  bool connected;
+  std::shared_ptr<char> lwtBuffer;
 
   void sendBirthMessage();
-  bool connect();
+  void connect();
   void subscribe();
-  void publishCallback(char* topic, byte* payload, int length);
+  void publishCallback(char* topic, char* payload, size_t length);
   void publish(
     const String& topic,
     const MiLightRemoteConfig& remoteConfig,

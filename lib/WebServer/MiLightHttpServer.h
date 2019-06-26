@@ -5,6 +5,7 @@
 #include <GroupStateStore.h>
 #include <RadioSwitchboard.h>
 #include <PacketSender.h>
+#include <MqttClient.h>
 
 #ifndef _MILIGHT_HTTP_SERVER
 #define _MILIGHT_HTTP_SERVER
