@@ -24,6 +24,7 @@ RSpec.describe 'MQTT' do
     @client.delete_state(@id_params)
 
     @mqtt_client = create_mqtt_client()
+    @client.wait_for_mqtt_connection
   end
 
   context 'deleting' do
@@ -401,14 +402,20 @@ RSpec.describe 'MQTT' do
 
     context ':device_alias token' do
       it 'should accept it for command topic' do
+        seen_state = nil
+
         @client.patch_settings(mqtt_topic_pattern: @aliases_topic)
+        @client.delete("/gateways/test_group")
+
+        @mqtt_client.on_state(@id_params) do |id, state|
+          seen_state = state
+          !seen_state.nil?
+        end
 
         @mqtt_client.publish("#{mqtt_topic_prefix()}commands/test_group", status: 'ON')
+        @mqtt_client.wait_for_listeners
 
-        sleep(1)
-
-        state = @client.get_state(@id_params)
-        expect(state['status']).to eq('ON')
+        expect(seen_state['status']).to eq('ON')
       end
 
       it 'should support publishing state to device alias topic' do
@@ -416,6 +423,7 @@ RSpec.describe 'MQTT' do
           mqtt_topic_pattern: @aliases_topic,
           mqtt_state_topic_pattern: "#{mqtt_topic_prefix()}state/:device_alias"
         )
+        @client.delete("/gateways/test_group")
 
         seen_alias = nil
         seen_state = nil
@@ -441,6 +449,7 @@ RSpec.describe 'MQTT' do
           mqtt_topic_pattern: @aliases_topic,
           mqtt_update_topic_pattern: "#{mqtt_topic_prefix()}updates/:device_alias"
         )
+        @client.delete("/gateways/test_group")
 
         seen_alias = nil
         seen_state = nil
@@ -465,6 +474,7 @@ RSpec.describe 'MQTT' do
         seen_empty_message = false
 
         @client.patch_settings(mqtt_state_topic_pattern: "#{mqtt_topic_prefix()}state/:device_alias")
+        @client.delete("/gateways/test_group")
         @client.patch_state(@id_params, status: 'ON')
 
         @mqtt_client.on_message("#{mqtt_topic_prefix()}state/test_group") do |topic, message|

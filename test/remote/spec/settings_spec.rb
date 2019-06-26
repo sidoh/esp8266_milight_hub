@@ -97,7 +97,10 @@ RSpec.describe 'Settings' do
 
       end_mem = @client.get('/about')['free_heap']
 
-      expect(end_mem - start_mem).to_not be < -200
+      memory_delta = end_mem - start_mem
+      leak_threshold = 200
+
+      expect(memory_delta).to_not be > leak_threshold
     end
   end
 

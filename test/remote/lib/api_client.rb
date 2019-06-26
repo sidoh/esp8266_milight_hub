@@ -97,4 +97,8 @@ class ApiClient
   def patch_state(state, params = {})
     put(state_path(params), state.to_json)
   end
+
+  def wait_for_mqtt_connection
+    sleep 1
+  end
 end
