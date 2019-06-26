@@ -152,6 +152,11 @@ void MiLightHttpServer::handleAbout(RequestContext& request) {
   JsonObject queueStats = request.response.json.createNestedObject("queue_stats");
   queueStats[F("length")] = packetSender->queueLength();
   queueStats[F("dropped_packets")] = packetSender->droppedPackets();
+
+  if (mqttClient != nullptr) {
+    JsonObject mqttStats = request.response.json.createNestedObject("mqtt");
+    mqttStats[F("connected")] = mqttClient->isConnected();
+  }
 }
 
 void MiLightHttpServer::handleGetRadioConfigs(RequestContext& request) {

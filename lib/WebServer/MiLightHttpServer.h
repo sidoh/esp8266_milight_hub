@@ -28,7 +28,8 @@ public:
     MiLightClient*& milightClient,
     GroupStateStore*& stateStore,
     PacketSender*& packetSender,
-    RadioSwitchboard*& radios
+    RadioSwitchboard*& radios,
+    MqttClient*& mqttClient
   )
     : authProvider(settings)
     , server(80, authProvider)
@@ -39,6 +40,7 @@ public:
     , stateStore(stateStore)
     , packetSender(packetSender)
     , radios(radios)
+    , mqttClient(mqttClient)
   { }
 
   void begin();
@@ -97,6 +99,7 @@ protected:
   ESP8266WebServer::THandlerFunction _handleRootPage;
   PacketSender*& packetSender;
   RadioSwitchboard*& radios;
+  MqttClient*& mqttClient;
 
 };
 
