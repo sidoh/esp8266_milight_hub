@@ -33,7 +33,7 @@ class PL1167_nRF24 {
   private:
     RF24 &_radio;
 
-    uint16_t _syncword0 = 0, _syncword3 = 0;
+    const uint8_t* _syncwordBytes = nullptr;
     uint8_t _syncwordLength = 4;
     uint8_t _maxPacketLength = 8;
 

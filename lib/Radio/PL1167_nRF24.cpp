@@ -15,14 +15,12 @@
 #include <MiLightRadioConfig.h>
 
 static uint16_t calc_crc(uint8_t *data, size_t data_length);
-static uint8_t reverse_bits(uint8_t data);
 
 PL1167_nRF24::PL1167_nRF24(RF24 &radio)
   : _radio(radio)
 { }
 
-int PL1167_nRF24::open()
-{
+int PL1167_nRF24::open() {
   _radio.begin();
   _radio.setAutoAck(false);
   _radio.setDataRate(RF24_1MBPS);
@@ -62,14 +60,12 @@ int PL1167_nRF24::setSyncword(const uint8_t syncword[], size_t syncwordLength) {
   return recalc_parameters();
 }
 
-int PL1167_nRF24::setMaxPacketLength(uint8_t maxPacketLength)
-{
+int PL1167_nRF24::setMaxPacketLength(uint8_t maxPacketLength) {
   _maxPacketLength = maxPacketLength;
   return recalc_parameters();
 }
 
-int PL1167_nRF24::receive(uint8_t channel)
-{
+int PL1167_nRF24::receive(uint8_t channel) {
   if (channel != _channel) {
     _channel = channel;
     int retval = recalc_parameters();
@@ -123,8 +119,7 @@ int PL1167_nRF24::writeFIFO(const uint8_t data[], size_t data_length)
   return data_length;
 }
 
-int PL1167_nRF24::transmit(uint8_t channel)
-{
+int PL1167_nRF24::transmit(uint8_t channel) {
   if (channel != _channel) {
     _channel = channel;
     int retval = recalc_parameters();
@@ -157,9 +152,18 @@ int PL1167_nRF24::transmit(uint8_t channel)
   return 0;
 }
 
-
-int PL1167_nRF24::internal_receive()
-{
+/**
+ * The over-the-air packet structure sent by the PL1167 is as follows (lengths
+ * measured in bits)
+ *
+ * Preamble ( 8) | Syncword (32) | Trailer ( 4) | Packet Len ( 8) | Packet (...)
+ *
+ * Note that because the Trailer is 4 bits, the remaining data is not byte-aligned.
+ *
+ * Bit-order is reversed.
+ *
+ */
+int PL1167_nRF24::internal_receive() {
   uint8_t tmp[sizeof(_packet)];
   int outp = 0;
 
@@ -214,7 +218,7 @@ int PL1167_nRF24::internal_receive()
   _received = true;
 
 #ifdef DEBUG_PRINTF
-  printf("Successfully parsed packet of length %d\n", _packet_length);
+  Serial.printf_P(PSTR("Successfully parsed packet of length %d\n"), _packet_length);
 #endif
 
   return outp;
