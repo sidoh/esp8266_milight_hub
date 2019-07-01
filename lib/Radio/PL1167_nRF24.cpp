@@ -55,21 +55,8 @@ int PL1167_nRF24::recalc_parameters()
   _radio.setChannel(2 + _channel);
 
   _radio.setPayloadSize( packet_length );
+
   return 0;
-}
-
-
-int PL1167_nRF24::setPreambleLength(uint8_t preambleLength)
-{ return 0; }
-/* kh- no thanks, I'll take care of this */
-
-
-int PL1167_nRF24::setSyncword(uint16_t syncword0, uint16_t syncword3)
-{
-  _syncwordLength = 5;
-  _syncword0 = syncword0;
-  _syncword3 = syncword3;
-  return recalc_parameters();
 }
 
 int PL1167_nRF24::setTrailerLength(uint8_t trailerLength)

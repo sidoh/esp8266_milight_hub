@@ -35,20 +35,6 @@ int NRF24MiLightRadio::begin() {
 }
 
 int NRF24MiLightRadio::configure() {
-  int retval = _pl1167.setCRC(true);
-  if (retval < 0) {
-    return retval;
-  }
-
-  retval = _pl1167.setPreambleLength(3);
-  if (retval < 0) {
-    return retval;
-  }
-
-  retval = _pl1167.setTrailerLength(4);
-  if (retval < 0) {
-    return retval;
-  }
 
   retval = _pl1167.setSyncword(_config.syncword0, _config.syncword3);
   if (retval < 0) {

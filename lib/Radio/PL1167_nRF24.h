@@ -33,11 +33,8 @@ class PL1167_nRF24 {
   private:
     RF24 &_radio;
 
-    bool _crc;
-    uint8_t _preambleLength = 1;
     uint16_t _syncword0 = 0, _syncword3 = 0;
     uint8_t _syncwordLength = 4;
-    uint8_t _trailerLength = 4;
     uint8_t _maxPacketLength = 8;
 
     uint8_t _channel = 0;
