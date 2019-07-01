@@ -44,6 +44,13 @@ public:
     syncwordBytes[ --ix ] = reverseBits(
       ((syncword3 >> 12) & 0x0F) | ((trailer << 4) & 0xF0)
     );
+
+    // Uncomment this and change syncword length to 4 to disable preamble/trailer being part of
+    // the address.
+    // syncwordBytes[ --ix ] = reverseBits(syncword0 & 0xff);
+    // syncwordBytes[ --ix ] = reverseBits( (syncword0 >> 8) & 0xff);
+    // syncwordBytes[ --ix ] = reverseBits(syncword3 & 0xff);
+    // syncwordBytes[ --ix ] = reverseBits( (syncword3 >> 8) & 0xff);
   }
 
   uint8_t channels[3];
@@ -52,7 +59,7 @@ public:
 
   const size_t packetLength;
 
-  static const size_t NUM_CONFIGS = 4;
+  static const size_t NUM_CONFIGS = 5;
   static MiLightRadioConfig ALL_CONFIGS[NUM_CONFIGS];
 };
 
