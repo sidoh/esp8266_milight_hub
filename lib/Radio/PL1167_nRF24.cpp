@@ -11,6 +11,8 @@
  */
 
 #include "PL1167_nRF24.h"
+#include <RadioUtils.h>
+#include <MiLightRadioConfig.h>
 
 static uint16_t calc_crc(uint8_t *data, size_t data_length);
 static uint8_t reverse_bits(uint8_t data);
@@ -26,7 +28,7 @@ int PL1167_nRF24::open()
   _radio.setDataRate(RF24_1MBPS);
   _radio.disableCRC();
 
-  _syncwordLength = 5;
+  _syncwordLength = MiLightRadioConfig::SYNCWORD_LENGTH;
   _radio.setAddressWidth(_syncwordLength);
 
   return recalc_parameters();
@@ -37,39 +39,26 @@ int PL1167_nRF24::recalc_parameters()
   int packet_length = _maxPacketLength + 2;
   int nrf_address_pos = _syncwordLength;
 
-  if (_syncword0 & 0x01) {
-    _nrf_pipe[ --nrf_address_pos ] = reverse_bits( ( (_syncword0 << 4) & 0xf0 ) + 0x05 );
-  } else {
-    _nrf_pipe[ --nrf_address_pos ] = reverse_bits( ( (_syncword0 << 4) & 0xf0 ) + 0x0a );
+  if (packet_length > sizeof(_packet) || nrf_address_length < 3) {
+    return -1;
   }
-  _nrf_pipe[ --nrf_address_pos ] = reverse_bits( (_syncword0 >> 4) & 0xff);
-  _nrf_pipe[ --nrf_address_pos ] = reverse_bits( ( (_syncword0 >> 12) & 0x0f ) + ( (_syncword3 << 4) & 0xf0) );
-  _nrf_pipe[ --nrf_address_pos ] = reverse_bits( (_syncword3 >> 4) & 0xff);
-  _nrf_pipe[ --nrf_address_pos ] = reverse_bits( ( (_syncword3 >> 12) & 0x0f ) + 0x50 );	// kh: spi says trailer is always "5" ?
+
+  if (_syncwordBytes != nullptr) {
+    _radio.openWritingPipe(_syncwordBytes);
+    _radio.openReadingPipe(1, _syncwordBytes);
+  }
 
   _receive_length = packet_length;
 
-  _radio.openWritingPipe(_nrf_pipe);
-  _radio.openReadingPipe(1, _nrf_pipe);
-
   _radio.setChannel(2 + _channel);
-
   _radio.setPayloadSize( packet_length );
 
   return 0;
 }
 
-int PL1167_nRF24::setTrailerLength(uint8_t trailerLength)
-{ return 0; }
-/* kh- no thanks, I'll take care of that.
-   One could argue there is potential value to "defining" the trailer - such that
-   we can use those "values" for internal (repeateR?) functions since they are
-   ignored by the real PL1167..  But there is no value in _this_ implementation...
-*/
-
-int PL1167_nRF24::setCRC(bool crc)
-{
-  _crc = crc;
+int PL1167_nRF24::setSyncword(const uint8_t syncword[], size_t syncwordLength) {
+  _syncwordLength = syncwordLength;
+  _syncwordBytes = syncword;
   return recalc_parameters();
 }
 

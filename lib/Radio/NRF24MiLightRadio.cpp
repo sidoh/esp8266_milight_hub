@@ -35,8 +35,7 @@ int NRF24MiLightRadio::begin() {
 }
 
 int NRF24MiLightRadio::configure() {
-
-  retval = _pl1167.setSyncword(_config.syncword0, _config.syncword3);
+  int retval = _pl1167.setSyncword(_config.syncwordBytes, MiLightRadioConfig::SYNCWORD_LENGTH);
   if (retval < 0) {
     return retval;
   }
