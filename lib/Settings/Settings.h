@@ -63,6 +63,10 @@ enum RadioInterfaceType {
   LT8900 = 1,
 };
 
+enum class WifiMode {
+  B, G, N
+};
+
 static const std::vector<GroupStateField> DEFAULT_GROUP_STATE_FIELDS({
   GroupStateField::STATE,
   GroupStateField::BRIGHTNESS,
@@ -113,7 +117,7 @@ public:
     groupStateFields(DEFAULT_GROUP_STATE_FIELDS),
     rf24ListenChannel(RF24Channel::RF24_LOW),
     packetRepeatsPerLoop(10),
-    wifiForceBMode(false),
+    wifiMode(WifiMode::N),
     _autoRestartPeriod(0)
   { }
 
@@ -186,13 +190,16 @@ public:
   std::map<String, BulbId> groupIdAliases;
   std::map<uint32_t, BulbId> deletedGroupIdAliases;
   String homeAssistantDiscoveryPrefix;
-  bool wifiForceBMode;
+  WifiMode wifiMode;
 
 protected:
   size_t _autoRestartPeriod;
 
   void parseGroupIdAliases(JsonObject json);
   void dumpGroupIdAliases(JsonObject json);
+
+  static WifiMode wifiModeFromString(const String& mode);
+  static String wifiModeToString(WifiMode mode);
 
   template <typename T>
   void setIfPresent(JsonObject obj, const char* key, T& var) {

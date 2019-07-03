@@ -99,7 +99,10 @@ void Settings::patch(JsonObject parsedSettings) {
   this->setIfPresent(parsedSettings, "wifi_static_ip_netmask", wifiStaticIPNetmask);
   this->setIfPresent(parsedSettings, "packet_repeats_per_loop", packetRepeatsPerLoop);
   this->setIfPresent(parsedSettings, "home_assistant_discovery_prefix", homeAssistantDiscoveryPrefix);
-  this->setIfPresent(parsedSettings, "wifi_force_b_mode", wifiForceBMode);
+
+  if (parsedSettings.containsKey("wifi_mode")) {
+    this->wifiMode = wifiModeFromString(parsedSettings["wifi_mode"]);
+  }
 
   if (parsedSettings.containsKey("rf24_channels")) {
     JsonArray arr = parsedSettings["rf24_channels"];
@@ -284,7 +287,7 @@ void Settings::serialize(Print& stream, const bool prettyPrint) {
   root["wifi_static_ip_netmask"] = this->wifiStaticIPNetmask;
   root["packet_repeats_per_loop"] = this->packetRepeatsPerLoop;
   root["home_assistant_discovery_prefix"] = this->homeAssistantDiscoveryPrefix;
-  root["wifi_force_b_mode"] = this->wifiForceBMode;
+  root["wifi_mode"] = wifiModeToString(this->wifiMode);
 
   JsonArray channelArr = root.createNestedArray("rf24_channels");
   JsonHelpers::vectorToJsonArr<RF24Channel, String>(channelArr, rf24Channels, RF24ChannelHelpers::nameFromValue);
@@ -348,5 +351,27 @@ String Settings::typeToString(RadioInterfaceType type) {
     case nRF24:
     default:
       return "nRF24";
+  }
+}
+
+WifiMode Settings::wifiModeFromString(const String& mode) {
+  if (mode.equalsIgnoreCase("b")) {
+    return WifiMode::B;
+  } else if (mode.equalsIgnoreCase("g")) {
+    return WifiMode::G;
+  } else {
+    return WifiMode::N;
+  }
+}
+
+String Settings::wifiModeToString(WifiMode mode) {
+  switch (mode) {
+    case WifiMode::B:
+      return "b";
+    case WifiMode::G:
+      return "g";
+    case WifiMode::N:
+    default:
+      return "n";
   }
 }

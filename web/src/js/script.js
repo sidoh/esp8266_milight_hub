@@ -79,13 +79,14 @@ var UI_FIELDS = [ {
     type: "string",
     tab: "tab-wifi"
   }, {
-    tag: "wifi_force_b_mode",
-    friendly: "Force 802.11b Mode",
-    help: "If true, force the ESP8266 into 802.11b mode.  Try this if you're having wifi stability problems.",
+    tag: "wifi_mode",
+    friendly: "WiFi Mode",
+    help: "Try using G mode if you're having stability problems",
     type: "option_buttons",
     options: {
-      'true': 'True',
-      'false': 'False'
+      'b': 'B',
+      'g': 'G',
+      'n': 'N'
     },
     tab: "tab-wifi"
   }, {
