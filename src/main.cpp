@@ -272,11 +272,19 @@ void applySettings() {
 
   WiFi.hostname(settings.hostname);
 
-  if (settings.wifiForceBMode) {
-    WiFi.setPhyMode(WIFI_PHY_MODE_11B);
-  } else {
-    WiFi.setPhyMode(WIFI_PHY_MODE_11G);
+  WiFiPhyMode_t wifiMode;
+  switch (settings.wifiMode) {
+    case WifiMode::B:
+      wifiMode = WIFI_PHY_MODE_11B;
+      break;
+    case WifiMode::G:
+      wifiMode = WIFI_PHY_MODE_11G;
+      break;
+    case WifiMode::N:
+      wifiMode = WIFI_PHY_MODE_11N;
+      break;
   }
+  WiFi.setPhyMode(wifiMode);
 }
 
 /**
