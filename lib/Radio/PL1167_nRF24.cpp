@@ -38,6 +38,11 @@ int PL1167_nRF24::recalc_parameters() {
   // +2 for CRC
   int packet_length = _maxPacketLength + 2;
 
+  // Read an extra byte if we don't include the trailer in the syncword
+  if (_syncwordLength < 5) {
+    ++packet_length;
+  }
+
   if (packet_length > sizeof(_packet) || nrf_address_length < 3) {
     return -1;
   }
@@ -173,6 +178,28 @@ int PL1167_nRF24::internal_receive() {
   // HACK HACK HACK: Reset radio
   open();
 
+// Currently, the syncword width is set to 5 in order to include the
+// PL1167 trailer.  The trailer is 4 bits, which pushes packet data
+// out of byte-alignment.
+//
+// The following code reads un-byte-aligned packet data.
+//
+// #ifdef DEBUG_PRINTF
+//   Serial.printf_P(PSTR("Packet received (%d bytes) RAW: "), outp);
+//   for (int i = 0; i < _receive_length; i++) {
+//     Serial.printf_P(PSTR("%02X "), tmp[i]);
+//   }
+//   Serial.print(F("\n"));
+// #endif
+//
+//   uint16_t buffer = tmp[0];
+//
+//   for (int inp = 1; inp < _receive_length; inp++) {
+//     uint8_t currentByte = tmp[inp];
+//     tmp[outp++] = reverseBits((buffer << 4) | (currentByte >> 4));
+//     buffer = (buffer << 8) | currentByte;
+//   }
+
   for (int inp = 0; inp < _receive_length; inp++) {
     tmp[outp++] = reverseBits(tmp[inp]);
   }
@@ -197,7 +224,7 @@ int PL1167_nRF24::internal_receive() {
 
   if ( crc != recvCrc ) {
 #ifdef DEBUG_PRINTF
-    Serial.printf_P(PSTR("Failed CRC: expected %04X, got %04X"), crc, recvCrc);
+    Serial.printf_P(PSTR("Failed CRC: expected %04X, got %04X\n"), crc, recvCrc);
 #endif
     return 0;
   }

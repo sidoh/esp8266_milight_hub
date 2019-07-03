@@ -1,28 +1,35 @@
 #include <MiLightRemoteType.h>
 #include <Arduino.h>
 
+static const char* REMOTE_NAME_RGBW    = "rgbw";
+static const char* REMOTE_NAME_CCT     = "cct";
+static const char* REMOTE_NAME_RGB_CCT = "rgb_cct";
+static const char* REMOTE_NAME_FUT089  = "fut089";
+static const char* REMOTE_NAME_RGB     = "rgb";
+static const char* REMOTE_NAME_FUT091  = "fut091";
+
 const MiLightRemoteType MiLightRemoteTypeHelpers::remoteTypeFromString(const String& type) {
-  if (type.equalsIgnoreCase("rgbw") || type.equalsIgnoreCase("fut096")) {
+  if (type.equalsIgnoreCase(REMOTE_NAME_RGBW) || type.equalsIgnoreCase("fut096")) {
     return REMOTE_TYPE_RGBW;
   }
 
-  if (type.equalsIgnoreCase("cct") || type.equalsIgnoreCase("fut007")) {
+  if (type.equalsIgnoreCase(REMOTE_NAME_CCT) || type.equalsIgnoreCase("fut007")) {
     return REMOTE_TYPE_CCT;
   }
 
-  if (type.equalsIgnoreCase("rgb_cct") || type.equalsIgnoreCase("fut092")) {
+  if (type.equalsIgnoreCase(REMOTE_NAME_RGB_CCT) || type.equalsIgnoreCase("fut092")) {
     return REMOTE_TYPE_RGB_CCT;
   }
 
-  if (type.equalsIgnoreCase("fut089")) {
+  if (type.equalsIgnoreCase(REMOTE_NAME_FUT089)) {
     return REMOTE_TYPE_FUT089;
   }
 
-  if (type.equalsIgnoreCase("rgb") || type.equalsIgnoreCase("fut098")) {
+  if (type.equalsIgnoreCase(REMOTE_NAME_RGB) || type.equalsIgnoreCase("fut098")) {
     return REMOTE_TYPE_RGB;
   }
 
-  if (type.equalsIgnoreCase("v2_cct") || type.equalsIgnoreCase("fut091")) {
+  if (type.equalsIgnoreCase("v2_cct") || type.equalsIgnoreCase(REMOTE_NAME_FUT091)) {
     return REMOTE_TYPE_FUT091;
   }
 
@@ -35,17 +42,17 @@ const MiLightRemoteType MiLightRemoteTypeHelpers::remoteTypeFromString(const Str
 const String MiLightRemoteTypeHelpers::remoteTypeToString(const MiLightRemoteType type) {
   switch (type) {
     case REMOTE_TYPE_RGBW:
-      return "rgbw";
+      return REMOTE_NAME_RGBW;
     case REMOTE_TYPE_CCT:
-      return "cct";
+      return REMOTE_NAME_CCT;
     case REMOTE_TYPE_RGB_CCT:
-      return "rgb_cct";
+      return REMOTE_NAME_CCT;
     case REMOTE_TYPE_FUT089:
-      return "fut089";
+      return REMOTE_NAME_FUT089;
     case REMOTE_TYPE_RGB:
-      return "rgb";
+      return REMOTE_NAME_RGB;
     case REMOTE_TYPE_FUT091:
-      return "fut091";
+      return REMOTE_NAME_FUT091;
     default:
       Serial.print(F("remoteTypeToString: ERROR - tried to fetch remote config name for unknown type: "));
       Serial.println(type);
