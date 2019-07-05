@@ -4,6 +4,7 @@
 #include <RGBConverter.h>
 #include <Units.h>
 #include <TokenIterator.h>
+#include <ParsedColor.h>
 
 MiLightClient::MiLightClient(
   RadioSwitchboard& radioSwitchboard,
@@ -258,50 +259,22 @@ void MiLightClient::update(JsonObject request) {
 
   // Convert RGB to HSV
   if (request.containsKey("color")) {
-    uint16_t r, g, b;
+    ParsedColor color = ParsedColor::fromJson(request["color"]);
 
-    if (request["color"].is<JsonObject>()) {
-      JsonObject color = request["color"];
-
-      r = color["r"];
-      g = color["g"];
-      b = color["b"];
-    } else if (request["color"].is<const char*>()) {
-      String colorStr = request["color"];
-      char colorCStr[colorStr.length()];
-      uint8_t parsedRgbColors[3] = {0, 0, 0};
-
-      strcpy(colorCStr, colorStr.c_str());
-      TokenIterator colorValueItr(colorCStr, strlen(colorCStr), ',');
-
-      for (size_t i = 0; i < 3 && colorValueItr.hasNext(); ++i) {
-        parsedRgbColors[i] = atoi(colorValueItr.nextToken());
-      }
-
-      r = parsedRgbColors[0];
-      g = parsedRgbColors[1];
-      b = parsedRgbColors[2];
-    } else {
-      Serial.println(F("Unknown format for `color' command"));
+    if (!color.success) {
+      Serial.println(F("Error parsing JSON color"));
       return;
     }
 
     // We consider an RGB color "white" if all color intensities are roughly the
     // same value.  An unscientific value of 10 (~4%) is chosen.
-    if ( abs(r - g) < RGB_WHITE_THRESHOLD
-      && abs(g - b) < RGB_WHITE_THRESHOLD
-      && abs(r - b) < RGB_WHITE_THRESHOLD) {
+    if ( abs(color.r - color.g) < RGB_WHITE_THRESHOLD
+      && abs(color.g - color.b) < RGB_WHITE_THRESHOLD
+      && abs(color.r - color.b) < RGB_WHITE_THRESHOLD) {
         this->updateColorWhite();
     } else {
-      double hsv[3];
-      RGBConverter converter;
-      converter.rgbToHsv(r, g, b, hsv);
-
-      uint16_t hue = round(hsv[0]*360);
-      uint8_t saturation = round(hsv[1]*100);
-
-      this->updateHue(hue);
-      this->updateSaturation(saturation);
+      this->updateHue(color.hue);
+      this->updateSaturation(color.saturation);
     }
   }
 
