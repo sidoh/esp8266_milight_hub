@@ -33,10 +33,10 @@ int PL1167_nRF24::open() {
 }
 
 int PL1167_nRF24::recalc_parameters() {
-  int nrf_address_length = _syncwordLength;
+  size_t nrf_address_length = _syncwordLength;
 
   // +2 for CRC
-  int packet_length = _maxPacketLength + 2;
+  size_t packet_length = _maxPacketLength + 2;
 
   // Read an extra byte if we don't include the trailer in the syncword
   if (_syncwordLength < 5) {
