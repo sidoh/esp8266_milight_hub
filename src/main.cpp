@@ -283,6 +283,7 @@ void applySettings() {
     case WifiMode::G:
       wifiMode = WIFI_PHY_MODE_11G;
       break;
+    default:
     case WifiMode::N:
       wifiMode = WIFI_PHY_MODE_11N;
       break;
