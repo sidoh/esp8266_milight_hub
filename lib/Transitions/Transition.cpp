@@ -4,10 +4,12 @@
 
 Transition::Transition(
   size_t id,
+  const BulbId& bulbId,
   uint16_t stepSize,
   size_t period,
   TransitionFn callback
 ) : id(id)
+  , bulbId(bulbId)
   , stepSize(stepSize)
   , period(period)
   , callback(callback)
@@ -42,4 +44,11 @@ void Transition::stepValue(int16_t& current, int16_t end, int16_t stepSize) {
   } else {
     current += stepSize;
   }
+}
+
+void Transition::serialize(JsonObject& json) {
+  json["id"] = id;
+  json["period"] = period;
+  json["last_sent"] = lastSent;
+  childSerialize(json);
 }

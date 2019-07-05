@@ -11,6 +11,7 @@ class FieldTransition : public Transition {
 public:
   FieldTransition(
     size_t id,
+    const BulbId& bulbId,
     GroupStateField field,
     uint16_t startValue,
     uint16_t endValue,
@@ -27,4 +28,5 @@ private:
   const int16_t endValue;
 
   virtual void step() override;
+  virtual void childSerialize(JsonObject& json) override;
 };

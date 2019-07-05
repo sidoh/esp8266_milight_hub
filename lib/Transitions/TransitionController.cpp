@@ -22,6 +22,7 @@ void TransitionController::addListener(Transition::TransitionFn fn) {
 }
 
 void TransitionController::scheduleTransition(
+  const BulbId& bulbId,
   GroupStateField field,
   uint16_t startValue,
   uint16_t endValue,
@@ -31,17 +32,19 @@ void TransitionController::scheduleTransition(
   activeTransitions.add(
     std::make_shared<FieldTransition>(
       currentId++,
+      bulbId,
       field,
       startValue,
       endValue,
       stepSize,
       duration,
-      std::bind(&TransitionController::transitionCallback, this, _1, _2)
+      std::bind(&TransitionController::transitionCallback, this, _1, _2, _3)
     )
   );
 }
 
 void TransitionController::scheduleTransition(
+  const BulbId& bulbId,
   const ParsedColor& startColor,
   const ParsedColor& endColor,
   uint16_t stepSize,
@@ -50,18 +53,19 @@ void TransitionController::scheduleTransition(
   activeTransitions.add(
     std::make_shared<ColorTransition>(
       currentId++,
+      bulbId,
       startColor,
       endColor,
       stepSize,
       duration,
-      std::bind(&TransitionController::transitionCallback, this, _1, _2)
+      std::bind(&TransitionController::transitionCallback, this, _1, _2, _3)
     )
   );
 }
 
-void TransitionController::transitionCallback(GroupStateField field, uint16_t arg) {
+void TransitionController::transitionCallback(const BulbId& bulbId, GroupStateField field, uint16_t arg) {
   for (auto it = observers.begin(); it != observers.end(); ++it) {
-    (*it)(field, arg);
+    (*it)(bulbId, field, arg);
   }
 }
 
@@ -83,5 +87,43 @@ void TransitionController::loop() {
     }
 
     current = next;
+  }
+}
+
+ListNode<std::shared_ptr<Transition>>* TransitionController::getTransitions() {
+  return activeTransitions.getHead();
+}
+
+ListNode<std::shared_ptr<Transition>>* TransitionController::findTransition(size_t id) {
+  auto current = getTransitions();
+
+  while (current != nullptr) {
+    if (current->data->id == id) {
+      return current;
+    }
+    current = current->next;
+  }
+
+  return nullptr;
+}
+
+Transition* TransitionController::getTransition(size_t id) {
+  auto node = findTransition(id);
+
+  if (node == nullptr) {
+    return nullptr;
+  } else {
+    return node->data.get();
+  }
+}
+
+bool TransitionController::deleteTransition(size_t id) {
+  auto node = findTransition(id);
+
+  if (node == nullptr) {
+    return false;
+  } else {
+    activeTransitions.remove(node);
+    return true;
   }
 }

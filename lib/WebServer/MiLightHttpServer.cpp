@@ -54,6 +54,16 @@ void MiLightHttpServer::begin() {
     .on(HTTP_GET, std::bind(&MiLightHttpServer::handleGetGroupAlias, this, _1));
 
   server
+    .buildHandler("/transitions/:id")
+    .on(HTTP_GET, std::bind(&MiLightHttpServer::handleGetTransition, this, _1))
+    .on(HTTP_DELETE, std::bind(&MiLightHttpServer::handleDeleteTransition, this, _1));
+
+  server
+    .buildHandler("/transitions")
+    .on(HTTP_GET, std::bind(&MiLightHttpServer::handleListTransitions, this, _1))
+    .on(HTTP_POST, std::bind(&MiLightHttpServer::handleCreateTransition, this, _1));
+
+  server
     .buildHandler("/raw_commands/:type")
     .on(HTTP_ANY, std::bind(&MiLightHttpServer::handleSendRaw, this, _1));
 
@@ -583,3 +593,69 @@ void MiLightHttpServer::handleServe_P(const char* data, size_t length) {
   server.client().stop();
 }
 
+void MiLightHttpServer::handleGetTransition(RequestContext& request) {
+  size_t id = atoi(request.pathVariables.get("id"));
+  auto transition = transitions.getTransition(id);
+
+  if (transition == nullptr) {
+    request.response.setCode(404);
+    request.response.json["error"] = "Not found";
+  } else {
+    JsonObject response = request.response.json.to<JsonObject>();
+    transition->serialize(response);
+  }
+}
+
+void MiLightHttpServer::handleDeleteTransition(RequestContext& request) {
+  size_t id = atoi(request.pathVariables.get("id"));
+  bool success = transitions.deleteTransition(id);
+
+  if (success) {
+    request.response.json["success"] = true;
+  } else {
+    request.response.setCode(404);
+    request.response.json["error"] = "Not found";
+  }
+}
+
+void MiLightHttpServer::handleListTransitions(RequestContext& request) {
+  auto current = transitions.getTransitions();
+  JsonArray transitions = request.response.json.to<JsonObject>().createNestedArray(F("transitions"));
+
+  while (current != nullptr) {
+    JsonObject json = transitions.createNestedObject();
+    json["id"] = current->data->id;
+    current = current->next;
+  }
+}
+
+void MiLightHttpServer::handleCreateTransition(RequestContext& request) {
+  JsonObject body = request.getJsonBody().as<JsonObject>();
+
+  if (! body.containsKey(F("device_id"))
+    || ! body.containsKey(F("group_id"))
+    || ! body.containsKey(F("remote_type"))) {
+    char buffer[200];
+    sprintf_P(buffer, PSTR("Must specify required keys: device_id, group_id, remote_type"));
+
+    request.response.setCode(400);
+    request.response.json["error"] = buffer;
+    return;
+  }
+
+  const String _deviceId = body[F("device_id")];
+  uint8_t _groupId = atoi(body[F("group_id")]);
+  const MiLightRemoteConfig* _remoteType = MiLightRemoteConfig::fromType(body[F("remote_type")].as<const char*>());
+
+  if (_remoteType == NULL) {
+    char buffer[40];
+    sprintf_P(buffer, PSTR("Unknown device type\n"));
+    request.response.setCode(400);
+    request.response.json["error"] = buffer;
+    return;
+  }
+
+  milightClient->prepare(_remoteType, parseInt<uint16_t>(_deviceId), _groupId);
+  milightClient->handleTransition(request.getJsonBody().as<JsonObject>());
+  request.response.json[F("success")] = true;
+}

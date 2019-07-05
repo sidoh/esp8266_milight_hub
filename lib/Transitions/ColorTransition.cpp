@@ -19,16 +19,17 @@ bool ColorTransition::RgbColor::operator==(const RgbColor& other) {
 
 ColorTransition::ColorTransition(
   size_t id,
+  const BulbId& bulbId,
   const ParsedColor& startColor,
   const ParsedColor& endColor,
   uint16_t stepSize,
   size_t duration,
   TransitionFn callback
-) : endColor(endColor)
+) : Transition(id, bulbId, stepSize, calculateColorPeriod(this, startColor, endColor, stepSize, duration), callback)
+  , endColor(endColor)
   , currentColor(startColor)
   , lastHue(400)         // use impossible values to force a packet send
   , lastSaturation(200)
-  , Transition(id, stepSize, calculateColorPeriod(this, startColor, endColor, stepSize, duration), callback)
 {
   int16_t dr = endColor.r - startColor.r
         , dg = endColor.g - startColor.g
@@ -66,11 +67,11 @@ void ColorTransition::step() {
   ParsedColor parsedColor = ParsedColor::fromRgb(currentColor.r, currentColor.g, currentColor.b);
 
   if (parsedColor.hue != lastHue) {
-    callback(GroupStateField::HUE, parsedColor.hue);
+    callback(bulbId, GroupStateField::HUE, parsedColor.hue);
     lastHue = parsedColor.hue;
   }
   if (parsedColor.saturation != lastSaturation) {
-    callback(GroupStateField::SATURATION, parsedColor.saturation);
+    callback(bulbId, GroupStateField::SATURATION, parsedColor.saturation);
     lastSaturation = parsedColor.saturation;
   }
 
@@ -81,4 +82,23 @@ void ColorTransition::step() {
 
 bool ColorTransition::isFinished() {
   return currentColor == endColor;
+}
+
+void ColorTransition::childSerialize(JsonObject& json) {
+  json["type"] = "color";
+
+  JsonArray currentColorArr = json.createNestedArray("current_color");
+  currentColorArr.add(currentColor.r);
+  currentColorArr.add(currentColor.g);
+  currentColorArr.add(currentColor.b);
+
+  JsonArray endColorArr = json.createNestedArray("end_color");
+  endColorArr.add(endColor.r);
+  endColorArr.add(endColor.g);
+  endColorArr.add(endColor.b);
+
+  JsonArray stepSizesArr = json.createNestedArray("step_sizes");
+  stepSizesArr.add(stepSizes.r);
+  stepSizesArr.add(stepSizes.g);
+  stepSizesArr.add(stepSizes.b);
 }

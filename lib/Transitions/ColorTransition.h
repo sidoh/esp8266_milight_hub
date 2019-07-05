@@ -7,6 +7,7 @@ class ColorTransition : public Transition {
 public:
   ColorTransition(
     size_t id,
+    const BulbId& bulbId,
     const ParsedColor& startColor,
     const ParsedColor& endColor,
     uint16_t stepSize,
@@ -36,5 +37,6 @@ protected:
   uint16_t lastSaturation;
 
   virtual void step() override;
+  virtual void childSerialize(JsonObject& json) override;
   static inline void stepPart(uint16_t& current, uint16_t end, int16_t step);
 };

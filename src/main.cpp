@@ -419,19 +419,20 @@ void setup() {
   SSDP.setDeviceType("upnp:rootdevice");
   SSDP.begin();
 
-  httpServer = new MiLightHttpServer(settings, milightClient, stateStore, packetSender, radios);
+  httpServer = new MiLightHttpServer(settings, milightClient, stateStore, packetSender, radios, transitions);
   httpServer->onSettingsSaved(applySettings);
   httpServer->onGroupDeleted(onGroupDeleted);
   httpServer->on("/description.xml", HTTP_GET, []() { SSDP.schema(httpServer->client()); });
   httpServer->begin();
 
   transitions.addListener(
-    [](GroupStateField field, uint16_t value) {
+    [](const BulbId& bulbId, GroupStateField field, uint16_t value) {
       StaticJsonDocument<100> buffer;
 
       const char* fieldName = GroupStateFieldHelpers::getFieldName(field);
       buffer[fieldName] = value;
 
+      milightClient->prepare(bulbId.deviceType, bulbId.deviceId, bulbId.groupId);
       milightClient->update(buffer.as<JsonObject>());
     }
   );

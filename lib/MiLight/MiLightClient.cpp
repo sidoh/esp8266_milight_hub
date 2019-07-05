@@ -395,7 +395,14 @@ void MiLightClient::handleTransition(JsonObject args) {
     case GroupStateField::LEVEL:
     case GroupStateField::KELVIN:
     case GroupStateField::COLOR_TEMP:
-      transitions.scheduleTransition(field, args[F("start_value")], args[F("end_value")], stepSize, duration);
+      transitions.scheduleTransition(
+        currentRemote->packetFormatter->currentBulbId(),
+        field,
+        args[F("start_value")],
+        args[F("end_value")],
+        stepSize,
+        duration
+      );
       return;
 
     default:
@@ -416,7 +423,13 @@ void MiLightClient::handleTransition(JsonObject args) {
       return;
     }
 
-    transitions.scheduleTransition(startColor, endColor, stepSize, duration);
+    transitions.scheduleTransition(
+      currentRemote->packetFormatter->currentBulbId(),
+      startColor,
+      endColor,
+      stepSize,
+      duration
+    );
 
     return;
   }
