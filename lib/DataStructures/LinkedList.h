@@ -194,6 +194,7 @@ bool LinkedList<T>::add(T _t){
   if(root){
     // Already have elements inserted
     last->next = tmp;
+    tmp->prev = last;
     last = tmp;
   }else{
     // First element being inserted
