@@ -27,6 +27,7 @@ enum class IncrementDirection : unsigned {
 
 class GroupState {
 public:
+  static const GroupStateField ALL_PHYSICAL_FIELDS[];
 
   GroupState();
   GroupState(const GroupState& other);
@@ -145,6 +146,7 @@ public:
   void debugState(char const *debugMessage) const;
 
   static const GroupState& defaultState(MiLightRemoteType remoteType);
+  static bool isPhysicalField(GroupStateField field);
 
 private:
   static const size_t DATA_LONGS = 2;

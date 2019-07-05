@@ -13,7 +13,7 @@ static const char* BULB_MODE_NAMES[] = {
 
 const BulbId DEFAULT_BULB_ID;
 
-static const GroupStateField ALL_PHYSICAL_FIELDS[] = {
+const GroupStateField GroupState::ALL_PHYSICAL_FIELDS[] = {
   GroupStateField::BULB_MODE,
   GroupStateField::HUE,
   GroupStateField::KELVIN,
@@ -953,4 +953,13 @@ void GroupState::applyState(JsonObject partialState, const BulbId& bulbId, std::
   for (std::vector<GroupStateField>::const_iterator itr = fields.begin(); itr != fields.end(); ++itr) {
     applyField(partialState, bulbId, *itr);
   }
+}
+
+bool GroupState::isPhysicalField(GroupStateField field) {
+  for (size_t i = 0; i < size(ALL_PHYSICAL_FIELDS); ++i) {
+    if (field == ALL_PHYSICAL_FIELDS[i]) {
+      return true;
+    }
+  }
+  return false;
 }
