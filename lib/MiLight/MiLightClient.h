@@ -69,7 +69,7 @@ public:
   void updateSaturation(const uint8_t saturation);
 
   void update(JsonObject object);
-  void handleCommand(const String& command);
+  void handleCommand(JsonVariant command);
   void handleEffect(const String& effect);
 
   void onUpdateBegin(EventHandler handler);

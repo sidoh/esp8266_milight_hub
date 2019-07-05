@@ -240,7 +240,7 @@ void MiLightClient::update(JsonObject request) {
 
     if (! commands.isNull()) {
       for (size_t i = 0; i < commands.size(); i++) {
-        this->handleCommand(commands[i].as<const char*>());
+        this->handleCommand(commands[i]);
       }
     }
   }
@@ -319,32 +319,43 @@ void MiLightClient::update(JsonObject request) {
   }
 }
 
-void MiLightClient::handleCommand(const String& command) {
-  if (command == "unpair") {
+void MiLightClient::handleCommand(JsonVariant command) {
+  String cmdName;
+  JsonObject args;
+
+  if (command.is<JsonObject>()) {
+    JsonObject cmdObj = command.as<JsonObject>();
+    cmdName = cmdObj["command"].as<const char*>();
+    args = cmdObj["args"];
+  } else if (command.is<const char*>()) {
+    cmdName = command.as<const char*>();
+  }
+
+  if (cmdName == "unpair") {
     this->unpair();
-  } else if (command == "pair") {
+  } else if (cmdName == "pair") {
     this->pair();
-  } else if (command == "set_white") {
+  } else if (cmdName == "set_white") {
     this->updateColorWhite();
-  } else if (command == "night_mode") {
+  } else if (cmdName == "night_mode") {
     this->enableNightMode();
-  } else if (command == "level_up") {
+  } else if (cmdName == "level_up") {
     this->increaseBrightness();
-  } else if (command == "level_down") {
+  } else if (cmdName == "level_down") {
     this->decreaseBrightness();
-  } else if (command == "temperature_up") {
+  } else if (cmdName == "temperature_up") {
     this->increaseTemperature();
-  } else if (command == "temperature_down") {
+  } else if (cmdName == "temperature_down") {
     this->decreaseTemperature();
-  } else if (command == "next_mode") {
+  } else if (cmdName == "next_mode") {
     this->nextMode();
-  } else if (command == "previous_mode") {
+  } else if (cmdName == "previous_mode") {
     this->previousMode();
-  } else if (command == "mode_speed_down") {
+  } else if (cmdName == "mode_speed_down") {
     this->modeSpeedDown();
-  } else if (command == "mode_speed_up") {
+  } else if (cmdName == "mode_speed_up") {
     this->modeSpeedUp();
-  } else if (command == "toggle") {
+  } else if (cmdName == "toggle") {
     this->toggleStatus();
   }
 }
