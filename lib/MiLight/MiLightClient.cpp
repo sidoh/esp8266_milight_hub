@@ -10,13 +10,15 @@ MiLightClient::MiLightClient(
   RadioSwitchboard& radioSwitchboard,
   PacketSender& packetSender,
   GroupStateStore* stateStore,
-  Settings& settings
+  Settings& settings,
+  TransitionController& transitions
 ) : radioSwitchboard(radioSwitchboard)
   , updateBeginHandler(NULL)
   , updateEndHandler(NULL)
   , stateStore(stateStore)
   , settings(settings)
   , packetSender(packetSender)
+  , transitions(transitions)
   , repeatsOverride(0)
 { }
 
@@ -357,7 +359,69 @@ void MiLightClient::handleCommand(JsonVariant command) {
     this->modeSpeedUp();
   } else if (cmdName == "toggle") {
     this->toggleStatus();
+  } else if (cmdName == "transition") {
+    this->handleTransition(args);
   }
+}
+
+void MiLightClient::handleTransition(JsonObject args) {
+  if (! args.containsKey(F("field"))
+    || ! args.containsKey(F("start_value"))
+    || ! args.containsKey(F("end_value"))
+    || ! args.containsKey(F("duration"))) {
+    Serial.println(F("Ignoring transition missing required arguments"));
+    return;
+  }
+
+  const char* fieldName = args[F("field")];
+  const size_t duration = args[F("duration")];
+  const size_t stepSize =
+    args.containsKey(F("step_size"))
+      ? args[F("step_size")]
+      : Transition::DEFAULT_STEP_SIZE;
+
+  GroupStateField field = GroupStateFieldHelpers::getFieldByName(fieldName);
+
+  if (field == GroupStateField::UNKNOWN) {
+    Serial.printf_P(PSTR("Unknown transition field: %s\n"), fieldName);
+    return;
+  }
+
+  // These fields can be transitioned directly.
+  switch (field) {
+    case GroupStateField::HUE:
+    case GroupStateField::SATURATION:
+    case GroupStateField::BRIGHTNESS:
+    case GroupStateField::LEVEL:
+    case GroupStateField::KELVIN:
+    case GroupStateField::COLOR_TEMP:
+      transitions.scheduleTransition(field, args[F("start_value")], args[F("end_value")], stepSize, duration);
+      return;
+
+    default:
+      break;
+  }
+
+  // Color can be decomposed into hue/saturation and these can be transitioned separately
+  if (field == GroupStateField::COLOR) {
+    ParsedColor startColor = ParsedColor::fromJson(args[F("start_value")]);
+    ParsedColor endColor = ParsedColor::fromJson(args[F("end_value")]);
+
+    if (! startColor.success) {
+      Serial.println(F("Transition - error parsing start color"));
+      return;
+    }
+    if (! endColor.success) {
+      Serial.println(F("Transition - error parsing end color"));
+      return;
+    }
+
+    transitions.scheduleTransition(startColor, endColor, stepSize, duration);
+
+    return;
+  }
+
+  Serial.printf_P(PSTR("Unsupported transition field: %s\n"), fieldName);
 }
 
 void MiLightClient::handleEffect(const String& effect) {

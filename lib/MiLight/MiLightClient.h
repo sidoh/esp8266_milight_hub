@@ -6,6 +6,7 @@
 #include <Settings.h>
 #include <GroupStateStore.h>
 #include <PacketSender.h>
+#include <TransitionController.h>
 
 #ifndef _MILIGHTCLIENT_H
 #define _MILIGHTCLIENT_H
@@ -22,7 +23,8 @@ public:
     RadioSwitchboard& radioSwitchboard,
     PacketSender& packetSender,
     GroupStateStore* stateStore,
-    Settings& settings
+    Settings& settings,
+    TransitionController& transitions
   );
 
   ~MiLightClient() { }
@@ -70,6 +72,7 @@ public:
 
   void update(JsonObject object);
   void handleCommand(JsonVariant command);
+  void handleTransition(JsonObject args);
   void handleEffect(const String& effect);
 
   void onUpdateBegin(EventHandler handler);
@@ -98,6 +101,7 @@ protected:
   GroupStateStore* stateStore;
   Settings& settings;
   PacketSender& packetSender;
+  TransitionController& transitions;
 
   // If set, override the number of packet repeats used.
   size_t repeatsOverride;
