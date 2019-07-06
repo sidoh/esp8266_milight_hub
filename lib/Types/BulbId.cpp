@@ -45,3 +45,9 @@ String BulbId::getHexDeviceId() const {
   sprintf_P(hexDeviceId, PSTR("0x%X"), deviceId);
   return hexDeviceId;
 }
+
+void BulbId::serialize(JsonObject json) const {
+  json["device_id"] = deviceId;
+  json["group_id"] = groupId;
+  json["device_type"] = MiLightRemoteTypeHelpers::remoteTypeToString(deviceType);
+}

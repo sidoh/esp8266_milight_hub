@@ -50,5 +50,9 @@ void Transition::serialize(JsonObject& json) {
   json["id"] = id;
   json["period"] = period;
   json["last_sent"] = lastSent;
+
+  JsonObject bulbParams = json.createNestedObject("bulb");
+  bulbId.serialize(bulbParams);
+
   childSerialize(json);
 }
