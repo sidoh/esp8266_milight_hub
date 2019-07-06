@@ -624,7 +624,7 @@ void MiLightHttpServer::handleListTransitions(RequestContext& request) {
 
   while (current != nullptr) {
     JsonObject json = transitions.createNestedObject();
-    json["id"] = current->data->id;
+    current->data->serialize(json);
     current = current->next;
   }
 }
