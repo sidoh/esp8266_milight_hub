@@ -93,13 +93,13 @@ BulbId RgbPacketFormatter::parsePacket(const uint8_t* packet, JsonObject result)
   );
 
   if (command == RGB_ON) {
-    result["state"] = "ON";
+    result[GroupStateFieldNames::STATE] = "ON";
   } else if (command == RGB_OFF) {
-    result["state"] = "OFF";
+    result[GroupStateFieldNames::STATE] = "OFF";
   } else if (command == 0) {
     uint16_t remappedColor = Units::rescale<uint16_t, uint16_t>(packet[RGB_COLOR_INDEX], 360.0, 255.0);
     remappedColor = (remappedColor + 320) % 360;
-    result["hue"] = remappedColor;
+    result[GroupStateFieldNames::HUE] = remappedColor;
   } else if (command == RGB_MODE_DOWN) {
     result["command"] = "previous_mode";
   } else if (command == RGB_MODE_UP) {

@@ -203,7 +203,7 @@ BulbId CctPacketFormatter::parsePacket(const uint8_t* packet, JsonObject result)
   if (command & 0x10) {
     result["command"] = "night_mode";
   } else if (onOffGroupId < 255) {
-    result["state"] = cctCommandToStatus(command) == ON ? "ON" : "OFF";
+    result[GroupStateFieldNames::STATE] = cctCommandToStatus(command) == ON ? "ON" : "OFF";
   } else if (command == CCT_BRIGHTNESS_DOWN) {
     result["command"] = "brightness_down";
   } else if (command == CCT_BRIGHTNESS_UP) {

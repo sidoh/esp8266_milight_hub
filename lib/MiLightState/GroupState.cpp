@@ -716,31 +716,31 @@ bool GroupState::patch(JsonObject state) {
   Serial.println();
 #endif
 
-  if (state.containsKey("state")) {
-    bool stateChange = setState(state["state"] == "ON" ? ON : OFF);
+  if (state.containsKey(GroupStateFieldNames::STATE)) {
+    bool stateChange = setState(state[GroupStateFieldNames::STATE] == "ON" ? ON : OFF);
     changes |= stateChange;
   }
 
   // Devices do not support changing their state while off, so don't apply state
   // changes to devices we know are off.
 
-  if (isOn() && state.containsKey("brightness")) {
-    bool stateChange = setBrightness(Units::rescale(state["brightness"].as<uint8_t>(), 100, 255));
+  if (isOn() && state.containsKey(GroupStateFieldNames::BRIGHTNESS)) {
+    bool stateChange = setBrightness(Units::rescale(state[GroupStateFieldNames::BRIGHTNESS].as<uint8_t>(), 100, 255));
     changes |= stateChange;
   }
-  if (isOn() && state.containsKey("hue")) {
-    changes |= setHue(state["hue"]);
+  if (isOn() && state.containsKey(GroupStateFieldNames::HUE)) {
+    changes |= setHue(state[GroupStateFieldNames::HUE]);
     changes |= setBulbMode(BULB_MODE_COLOR);
   }
-  if (isOn() && state.containsKey("saturation")) {
-    changes |= setSaturation(state["saturation"]);
+  if (isOn() && state.containsKey(GroupStateFieldNames::SATURATION)) {
+    changes |= setSaturation(state[GroupStateFieldNames::SATURATION]);
   }
-  if (isOn() && state.containsKey("mode")) {
-    changes |= setMode(state["mode"]);
+  if (isOn() && state.containsKey(GroupStateFieldNames::MODE)) {
+    changes |= setMode(state[GroupStateFieldNames::MODE]);
     changes |= setBulbMode(BULB_MODE_SCENE);
   }
-  if (isOn() && state.containsKey("color_temp")) {
-    changes |= setMireds(state["color_temp"]);
+  if (isOn() && state.containsKey(GroupStateFieldNames::COLOR_TEMP)) {
+    changes |= setMireds(state[GroupStateFieldNames::COLOR_TEMP]);
     changes |= setBulbMode(BULB_MODE_WHITE);
   }
 
@@ -788,7 +788,7 @@ void GroupState::applyColor(JsonObject state) const {
 }
 
 void GroupState::applyColor(JsonObject state, uint8_t r, uint8_t g, uint8_t b) const {
-  JsonObject color = state.createNestedObject("color");
+  JsonObject color = state.createNestedObject(GroupStateFieldNames::COLOR);
   color["r"] = r;
   color["g"] = g;
   color["b"] = b;
@@ -806,7 +806,7 @@ void GroupState::applyOhColor(JsonObject state) const {
   );
   char ohColorStr[13];
   sprintf(ohColorStr, "%d,%d,%d", rgb[0], rgb[1], rgb[2]);
-  state["color"] = ohColorStr;
+  state[GroupStateFieldNames::COLOR] = ohColorStr;
 }
 
 // gather partial state for a single field; see GroupState::applyState to gather many fields
@@ -819,15 +819,15 @@ void GroupState::applyField(JsonObject partialState, const BulbId& bulbId, Group
         break;
 
       case GroupStateField::BRIGHTNESS:
-        partialState["brightness"] = Units::rescale(getBrightness(), 255, 100);
+        partialState[GroupStateFieldNames::BRIGHTNESS] = Units::rescale(getBrightness(), 255, 100);
         break;
 
       case GroupStateField::LEVEL:
-        partialState["level"] = getBrightness();
+        partialState[GroupStateFieldNames::LEVEL] = getBrightness();
         break;
 
       case GroupStateField::BULB_MODE:
-        partialState["bulb_mode"] = BULB_MODE_NAMES[getBulbMode()];
+        partialState[GroupStateFieldNames::BULB_MODE] = BULB_MODE_NAMES[getBulbMode()];
         break;
 
       case GroupStateField::COLOR:
@@ -852,57 +852,57 @@ void GroupState::applyField(JsonObject partialState, const BulbId& bulbId, Group
 
       case GroupStateField::HUE:
         if (getBulbMode() == BULB_MODE_COLOR) {
-          partialState["hue"] = getHue();
+          partialState[GroupStateFieldNames::HUE] = getHue();
         }
         break;
 
       case GroupStateField::SATURATION:
         if (getBulbMode() == BULB_MODE_COLOR) {
-          partialState["saturation"] = getSaturation();
+          partialState[GroupStateFieldNames::SATURATION] = getSaturation();
         }
         break;
 
       case GroupStateField::MODE:
         if (getBulbMode() == BULB_MODE_SCENE) {
-          partialState["mode"] = getMode();
+          partialState[GroupStateFieldNames::MODE] = getMode();
         }
         break;
 
       case GroupStateField::EFFECT:
         if (getBulbMode() == BULB_MODE_SCENE) {
-          partialState["effect"] = String(getMode());
+          partialState[GroupStateFieldNames::EFFECT] = String(getMode());
         } else if (isSetBulbMode() && getBulbMode() == BULB_MODE_WHITE) {
-          partialState["effect"] = "white_mode";
+          partialState[GroupStateFieldNames::EFFECT] = "white_mode";
         } else if (getBulbMode() == BULB_MODE_NIGHT) {
-          partialState["effect"] = "night_mode";
+          partialState[GroupStateFieldNames::EFFECT] = "night_mode";
         }
         break;
 
       case GroupStateField::COLOR_TEMP:
         if (isSetBulbMode() && getBulbMode() == BULB_MODE_WHITE) {
-          partialState["color_temp"] = getMireds();
+          partialState[GroupStateFieldNames::COLOR_TEMP] = getMireds();
         }
         break;
 
       case GroupStateField::KELVIN:
         if (isSetBulbMode() && getBulbMode() == BULB_MODE_WHITE) {
-          partialState["kelvin"] = getKelvin();
+          partialState[GroupStateFieldNames::KELVIN] = getKelvin();
         }
         break;
 
       case GroupStateField::DEVICE_ID:
-        partialState["device_id"] = bulbId.deviceId;
+        partialState[GroupStateFieldNames::DEVICE_ID] = bulbId.deviceId;
         break;
 
       case GroupStateField::GROUP_ID:
-        partialState["group_id"] = bulbId.groupId;
+        partialState[GroupStateFieldNames::GROUP_ID] = bulbId.groupId;
         break;
 
       case GroupStateField::DEVICE_TYPE:
         {
           const MiLightRemoteConfig* remoteConfig = MiLightRemoteConfig::fromType(bulbId.deviceType);
           if (remoteConfig) {
-            partialState["device_type"] = remoteConfig->name;
+            partialState[GroupStateFieldNames::DEVICE_TYPE] = remoteConfig->name;
           }
         }
         break;

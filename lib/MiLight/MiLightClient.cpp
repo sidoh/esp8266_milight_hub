@@ -248,20 +248,20 @@ void MiLightClient::update(JsonObject request) {
   }
 
   //Homeassistant - Handle effect
-  if (request.containsKey("effect")) {
-    this->handleEffect(request["effect"]);
+  if (request.containsKey(GroupStateFieldNames::EFFECT)) {
+    this->handleEffect(request[GroupStateFieldNames::EFFECT]);
   }
 
-  if (request.containsKey("hue")) {
-    this->updateHue(request["hue"]);
+  if (request.containsKey(GroupStateFieldNames::HUE)) {
+    this->updateHue(request[GroupStateFieldNames::HUE]);
   }
-  if (request.containsKey("saturation")) {
-    this->updateSaturation(request["saturation"]);
+  if (request.containsKey(GroupStateFieldNames::SATURATION)) {
+    this->updateSaturation(request[GroupStateFieldNames::SATURATION]);
   }
 
   // Convert RGB to HSV
-  if (request.containsKey("color")) {
-    ParsedColor color = ParsedColor::fromJson(request["color"]);
+  if (request.containsKey(GroupStateFieldNames::COLOR)) {
+    ParsedColor color = ParsedColor::fromJson(request[GroupStateFieldNames::COLOR]);
 
     if (!color.success) {
       Serial.println(F("Error parsing JSON color"));
@@ -280,30 +280,30 @@ void MiLightClient::update(JsonObject request) {
     }
   }
 
-  if (request.containsKey("level")) {
-    this->updateBrightness(request["level"]);
+  if (request.containsKey(GroupStateFieldNames::LEVEL)) {
+    this->updateBrightness(request[GroupStateFieldNames::LEVEL]);
   }
   // HomeAssistant
-  if (request.containsKey("brightness")) {
-    uint8_t scaledBrightness = Units::rescale(request["brightness"].as<uint8_t>(), 100, 255);
+  if (request.containsKey(GroupStateFieldNames::BRIGHTNESS)) {
+    uint8_t scaledBrightness = Units::rescale(request[GroupStateFieldNames::BRIGHTNESS].as<uint8_t>(), 100, 255);
     this->updateBrightness(scaledBrightness);
   }
 
   if (request.containsKey("temperature")) {
     this->updateTemperature(request["temperature"]);
   }
-  if (request.containsKey("kelvin")) {
-    this->updateTemperature(request["kelvin"]);
+  if (request.containsKey(GroupStateFieldNames::KELVIN)) {
+    this->updateTemperature(request[GroupStateFieldNames::KELVIN]);
   }
   // HomeAssistant
-  if (request.containsKey("color_temp")) {
+  if (request.containsKey(GroupStateFieldNames::COLOR_TEMP)) {
     this->updateTemperature(
-      Units::miredsToWhiteVal(request["color_temp"], 100)
+      Units::miredsToWhiteVal(request[GroupStateFieldNames::COLOR_TEMP], 100)
     );
   }
 
-  if (request.containsKey("mode")) {
-    this->updateMode(request["mode"]);
+  if (request.containsKey(GroupStateFieldNames::MODE)) {
+    this->updateMode(request[GroupStateFieldNames::MODE]);
   }
 
   // Raw packet command/args
@@ -450,10 +450,10 @@ void MiLightClient::handleEffect(const String& effect) {
 uint8_t MiLightClient::parseStatus(JsonObject object) {
   JsonVariant status;
 
-  if (object.containsKey("status")) {
-    status = object["status"];
-  } else if (object.containsKey("state")) {
-    status = object["state"];
+  if (object.containsKey(GroupStateFieldNames::STATUS)) {
+    status = object[GroupStateFieldNames::STATUS];
+  } else if (object.containsKey(GroupStateFieldNames::STATE)) {
+    status = object[GroupStateFieldNames::STATE];
   } else {
     return 255;
   }

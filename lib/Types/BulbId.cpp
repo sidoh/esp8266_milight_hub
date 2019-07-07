@@ -47,7 +47,7 @@ String BulbId::getHexDeviceId() const {
 }
 
 void BulbId::serialize(JsonObject json) const {
-  json["device_id"] = deviceId;
-  json["group_id"] = groupId;
-  json["device_type"] = MiLightRemoteTypeHelpers::remoteTypeToString(deviceType);
+  json[GroupStateFieldNames::DEVICE_ID] = deviceId;
+  json[GroupStateFieldNames::GROUP_ID] = groupId;
+  json[GroupStateFieldNames::DEVICE_TYPE] = MiLightRemoteTypeHelpers::remoteTypeToString(deviceType);
 }

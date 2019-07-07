@@ -367,8 +367,8 @@ void MiLightHttpServer::handleGetGroupAlias(RequestContext& request) {
 }
 
 void MiLightHttpServer::handleGetGroup(RequestContext& request) {
-  const String _deviceId = request.pathVariables.get("device_id");
-  uint8_t _groupId = atoi(request.pathVariables.get("group_id"));
+  const String _deviceId = request.pathVariables.get(GroupStateFieldNames::DEVICE_ID);
+  uint8_t _groupId = atoi(request.pathVariables.get(GroupStateFieldNames::GROUP_ID));
   const MiLightRemoteConfig* _remoteType = MiLightRemoteConfig::fromType(request.pathVariables.get("type"));
 
   if (_remoteType == NULL) {
@@ -384,8 +384,8 @@ void MiLightHttpServer::handleGetGroup(RequestContext& request) {
 }
 
 void MiLightHttpServer::handleDeleteGroup(RequestContext& request) {
-  const String _deviceId = request.pathVariables.get("device_id");
-  uint8_t _groupId = atoi(request.pathVariables.get("group_id"));
+  const String _deviceId = request.pathVariables.get(GroupStateFieldNames::DEVICE_ID);
+  uint8_t _groupId = atoi(request.pathVariables.get(GroupStateFieldNames::GROUP_ID));
   const MiLightRemoteConfig* _remoteType = MiLightRemoteConfig::fromType(request.pathVariables.get("type"));
 
   if (_remoteType == NULL) {
@@ -454,8 +454,8 @@ void MiLightHttpServer::handleUpdateGroupAlias(RequestContext& request) {
 void MiLightHttpServer::handleUpdateGroup(RequestContext& request) {
   JsonObject reqObj = request.getJsonBody().as<JsonObject>();
 
-  String _deviceIds = request.pathVariables.get("device_id");
-  String _groupIds = request.pathVariables.get("group_id");
+  String _deviceIds = request.pathVariables.get(GroupStateFieldNames::DEVICE_ID);
+  String _groupIds = request.pathVariables.get(GroupStateFieldNames::GROUP_ID);
   String _remoteTypes = request.pathVariables.get("type");
   char deviceIds[_deviceIds.length()];
   char groupIds[_groupIds.length()];
@@ -632,8 +632,8 @@ void MiLightHttpServer::handleListTransitions(RequestContext& request) {
 void MiLightHttpServer::handleCreateTransition(RequestContext& request) {
   JsonObject body = request.getJsonBody().as<JsonObject>();
 
-  if (! body.containsKey(F("device_id"))
-    || ! body.containsKey(F("group_id"))
+  if (! body.containsKey(GroupStateFieldNames::DEVICE_ID)
+    || ! body.containsKey(GroupStateFieldNames::GROUP_ID)
     || ! body.containsKey(F("remote_type"))) {
     char buffer[200];
     sprintf_P(buffer, PSTR("Must specify required keys: device_id, group_id, remote_type"));
@@ -643,8 +643,8 @@ void MiLightHttpServer::handleCreateTransition(RequestContext& request) {
     return;
   }
 
-  const String _deviceId = body[F("device_id")];
-  uint8_t _groupId = atoi(body[F("group_id")]);
+  const String _deviceId = body[GroupStateFieldNames::DEVICE_ID];
+  uint8_t _groupId = atoi(body[GroupStateFieldNames::GROUP_ID]);
   const MiLightRemoteConfig* _remoteType = MiLightRemoteConfig::fromType(body[F("remote_type")].as<const char*>());
 
   if (_remoteType == NULL) {
