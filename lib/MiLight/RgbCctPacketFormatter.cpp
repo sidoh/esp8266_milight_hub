@@ -123,11 +123,11 @@ BulbId RgbCctPacketFormatter::parsePacket(const uint8_t *packet, JsonObject resu
 
   if (command == RGB_CCT_ON) {
     if ((packetCopy[V2_COMMAND_INDEX] & 0x80) == 0x80) {
-      result["command"] = MiLightCommandNames::NIGHT_MODE;
+      result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::NIGHT_MODE;
     } else if (arg == RGB_CCT_MODE_SPEED_DOWN) {
-      result["command"] = MiLightCommandNames::MODE_SPEED_DOWN;
+      result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::MODE_SPEED_DOWN;
     } else if (arg == RGB_CCT_MODE_SPEED_UP) {
-      result["command"] = MiLightCommandNames::MODE_SPEED_UP;
+      result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::MODE_SPEED_UP;
     } else if (arg < 5) { // Group is not reliably encoded in group byte. Extract from arg byte
       result[GroupStateFieldNames::STATE] = "ON";
       bulbId.groupId = arg;

@@ -114,13 +114,13 @@ BulbId FUT089PacketFormatter::parsePacket(const uint8_t *packet, JsonObject resu
 
   if (command == FUT089_ON) {
     if ((packetCopy[V2_COMMAND_INDEX] & 0x80) == 0x80) {
-      result["command"] = MiLightCommandNames::NIGHT_MODE;
+      result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::NIGHT_MODE;
     } else if (arg == FUT089_MODE_SPEED_DOWN) {
-      result["command"] = MiLightCommandNames::MODE_SPEED_DOWN;
+      result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::MODE_SPEED_DOWN;
     } else if (arg == FUT089_MODE_SPEED_UP) {
-      result["command"] = MiLightCommandNames::MODE_SPEED_UP;
+      result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::MODE_SPEED_UP;
     } else if (arg == FUT089_WHITE_MODE) {
-      result["command"] = MiLightCommandNames::SET_WHITE;
+      result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::SET_WHITE;
     } else if (arg <= 8) { // Group is not reliably encoded in group byte. Extract from arg byte
       result[GroupStateFieldNames::STATE] = "ON";
       bulbId.groupId = arg;

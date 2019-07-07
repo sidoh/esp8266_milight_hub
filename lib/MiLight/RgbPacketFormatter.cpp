@@ -102,17 +102,17 @@ BulbId RgbPacketFormatter::parsePacket(const uint8_t* packet, JsonObject result)
     remappedColor = (remappedColor + 320) % 360;
     result[GroupStateFieldNames::HUE] = remappedColor;
   } else if (command == RGB_MODE_DOWN) {
-    result["command"] = MiLightCommandNames::PREVIOUS_MODE;
+    result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::PREVIOUS_MODE;
   } else if (command == RGB_MODE_UP) {
-    result["command"] = MiLightCommandNames::NEXT_MODE;
+    result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::NEXT_MODE;
   } else if (command == RGB_SPEED_DOWN) {
-    result["command"] = MiLightCommandNames::MODE_SPEED_DOWN;
+    result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::MODE_SPEED_DOWN;
   } else if (command == RGB_SPEED_UP) {
-    result["command"] = MiLightCommandNames::MODE_SPEED_UP;
+    result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::MODE_SPEED_UP;
   } else if (command == RGB_BRIGHTNESS_DOWN) {
-    result["command"] = "brightness_down";
+    result[GroupStateFieldNames::COMMAND] = "brightness_down";
   } else if (command == RGB_BRIGHTNESS_UP) {
-    result["command"] = "brightness_up";
+    result[GroupStateFieldNames::COMMAND] = "brightness_up";
   } else {
     result["button_id"] = command;
   }

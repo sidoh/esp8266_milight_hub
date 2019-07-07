@@ -282,12 +282,12 @@ void MiLightClient::update(JsonObject request) {
     this->updateStatus(ON);
   }
 
-  if (request.containsKey("command")) {
-    this->handleCommand(request["command"]);
+  if (request.containsKey(GroupStateFieldNames::COMMAND)) {
+    this->handleCommand(request[GroupStateFieldNames::COMMAND]);
   }
 
-  if (request.containsKey("commands")) {
-    JsonArray commands = request["commands"];
+  if (request.containsKey(GroupStateFieldNames::COMMANDS)) {
+    JsonArray commands = request[GroupStateFieldNames::COMMANDS];
 
     if (! commands.isNull()) {
       for (size_t i = 0; i < commands.size(); i++) {
@@ -368,7 +368,7 @@ void MiLightClient::handleCommand(JsonVariant command) {
 
   if (command.is<JsonObject>()) {
     JsonObject cmdObj = command.as<JsonObject>();
-    cmdName = cmdObj["command"].as<const char*>();
+    cmdName = cmdObj[GroupStateFieldNames::COMMAND].as<const char*>();
     args = cmdObj["args"];
   } else if (command.is<const char*>()) {
     cmdName = command.as<const char*>();

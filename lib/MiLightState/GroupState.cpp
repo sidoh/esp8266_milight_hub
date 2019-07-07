@@ -745,8 +745,8 @@ bool GroupState::patch(JsonObject state) {
     changes |= setBulbMode(BULB_MODE_WHITE);
   }
 
-  if (state.containsKey("command")) {
-    const String& command = state["command"];
+  if (state.containsKey(GroupStateFieldNames::COMMAND)) {
+    const String& command = state[GroupStateFieldNames::COMMAND];
 
     if (isOn() && command == MiLightCommandNames::SET_WHITE) {
       changes |= setBulbMode(BULB_MODE_WHITE);

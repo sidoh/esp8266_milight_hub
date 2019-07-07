@@ -35,7 +35,7 @@ BulbId FUT091PacketFormatter::parsePacket(const uint8_t *packet, JsonObject resu
 
   if (command == (uint8_t)FUT091Command::ON_OFF) {
     if ((packetCopy[V2_COMMAND_INDEX] & 0x80) == 0x80) {
-      result["command"] = MiLightCommandNames::NIGHT_MODE;
+      result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::NIGHT_MODE;
     } else if (arg < 5) { // Group is not reliably encoded in group byte. Extract from arg byte
       result[GroupStateFieldNames::STATE] = "ON";
       bulbId.groupId = arg;

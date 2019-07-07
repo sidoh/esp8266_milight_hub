@@ -202,17 +202,17 @@ BulbId CctPacketFormatter::parsePacket(const uint8_t* packet, JsonObject result)
 
   // Night mode
   if (command & 0x10) {
-    result["command"] = MiLightCommandNames::NIGHT_MODE;
+    result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::NIGHT_MODE;
   } else if (onOffGroupId < 255) {
     result[GroupStateFieldNames::STATE] = cctCommandToStatus(command) == ON ? "ON" : "OFF";
   } else if (command == CCT_BRIGHTNESS_DOWN) {
-    result["command"] = "brightness_down";
+    result[GroupStateFieldNames::COMMAND] = "brightness_down";
   } else if (command == CCT_BRIGHTNESS_UP) {
-    result["command"] = "brightness_up";
+    result[GroupStateFieldNames::COMMAND] = "brightness_up";
   } else if (command == CCT_TEMPERATURE_DOWN) {
-    result["command"] = MiLightCommandNames::TEMPERATURE_DOWN;
+    result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::TEMPERATURE_DOWN;
   } else if (command == CCT_TEMPERATURE_UP) {
-    result["command"] = MiLightCommandNames::TEMPERATURE_UP;
+    result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::TEMPERATURE_UP;
   } else {
     result["button_id"] = command;
   }

@@ -110,8 +110,8 @@ void MiLightHttpServer::handleSystemPost(RequestContext& request) {
 
   bool handled = false;
 
-  if (requestBody.containsKey("command")) {
-    if (requestBody["command"] == "restart") {
+  if (requestBody.containsKey(GroupStateFieldNames::COMMAND)) {
+    if (requestBody[GroupStateFieldNames::COMMAND] == "restart") {
       Serial.println(F("Restarting..."));
       server.send_P(200, TEXT_PLAIN, PSTR("true"));
 
@@ -120,7 +120,7 @@ void MiLightHttpServer::handleSystemPost(RequestContext& request) {
       ESP.restart();
 
       handled = true;
-    } else if (requestBody["command"] == "clear_wifi_config") {
+    } else if (requestBody[GroupStateFieldNames::COMMAND] == "clear_wifi_config") {
         Serial.println(F("Resetting Wifi and then Restarting..."));
         server.send_P(200, TEXT_PLAIN, PSTR("true"));
 
