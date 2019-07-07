@@ -1,4 +1,5 @@
 #include <BulbId.h>
+#include <GroupStateField.h>
 
 BulbId::BulbId()
   : deviceId(0),

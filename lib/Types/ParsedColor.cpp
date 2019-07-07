@@ -1,6 +1,7 @@
 #include <ParsedColor.h>
 #include <RGBConverter.h>
 #include <TokenIterator.h>
+#include <GroupStateField.h>
 
 ParsedColor ParsedColor::fromRgb(uint16_t r, uint16_t g, uint16_t b) {
   double hsv[3];
