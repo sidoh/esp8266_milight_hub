@@ -60,6 +60,7 @@ public:
   void updateColorWhite();
   void updateColorRaw(const uint8_t color);
   void enableNightMode();
+  void updateColor(JsonVariant json);
 
   // CCT methods
   void updateTemperature(const uint8_t colorTemperature);
@@ -72,6 +73,7 @@ public:
 
   void update(JsonObject object);
   void handleCommand(JsonVariant command);
+  void handleCommands(JsonArray commands);
   void handleTransition(JsonObject args);
   void handleEffect(const String& effect);
 
@@ -89,7 +91,11 @@ public:
   // Clear the repeats override so that the default is used
   void clearRepeatsOverride();
 
+  uint8_t parseStatus(JsonObject object);
+
 protected:
+  static const std::map<const char*, std::function<void(MiLightClient*, JsonVariant)>> FIELD_SETTERS;
+
   RadioSwitchboard& radioSwitchboard;
   std::vector<std::shared_ptr<MiLightRadio>> radios;
   std::shared_ptr<MiLightRadio> currentRadio;
@@ -105,8 +111,6 @@ protected:
 
   // If set, override the number of packet repeats used.
   size_t repeatsOverride;
-
-  uint8_t parseStatus(JsonObject object);
 
   void flushPacket();
 };

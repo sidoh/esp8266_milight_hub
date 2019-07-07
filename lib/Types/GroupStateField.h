@@ -12,6 +12,7 @@ namespace GroupStateFieldNames {
   static const char COLOR[] = "color";
   static const char MODE[] = "mode";
   static const char KELVIN[] = "kelvin";
+  static const char TEMPERATURE[] = "temperature"; //alias for kelvin
   static const char COLOR_TEMP[] = "color_temp";
   static const char BULB_MODE[] = "bulb_mode";
   static const char COMPUTED_COLOR[] = "computed_color";
@@ -20,6 +21,8 @@ namespace GroupStateFieldNames {
   static const char GROUP_ID[] = "group_id";
   static const char DEVICE_TYPE[] = "device_type";
   static const char OH_COLOR[] = "oh_color";
+  static const char COMMAND[] = "command";
+  static const char COMMANDS[] = "commands";
 };
 
 enum class GroupStateField {

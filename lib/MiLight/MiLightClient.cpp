@@ -5,6 +5,34 @@
 #include <Units.h>
 #include <TokenIterator.h>
 #include <ParsedColor.h>
+#include <functional>
+
+using namespace std::placeholders;
+
+const std::map<const char*, std::function<void(MiLightClient*, JsonVariant)>> MiLightClient::FIELD_SETTERS = {
+  {GroupStateFieldNames::LEVEL, &MiLightClient::updateBrightness},
+  {
+    GroupStateFieldNames::BRIGHTNESS,
+    [](MiLightClient* client, uint16_t arg) {
+      client->updateBrightness(Units::rescale(arg, 255, 100));
+    }
+  },
+  {GroupStateFieldNames::HUE, &MiLightClient::updateHue},
+  {GroupStateFieldNames::SATURATION, &MiLightClient::updateSaturation},
+  {GroupStateFieldNames::KELVIN, &MiLightClient::updateTemperature},
+  {GroupStateFieldNames::TEMPERATURE, &MiLightClient::updateTemperature},
+  {
+    GroupStateFieldNames::COLOR_TEMP,
+    [](MiLightClient* client, uint16_t arg) {
+      client->updateTemperature(Units::miredsToWhiteVal(arg, 100));
+    }
+  },
+  {GroupStateFieldNames::MODE, &MiLightClient::updateMode},
+  {GroupStateFieldNames::COLOR, &MiLightClient::updateColor},
+  {GroupStateFieldNames::EFFECT, &MiLightClient::handleEffect},
+  {GroupStateFieldNames::COMMAND, &MiLightClient::handleCommand},
+  {GroupStateFieldNames::COMMANDS, &MiLightClient::handleCommands}
+};
 
 MiLightClient::MiLightClient(
   RadioSwitchboard& radioSwitchboard,
@@ -221,6 +249,26 @@ void MiLightClient::toggleStatus() {
   flushPacket();
 }
 
+void MiLightClient::updateColor(JsonVariant json) {
+  ParsedColor color = ParsedColor::fromJson(json);
+
+  if (!color.success) {
+    Serial.println(F("Error parsing JSON color"));
+    return;
+  }
+
+  // We consider an RGB color "white" if all color intensities are roughly the
+  // same value.  An unscientific value of 10 (~4%) is chosen.
+  if ( abs(color.r - color.g) < RGB_WHITE_THRESHOLD
+    && abs(color.g - color.b) < RGB_WHITE_THRESHOLD
+    && abs(color.r - color.b) < RGB_WHITE_THRESHOLD) {
+      this->updateColorWhite();
+  } else {
+    this->updateHue(color.hue);
+    this->updateSaturation(color.saturation);
+  }
+}
+
 void MiLightClient::update(JsonObject request) {
   if (this->updateBeginHandler) {
     this->updateBeginHandler();
@@ -261,23 +309,7 @@ void MiLightClient::update(JsonObject request) {
 
   // Convert RGB to HSV
   if (request.containsKey(GroupStateFieldNames::COLOR)) {
-    ParsedColor color = ParsedColor::fromJson(request[GroupStateFieldNames::COLOR]);
-
-    if (!color.success) {
-      Serial.println(F("Error parsing JSON color"));
-      return;
-    }
-
-    // We consider an RGB color "white" if all color intensities are roughly the
-    // same value.  An unscientific value of 10 (~4%) is chosen.
-    if ( abs(color.r - color.g) < RGB_WHITE_THRESHOLD
-      && abs(color.g - color.b) < RGB_WHITE_THRESHOLD
-      && abs(color.r - color.b) < RGB_WHITE_THRESHOLD) {
-        this->updateColorWhite();
-    } else {
-      this->updateHue(color.hue);
-      this->updateSaturation(color.saturation);
-    }
+    this->updateColor(request[GroupStateFieldNames::COLOR]);
   }
 
   if (request.containsKey(GroupStateFieldNames::LEVEL)) {
@@ -318,6 +350,14 @@ void MiLightClient::update(JsonObject request) {
 
   if (this->updateEndHandler) {
     this->updateEndHandler();
+  }
+}
+
+void MiLightClient::handleCommands(JsonArray commands) {
+  if (! commands.isNull()) {
+    for (size_t i = 0; i < commands.size(); i++) {
+      this->handleCommand(commands[i]);
+    }
   }
 }
 
