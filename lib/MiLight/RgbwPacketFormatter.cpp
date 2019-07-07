@@ -1,5 +1,6 @@
 #include <RgbwPacketFormatter.h>
 #include <Units.h>
+#include <MiLightCommands.h>
 
 #define STATUS_COMMAND(status, groupId) ( RGBW_GROUP_1_ON + (((groupId) - 1)*2) + (status) )
 #define GROUP_FOR_STATUS_COMMAND(buttonId) ( ((buttonId) - 1) / 2 )
@@ -126,9 +127,9 @@ BulbId RgbwPacketFormatter::parsePacket(const uint8_t* packet, JsonObject result
     bulbId.groupId = GROUP_FOR_STATUS_COMMAND(command);
   } else if (command & 0x10) {
     if ((command % 2) == 0) {
-      result["command"] = "night_mode";
+      result["command"] = MiLightCommandNames::NIGHT_MODE;
     } else {
-      result["command"] = "set_white";
+      result["command"] = MiLightCommandNames::SET_WHITE;
     }
     bulbId.groupId = GROUP_FOR_STATUS_COMMAND(command & 0xF);
   } else if (command == RGBW_BRIGHTNESS) {
@@ -142,9 +143,9 @@ BulbId RgbwPacketFormatter::parsePacket(const uint8_t* packet, JsonObject result
     remappedColor = (remappedColor + 320) % 360;
     result[GroupStateFieldNames::HUE] = remappedColor;
   } else if (command == RGBW_SPEED_DOWN) {
-    result["command"] = "mode_speed_down";
+    result["command"] = MiLightCommandNames::MODE_SPEED_DOWN;
   } else if (command == RGBW_SPEED_UP) {
-    result["command"] = "mode_speed_up";
+    result["command"] = MiLightCommandNames::MODE_SPEED_UP;
   } else if (command == RGBW_DISCO_MODE) {
     result[GroupStateFieldNames::MODE] = packet[0] & ~RGBW_PROTOCOL_ID_BYTE;
   } else {

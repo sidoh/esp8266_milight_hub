@@ -5,6 +5,7 @@
 #include <Units.h>
 #include <TokenIterator.h>
 #include <ParsedColor.h>
+#include <MiLightCommands.h>
 #include <functional>
 
 using namespace std::placeholders;
@@ -373,33 +374,33 @@ void MiLightClient::handleCommand(JsonVariant command) {
     cmdName = command.as<const char*>();
   }
 
-  if (cmdName == "unpair") {
+  if (cmdName == MiLightCommandNames::UNPAIR) {
     this->unpair();
-  } else if (cmdName == "pair") {
+  } else if (cmdName == MiLightCommandNames::PAIR) {
     this->pair();
-  } else if (cmdName == "set_white") {
+  } else if (cmdName == MiLightCommandNames::SET_WHITE) {
     this->updateColorWhite();
-  } else if (cmdName == "night_mode") {
+  } else if (cmdName == MiLightCommandNames::NIGHT_MODE) {
     this->enableNightMode();
-  } else if (cmdName == "level_up") {
+  } else if (cmdName == MiLightCommandNames::LEVEL_UP) {
     this->increaseBrightness();
-  } else if (cmdName == "level_down") {
+  } else if (cmdName == MiLightCommandNames::LEVEL_DOWN) {
     this->decreaseBrightness();
-  } else if (cmdName == "temperature_up") {
+  } else if (cmdName == MiLightCommandNames::TEMPERATURE_UP) {
     this->increaseTemperature();
-  } else if (cmdName == "temperature_down") {
+  } else if (cmdName == MiLightCommandNames::TEMPERATURE_DOWN) {
     this->decreaseTemperature();
-  } else if (cmdName == "next_mode") {
+  } else if (cmdName == MiLightCommandNames::NEXT_MODE) {
     this->nextMode();
-  } else if (cmdName == "previous_mode") {
+  } else if (cmdName == MiLightCommandNames::PREVIOUS_MODE) {
     this->previousMode();
-  } else if (cmdName == "mode_speed_down") {
+  } else if (cmdName == MiLightCommandNames::MODE_SPEED_DOWN) {
     this->modeSpeedDown();
-  } else if (cmdName == "mode_speed_up") {
+  } else if (cmdName == MiLightCommandNames::MODE_SPEED_UP) {
     this->modeSpeedUp();
-  } else if (cmdName == "toggle") {
+  } else if (cmdName == MiLightCommandNames::TOGGLE) {
     this->toggleStatus();
-  } else if (cmdName == "transition") {
+  } else if (cmdName == MiLightCommandNames::TRANSITION) {
     this->handleTransition(args);
   }
 }
@@ -478,7 +479,7 @@ void MiLightClient::handleTransition(JsonObject args) {
 }
 
 void MiLightClient::handleEffect(const String& effect) {
-  if (effect == "night_mode") {
+  if (effect == MiLightCommandNames::NIGHT_MODE) {
     this->enableNightMode();
   } else if (effect == "white" || effect == "white_mode") {
     this->updateColorWhite();

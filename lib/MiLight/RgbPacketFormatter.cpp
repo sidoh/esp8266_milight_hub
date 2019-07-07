@@ -1,5 +1,6 @@
 #include <RgbPacketFormatter.h>
 #include <Units.h>
+#include <MiLightCommands.h>
 
 void RgbPacketFormatter::initializePacket(uint8_t *packet) {
   size_t packetPtr = 0;
@@ -101,13 +102,13 @@ BulbId RgbPacketFormatter::parsePacket(const uint8_t* packet, JsonObject result)
     remappedColor = (remappedColor + 320) % 360;
     result[GroupStateFieldNames::HUE] = remappedColor;
   } else if (command == RGB_MODE_DOWN) {
-    result["command"] = "previous_mode";
+    result["command"] = MiLightCommandNames::PREVIOUS_MODE;
   } else if (command == RGB_MODE_UP) {
-    result["command"] = "next_mode";
+    result["command"] = MiLightCommandNames::NEXT_MODE;
   } else if (command == RGB_SPEED_DOWN) {
-    result["command"] = "mode_speed_down";
+    result["command"] = MiLightCommandNames::MODE_SPEED_DOWN;
   } else if (command == RGB_SPEED_UP) {
-    result["command"] = "mode_speed_up";
+    result["command"] = MiLightCommandNames::MODE_SPEED_UP;
   } else if (command == RGB_BRIGHTNESS_DOWN) {
     result["command"] = "brightness_down";
   } else if (command == RGB_BRIGHTNESS_UP) {

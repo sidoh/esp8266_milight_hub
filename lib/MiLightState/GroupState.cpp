@@ -3,6 +3,7 @@
 #include <MiLightRemoteConfig.h>
 #include <RGBConverter.h>
 #include <BulbId.h>
+#include <MiLightCommands.h>
 
 static const char* BULB_MODE_NAMES[] = {
   "white",
@@ -747,18 +748,18 @@ bool GroupState::patch(JsonObject state) {
   if (state.containsKey("command")) {
     const String& command = state["command"];
 
-    if (isOn() && command == "set_white") {
+    if (isOn() && command == MiLightCommandNames::SET_WHITE) {
       changes |= setBulbMode(BULB_MODE_WHITE);
-    } else if (command == "night_mode") {
+    } else if (command == MiLightCommandNames::NIGHT_MODE) {
       changes |= setBulbMode(BULB_MODE_NIGHT);
     } else if (isOn() && command == "brightness_up") {
       changes |= applyIncrementCommand(GroupStateField::BRIGHTNESS, IncrementDirection::INCREASE);
     } else if (isOn() && command == "brightness_down") {
       changes |= applyIncrementCommand(GroupStateField::BRIGHTNESS, IncrementDirection::DECREASE);
-    } else if (isOn() && command == "temperature_up") {
+    } else if (isOn() && command == MiLightCommandNames::TEMPERATURE_UP) {
       changes |= applyIncrementCommand(GroupStateField::KELVIN, IncrementDirection::INCREASE);
       changes |= setBulbMode(BULB_MODE_WHITE);
-    } else if (isOn() && command == "temperature_down") {
+    } else if (isOn() && command == MiLightCommandNames::TEMPERATURE_DOWN) {
       changes |= applyIncrementCommand(GroupStateField::KELVIN, IncrementDirection::DECREASE);
       changes |= setBulbMode(BULB_MODE_WHITE);
     }
@@ -874,7 +875,7 @@ void GroupState::applyField(JsonObject partialState, const BulbId& bulbId, Group
         } else if (isSetBulbMode() && getBulbMode() == BULB_MODE_WHITE) {
           partialState[GroupStateFieldNames::EFFECT] = "white_mode";
         } else if (getBulbMode() == BULB_MODE_NIGHT) {
-          partialState[GroupStateFieldNames::EFFECT] = "night_mode";
+          partialState[GroupStateFieldNames::EFFECT] = MiLightCommandNames::NIGHT_MODE;
         }
         break;
 

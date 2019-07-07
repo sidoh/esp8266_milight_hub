@@ -1,6 +1,7 @@
 #include <FUT089PacketFormatter.h>
 #include <V2RFEncoding.h>
 #include <Units.h>
+#include <MiLightCommands.h>
 
 void FUT089PacketFormatter::modeSpeedDown() {
   command(FUT089_ON, FUT089_MODE_SPEED_DOWN);
@@ -113,13 +114,13 @@ BulbId FUT089PacketFormatter::parsePacket(const uint8_t *packet, JsonObject resu
 
   if (command == FUT089_ON) {
     if ((packetCopy[V2_COMMAND_INDEX] & 0x80) == 0x80) {
-      result["command"] = "night_mode";
+      result["command"] = MiLightCommandNames::NIGHT_MODE;
     } else if (arg == FUT089_MODE_SPEED_DOWN) {
-      result["command"] = "mode_speed_down";
+      result["command"] = MiLightCommandNames::MODE_SPEED_DOWN;
     } else if (arg == FUT089_MODE_SPEED_UP) {
-      result["command"] = "mode_speed_up";
+      result["command"] = MiLightCommandNames::MODE_SPEED_UP;
     } else if (arg == FUT089_WHITE_MODE) {
-      result["command"] = "set_white";
+      result["command"] = MiLightCommandNames::SET_WHITE;
     } else if (arg <= 8) { // Group is not reliably encoded in group byte. Extract from arg byte
       result[GroupStateFieldNames::STATE] = "ON";
       bulbId.groupId = arg;

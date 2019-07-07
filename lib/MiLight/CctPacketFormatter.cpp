@@ -1,4 +1,5 @@
 #include <CctPacketFormatter.h>
+#include <MiLightCommands.h>
 
 static const uint8_t CCT_PROTOCOL_ID = 0x5A;
 
@@ -201,7 +202,7 @@ BulbId CctPacketFormatter::parsePacket(const uint8_t* packet, JsonObject result)
 
   // Night mode
   if (command & 0x10) {
-    result["command"] = "night_mode";
+    result["command"] = MiLightCommandNames::NIGHT_MODE;
   } else if (onOffGroupId < 255) {
     result[GroupStateFieldNames::STATE] = cctCommandToStatus(command) == ON ? "ON" : "OFF";
   } else if (command == CCT_BRIGHTNESS_DOWN) {
@@ -209,9 +210,9 @@ BulbId CctPacketFormatter::parsePacket(const uint8_t* packet, JsonObject result)
   } else if (command == CCT_BRIGHTNESS_UP) {
     result["command"] = "brightness_up";
   } else if (command == CCT_TEMPERATURE_DOWN) {
-    result["command"] = "temperature_down";
+    result["command"] = MiLightCommandNames::TEMPERATURE_DOWN;
   } else if (command == CCT_TEMPERATURE_UP) {
-    result["command"] = "temperature_up";
+    result["command"] = MiLightCommandNames::TEMPERATURE_UP;
   } else {
     result["button_id"] = command;
   }

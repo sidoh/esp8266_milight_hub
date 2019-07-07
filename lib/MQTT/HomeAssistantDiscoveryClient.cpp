@@ -1,4 +1,5 @@
 #include <HomeAssistantDiscoveryClient.h>
+#include <MiLightCommands.h>
 
 HomeAssistantDiscoveryClient::HomeAssistantDiscoveryClient(Settings& settings, MqttClient* mqttClient)
   : settings(settings)
@@ -54,7 +55,7 @@ void HomeAssistantDiscoveryClient::addConfig(const char* alias, const BulbId& bu
   config[GroupStateFieldNames::EFFECT] = true;
 
   JsonArray effects = config.createNestedArray(F("effect_list"));
-  effects.add(F("night_mode"));
+  effects.add(MiLightCommandNames::NIGHT_MODE);
 
   // These bulbs support RGB color
   switch (bulbId.deviceType) {
