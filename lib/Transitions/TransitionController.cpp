@@ -10,7 +10,8 @@
 using namespace std::placeholders;
 
 TransitionController::TransitionController()
-  : currentId(0)
+  : callback(std::bind(&TransitionController::transitionCallback, this, _1, _2, _3))
+  , currentId(0)
 { }
 
 void TransitionController::clearListeners() {
@@ -21,46 +22,29 @@ void TransitionController::addListener(Transition::TransitionFn fn) {
   observers.push_back(fn);
 }
 
-void TransitionController::scheduleTransition(
-  const BulbId& bulbId,
-  GroupStateField field,
-  uint16_t startValue,
-  uint16_t endValue,
-  uint16_t stepSize,
-  size_t duration
-) {
-  activeTransitions.add(
-    std::make_shared<FieldTransition>(
-      currentId++,
-      bulbId,
-      field,
-      startValue,
-      endValue,
-      stepSize,
-      duration,
-      std::bind(&TransitionController::transitionCallback, this, _1, _2, _3)
-    )
+std::shared_ptr<Transition::Builder> TransitionController::buildColorTransition(const BulbId& bulbId, const ParsedColor& start, const ParsedColor& end) {
+  return std::make_shared<ColorTransition::Builder>(
+    currentId++,
+    bulbId,
+    callback,
+    start,
+    end
   );
 }
 
-void TransitionController::scheduleTransition(
-  const BulbId& bulbId,
-  const ParsedColor& startColor,
-  const ParsedColor& endColor,
-  uint16_t stepSize,
-  size_t duration
-) {
-  activeTransitions.add(
-    std::make_shared<ColorTransition>(
-      currentId++,
-      bulbId,
-      startColor,
-      endColor,
-      stepSize,
-      duration,
-      std::bind(&TransitionController::transitionCallback, this, _1, _2, _3)
-    )
+std::shared_ptr<Transition::Builder> TransitionController::buildFieldTransition(const BulbId& bulbId, GroupStateField field, uint16_t start, uint16_t end) {
+  return std::make_shared<FieldTransition::Builder>(
+    currentId++,
+    bulbId,
+    callback,
+    field,
+    start,
+    end
   );
+}
+
+void TransitionController::addTransition(std::shared_ptr<Transition> transition) {
+  activeTransitions.add(transition);
 }
 
 void TransitionController::transitionCallback(const BulbId& bulbId, GroupStateField field, uint16_t arg) {

@@ -6,6 +6,7 @@
 #include <GroupStateField.h>
 #include <ArduinoJson.h>
 #include <BulbId.h>
+#include <ParsedColor.h>
 
 #ifndef _GROUP_STATE_H
 #define _GROUP_STATE_H
@@ -139,6 +140,12 @@ public:
   //
   // returns true if a (real, not scratch) state change was made
   bool applyIncrementCommand(GroupStateField field, IncrementDirection dir);
+
+  // Helpers that convert raw state values
+
+  // Return true if hue is set.  If saturation is not set, will assume 100.
+  bool isSetColor() const;
+  ParsedColor getColor() const;
 
   void load(Stream& stream);
   void dump(Stream& stream) const;

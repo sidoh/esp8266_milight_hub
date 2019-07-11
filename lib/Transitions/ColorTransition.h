@@ -5,13 +5,36 @@
 
 class ColorTransition : public Transition {
 public:
+  struct RgbColor {
+    RgbColor();
+    RgbColor(const ParsedColor& color);
+    RgbColor(int16_t r, int16_t g, int16_t b);
+    bool operator==(const RgbColor& other);
+
+    int16_t r, g, b;
+  };
+
+  class Builder : public Transition::Builder {
+  public:
+    Builder(size_t id, const BulbId& bulbId, TransitionFn callback, const ParsedColor& start, const ParsedColor& end);
+
+    virtual std::shared_ptr<Transition> _build() const override;
+
+  private:
+    const ParsedColor& start;
+    const ParsedColor& end;
+    RgbColor stepSizes;
+  };
+
   ColorTransition(
     size_t id,
     const BulbId& bulbId,
     const ParsedColor& startColor,
     const ParsedColor& endColor,
-    uint16_t stepSize,
+    RgbColor stepSizes,
     size_t duration,
+    size_t period,
+    size_t numPeriods,
     TransitionFn callback
   );
 
@@ -20,14 +43,6 @@ public:
   virtual bool isFinished() override;
 
 protected:
-  struct RgbColor {
-    RgbColor();
-    RgbColor(const ParsedColor& color);
-    bool operator==(const RgbColor& other);
-
-    int16_t r, g, b;
-  };
-
   const RgbColor endColor;
   RgbColor currentColor;
   RgbColor stepSizes;

@@ -776,16 +776,8 @@ bool GroupState::patch(JsonObject state) {
 }
 
 void GroupState::applyColor(JsonObject state) const {
-  uint8_t rgb[3];
-  RGBConverter converter;
-  converter.hsvToRgb(
-    getHue()/360.0,
-    // Default to fully saturated
-    (isSetSaturation() ? getSaturation() : 100)/100.0,
-    1,
-    rgb
-  );
-  applyColor(state, rgb[0], rgb[1], rgb[2]);
+  ParsedColor color = getColor();
+  applyColor(state, color.r, color.g, color.b);
 }
 
 void GroupState::applyColor(JsonObject state, uint8_t r, uint8_t g, uint8_t b) const {
@@ -946,6 +938,34 @@ void GroupState::debugState(char const *debugMessage) const {
   Serial.println("");
   Serial.printf("Raw data: %08X %08X\n", state.rawData[0], state.rawData[1]);
 #endif
+}
+
+bool GroupState::isSetColor() const {
+  return isSetHue();
+}
+
+ParsedColor GroupState::getColor() const {
+  uint8_t rgb[3];
+  RGBConverter converter;
+  uint16_t hue = getHue();
+  uint8_t sat = isSetSaturation() ? getSaturation() : 100;
+
+  converter.hsvToRgb(
+    hue / 360.0,
+    // Default to fully saturated
+    sat / 100.0,
+    1,
+    rgb
+  );
+
+  return {
+    .success = true,
+    .hue = hue,
+    .r = rgb[0],
+    .g = rgb[1],
+    .b = rgb[2],
+    .saturation = sat
+  };
 }
 
 // build up a partial state representation based on the specified GrouipStateField array.  Used

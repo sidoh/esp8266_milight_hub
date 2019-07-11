@@ -282,61 +282,21 @@ void MiLightClient::update(JsonObject request) {
     this->updateStatus(ON);
   }
 
-  if (request.containsKey(GroupStateFieldNames::COMMAND)) {
-    this->handleCommand(request[GroupStateFieldNames::COMMAND]);
-  }
+  for (auto jsonKv : request) {
+    const char* fieldName = jsonKv.key().c_str();
+    auto handler = MiLightClient::FIELD_SETTERS.find(fieldName);
 
-  if (request.containsKey(GroupStateFieldNames::COMMANDS)) {
-    JsonArray commands = request[GroupStateFieldNames::COMMANDS];
-
-    if (! commands.isNull()) {
-      for (size_t i = 0; i < commands.size(); i++) {
-        this->handleCommand(commands[i]);
+    if (handler != FIELD_SETTERS.end()) {
+      if (request.containsKey(RequestKeys::TRANSITION)) {
+        handleTransition(
+          GroupStateFieldHelpers::getFieldByName(fieldName),
+          jsonKv.value(),
+          request[RequestKeys::TRANSITION].as<size_t>() * TRANSITION_KEY_UNIT_MULTIPLIER
+        );
+      } else { // set the field directly
+        handler->second(this, jsonKv.value());
       }
     }
-  }
-
-  //Homeassistant - Handle effect
-  if (request.containsKey(GroupStateFieldNames::EFFECT)) {
-    this->handleEffect(request[GroupStateFieldNames::EFFECT]);
-  }
-
-  if (request.containsKey(GroupStateFieldNames::HUE)) {
-    this->updateHue(request[GroupStateFieldNames::HUE]);
-  }
-  if (request.containsKey(GroupStateFieldNames::SATURATION)) {
-    this->updateSaturation(request[GroupStateFieldNames::SATURATION]);
-  }
-
-  // Convert RGB to HSV
-  if (request.containsKey(GroupStateFieldNames::COLOR)) {
-    this->updateColor(request[GroupStateFieldNames::COLOR]);
-  }
-
-  if (request.containsKey(GroupStateFieldNames::LEVEL)) {
-    this->updateBrightness(request[GroupStateFieldNames::LEVEL]);
-  }
-  // HomeAssistant
-  if (request.containsKey(GroupStateFieldNames::BRIGHTNESS)) {
-    uint8_t scaledBrightness = Units::rescale(request[GroupStateFieldNames::BRIGHTNESS].as<uint8_t>(), 100, 255);
-    this->updateBrightness(scaledBrightness);
-  }
-
-  if (request.containsKey("temperature")) {
-    this->updateTemperature(request["temperature"]);
-  }
-  if (request.containsKey(GroupStateFieldNames::KELVIN)) {
-    this->updateTemperature(request[GroupStateFieldNames::KELVIN]);
-  }
-  // HomeAssistant
-  if (request.containsKey(GroupStateFieldNames::COLOR_TEMP)) {
-    this->updateTemperature(
-      Units::miredsToWhiteVal(request[GroupStateFieldNames::COLOR_TEMP], 100)
-    );
-  }
-
-  if (request.containsKey(GroupStateFieldNames::MODE)) {
-    this->updateMode(request[GroupStateFieldNames::MODE]);
   }
 
   // Raw packet command/args
@@ -405,23 +365,62 @@ void MiLightClient::handleCommand(JsonVariant command) {
   }
 }
 
+void MiLightClient::handleTransition(GroupStateField field, JsonVariant value, size_t duration) {
+  BulbId bulbId = currentRemote->packetFormatter->currentBulbId();
+  GroupState* currentState = stateStore->get(bulbId);
+  std::shared_ptr<Transition::Builder> transitionBuilder = nullptr;
+
+  if (currentState == nullptr) {
+    Serial.println(F("Error planning transition: could not find current bulb state."));
+    return;
+  }
+
+  if (!currentState->isSetField(field)) {
+    Serial.println(F("Error planning transition: current state for field could not be determined"));
+    return;
+  }
+
+  if (field == GroupStateField::COLOR) {
+    ParsedColor currentColor = currentState->getColor();
+    ParsedColor endColor = ParsedColor::fromJson(value);
+
+    transitionBuilder = transitions.buildColorTransition(
+      bulbId,
+      currentColor,
+      endColor
+    );
+  } else {
+    uint16_t currentValue = currentState->getFieldValue(field);
+    uint16_t endValue = value;
+
+    transitionBuilder = transitions.buildFieldTransition(
+      bulbId,
+      field,
+      currentValue,
+      endValue
+    );
+  }
+
+  if (transitionBuilder == nullptr) {
+    Serial.printf_P(PSTR("Unsupported transition field: %s\n"), GroupStateFieldHelpers::getFieldName(field));
+    return;
+  }
+
+  transitionBuilder->setDuration(duration);
+  transitions.addTransition(transitionBuilder->build());
+}
+
 void MiLightClient::handleTransition(JsonObject args) {
-  if (! args.containsKey(F("field"))
-    || ! args.containsKey(F("start_value"))
-    || ! args.containsKey(F("end_value"))
-    || ! args.containsKey(F("duration"))) {
+  if (! args.containsKey(FS(TransitionParams::FIELD))
+    || ! args.containsKey(FS(TransitionParams::START_VALUE))
+    || ! args.containsKey(FS(TransitionParams::END_VALUE))) {
     Serial.println(F("Ignoring transition missing required arguments"));
     return;
   }
 
-  const char* fieldName = args[F("field")];
-  const size_t duration = args[F("duration")];
-  const size_t stepSize =
-    args.containsKey(F("step_size"))
-      ? args[F("step_size")]
-      : Transition::DEFAULT_STEP_SIZE;
-
+  const char* fieldName = args[FS(TransitionParams::FIELD)];
   GroupStateField field = GroupStateFieldHelpers::getFieldByName(fieldName);
+  std::shared_ptr<Transition::Builder> transitionBuilder = nullptr;
 
   if (field == GroupStateField::UNKNOWN) {
     Serial.printf_P(PSTR("Unknown transition field: %s\n"), fieldName);
@@ -436,15 +435,13 @@ void MiLightClient::handleTransition(JsonObject args) {
     case GroupStateField::LEVEL:
     case GroupStateField::KELVIN:
     case GroupStateField::COLOR_TEMP:
-      transitions.scheduleTransition(
+      transitionBuilder = transitions.buildFieldTransition(
         currentRemote->packetFormatter->currentBulbId(),
         field,
-        args[F("start_value")],
-        args[F("end_value")],
-        stepSize,
-        duration
+        args[FS(TransitionParams::START_VALUE)],
+        args[FS(TransitionParams::END_VALUE)]
       );
-      return;
+      break;
 
     default:
       break;
@@ -452,8 +449,8 @@ void MiLightClient::handleTransition(JsonObject args) {
 
   // Color can be decomposed into hue/saturation and these can be transitioned separately
   if (field == GroupStateField::COLOR) {
-    ParsedColor startColor = ParsedColor::fromJson(args[F("start_value")]);
-    ParsedColor endColor = ParsedColor::fromJson(args[F("end_value")]);
+    ParsedColor startColor = ParsedColor::fromJson(args[FS(TransitionParams::START_VALUE)]);
+    ParsedColor endColor = ParsedColor::fromJson(args[FS(TransitionParams::END_VALUE)]);
 
     if (! startColor.success) {
       Serial.println(F("Transition - error parsing start color"));
@@ -464,18 +461,29 @@ void MiLightClient::handleTransition(JsonObject args) {
       return;
     }
 
-    transitions.scheduleTransition(
+    transitionBuilder = transitions.buildColorTransition(
       currentRemote->packetFormatter->currentBulbId(),
       startColor,
-      endColor,
-      stepSize,
-      duration
+      endColor
     );
+  }
 
+  if (transitionBuilder == nullptr) {
+    Serial.printf_P(PSTR("Unsupported transition field: %s\n"), fieldName);
     return;
   }
 
-  Serial.printf_P(PSTR("Unsupported transition field: %s\n"), fieldName);
+  if (args.containsKey(FS(TransitionParams::DURATION))) {
+    transitionBuilder->setDuration(args[FS(TransitionParams::DURATION)]);
+  }
+  if (args.containsKey(FS(TransitionParams::PERIOD))) {
+    transitionBuilder->setPeriod(args[FS(TransitionParams::PERIOD)]);
+  }
+  if (args.containsKey(FS(TransitionParams::NUM_PERIODS))) {
+    transitionBuilder->setNumPeriods(args[FS(TransitionParams::NUM_PERIODS)]);
+  }
+
+  transitions.addTransition(transitionBuilder->build());
 }
 
 void MiLightClient::handleEffect(const String& effect) {

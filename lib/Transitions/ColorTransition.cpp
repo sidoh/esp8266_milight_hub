@@ -1,6 +1,40 @@
 #include <ColorTransition.h>
 #include <Arduino.h>
 
+ColorTransition::Builder::Builder(size_t id, const BulbId& bulbId, TransitionFn callback, const ParsedColor& start, const ParsedColor& end)
+  : Transition::Builder(id, bulbId, callback)
+  , start(start)
+  , end(end)
+{ }
+
+std::shared_ptr<Transition> ColorTransition::Builder::_build() const {
+  size_t duration = getOrComputeDuration();
+  size_t numPeriods = getOrComputeNumPeriods();
+  size_t period = getOrComputePeriod();
+
+  int16_t dr = end.r - start.r
+        , dg = end.g - start.g
+        , db = end.b - start.b;
+
+  RgbColor stepSizes(
+    calculateStepSizePart(dr, duration, period),
+    calculateStepSizePart(dg, duration, period),
+    calculateStepSizePart(db, duration, period)
+  );
+
+  return std::make_shared<ColorTransition>(
+    id,
+    bulbId,
+    start,
+    end,
+    stepSizes,
+    duration,
+    period,
+    numPeriods,
+    callback
+  );
+}
+
 ColorTransition::RgbColor::RgbColor()
   : r(0)
   , g(0)
@@ -13,6 +47,12 @@ ColorTransition::RgbColor::RgbColor(const ParsedColor& color)
   , b(color.b)
 { }
 
+ColorTransition::RgbColor::RgbColor(int16_t r, int16_t g, int16_t b)
+  : r(r)
+  , g(g)
+  , b(b)
+{ }
+
 bool ColorTransition::RgbColor::operator==(const RgbColor& other) {
   return r == other.r && g == other.g && b == other.b;
 }
@@ -22,12 +62,15 @@ ColorTransition::ColorTransition(
   const BulbId& bulbId,
   const ParsedColor& startColor,
   const ParsedColor& endColor,
-  uint16_t stepSize,
+  RgbColor stepSizes,
   size_t duration,
+  size_t period,
+  size_t numPeriods,
   TransitionFn callback
-) : Transition(id, bulbId, stepSize, calculateColorPeriod(this, startColor, endColor, stepSize, duration), callback)
+) : Transition(id, bulbId, period, callback)
   , endColor(endColor)
   , currentColor(startColor)
+  , stepSizes(stepSizes)
   , lastHue(400)         // use impossible values to force a packet send
   , lastSaturation(200)
 {

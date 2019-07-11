@@ -14,11 +14,29 @@
 //#define DEBUG_PRINTF
 //#define DEBUG_CLIENT_COMMANDS     // enable to show each individual change command (like hue, brightness, etc)
 
+#define FS(str) (reinterpret_cast<const __FlashStringHelper*>(str))
+
+namespace RequestKeys {
+  static const char TRANSITION[] = "transition";
+};
+
+namespace TransitionParams {
+  static const char FIELD[] PROGMEM = "field";
+  static const char START_VALUE[] PROGMEM = "start_value";
+  static const char END_VALUE[] PROGMEM = "end_value";
+  static const char DURATION[] PROGMEM = "duration";
+  static const char PERIOD[] PROGMEM = "period";
+  static const char NUM_PERIODS[] PROGMEM = "period";
+}
+
 // Used to determine RGB colros that are approximately white
 #define RGB_WHITE_THRESHOLD 10
 
 class MiLightClient {
 public:
+  // transition commands are in seconds, convert to ms.
+  static const uint16_t TRANSITION_KEY_UNIT_MULTIPLIER = 1000;
+
   MiLightClient(
     RadioSwitchboard& radioSwitchboard,
     PacketSender& packetSender,
@@ -75,6 +93,7 @@ public:
   void handleCommand(JsonVariant command);
   void handleCommands(JsonArray commands);
   void handleTransition(JsonObject args);
+  void handleTransition(GroupStateField field, JsonVariant value, size_t duration);
   void handleEffect(const String& effect);
 
   void onUpdateBegin(EventHandler handler);

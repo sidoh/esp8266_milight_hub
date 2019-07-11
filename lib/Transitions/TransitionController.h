@@ -13,21 +13,11 @@ public:
 
   void clearListeners();
   void addListener(Transition::TransitionFn fn);
-  void scheduleTransition(
-    const BulbId& bulbId,
-    GroupStateField field,
-    uint16_t startValue,
-    uint16_t endValue,
-    uint16_t stepSize,
-    size_t duration
-  );
-  void scheduleTransition(
-    const BulbId& bulbId,
-    const ParsedColor& startColor,
-    const ParsedColor& endColor,
-    uint16_t stepSize,
-    size_t duration
-  );
+
+  std::shared_ptr<Transition::Builder> buildColorTransition(const BulbId& bulbId, const ParsedColor& start, const ParsedColor& end);
+  std::shared_ptr<Transition::Builder> buildFieldTransition(const BulbId& bulbId, GroupStateField field, uint16_t start, uint16_t end);
+
+  void addTransition(std::shared_ptr<Transition> transition);
   void clear();
   void loop();
 
@@ -37,6 +27,7 @@ public:
   bool deleteTransition(size_t id);
 
 private:
+  Transition::TransitionFn callback;
   LinkedList<std::shared_ptr<Transition>> activeTransitions;
   std::vector<Transition::TransitionFn> observers;
   size_t currentId;
