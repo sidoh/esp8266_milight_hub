@@ -291,7 +291,7 @@ void MiLightClient::update(JsonObject request) {
         handleTransition(
           GroupStateFieldHelpers::getFieldByName(fieldName),
           jsonKv.value(),
-          request[RequestKeys::TRANSITION].as<size_t>() * TRANSITION_KEY_UNIT_MULTIPLIER
+          request[RequestKeys::TRANSITION].as<float>()
         );
       } else { // set the field directly
         handler->second(this, jsonKv.value());
@@ -365,7 +365,7 @@ void MiLightClient::handleCommand(JsonVariant command) {
   }
 }
 
-void MiLightClient::handleTransition(GroupStateField field, JsonVariant value, size_t duration) {
+void MiLightClient::handleTransition(GroupStateField field, JsonVariant value, float duration) {
   BulbId bulbId = currentRemote->packetFormatter->currentBulbId();
   GroupState* currentState = stateStore->get(bulbId);
   std::shared_ptr<Transition::Builder> transitionBuilder = nullptr;

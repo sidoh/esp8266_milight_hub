@@ -34,9 +34,6 @@ namespace TransitionParams {
 
 class MiLightClient {
 public:
-  // transition commands are in seconds, convert to ms.
-  static const uint16_t TRANSITION_KEY_UNIT_MULTIPLIER = 1000;
-
   MiLightClient(
     RadioSwitchboard& radioSwitchboard,
     PacketSender& packetSender,
@@ -93,7 +90,7 @@ public:
   void handleCommand(JsonVariant command);
   void handleCommands(JsonArray commands);
   void handleTransition(JsonObject args);
-  void handleTransition(GroupStateField field, JsonVariant value, size_t duration);
+  void handleTransition(GroupStateField field, JsonVariant value, float duration);
   void handleEffect(const String& effect);
 
   void onUpdateBegin(EventHandler handler);

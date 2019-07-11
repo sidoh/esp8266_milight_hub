@@ -12,11 +12,15 @@ class Transition {
 public:
   using TransitionFn = std::function<void(const BulbId& bulbId, GroupStateField field, uint16_t value)>;
 
+  // transition commands are in seconds, convert to ms.
+  static const uint16_t DURATION_UNIT_MULTIPLIER = 1000;
+
+
   class Builder {
   public:
     Builder(size_t id, const BulbId& bulbId, TransitionFn callback);
 
-    Builder& setDuration(size_t duration);
+    Builder& setDuration(float duration);
     Builder& setPeriod(size_t duration);
     Builder& setNumPeriods(size_t numPeriods);
 

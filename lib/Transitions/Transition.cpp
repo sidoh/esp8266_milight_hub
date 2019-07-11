@@ -11,8 +11,8 @@ Transition::Builder::Builder(size_t id, const BulbId& bulbId, TransitionFn callb
   , numPeriods(0)
 { }
 
-Transition::Builder& Transition::Builder::setDuration(size_t duration) {
-  this->duration = duration;
+Transition::Builder& Transition::Builder::setDuration(float duration) {
+  this->duration = duration * DURATION_UNIT_MULTIPLIER;
   return *this;
 }
 
