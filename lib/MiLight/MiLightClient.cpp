@@ -276,6 +276,18 @@ void MiLightClient::update(JsonObject request) {
   }
 
   const uint8_t parsedStatus = this->parseStatus(request);
+  const JsonVariant jsonTransition = request[RequestKeys::TRANSITION];
+  float transition = 0;
+
+  if (!jsonTransition.isNull()) {
+    if (jsonTransition.is<float>()) {
+      transition = jsonTransition.as<float>();
+    } else if (jsonTransition.is<size_t>()) {
+      transition = jsonTransition.as<size_t>();
+    } else {
+      Serial.println(F("MiLightClient - WARN: unsupported transition type.  Must be float or int."));
+    }
+  }
 
   // Always turn on first
   if (parsedStatus == ON) {
@@ -287,11 +299,11 @@ void MiLightClient::update(JsonObject request) {
     auto handler = MiLightClient::FIELD_SETTERS.find(fieldName);
 
     if (handler != FIELD_SETTERS.end()) {
-      if (request.containsKey(RequestKeys::TRANSITION)) {
+      if (transition != 0) {
         handleTransition(
           GroupStateFieldHelpers::getFieldByName(fieldName),
           jsonKv.value(),
-          request[RequestKeys::TRANSITION].as<float>()
+          transition
         );
       } else { // set the field directly
         handler->second(this, jsonKv.value());
