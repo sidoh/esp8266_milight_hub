@@ -21,7 +21,7 @@ public:
     Builder(size_t id, const BulbId& bulbId, TransitionFn callback);
 
     Builder& setDuration(float duration);
-    Builder& setPeriod(size_t duration);
+    Builder& setPeriod(size_t period);
     Builder& setNumPeriods(size_t numPeriods);
 
     bool isSetDuration() const;
