@@ -46,7 +46,7 @@ const String MiLightRemoteTypeHelpers::remoteTypeToString(const MiLightRemoteTyp
     case REMOTE_TYPE_CCT:
       return REMOTE_NAME_CCT;
     case REMOTE_TYPE_RGB_CCT:
-      return REMOTE_NAME_CCT;
+      return REMOTE_NAME_RGB_CCT;
     case REMOTE_TYPE_FUT089:
       return REMOTE_NAME_FUT089;
     case REMOTE_TYPE_RGB:
