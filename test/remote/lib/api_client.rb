@@ -110,4 +110,18 @@ class ApiClient
   def patch_state(state, params = {})
     put(state_path(params), state.to_json)
   end
+
+  def schedule_transition(_id_params, transition_params)
+    id_params = {
+      device_id: _id_params[:id],
+      remote_type: _id_params[:type],
+      group_id: _id_params[:group_id]
+    }
+
+    post("/transitions", id_params.merge(transition_params))
+  end
+
+  def transitions
+    get('/transitions')['transitions']
+  end
 end
