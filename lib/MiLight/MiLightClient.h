@@ -7,6 +7,7 @@
 #include <GroupStateStore.h>
 #include <PacketSender.h>
 #include <TransitionController.h>
+#include <cstring>
 
 #ifndef _MILIGHTCLIENT_H
 #define _MILIGHTCLIENT_H
@@ -110,7 +111,12 @@ public:
   uint8_t parseStatus(JsonObject object);
 
 protected:
-  static const std::map<const char*, std::function<void(MiLightClient*, JsonVariant)>> FIELD_SETTERS;
+  struct cmp_str {
+    bool operator()(char const *a, char const *b) const {
+        return std::strcmp(a, b) < 0;
+    }
+  };
+  static const std::map<const char*, std::function<void(MiLightClient*, JsonVariant)>, cmp_str> FIELD_SETTERS;
 
   RadioSwitchboard& radioSwitchboard;
   std::vector<std::shared_ptr<MiLightRadio>> radios;

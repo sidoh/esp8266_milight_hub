@@ -10,7 +10,7 @@
 
 using namespace std::placeholders;
 
-const std::map<const char*, std::function<void(MiLightClient*, JsonVariant)>> MiLightClient::FIELD_SETTERS = {
+const std::map<const char*, std::function<void(MiLightClient*, JsonVariant)>, MiLightClient::cmp_str> MiLightClient::FIELD_SETTERS = {
   {GroupStateFieldNames::LEVEL, &MiLightClient::updateBrightness},
   {
     GroupStateFieldNames::BRIGHTNESS,
