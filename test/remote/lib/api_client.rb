@@ -9,6 +9,13 @@ class ApiClient
     @current_id = Integer(base_id)
   end
 
+  def self.from_environment
+    ApiClient.new(
+      ENV.fetch('ESPMH_HOSTNAME'),
+      ENV.fetch('ESPMH_TEST_DEVICE_ID_BASE')
+    )
+  end
+
   def generate_id
     id = @current_id
     @current_id += 1
@@ -46,7 +53,13 @@ class ApiClient
       end
 
       res = http.request(req)
-      res.value
+
+      begin
+        res.value
+      rescue Exception => e
+        puts "REST Client Error: #{e}\nBody:\n#{res.body}"
+        raise e
+      end
 
       body = res.body
 
