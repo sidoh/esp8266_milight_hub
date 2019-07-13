@@ -644,7 +644,7 @@ void MiLightHttpServer::handleCreateTransition(RequestContext& request) {
   }
 
   const String _deviceId = body[GroupStateFieldNames::DEVICE_ID];
-  uint8_t _groupId = atoi(body[GroupStateFieldNames::GROUP_ID]);
+  uint8_t _groupId = body[GroupStateFieldNames::GROUP_ID];
   const MiLightRemoteConfig* _remoteType = MiLightRemoteConfig::fromType(body[F("remote_type")].as<const char*>());
 
   if (_remoteType == nullptr) {
