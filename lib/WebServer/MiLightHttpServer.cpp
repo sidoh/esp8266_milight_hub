@@ -639,7 +639,7 @@ void MiLightHttpServer::handleCreateTransition(RequestContext& request) {
     sprintf_P(buffer, PSTR("Must specify required keys: device_id, group_id, remote_type"));
 
     request.response.setCode(400);
-    request.response.json["error"] = buffer;
+    request.response.json[F("error")] = buffer;
     return;
   }
 
@@ -647,11 +647,11 @@ void MiLightHttpServer::handleCreateTransition(RequestContext& request) {
   uint8_t _groupId = atoi(body[GroupStateFieldNames::GROUP_ID]);
   const MiLightRemoteConfig* _remoteType = MiLightRemoteConfig::fromType(body[F("remote_type")].as<const char*>());
 
-  if (_remoteType == NULL) {
+  if (_remoteType == nullptr) {
     char buffer[40];
     sprintf_P(buffer, PSTR("Unknown device type\n"));
     request.response.setCode(400);
-    request.response.json["error"] = buffer;
+    request.response.json[F("error")] = buffer;
     return;
   }
 
