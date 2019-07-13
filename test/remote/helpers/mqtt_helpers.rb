@@ -25,7 +25,7 @@ module MqttHelpers
       .merge(overrides)
 
     MqttClient.new(
-      params[:mqtt_server],
+      ENV['ESPMH_LOCAL_MQTT_SERVER'] || params[:mqtt_server],
       params[:mqtt_username],
       params[:mqtt_password],
       params[:topic_prefix]
