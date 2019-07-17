@@ -133,19 +133,19 @@ bool ColorTransition::isFinished() {
 }
 
 void ColorTransition::childSerialize(JsonObject& json) {
-  json["type"] = "color";
+  json[F("type")] = F("color");
 
-  JsonArray currentColorArr = json.createNestedArray("current_color");
+  JsonArray currentColorArr = json.createNestedArray(F("current_color"));
   currentColorArr.add(currentColor.r);
   currentColorArr.add(currentColor.g);
   currentColorArr.add(currentColor.b);
 
-  JsonArray endColorArr = json.createNestedArray("end_color");
+  JsonArray endColorArr = json.createNestedArray(F("end_color"));
   endColorArr.add(endColor.r);
   endColorArr.add(endColor.g);
   endColorArr.add(endColor.b);
 
-  JsonArray stepSizesArr = json.createNestedArray("step_sizes");
+  JsonArray stepSizesArr = json.createNestedArray(F("step_sizes"));
   stepSizesArr.add(stepSizes.r);
   stepSizesArr.add(stepSizes.g);
   stepSizesArr.add(stepSizes.b);
