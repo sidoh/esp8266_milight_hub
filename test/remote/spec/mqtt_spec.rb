@@ -45,7 +45,7 @@ RSpec.describe 'MQTT' do
 
   context 'client status topic' do
     before(:all) do
-      @status_topic = "#{@topic_prefix}client_status"
+      @status_topic = "#{mqtt_topic_prefix()}client_status"
       @client.patch_settings(mqtt_client_status_topic: @status_topic)
     end
 
