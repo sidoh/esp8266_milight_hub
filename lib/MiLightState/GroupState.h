@@ -46,6 +46,7 @@ public:
 
   bool isSetField(GroupStateField field) const;
   uint16_t getFieldValue(GroupStateField field) const;
+  uint16_t getParsedFieldValue(GroupStateField field) const;
   void setFieldValue(GroupStateField field, uint16_t value);
   bool clearField(GroupStateField field);
 

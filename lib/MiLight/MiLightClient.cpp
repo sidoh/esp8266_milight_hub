@@ -423,7 +423,7 @@ void MiLightClient::handleTransition(GroupStateField field, JsonVariant value, f
       endColor
     );
   } else {
-    uint16_t currentValue = currentState->getFieldValue(field);
+    uint16_t currentValue = currentState->getParsedFieldValue(field);
     uint16_t endValue = value;
 
     transitionBuilder = transitions.buildFieldTransition(

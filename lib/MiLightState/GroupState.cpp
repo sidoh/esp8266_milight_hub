@@ -276,6 +276,19 @@ uint16_t GroupState::getFieldValue(GroupStateField field) const {
   return 0;
 }
 
+uint16_t GroupState::getParsedFieldValue(GroupStateField field) const {
+  switch (field) {
+    case GroupStateField::LEVEL:
+      return getBrightness();
+    case GroupStateField::BRIGHTNESS:
+      return Units::rescale(getBrightness(), 255, 100);
+    case GroupStateField::COLOR_TEMP:
+      return getMireds();
+    default:
+      return getFieldValue(field);
+  }
+}
+
 uint16_t GroupState::getScratchFieldValue(GroupStateField field) const {
   switch (field) {
     case GroupStateField::BRIGHTNESS:
