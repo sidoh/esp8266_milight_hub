@@ -170,11 +170,10 @@ RSpec.describe 'Transitions' do
 
     it 'should respect the period parameter' do
       seen_updates = []
-      update_times = []
+      start_time = Time.now
 
       @mqtt_client.on_update(@id_params) do |id, message|
         seen_updates << message
-        update_times << Time.now
         message['brightness'] == 255
       end
 
@@ -182,14 +181,8 @@ RSpec.describe 'Transitions' do
 
       @mqtt_client.wait_for_listeners
 
-      time_gaps = (1...update_times.length).map do |i|
-        update_times[i] - update_times[i-1]
-      end
-
-      expect(seen_updates.length).to eq(4)
-      expect(seen_updates.map { |x| x['brightness'] }).to eq([0, 64, 128, 255])
-      expect(time_gaps).to all( be >= 500 )
-      expect(time_gaps).to all( be <= 510 )
+      expect(seen_updates.map { |x| x['brightness'] }).to eq([0, 64, 128, 191, 255])
+      expect((Time.now - start_time)/4).to be >= 0.5 # Don't count the first update
     end
 
     it 'should support two transitions for different devices at the same time' do
