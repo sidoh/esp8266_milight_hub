@@ -97,7 +97,7 @@ RSpec.describe 'Settings' do
 
       end_mem = @client.get('/about')['free_heap']
 
-      expect(end_mem - start_mem).to_not be < -200
+      expect(end_mem).to be > (start_mem - 200)
     end
   end
 
