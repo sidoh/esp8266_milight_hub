@@ -64,9 +64,9 @@ bool FieldTransition::isFinished() {
 }
 
 void FieldTransition::childSerialize(JsonObject& json) {
-  json["type"] = "field";
-  json["field"] = GroupStateFieldHelpers::getFieldName(field);
-  json["current_value"] = currentValue;
-  json["end_value"] = endValue;
-  json["step_size"] = stepSize;
+  json[F("type")] = F("field");
+  json[F("field")] = GroupStateFieldHelpers::getFieldName(field);
+  json[F("current_value")] = currentValue;
+  json[F("end_value")] = endValue;
+  json[F("step_size")] = stepSize;
 }

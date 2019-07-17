@@ -138,9 +138,9 @@ void Transition::stepValue(int16_t& current, int16_t end, int16_t stepSize) {
 }
 
 void Transition::serialize(JsonObject& json) {
-  json["id"] = id;
-  json["period"] = period;
-  json["last_sent"] = lastSent;
+  json[F("id")] = id;
+  json[F("period")] = period;
+  json[F("last_sent")] = lastSent;
 
   JsonObject bulbParams = json.createNestedObject("bulb");
   bulbId.serialize(bulbParams);
