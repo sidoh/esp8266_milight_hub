@@ -8,6 +8,8 @@
 #include <PacketSender.h>
 #include <TransitionController.h>
 #include <cstring>
+#include <map>
+#include <set>
 
 #ifndef _MILIGHTCLIENT_H
 #define _MILIGHTCLIENT_H
@@ -117,6 +119,7 @@ protected:
     }
   };
   static const std::map<const char*, std::function<void(MiLightClient*, JsonVariant)>, cmp_str> FIELD_SETTERS;
+  static const char* FIELD_ORDERINGS[];
 
   RadioSwitchboard& radioSwitchboard;
   std::vector<std::shared_ptr<MiLightRadio>> radios;

@@ -10,6 +10,25 @@
 
 using namespace std::placeholders;
 
+const char* MiLightClient::FIELD_ORDERINGS[] = {
+  // These are handled manually
+  // GroupStateFieldNames::STATE,
+  // GroupStateFieldNames::STATUS,
+  GroupStateFieldNames::HUE,
+  GroupStateFieldNames::SATURATION,
+  GroupStateFieldNames::KELVIN,
+  GroupStateFieldNames::TEMPERATURE,
+  GroupStateFieldNames::COLOR_TEMP,
+  GroupStateFieldNames::MODE,
+  GroupStateFieldNames::COLOR,
+  // Level/Brightness must be processed last because they're specific to a particular bulb mode.
+  // So make sure bulb mode is set before applying level/brightness.
+  GroupStateFieldNames::LEVEL,
+  GroupStateFieldNames::BRIGHTNESS,
+  GroupStateFieldNames::COMMAND,
+  GroupStateFieldNames::COMMANDS
+};
+
 const std::map<const char*, std::function<void(MiLightClient*, JsonVariant)>, MiLightClient::cmp_str> MiLightClient::FIELD_SETTERS = {
   {GroupStateFieldNames::LEVEL, &MiLightClient::updateBrightness},
   {
@@ -294,19 +313,21 @@ void MiLightClient::update(JsonObject request) {
     this->updateStatus(ON);
   }
 
-  for (auto jsonKv : request) {
-    const char* fieldName = jsonKv.key().c_str();
-    auto handler = MiLightClient::FIELD_SETTERS.find(fieldName);
+  for (const char* fieldName : FIELD_ORDERINGS) {
+    if (request.containsKey(fieldName)) {
+      auto handler = FIELD_SETTERS.find(fieldName);
+      JsonVariant value = request[fieldName];
 
-    if (handler != FIELD_SETTERS.end()) {
-      if (transition != 0) {
-        handleTransition(
-          GroupStateFieldHelpers::getFieldByName(fieldName),
-          jsonKv.value(),
-          transition
-        );
-      } else { // set the field directly
-        handler->second(this, jsonKv.value());
+      if (handler != FIELD_SETTERS.end()) {
+        if (transition != 0) {
+          handleTransition(
+            GroupStateFieldHelpers::getFieldByName(fieldName),
+            value,
+            transition
+          );
+        } else {
+          handler->second(this, value);
+        }
       }
     }
   }
