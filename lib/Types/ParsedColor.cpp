@@ -25,7 +25,7 @@ ParsedColor ParsedColor::fromJson(JsonVariant json) {
   uint16_t r, g, b;
 
   if (json.is<JsonObject>()) {
-    JsonObject color = json[GroupStateFieldNames::COLOR];
+    JsonObject color = json.as<JsonObject>();
 
     r = color["r"];
     g = color["g"];
