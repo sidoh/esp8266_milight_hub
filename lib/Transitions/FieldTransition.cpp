@@ -31,7 +31,6 @@ std::shared_ptr<Transition> FieldTransition::Builder::_build() const {
     start,
     end,
     stepSize,
-    duration,
     period,
     callback
   );
@@ -44,7 +43,6 @@ FieldTransition::FieldTransition(
   uint16_t startValue,
   uint16_t endValue,
   int16_t stepSize,
-  size_t duration,
   size_t period,
   TransitionFn callback
 ) : Transition(id, bulbId, period, callback)

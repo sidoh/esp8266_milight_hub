@@ -30,7 +30,6 @@ public:
     uint16_t startValue,
     uint16_t endValue,
     int16_t stepSize,
-    size_t duration,
     size_t period,
     TransitionFn callback
   );
