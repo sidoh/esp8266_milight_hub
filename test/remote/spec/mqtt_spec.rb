@@ -28,7 +28,7 @@ RSpec.describe 'MQTT' do
 
   context 'deleting' do
     it 'should remove retained state' do
-      @client.patch_state(@id_params, status: 'ON')
+      @client.patch_state({status: 'ON'}, @id_params)
 
       seen_blank = false
 
