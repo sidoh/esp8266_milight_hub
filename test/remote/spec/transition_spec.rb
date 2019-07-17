@@ -210,4 +210,56 @@ RSpec.describe 'Transitions' do
       expect(id2_updates.length).to eq(@num_transition_updates)
     end
   end
+
+  context 'field support' do
+    {
+      'level' => {range: [0, 100], update_field: 'brightness', update_max: 255},
+      'brightness' => {range: [0, 255]},
+      'kelvin' => {range: [0, 100], update_field: 'color_temp', update_min: 153, update_max: 370},
+      'color_temp' => {range: [153, 370]},
+      'hue' => {range: [0, 359]},
+      'saturation' => {range: [0, 100]}
+    }.each do |field, params|
+      min, max = params[:range]
+      update_min = params[:update_min] || min
+      update_max = params[:update_max] || max
+      update_field = params[:update_field] || field
+
+      it "should support field '#{field}' min --> max" do
+        seen_updates = []
+
+        @client.patch_state({'status' => 'ON', field => min}, @id_params)
+
+        @mqtt_client.on_update(@id_params) do |id, message|
+          seen_updates << message
+          message[update_field] == update_max
+        end
+
+        @client.patch_state({field => max, 'transition' => 1.0}, @id_params)
+
+        @mqtt_client.wait_for_listeners
+
+        expect(seen_updates.length).to eq(5)
+        expect(seen_updates.last[update_field]).to eq(update_max)
+      end
+
+      it "should support field '#{field}' max --> min" do
+        seen_updates = []
+
+        @client.patch_state({'status' => 'ON', field => max}, @id_params)
+
+        @mqtt_client.on_update(@id_params) do |id, message|
+          seen_updates << message
+          message[update_field] == update_min
+        end
+
+        @client.patch_state({field => min, 'transition' => 1.0}, @id_params)
+
+        @mqtt_client.wait_for_listeners
+
+        expect(seen_updates.length).to eq(5)
+        expect(seen_updates.last[update_field]).to eq(update_min)
+      end
+    end
+  end
 end
