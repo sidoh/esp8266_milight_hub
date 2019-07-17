@@ -92,17 +92,64 @@ RSpec.describe 'Transitions' do
 
   context '"transition" key in state update' do
     it 'should create a new transition' do
-      @client.patch_state(@id_params, {status: 'ON', level: 0})
-      @client.patch_state(@id_params, {level: 100, transition: 2.0})
+      @client.patch_state({status: 'ON', level: 0}, @id_params)
+      @client.patch_state({level: 100, transition: 2.0}, @id_params)
 
-      response = @client.get('/transitions')
+      response = @client.transitions
 
       expect(response.length).to be > 0
       expect(response.last['type']).to eq('field')
       expect(response.last['field']).to eq('level')
       expect(response.last['end_value']).to eq(100)
 
-      @client.delete("/transitions/#{response['id']}")
+      @client.delete("/transitions/#{response.last['id']}")
+    end
+
+    it 'should transition field' do
+      seen_updates = 0
+      last_value = nil
+
+      @client.patch_state({status: 'ON', level: 0}, @id_params)
+
+      @mqtt_client.on_update(@id_params) do |id, msg|
+        if msg.include?('brightness')
+          seen_updates += 1
+          last_value = msg['brightness']
+        end
+
+        last_value == 255
+      end
+
+      @client.patch_state({level: 100, transition: 2.0}, @id_params)
+
+      @mqtt_client.wait_for_listeners
+
+      expect(last_value).to eq(255)
+      expect(seen_updates).to eq(8) # duration of 2000ms / 300ms period + 1 for initial packet
+    end
+
+    it 'should transition a field downwards' do
+      seen_updates = 0
+      last_value = nil
+
+      @client.patch_state({status: 'ON'}, @id_params)
+      @client.patch_state({level: 100}, @id_params)
+
+      @mqtt_client.on_update(@id_params) do |id, msg|
+        if msg.include?('brightness')
+          seen_updates += 1
+          last_value = msg['brightness']
+        end
+
+        last_value == 0
+      end
+
+      @client.patch_state({level: 0, transition: 2.0}, @id_params)
+
+      @mqtt_client.wait_for_listeners
+
+      expect(last_value).to eq(0)
+      expect(seen_updates).to eq(8) # duration of 2000ms / 300ms period + 1 for initial packet
     end
   end
 
