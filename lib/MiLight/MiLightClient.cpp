@@ -34,7 +34,7 @@ const std::map<const char*, std::function<void(MiLightClient*, JsonVariant)>, Mi
   {
     GroupStateFieldNames::BRIGHTNESS,
     [](MiLightClient* client, uint16_t arg) {
-      client->updateBrightness(Units::rescale(arg, 255, 100));
+      client->updateBrightness(Units::rescale<uint16_t, uint16_t>(arg, 100, 255));
     }
   },
   {GroupStateFieldNames::HUE, &MiLightClient::updateHue},
