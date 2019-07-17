@@ -41,6 +41,7 @@ private:
   int16_t currentValue;
   const int16_t endValue;
   const int16_t stepSize;
+  bool finished;
 
   virtual void step() override;
   virtual void childSerialize(JsonObject& json) override;

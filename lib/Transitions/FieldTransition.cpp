@@ -50,15 +50,21 @@ FieldTransition::FieldTransition(
   , currentValue(startValue)
   , endValue(endValue)
   , stepSize(stepSize)
+  , finished(false)
 { }
 
 void FieldTransition::step() {
   callback(bulbId, field, currentValue);
-  Transition::stepValue(currentValue, endValue, stepSize);
+
+  if (currentValue != endValue) {
+    Transition::stepValue(currentValue, endValue, stepSize);
+  } else {
+    finished = true;
+  }
 }
 
 bool FieldTransition::isFinished() {
-  return currentValue == endValue;
+  return finished;
 }
 
 void FieldTransition::childSerialize(JsonObject& json) {
