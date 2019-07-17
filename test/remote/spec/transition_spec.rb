@@ -195,8 +195,14 @@ RSpec.describe 'Transitions' do
       id1_updates = []
       id2_updates = []
 
-      @mqtt_client.on_update(id1) { |id, msg| id1_updates << msg }
-      @mqtt_client.on_update(id2) { |id, msg| id2_updates << msg }
+      @mqtt_client.on_update do |id, msg|
+        if id[:type] == id1[:type]
+          id1_updates << msg
+        else
+          id2_updates << msg
+        end
+        id1_updates.length == @num_transition_updates && id2_updates.length == @num_transition_updates
+      end
 
       @mqtt_client.wait_for_listeners
 
