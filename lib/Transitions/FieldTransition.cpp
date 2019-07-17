@@ -1,5 +1,6 @@
 #include <FieldTransition.h>
 #include <cmath>
+#include <algorithm>
 
 FieldTransition::Builder::Builder(size_t id, const BulbId& bulbId, TransitionFn callback, GroupStateField field, uint16_t start, uint16_t end)
   : Transition::Builder(id, bulbId, callback)
@@ -14,7 +15,14 @@ std::shared_ptr<Transition> FieldTransition::Builder::_build() const {
   size_t numPeriods = getOrComputeNumPeriods();
   size_t period = getOrComputePeriod();
   int16_t distance = end - start;
-  int16_t stepSize = distance / numPeriods;
+  int16_t stepSize = ceil(std::abs(distance / static_cast<float>(numPeriods)));
+
+  if (end < start) {
+    stepSize = -stepSize;
+  }
+  if (stepSize == 0) {
+    stepSize = end > start ? 1 : -1;
+  }
 
   return std::make_shared<FieldTransition>(
     id,
