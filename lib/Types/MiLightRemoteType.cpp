@@ -7,6 +7,7 @@ static const char* REMOTE_NAME_RGB_CCT = "rgb_cct";
 static const char* REMOTE_NAME_FUT089  = "fut089";
 static const char* REMOTE_NAME_RGB     = "rgb";
 static const char* REMOTE_NAME_FUT091  = "fut091";
+static const char* REMOTE_NAME_FUT020  = "fut020";
 
 const MiLightRemoteType MiLightRemoteTypeHelpers::remoteTypeFromString(const String& type) {
   if (type.equalsIgnoreCase(REMOTE_NAME_RGBW) || type.equalsIgnoreCase("fut096")) {
@@ -33,6 +34,10 @@ const MiLightRemoteType MiLightRemoteTypeHelpers::remoteTypeFromString(const Str
     return REMOTE_TYPE_FUT091;
   }
 
+  if (type.equalsIgnoreCase(REMOTE_NAME_FUT020)) {
+    return REMOTE_TYPE_FUT020;
+  }
+
   Serial.print(F("remoteTypeFromString: ERROR - tried to fetch remote config for type: "));
   Serial.println(type);
 
@@ -53,6 +58,8 @@ const String MiLightRemoteTypeHelpers::remoteTypeToString(const MiLightRemoteTyp
       return REMOTE_NAME_RGB;
     case REMOTE_TYPE_FUT091:
       return REMOTE_NAME_FUT091;
+    case REMOTE_TYPE_FUT020:
+      return REMOTE_NAME_FUT020;
     default:
       Serial.print(F("remoteTypeToString: ERROR - tried to fetch remote config name for unknown type: "));
       Serial.println(type);
