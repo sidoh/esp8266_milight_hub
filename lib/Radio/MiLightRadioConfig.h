@@ -52,24 +52,6 @@ public:
     // precompute the syncword for the nRF24.  we include the fixed preamble and trailer in the
     // syncword to avoid needing to bitshift packets.  trailer is 4 bits, so the actual syncword
     // is no longer byte-aligned.
-<<<<<<< HEAD
-    syncwordBytes[ --ix ] = reverseBits(
-      ((syncword0 << 4) & 0xF0) | (preamble & 0x0F)
-    );
-    syncwordBytes[ --ix ] = reverseBits((syncword0 >> 4) & 0xFF);
-    syncwordBytes[ --ix ] = reverseBits(((syncword0 >> 12) & 0x0F) + ((syncword3 << 4) & 0xF0));
-    syncwordBytes[ --ix ] = reverseBits((syncword3 >> 4) & 0xFF);
-    syncwordBytes[ --ix ] = reverseBits(
-      ((syncword3 >> 12) & 0x0F) | ((trailer << 4) & 0xF0)
-    );
-
-    // Uncomment this and change syncword length to 4 to disable preamble/trailer being part of
-    // the address.
-    // syncwordBytes[ --ix ] = reverseBits(syncword0 & 0xff);
-    // syncwordBytes[ --ix ] = reverseBits( (syncword0 >> 8) & 0xff);
-    // syncwordBytes[ --ix ] = reverseBits(syncword3 & 0xff);
-    // syncwordBytes[ --ix ] = reverseBits( (syncword3 >> 8) & 0xff);
-=======
     if (SYNCWORD_LENGTH == 5) {
       syncwordBytes[ --ix ] = reverseBits(
         ((syncword0 << 4) & 0xF0) | (preamble & 0x0F)
@@ -86,7 +68,6 @@ public:
       syncwordBytes[ --ix ] = reverseBits(syncword3 & 0xff);
       syncwordBytes[ --ix ] = reverseBits( (syncword3 >> 8) & 0xff);
     }
->>>>>>> v1.10.0-wip
   }
 
   uint8_t channels[3];
