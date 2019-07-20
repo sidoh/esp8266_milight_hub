@@ -656,6 +656,10 @@ void MiLightHttpServer::handleCreateTransition(RequestContext& request) {
   }
 
   milightClient->prepare(_remoteType, parseInt<uint16_t>(_deviceId), _groupId);
-  milightClient->handleTransition(request.getJsonBody().as<JsonObject>());
-  request.response.json[F("success")] = true;
+
+  if (milightClient->handleTransition(request.getJsonBody().as<JsonObject>(), request.response.json)) {
+    request.response.json[F("success")] = true;
+  } else {
+    request.response.setCode(400);
+  }
 }

@@ -394,7 +394,8 @@ void MiLightClient::handleCommand(JsonVariant command) {
   } else if (cmdName == MiLightCommandNames::TOGGLE) {
     this->toggleStatus();
   } else if (cmdName == MiLightCommandNames::TRANSITION) {
-    this->handleTransition(args);
+    StaticJsonDocument<100> fakedoc;
+    this->handleTransition(args, fakedoc);
   }
 }
 
@@ -443,12 +444,12 @@ void MiLightClient::handleTransition(GroupStateField field, JsonVariant value, f
   transitions.addTransition(transitionBuilder->build());
 }
 
-void MiLightClient::handleTransition(JsonObject args) {
+bool MiLightClient::handleTransition(JsonObject args, JsonDocument& responseObj) {
   if (! args.containsKey(FS(TransitionParams::FIELD))
     || ! args.containsKey(FS(TransitionParams::START_VALUE))
     || ! args.containsKey(FS(TransitionParams::END_VALUE))) {
-    Serial.println(F("Ignoring transition missing required arguments"));
-    return;
+    responseObj[F("error")] = F("Ignoring transition missing required arguments");
+    return false;
   }
 
   const char* fieldName = args[FS(TransitionParams::FIELD)];
@@ -456,8 +457,10 @@ void MiLightClient::handleTransition(JsonObject args) {
   std::shared_ptr<Transition::Builder> transitionBuilder = nullptr;
 
   if (field == GroupStateField::UNKNOWN) {
-    Serial.printf_P(PSTR("Unknown transition field: %s\n"), fieldName);
-    return;
+    char errorMsg[30];
+    sprintf_P(errorMsg, PSTR("Unknown transition field: %s\n"), fieldName);
+    responseObj[F("error")] = errorMsg;
+    return false;
   }
 
   // These fields can be transitioned directly.
@@ -486,12 +489,12 @@ void MiLightClient::handleTransition(JsonObject args) {
     ParsedColor endColor = ParsedColor::fromJson(args[FS(TransitionParams::END_VALUE)]);
 
     if (! startColor.success) {
-      Serial.println(F("Transition - error parsing start color"));
-      return;
+      responseObj[F("error")] = F("Transition - error parsing start color");
+      return false;
     }
     if (! endColor.success) {
-      Serial.println(F("Transition - error parsing end color"));
-      return;
+      responseObj[F("error")] = F("Transition - error parsing end color");
+      return false;
     }
 
     transitionBuilder = transitions.buildColorTransition(
@@ -502,8 +505,10 @@ void MiLightClient::handleTransition(JsonObject args) {
   }
 
   if (transitionBuilder == nullptr) {
-    Serial.printf_P(PSTR("Unsupported transition field: %s\n"), fieldName);
-    return;
+    char errorMsg[30];
+    sprintf_P(errorMsg, PSTR("Recognized, but unsupported transition field: %s\n"), fieldName);
+    responseObj[F("error")] = errorMsg;
+    return false;
   }
 
   if (args.containsKey(FS(TransitionParams::DURATION))) {
@@ -517,6 +522,7 @@ void MiLightClient::handleTransition(JsonObject args) {
   }
 
   transitions.addTransition(transitionBuilder->build());
+  return true;
 }
 
 void MiLightClient::handleEffect(const String& effect) {

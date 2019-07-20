@@ -92,7 +92,7 @@ public:
   void update(JsonObject object);
   void handleCommand(JsonVariant command);
   void handleCommands(JsonArray commands);
-  void handleTransition(JsonObject args);
+  bool handleTransition(JsonObject args, JsonDocument& responseObj);
   void handleTransition(GroupStateField field, JsonVariant value, float duration);
   void handleEffect(const String& effect);
 
