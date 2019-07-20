@@ -151,6 +151,30 @@ RSpec.describe 'Transitions' do
       expect(last_value).to eq(0)
       expect(seen_updates).to eq(8) # duration of 2000ms / 300ms period + 1 for initial packet
     end
+
+    it 'should transition two fields at once if received in the same command' do
+      updates = {}
+
+      @client.patch_state({status: 'ON', hue: 0, level: 100}, @id_params)
+
+      @mqtt_client.on_update(@id_params) do |id, msg|
+        msg.each do |k, v|
+          updates[k] ||= []
+          updates[k] << v
+        end
+
+        updates['hue'] && updates['brightness'] && updates['hue'].last == 250 && updates['brightness'].last == 0
+      end
+
+      @client.patch_state({level: 0, hue: 250, transition: 2.0}, @id_params)
+
+      @mqtt_client.wait_for_listeners
+
+      expect(updates['hue'].last).to eq(250)
+      expect(updates['brightness'].last).to eq(0)
+      expect(updates['hue'].length == updates['brightness'].length).to eq(true), "Should have the same number of updates for both fields"
+      expect(updates['hue'].length).to eq(8)
+    end
   end
 
   context 'transition packets' do
