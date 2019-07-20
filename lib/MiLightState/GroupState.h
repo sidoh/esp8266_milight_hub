@@ -154,6 +154,8 @@ public:
   void debugState(char const *debugMessage) const;
 
   static const GroupState& defaultState(MiLightRemoteType remoteType);
+  static GroupState initDefaultRgbState();
+  static GroupState initDefaultWhiteState();
   static bool isPhysicalField(GroupStateField field);
 
 private:
