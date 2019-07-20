@@ -1,4 +1,5 @@
 #include <BulbId.h>
+#include <GroupStateField.h>
 
 BulbId::BulbId()
   : deviceId(0),
@@ -44,4 +45,10 @@ String BulbId::getHexDeviceId() const {
   char hexDeviceId[7];
   sprintf_P(hexDeviceId, PSTR("0x%X"), deviceId);
   return hexDeviceId;
+}
+
+void BulbId::serialize(JsonObject json) const {
+  json[GroupStateFieldNames::DEVICE_ID] = deviceId;
+  json[GroupStateFieldNames::GROUP_ID] = groupId;
+  json[GroupStateFieldNames::DEVICE_TYPE] = MiLightRemoteTypeHelpers::remoteTypeToString(deviceType);
 }

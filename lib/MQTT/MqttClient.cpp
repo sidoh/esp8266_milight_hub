@@ -238,20 +238,20 @@ void MqttClient::publishCallback(char* topic, byte* payload, int length) {
       groupId = bulbId.groupId;
     }
   } else {
-    if (tokenBindings.hasBinding("device_id")) {
-      deviceId = parseInt<uint16_t>(tokenBindings.get("device_id"));
+    if (tokenBindings.hasBinding(GroupStateFieldNames::DEVICE_ID)) {
+      deviceId = parseInt<uint16_t>(tokenBindings.get(GroupStateFieldNames::DEVICE_ID));
     } else if (tokenBindings.hasBinding("hex_device_id")) {
       deviceId = parseInt<uint16_t>(tokenBindings.get("hex_device_id"));
     } else if (tokenBindings.hasBinding("dec_device_id")) {
       deviceId = parseInt<uint16_t>(tokenBindings.get("dec_device_id"));
     }
 
-    if (tokenBindings.hasBinding("group_id")) {
-      groupId = parseInt<uint16_t>(tokenBindings.get("group_id"));
+    if (tokenBindings.hasBinding(GroupStateFieldNames::GROUP_ID)) {
+      groupId = parseInt<uint16_t>(tokenBindings.get(GroupStateFieldNames::GROUP_ID));
     }
 
-    if (tokenBindings.hasBinding("device_type")) {
-      config = MiLightRemoteConfig::fromType(tokenBindings.get("device_type"));
+    if (tokenBindings.hasBinding(GroupStateFieldNames::DEVICE_TYPE)) {
+      config = MiLightRemoteConfig::fromType(tokenBindings.get(GroupStateFieldNames::DEVICE_TYPE));
     } else {
       Serial.println(F("MqttClient - WARNING: could not find device_type token.  Defaulting to FUT092.\n"));
     }
@@ -304,7 +304,7 @@ String MqttClient::generateConnectionStatusMessage(const char* connectionStatus)
     }
   } else {
     StaticJsonDocument<1024> json;
-    json["status"] = connectionStatus;
+    json[GroupStateFieldNames::STATUS] = connectionStatus;
 
     // Fill other fields
     AboutHelper::generateAboutObject(json, true);

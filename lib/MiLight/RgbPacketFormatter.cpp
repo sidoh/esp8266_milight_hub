@@ -1,5 +1,6 @@
 #include <RgbPacketFormatter.h>
 #include <Units.h>
+#include <MiLightCommands.h>
 
 void RgbPacketFormatter::initializePacket(uint8_t *packet) {
   size_t packetPtr = 0;
@@ -93,25 +94,25 @@ BulbId RgbPacketFormatter::parsePacket(const uint8_t* packet, JsonObject result)
   );
 
   if (command == RGB_ON) {
-    result["state"] = "ON";
+    result[GroupStateFieldNames::STATE] = "ON";
   } else if (command == RGB_OFF) {
-    result["state"] = "OFF";
+    result[GroupStateFieldNames::STATE] = "OFF";
   } else if (command == 0) {
     uint16_t remappedColor = Units::rescale<uint16_t, uint16_t>(packet[RGB_COLOR_INDEX], 360.0, 255.0);
     remappedColor = (remappedColor + 320) % 360;
-    result["hue"] = remappedColor;
+    result[GroupStateFieldNames::HUE] = remappedColor;
   } else if (command == RGB_MODE_DOWN) {
-    result["command"] = "previous_mode";
+    result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::PREVIOUS_MODE;
   } else if (command == RGB_MODE_UP) {
-    result["command"] = "next_mode";
+    result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::NEXT_MODE;
   } else if (command == RGB_SPEED_DOWN) {
-    result["command"] = "mode_speed_down";
+    result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::MODE_SPEED_DOWN;
   } else if (command == RGB_SPEED_UP) {
-    result["command"] = "mode_speed_up";
+    result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::MODE_SPEED_UP;
   } else if (command == RGB_BRIGHTNESS_DOWN) {
-    result["command"] = "brightness_down";
+    result[GroupStateFieldNames::COMMAND] = "brightness_down";
   } else if (command == RGB_BRIGHTNESS_UP) {
-    result["command"] = "brightness_up";
+    result[GroupStateFieldNames::COMMAND] = "brightness_up";
   } else {
     result["button_id"] = command;
   }

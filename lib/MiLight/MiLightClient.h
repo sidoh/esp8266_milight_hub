@@ -6,12 +6,31 @@
 #include <Settings.h>
 #include <GroupStateStore.h>
 #include <PacketSender.h>
+#include <TransitionController.h>
+#include <cstring>
+#include <map>
+#include <set>
 
 #ifndef _MILIGHTCLIENT_H
 #define _MILIGHTCLIENT_H
 
 //#define DEBUG_PRINTF
 //#define DEBUG_CLIENT_COMMANDS     // enable to show each individual change command (like hue, brightness, etc)
+
+#define FS(str) (reinterpret_cast<const __FlashStringHelper*>(str))
+
+namespace RequestKeys {
+  static const char TRANSITION[] = "transition";
+};
+
+namespace TransitionParams {
+  static const char FIELD[] PROGMEM = "field";
+  static const char START_VALUE[] PROGMEM = "start_value";
+  static const char END_VALUE[] PROGMEM = "end_value";
+  static const char DURATION[] PROGMEM = "duration";
+  static const char PERIOD[] PROGMEM = "period";
+  static const char NUM_PERIODS[] PROGMEM = "num_periods";
+}
 
 // Used to determine RGB colros that are approximately white
 #define RGB_WHITE_THRESHOLD 10
@@ -22,7 +41,8 @@ public:
     RadioSwitchboard& radioSwitchboard,
     PacketSender& packetSender,
     GroupStateStore* stateStore,
-    Settings& settings
+    Settings& settings,
+    TransitionController& transitions
   );
 
   ~MiLightClient() { }
@@ -58,6 +78,7 @@ public:
   void updateColorWhite();
   void updateColorRaw(const uint8_t color);
   void enableNightMode();
+  void updateColor(JsonVariant json);
 
   // CCT methods
   void updateTemperature(const uint8_t colorTemperature);
@@ -69,7 +90,10 @@ public:
   void updateSaturation(const uint8_t saturation);
 
   void update(JsonObject object);
-  void handleCommand(const String& command);
+  void handleCommand(JsonVariant command);
+  void handleCommands(JsonArray commands);
+  bool handleTransition(JsonObject args, JsonDocument& responseObj);
+  void handleTransition(GroupStateField field, JsonVariant value, float duration);
   void handleEffect(const String& effect);
 
   void onUpdateBegin(EventHandler handler);
@@ -86,7 +110,17 @@ public:
   // Clear the repeats override so that the default is used
   void clearRepeatsOverride();
 
+  uint8_t parseStatus(JsonObject object);
+
 protected:
+  struct cmp_str {
+    bool operator()(char const *a, char const *b) const {
+        return std::strcmp(a, b) < 0;
+    }
+  };
+  static const std::map<const char*, std::function<void(MiLightClient*, JsonVariant)>, cmp_str> FIELD_SETTERS;
+  static const char* FIELD_ORDERINGS[];
+
   RadioSwitchboard& radioSwitchboard;
   std::vector<std::shared_ptr<MiLightRadio>> radios;
   std::shared_ptr<MiLightRadio> currentRadio;
@@ -98,11 +132,10 @@ protected:
   GroupStateStore* stateStore;
   Settings& settings;
   PacketSender& packetSender;
+  TransitionController& transitions;
 
   // If set, override the number of packet repeats used.
   size_t repeatsOverride;
-
-  uint8_t parseStatus(JsonObject object);
 
   void flushPacket();
 };

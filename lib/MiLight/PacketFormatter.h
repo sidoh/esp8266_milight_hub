@@ -84,6 +84,7 @@ public:
   virtual void format(uint8_t const* packet, char* buffer);
 
   virtual BulbId parsePacket(const uint8_t* packet, JsonObject result);
+  virtual BulbId currentBulbId() const;
 
   static void formatV1Packet(uint8_t const* packet, char* buffer);
 

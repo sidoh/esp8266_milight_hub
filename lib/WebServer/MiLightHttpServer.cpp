@@ -54,6 +54,16 @@ void MiLightHttpServer::begin() {
     .on(HTTP_GET, std::bind(&MiLightHttpServer::handleGetGroupAlias, this, _1));
 
   server
+    .buildHandler("/transitions/:id")
+    .on(HTTP_GET, std::bind(&MiLightHttpServer::handleGetTransition, this, _1))
+    .on(HTTP_DELETE, std::bind(&MiLightHttpServer::handleDeleteTransition, this, _1));
+
+  server
+    .buildHandler("/transitions")
+    .on(HTTP_GET, std::bind(&MiLightHttpServer::handleListTransitions, this, _1))
+    .on(HTTP_POST, std::bind(&MiLightHttpServer::handleCreateTransition, this, _1));
+
+  server
     .buildHandler("/raw_commands/:type")
     .on(HTTP_ANY, std::bind(&MiLightHttpServer::handleSendRaw, this, _1));
 
@@ -100,8 +110,8 @@ void MiLightHttpServer::handleSystemPost(RequestContext& request) {
 
   bool handled = false;
 
-  if (requestBody.containsKey("command")) {
-    if (requestBody["command"] == "restart") {
+  if (requestBody.containsKey(GroupStateFieldNames::COMMAND)) {
+    if (requestBody[GroupStateFieldNames::COMMAND] == "restart") {
       Serial.println(F("Restarting..."));
       server.send_P(200, TEXT_PLAIN, PSTR("true"));
 
@@ -110,7 +120,7 @@ void MiLightHttpServer::handleSystemPost(RequestContext& request) {
       ESP.restart();
 
       handled = true;
-    } else if (requestBody["command"] == "clear_wifi_config") {
+    } else if (requestBody[GroupStateFieldNames::COMMAND] == "clear_wifi_config") {
         Serial.println(F("Resetting Wifi and then Restarting..."));
         server.send_P(200, TEXT_PLAIN, PSTR("true"));
 
@@ -357,8 +367,8 @@ void MiLightHttpServer::handleGetGroupAlias(RequestContext& request) {
 }
 
 void MiLightHttpServer::handleGetGroup(RequestContext& request) {
-  const String _deviceId = request.pathVariables.get("device_id");
-  uint8_t _groupId = atoi(request.pathVariables.get("group_id"));
+  const String _deviceId = request.pathVariables.get(GroupStateFieldNames::DEVICE_ID);
+  uint8_t _groupId = atoi(request.pathVariables.get(GroupStateFieldNames::GROUP_ID));
   const MiLightRemoteConfig* _remoteType = MiLightRemoteConfig::fromType(request.pathVariables.get("type"));
 
   if (_remoteType == NULL) {
@@ -374,8 +384,8 @@ void MiLightHttpServer::handleGetGroup(RequestContext& request) {
 }
 
 void MiLightHttpServer::handleDeleteGroup(RequestContext& request) {
-  const String _deviceId = request.pathVariables.get("device_id");
-  uint8_t _groupId = atoi(request.pathVariables.get("group_id"));
+  const String _deviceId = request.pathVariables.get(GroupStateFieldNames::DEVICE_ID);
+  uint8_t _groupId = atoi(request.pathVariables.get(GroupStateFieldNames::GROUP_ID));
   const MiLightRemoteConfig* _remoteType = MiLightRemoteConfig::fromType(request.pathVariables.get("type"));
 
   if (_remoteType == NULL) {
@@ -444,8 +454,8 @@ void MiLightHttpServer::handleUpdateGroupAlias(RequestContext& request) {
 void MiLightHttpServer::handleUpdateGroup(RequestContext& request) {
   JsonObject reqObj = request.getJsonBody().as<JsonObject>();
 
-  String _deviceIds = request.pathVariables.get("device_id");
-  String _groupIds = request.pathVariables.get("group_id");
+  String _deviceIds = request.pathVariables.get(GroupStateFieldNames::DEVICE_ID);
+  String _groupIds = request.pathVariables.get(GroupStateFieldNames::GROUP_ID);
   String _remoteTypes = request.pathVariables.get("type");
   char deviceIds[_deviceIds.length()];
   char groupIds[_groupIds.length()];
@@ -583,3 +593,73 @@ void MiLightHttpServer::handleServe_P(const char* data, size_t length) {
   server.client().stop();
 }
 
+void MiLightHttpServer::handleGetTransition(RequestContext& request) {
+  size_t id = atoi(request.pathVariables.get("id"));
+  auto transition = transitions.getTransition(id);
+
+  if (transition == nullptr) {
+    request.response.setCode(404);
+    request.response.json["error"] = "Not found";
+  } else {
+    JsonObject response = request.response.json.to<JsonObject>();
+    transition->serialize(response);
+  }
+}
+
+void MiLightHttpServer::handleDeleteTransition(RequestContext& request) {
+  size_t id = atoi(request.pathVariables.get("id"));
+  bool success = transitions.deleteTransition(id);
+
+  if (success) {
+    request.response.json["success"] = true;
+  } else {
+    request.response.setCode(404);
+    request.response.json["error"] = "Not found";
+  }
+}
+
+void MiLightHttpServer::handleListTransitions(RequestContext& request) {
+  auto current = transitions.getTransitions();
+  JsonArray transitions = request.response.json.to<JsonObject>().createNestedArray(F("transitions"));
+
+  while (current != nullptr) {
+    JsonObject json = transitions.createNestedObject();
+    current->data->serialize(json);
+    current = current->next;
+  }
+}
+
+void MiLightHttpServer::handleCreateTransition(RequestContext& request) {
+  JsonObject body = request.getJsonBody().as<JsonObject>();
+
+  if (! body.containsKey(GroupStateFieldNames::DEVICE_ID)
+    || ! body.containsKey(GroupStateFieldNames::GROUP_ID)
+    || ! body.containsKey(F("remote_type"))) {
+    char buffer[200];
+    sprintf_P(buffer, PSTR("Must specify required keys: device_id, group_id, remote_type"));
+
+    request.response.setCode(400);
+    request.response.json[F("error")] = buffer;
+    return;
+  }
+
+  const String _deviceId = body[GroupStateFieldNames::DEVICE_ID];
+  uint8_t _groupId = body[GroupStateFieldNames::GROUP_ID];
+  const MiLightRemoteConfig* _remoteType = MiLightRemoteConfig::fromType(body[F("remote_type")].as<const char*>());
+
+  if (_remoteType == nullptr) {
+    char buffer[40];
+    sprintf_P(buffer, PSTR("Unknown device type\n"));
+    request.response.setCode(400);
+    request.response.json[F("error")] = buffer;
+    return;
+  }
+
+  milightClient->prepare(_remoteType, parseInt<uint16_t>(_deviceId), _groupId);
+
+  if (milightClient->handleTransition(request.getJsonBody().as<JsonObject>(), request.response.json)) {
+    request.response.json[F("success")] = true;
+  } else {
+    request.response.setCode(400);
+  }
+}

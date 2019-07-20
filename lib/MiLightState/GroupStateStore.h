@@ -11,9 +11,9 @@ public:
 
   /*
    * Returns the state for the given BulbId.  If accessing state for a valid device
-   * (i.e., NOT group 0) and no state exists, its state will be initialized with a 
+   * (i.e., NOT group 0) and no state exists, its state will be initialized with a
    * default.
-   * 
+   *
    * Otherwise, we return NULL.
    */
   GroupState* get(const BulbId& id);

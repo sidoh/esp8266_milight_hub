@@ -182,3 +182,7 @@ void PacketFormatter::formatV1Packet(uint8_t const* packet, char* buffer) {
 size_t PacketFormatter::getPacketLength() const {
   return packetLength;
 }
+
+BulbId PacketFormatter::currentBulbId() const {
+  return BulbId(deviceId, groupId, deviceType);
+}
