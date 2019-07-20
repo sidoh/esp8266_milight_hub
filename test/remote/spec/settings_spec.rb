@@ -29,11 +29,11 @@ RSpec.describe 'Settings' do
         'simple_mqtt_client_status' => [true, false],
         'packet_repeats_per_loop' => [10],
         'home_assistant_discovery_prefix' => ['', 'abc', 'a/b/c'],
-        'wifi_force_b_mode' => [true, false]
+        'wifi_mode' => %w(b g n)
       }.each do |key, values|
         values.each do |v|
           @client.patch_settings({key => v})
-          expect(@client.get('/settings')[key]).to eq(v)
+          expect(@client.get('/settings')[key]).to eq(v), "Should persist #{key} possible value: #{v}"
         end
       end
     end
@@ -97,7 +97,7 @@ RSpec.describe 'Settings' do
 
       end_mem = @client.get('/about')['free_heap']
 
-      expect(end_mem - start_mem).to_not be < -200
+      expect(end_mem).to be > (start_mem - 200)
     end
   end
 

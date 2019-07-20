@@ -1,4 +1,5 @@
 #include <HomeAssistantDiscoveryClient.h>
+#include <MiLightCommands.h>
 
 HomeAssistantDiscoveryClient::HomeAssistantDiscoveryClient(Settings& settings, MqttClient* mqttClient)
   : settings(settings)
@@ -50,11 +51,11 @@ void HomeAssistantDiscoveryClient::addConfig(const char* alias, const BulbId& bu
   // Configure supported commands based on the bulb type
 
   // All supported bulbs support brightness and night mode
-  config[F("brightness")] = true;
-  config[F("effect")] = true;
+  config[GroupStateFieldNames::BRIGHTNESS] = true;
+  config[GroupStateFieldNames::EFFECT] = true;
 
   JsonArray effects = config.createNestedArray(F("effect_list"));
-  effects.add(F("night_mode"));
+  effects.add(MiLightCommandNames::NIGHT_MODE);
 
   // These bulbs support RGB color
   switch (bulbId.deviceType) {
@@ -74,7 +75,7 @@ void HomeAssistantDiscoveryClient::addConfig(const char* alias, const BulbId& bu
     case REMOTE_TYPE_FUT089:
     case REMOTE_TYPE_FUT091:
     case REMOTE_TYPE_RGB_CCT:
-      config[F("color_temp")] = true;
+      config[GroupStateFieldNames::COLOR_TEMP] = true;
       break;
     default:
       break; //nothing
@@ -85,7 +86,7 @@ void HomeAssistantDiscoveryClient::addConfig(const char* alias, const BulbId& bu
     case REMOTE_TYPE_FUT089:
     case REMOTE_TYPE_RGB_CCT:
     case REMOTE_TYPE_RGBW:
-      effects.add(F("white_mode"));
+      effects.add("white_mode");
       break;
     default:
       break; //nothing

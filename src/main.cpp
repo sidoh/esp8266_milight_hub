@@ -26,6 +26,7 @@
 #include <RadioSwitchboard.h>
 #include <PacketSender.h>
 #include <HomeAssistantDiscoveryClient.h>
+#include <TransitionController.h>
 
 #include <vector>
 #include <memory>
@@ -52,6 +53,7 @@ uint8_t currentRadioType = 0;
 // For tracking and managing group state
 GroupStateStore* stateStore = NULL;
 BulbStateUpdater* bulbStateUpdater = NULL;
+TransitionController transitions;
 
 int numUdpServers = 0;
 std::vector<std::shared_ptr<MiLightUdpServer>> udpServers;
@@ -232,7 +234,8 @@ void applySettings() {
     *radios,
     *packetSender,
     stateStore,
-    settings
+    settings,
+    transitions
   );
   milightClient->onUpdateBegin(onUpdateBegin);
   milightClient->onUpdateEnd(onUpdateEnd);
@@ -272,11 +275,20 @@ void applySettings() {
 
   WiFi.hostname(settings.hostname);
 
-  if (settings.wifiForceBMode) {
-    WiFi.setPhyMode(WIFI_PHY_MODE_11B);
-  } else {
-    WiFi.setPhyMode(WIFI_PHY_MODE_11G);
+  WiFiPhyMode_t wifiMode;
+  switch (settings.wifiMode) {
+    case WifiMode::B:
+      wifiMode = WIFI_PHY_MODE_11B;
+      break;
+    case WifiMode::G:
+      wifiMode = WIFI_PHY_MODE_11G;
+      break;
+    default:
+    case WifiMode::N:
+      wifiMode = WIFI_PHY_MODE_11N;
+      break;
   }
+  WiFi.setPhyMode(wifiMode);
 }
 
 /**
@@ -407,11 +419,23 @@ void setup() {
   SSDP.setDeviceType("upnp:rootdevice");
   SSDP.begin();
 
-  httpServer = new MiLightHttpServer(settings, milightClient, stateStore, packetSender, radios);
+  httpServer = new MiLightHttpServer(settings, milightClient, stateStore, packetSender, radios, transitions);
   httpServer->onSettingsSaved(applySettings);
   httpServer->onGroupDeleted(onGroupDeleted);
   httpServer->on("/description.xml", HTTP_GET, []() { SSDP.schema(httpServer->client()); });
   httpServer->begin();
+
+  transitions.addListener(
+    [](const BulbId& bulbId, GroupStateField field, uint16_t value) {
+      StaticJsonDocument<100> buffer;
+
+      const char* fieldName = GroupStateFieldHelpers::getFieldName(field);
+      buffer[fieldName] = value;
+
+      milightClient->prepare(bulbId.deviceType, bulbId.deviceId, bulbId.groupId);
+      milightClient->update(buffer.as<JsonObject>());
+    }
+  );
 
   Serial.printf_P(PSTR("Setup complete (version %s)\n"), QUOTE(MILIGHT_HUB_VERSION));
 }
@@ -439,6 +463,8 @@ void loop() {
 
   // update LED with status
   ledStatus->handle();
+
+  transitions.loop();
 
   if (shouldRestart()) {
     Serial.println(F("Auto-restart triggered. Restarting..."));

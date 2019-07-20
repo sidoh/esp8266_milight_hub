@@ -1,6 +1,7 @@
 #include <FUT089PacketFormatter.h>
 #include <V2RFEncoding.h>
 #include <Units.h>
+#include <MiLightCommands.h>
 
 void FUT089PacketFormatter::modeSpeedDown() {
   command(FUT089_ON, FUT089_MODE_SPEED_DOWN);
@@ -113,39 +114,39 @@ BulbId FUT089PacketFormatter::parsePacket(const uint8_t *packet, JsonObject resu
 
   if (command == FUT089_ON) {
     if ((packetCopy[V2_COMMAND_INDEX] & 0x80) == 0x80) {
-      result["command"] = "night_mode";
+      result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::NIGHT_MODE;
     } else if (arg == FUT089_MODE_SPEED_DOWN) {
-      result["command"] = "mode_speed_down";
+      result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::MODE_SPEED_DOWN;
     } else if (arg == FUT089_MODE_SPEED_UP) {
-      result["command"] = "mode_speed_up";
+      result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::MODE_SPEED_UP;
     } else if (arg == FUT089_WHITE_MODE) {
-      result["command"] = "set_white";
+      result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::SET_WHITE;
     } else if (arg <= 8) { // Group is not reliably encoded in group byte. Extract from arg byte
-      result["state"] = "ON";
+      result[GroupStateFieldNames::STATE] = "ON";
       bulbId.groupId = arg;
     } else if (arg >= 9 && arg <= 17) {
-      result["state"] = "OFF";
+      result[GroupStateFieldNames::STATE] = "OFF";
       bulbId.groupId = arg-9;
     }
   } else if (command == FUT089_COLOR) {
     uint8_t rescaledColor = (arg - FUT089_COLOR_OFFSET) % 0x100;
     uint16_t hue = Units::rescale<uint16_t, uint16_t>(rescaledColor, 360, 255.0);
-    result["hue"] = hue;
+    result[GroupStateFieldNames::HUE] = hue;
   } else if (command == FUT089_BRIGHTNESS) {
     uint8_t level = constrain(arg, 0, 100);
-    result["brightness"] = Units::rescale<uint8_t, uint8_t>(level, 255, 100);
+    result[GroupStateFieldNames::BRIGHTNESS] = Units::rescale<uint8_t, uint8_t>(level, 255, 100);
   // saturation == kelvin. arg ranges are the same, so can't distinguish
   // without using state
   } else if (command == FUT089_SATURATION) {
     const GroupState* state = stateStore->get(bulbId);
 
     if (state != NULL && state->getBulbMode() == BULB_MODE_COLOR) {
-      result["saturation"] = 100 - constrain(arg, 0, 100);
+      result[GroupStateFieldNames::SATURATION] = 100 - constrain(arg, 0, 100);
     } else {
-      result["color_temp"] = Units::whiteValToMireds(100 - arg, 100);
+      result[GroupStateFieldNames::COLOR_TEMP] = Units::whiteValToMireds(100 - arg, 100);
     }
   } else if (command == FUT089_MODE) {
-    result["mode"] = arg;
+    result[GroupStateFieldNames::MODE] = arg;
   } else {
     result["button_id"] = command;
     result["argument"] = arg;

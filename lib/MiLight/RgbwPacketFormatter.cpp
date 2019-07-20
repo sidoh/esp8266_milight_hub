@@ -1,5 +1,6 @@
 #include <RgbwPacketFormatter.h>
 #include <Units.h>
+#include <MiLightCommands.h>
 
 #define STATUS_COMMAND(status, groupId) ( RGBW_GROUP_1_ON + (((groupId) - 1)*2) + (status) )
 #define GROUP_FOR_STATUS_COMMAND(buttonId) ( ((buttonId) - 1) / 2 )
@@ -118,7 +119,7 @@ BulbId RgbwPacketFormatter::parsePacket(const uint8_t* packet, JsonObject result
   );
 
   if (command >= RGBW_ALL_ON && command <= RGBW_GROUP_4_OFF) {
-    result["state"] = (STATUS_FOR_COMMAND(command) == ON) ? "ON" : "OFF";
+    result[GroupStateFieldNames::STATE] = (STATUS_FOR_COMMAND(command) == ON) ? "ON" : "OFF";
 
     // Determine group ID from button ID for on/off. The remote's state is from
     // the last packet sent, not the current one, and that can be wrong for
@@ -126,9 +127,9 @@ BulbId RgbwPacketFormatter::parsePacket(const uint8_t* packet, JsonObject result
     bulbId.groupId = GROUP_FOR_STATUS_COMMAND(command);
   } else if (command & 0x10) {
     if ((command % 2) == 0) {
-      result["command"] = "night_mode";
+      result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::NIGHT_MODE;
     } else {
-      result["command"] = "set_white";
+      result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::SET_WHITE;
     }
     bulbId.groupId = GROUP_FOR_STATUS_COMMAND(command & 0xF);
   } else if (command == RGBW_BRIGHTNESS) {
@@ -136,17 +137,17 @@ BulbId RgbwPacketFormatter::parsePacket(const uint8_t* packet, JsonObject result
     brightness -= packet[RGBW_BRIGHTNESS_GROUP_INDEX] >> 3;
     brightness += 17;
     brightness %= 32;
-    result["brightness"] = Units::rescale<uint8_t, uint8_t>(brightness, 255, 25);
+    result[GroupStateFieldNames::BRIGHTNESS] = Units::rescale<uint8_t, uint8_t>(brightness, 255, 25);
   } else if (command == RGBW_COLOR) {
     uint16_t remappedColor = Units::rescale<uint16_t, uint16_t>(packet[RGBW_COLOR_INDEX], 360.0, 255.0);
     remappedColor = (remappedColor + 320) % 360;
-    result["hue"] = remappedColor;
+    result[GroupStateFieldNames::HUE] = remappedColor;
   } else if (command == RGBW_SPEED_DOWN) {
-    result["command"] = "mode_speed_down";
+    result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::MODE_SPEED_DOWN;
   } else if (command == RGBW_SPEED_UP) {
-    result["command"] = "mode_speed_up";
+    result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::MODE_SPEED_UP;
   } else if (command == RGBW_DISCO_MODE) {
-    result["mode"] = packet[0] & ~RGBW_PROTOCOL_ID_BYTE;
+    result[GroupStateFieldNames::MODE] = packet[0] & ~RGBW_PROTOCOL_ID_BYTE;
   } else {
     result["button_id"] = command;
   }

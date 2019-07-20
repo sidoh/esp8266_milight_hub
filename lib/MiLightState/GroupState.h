@@ -6,6 +6,7 @@
 #include <GroupStateField.h>
 #include <ArduinoJson.h>
 #include <BulbId.h>
+#include <ParsedColor.h>
 
 #ifndef _GROUP_STATE_H
 #define _GROUP_STATE_H
@@ -27,6 +28,7 @@ enum class IncrementDirection : unsigned {
 
 class GroupState {
 public:
+  static const GroupStateField ALL_PHYSICAL_FIELDS[];
 
   GroupState();
   GroupState(const GroupState& other);
@@ -44,6 +46,7 @@ public:
 
   bool isSetField(GroupStateField field) const;
   uint16_t getFieldValue(GroupStateField field) const;
+  uint16_t getParsedFieldValue(GroupStateField field) const;
   void setFieldValue(GroupStateField field, uint16_t value);
   bool clearField(GroupStateField field);
 
@@ -139,12 +142,19 @@ public:
   // returns true if a (real, not scratch) state change was made
   bool applyIncrementCommand(GroupStateField field, IncrementDirection dir);
 
+  // Helpers that convert raw state values
+
+  // Return true if hue is set.  If saturation is not set, will assume 100.
+  bool isSetColor() const;
+  ParsedColor getColor() const;
+
   void load(Stream& stream);
   void dump(Stream& stream) const;
 
   void debugState(char const *debugMessage) const;
 
   static const GroupState& defaultState(MiLightRemoteType remoteType);
+  static bool isPhysicalField(GroupStateField field);
 
 private:
   static const size_t DATA_LONGS = 2;

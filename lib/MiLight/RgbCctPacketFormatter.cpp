@@ -1,6 +1,7 @@
 #include <RgbCctPacketFormatter.h>
 #include <V2RFEncoding.h>
 #include <Units.h>
+#include <MiLightCommands.h>
 
 void RgbCctPacketFormatter::modeSpeedDown() {
   command(RGB_CCT_ON, RGB_CCT_MODE_SPEED_DOWN);
@@ -122,33 +123,33 @@ BulbId RgbCctPacketFormatter::parsePacket(const uint8_t *packet, JsonObject resu
 
   if (command == RGB_CCT_ON) {
     if ((packetCopy[V2_COMMAND_INDEX] & 0x80) == 0x80) {
-      result["command"] = "night_mode";
+      result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::NIGHT_MODE;
     } else if (arg == RGB_CCT_MODE_SPEED_DOWN) {
-      result["command"] = "mode_speed_down";
+      result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::MODE_SPEED_DOWN;
     } else if (arg == RGB_CCT_MODE_SPEED_UP) {
-      result["command"] = "mode_speed_up";
+      result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::MODE_SPEED_UP;
     } else if (arg < 5) { // Group is not reliably encoded in group byte. Extract from arg byte
-      result["state"] = "ON";
+      result[GroupStateFieldNames::STATE] = "ON";
       bulbId.groupId = arg;
     } else {
-      result["state"] = "OFF";
+      result[GroupStateFieldNames::STATE] = "OFF";
       bulbId.groupId = arg-5;
     }
   } else if (command == RGB_CCT_COLOR) {
     uint8_t rescaledColor = (arg - RGB_CCT_COLOR_OFFSET) % 0x100;
     uint16_t hue = Units::rescale<uint16_t, uint16_t>(rescaledColor, 360, 255.0);
-    result["hue"] = hue;
+    result[GroupStateFieldNames::HUE] = hue;
   } else if (command == RGB_CCT_KELVIN) {
     uint8_t temperature = V2PacketFormatter::fromv2scale(arg, RGB_CCT_KELVIN_REMOTE_END, 2);
-    result["color_temp"] = Units::whiteValToMireds(temperature, 100);
+    result[GroupStateFieldNames::COLOR_TEMP] = Units::whiteValToMireds(temperature, 100);
   // brightness == saturation
   } else if (command == RGB_CCT_BRIGHTNESS && arg >= (RGB_CCT_BRIGHTNESS_OFFSET - 15)) {
     uint8_t level = constrain(arg - RGB_CCT_BRIGHTNESS_OFFSET, 0, 100);
-    result["brightness"] = Units::rescale<uint8_t, uint8_t>(level, 255, 100);
+    result[GroupStateFieldNames::BRIGHTNESS] = Units::rescale<uint8_t, uint8_t>(level, 255, 100);
   } else if (command == RGB_CCT_SATURATION) {
-    result["saturation"] = constrain(arg - RGB_CCT_SATURATION_OFFSET, 0, 100);
+    result[GroupStateFieldNames::SATURATION] = constrain(arg - RGB_CCT_SATURATION_OFFSET, 0, 100);
   } else if (command == RGB_CCT_MODE) {
-    result["mode"] = arg;
+    result[GroupStateFieldNames::MODE] = arg;
   } else {
     result["button_id"] = command;
     result["argument"] = arg;

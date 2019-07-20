@@ -5,6 +5,7 @@
 #include <GroupStateStore.h>
 #include <RadioSwitchboard.h>
 #include <PacketSender.h>
+#include <TransitionController.h>
 
 #ifndef _MILIGHT_HTTP_SERVER
 #define _MILIGHT_HTTP_SERVER
@@ -27,7 +28,8 @@ public:
     MiLightClient*& milightClient,
     GroupStateStore*& stateStore,
     PacketSender*& packetSender,
-    RadioSwitchboard*& radios
+    RadioSwitchboard*& radios,
+    TransitionController& transitions
   )
     : authProvider(settings)
     , server(80, authProvider)
@@ -38,6 +40,7 @@ public:
     , stateStore(stateStore)
     , packetSender(packetSender)
     , radios(radios)
+    , transitions(transitions)
   { }
 
   void begin();
@@ -79,6 +82,11 @@ protected:
   void handleDeleteGroupAlias(RequestContext& request);
   void _handleDeleteGroup(BulbId bulbId, RequestContext& request);
 
+  void handleGetTransition(RequestContext& request);
+  void handleDeleteTransition(RequestContext& request);
+  void handleCreateTransition(RequestContext& request);
+  void handleListTransitions(RequestContext& request);
+
   void handleRequest(const JsonObject& request);
   void handleWsEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length);
 
@@ -96,6 +104,7 @@ protected:
   ESP8266WebServer::THandlerFunction _handleRootPage;
   PacketSender*& packetSender;
   RadioSwitchboard*& radios;
+  TransitionController& transitions;
 
 };
 

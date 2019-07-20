@@ -9,6 +9,13 @@ class ApiClient
     @current_id = Integer(base_id)
   end
 
+  def self.from_environment
+    ApiClient.new(
+      ENV.fetch('ESPMH_HOSTNAME'),
+      ENV.fetch('ESPMH_TEST_DEVICE_ID_BASE')
+    )
+  end
+
   def generate_id
     id = @current_id
     @current_id += 1
@@ -46,7 +53,13 @@ class ApiClient
       end
 
       res = http.request(req)
-      res.value
+
+      begin
+        res.value
+      rescue Exception => e
+        puts "REST Client Error: #{e}\nBody:\n#{res.body}"
+        raise e
+      end
 
       body = res.body
 
@@ -96,5 +109,19 @@ class ApiClient
 
   def patch_state(state, params = {})
     put(state_path(params), state.to_json)
+  end
+
+  def schedule_transition(_id_params, transition_params)
+    id_params = {
+      device_id: _id_params[:id],
+      remote_type: _id_params[:type],
+      group_id: _id_params[:group_id]
+    }
+
+    post("/transitions", id_params.merge(transition_params))
+  end
+
+  def transitions
+    get('/transitions')['transitions']
   end
 end
