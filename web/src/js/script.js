@@ -584,6 +584,12 @@ var loadSettings = function() {
       }
     });
 
+    if (val.hostname) {
+      var title = "MiLight Hub: " + val.hostname;
+      document.title = title;
+      $('.navbar-brand').html(title);
+    }
+
     if (val.group_id_aliases) {
       aliasesSelectize.clearOptions();
       Object.entries(val.group_id_aliases).forEach(function(entry) {
