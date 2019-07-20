@@ -16,6 +16,7 @@ struct GroupCacheNode {
 class GroupStateCache {
 public:
   GroupStateCache(const size_t maxSize);
+  ~GroupStateCache();
 
   GroupState* get(const BulbId& id);
   GroupState* set(const BulbId& id, const GroupState& state);
