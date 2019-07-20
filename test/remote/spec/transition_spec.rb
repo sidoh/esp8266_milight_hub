@@ -286,4 +286,93 @@ RSpec.describe 'Transitions' do
       end
     end
   end
+
+  context 'color support' do
+    it 'should support color transitions' do
+      response = @client.schedule_transition(@id_params, {
+        field: 'color',
+        start_value: '255,0,0',
+        end_value: '0,255,0',
+        duration: 1.0,
+        period: 500
+      })
+      expect(response['success']).to eq(true)
+    end
+
+    it 'should smoothly transition from one color to another' do
+      seen_updates = []
+
+      fields = @client.get('/settings')['group_state_fields']
+      @client.put(
+        '/settings',
+        group_state_fields: fields + %w(oh_color),
+        mqtt_state_rate_limit: 1000
+      )
+
+      @mqtt_client.on_state(@id_params) do |id, message|
+        color = message['color']
+        seen_updates << color
+        color == '0,255,0'
+      end
+
+      response = @client.schedule_transition(@id_params, {
+        field: 'color',
+        start_value: '255,0,0',
+        end_value: '0,255,0',
+        duration: 4.0,
+        period: 1000
+      })
+
+      @mqtt_client.wait_for_listeners
+
+      parts = seen_updates.map { |x| x.split(',').map(&:to_i) }
+
+      # This is less even than you'd expect because RGB -> Hue/Sat is lossy.
+      # Raw logs show that the right thing is happening:
+      #
+      #     >>> stepSizes = (-64,64,0)
+      #     >>> start = (255,0,0)
+      #     >>> end = (0,255,0)
+      #     >>> current color = (191,64,0)
+      #     >>> current color = (127,128,0)
+      #     >>> current color = (63,192,0)
+      #     >>> current color = (0,255,0)
+      expect(parts).to eq([
+        [255, 0, 0],
+        [255, 84, 0],
+        [250, 255, 0],
+        [84, 255, 0],
+        [0, 255, 0]
+      ])
+    end
+
+    it 'should handle color transitions from known state' do
+      seen_updates = []
+
+      fields = @client.get('/settings')['group_state_fields']
+      @client.put(
+        '/settings',
+        group_state_fields: fields + %w(oh_color),
+        mqtt_state_rate_limit: 1000
+      )
+      @client.patch_state({status: 'ON', color: '255,0,0'}, @id_params)
+
+      @mqtt_client.on_state(@id_params) do |id, message|
+        color = message['color']
+        seen_updates << color if color
+        color == '0,0,255'
+      end
+
+      @client.patch_state({color: '0,0,255', transition: 2.0}, @id_params)
+      @mqtt_client.wait_for_listeners
+
+      parts = seen_updates.map { |x| x.split(',').map(&:to_i) }
+
+      expect(parts).to eq([
+        [255,0,0],
+        [161,0,255],
+        [0,0,255]
+      ])
+    end
+  end
 end
