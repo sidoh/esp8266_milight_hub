@@ -89,6 +89,7 @@ void GroupStateStore::clear(const BulbId& bulbId) {
 
   if (state != NULL) {
     state->initFields();
+    state->patch(GroupState::defaultState(bulbId.deviceType));
   }
 }
 

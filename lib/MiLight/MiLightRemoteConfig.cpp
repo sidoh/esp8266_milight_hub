@@ -10,8 +10,11 @@ const MiLightRemoteConfig* MiLightRemoteConfig::ALL_REMOTES[] = {
   &FUT092Config, // rgb+cct
   &FUT098Config, // rgb
   &FUT089Config, // 8-group rgb+cct (b8, fut089)
-  &FUT091Config
+  &FUT091Config,
+  &FUT020Config
 };
+
+const size_t MiLightRemoteConfig::NUM_REMOTES = size(ALL_REMOTES);
 
 const MiLightRemoteConfig* MiLightRemoteConfig::fromType(const String& type) {
   return fromType(MiLightRemoteTypeHelpers::remoteTypeFromString(type));
@@ -93,5 +96,13 @@ const MiLightRemoteConfig FUT098Config( //rgb
   MiLightRadioConfig::ALL_CONFIGS[3],
   REMOTE_TYPE_RGB,
   "rgb",
+  0
+);
+
+const MiLightRemoteConfig FUT020Config(
+  new FUT020PacketFormatter(),
+  MiLightRadioConfig::ALL_CONFIGS[4],
+  REMOTE_TYPE_FUT020,
+  "fut020",
   0
 );
