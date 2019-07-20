@@ -17,11 +17,14 @@ public:
     : FUT02xPacketFormatter(REMOTE_TYPE_FUT020)
   { }
 
-  virtual void command(uint8_t command, uint8_t arg);
+  virtual void updateStatus(MiLightStatus status, uint8_t groupId);
   virtual void updateHue(uint16_t value);
   virtual void updateColorRaw(uint8_t value);
+  virtual void updateColorWhite();
   virtual void nextMode();
-  virtual BulbId parsePacket(const uint8_t* packet, JsonObject result) override;
+  virtual void updateBrightness(uint8_t value);
+  virtual void increaseBrightness();
+  virtual void decreaseBrightness();
 
-  virtual void initializePacket(uint8_t* packet);
+  virtual BulbId parsePacket(const uint8_t* packet, JsonObject result) override;
 };

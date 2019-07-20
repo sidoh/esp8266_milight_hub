@@ -32,16 +32,30 @@ static const GroupStateField ALL_SCRATCH_FIELDS[] = {
 // Number of units each increment command counts for
 static const uint8_t INCREMENT_COMMAND_VALUE = 10;
 
-const GroupState& GroupState::defaultState(MiLightRemoteType remoteType) {
-  static GroupState instances[MiLightRemoteConfig::NUM_REMOTES];
-  GroupState& state = instances[remoteType];
+static const GroupState DEFAULT_STATE = GroupState();
+static const GroupState DEFAULT_RGB_ONLY_STATE = GroupState::initDefaultRgbState();
+static const GroupState DEFAULT_WHITE_ONLY_STATE = GroupState::initDefaultWhiteState();
 
+GroupState GroupState::initDefaultRgbState() {
+  GroupState state;
+  state.setBulbMode(BULB_MODE_COLOR);
+  return state;
+}
+
+GroupState GroupState::initDefaultWhiteState() {
+  GroupState state;
+  state.setBulbMode(BULB_MODE_WHITE);
+  return state;
+}
+
+const GroupState& GroupState::defaultState(MiLightRemoteType remoteType) {
   switch (remoteType) {
     case REMOTE_TYPE_RGB:
-      state.setBulbMode(BULB_MODE_COLOR);
+      return DEFAULT_RGB_ONLY_STATE;
       break;
     case REMOTE_TYPE_CCT:
-      state.setBulbMode(BULB_MODE_WHITE);
+    case REMOTE_TYPE_FUT091:
+      return DEFAULT_WHITE_ONLY_STATE;
       break;
 
     default:
@@ -49,7 +63,7 @@ const GroupState& GroupState::defaultState(MiLightRemoteType remoteType) {
       break;
   }
 
-  return state;
+  return DEFAULT_STATE;
 }
 
 void GroupState::initFields() {

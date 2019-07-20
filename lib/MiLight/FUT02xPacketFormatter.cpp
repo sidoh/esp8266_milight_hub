@@ -16,6 +16,10 @@ void FUT02xPacketFormatter::initializePacket(uint8_t *packet) {
   packet[packetPtr++] = sequenceNum++;
 }
 
+bool FUT02xPacketFormatter::canHandle(const uint8_t* packet, const size_t len) {
+  return len == packetLength && packet[0] == FUT02X_PACKET_HEADER;
+}
+
 void FUT02xPacketFormatter::command(uint8_t command, uint8_t arg) {
   pushPacket();
   if (held) {
@@ -43,8 +47,4 @@ void FUT02xPacketFormatter::format(uint8_t const* packet, char* buffer) {
   buffer += sprintf_P(buffer, PSTR("Arg      : %02X\n"), packet[3]);
   buffer += sprintf_P(buffer, PSTR("Command  : %02X\n"), packet[4]);
   buffer += sprintf_P(buffer, PSTR("Sequence : %02X\n"), packet[5]);
-}
-
-BulbId FUT02xPacketFormatter::parsePacket(const uint8_t* packet, JsonObject result) {
-
 }
