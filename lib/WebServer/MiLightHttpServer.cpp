@@ -342,9 +342,10 @@ void MiLightHttpServer::sendGroupState(BulbId& bulbId, GroupState* state, RichHt
 
   JsonObject obj = response.json.to<JsonObject>();
 
-  if (state != NULL) {
+  if (blockOnQueue && state != NULL) {
     state->applyState(obj, bulbId, settings.groupStateFields);
-    state->debugState("test");
+  } else {
+    obj[F("success")] = true;
   }
 }
 
