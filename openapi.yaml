@@ -1,7 +1,7 @@
 openapi: 3.0.1
 info:
   title: ESP8266 MiLight Hub
-  description: This describes ESP8266 MiLight Hub's REST API.
+  description: Official documention for MiLight Hub's REST API.
   contact:
     email: chris@sidoh.org
   license:

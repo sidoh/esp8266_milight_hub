@@ -25,8 +25,9 @@ Support has been added for the following [bulb types](http://futlight.com/produc
 Model #|Name|Compatible Bulbs
 -------|-----------|----------------
 |FUT096|RGB/W|<ol><li>FUT014</li><li>FUT016</li><li>FUT103</li>|
-|FUT005, FUT006,FUT007</li></ol>|CCT|<ol><li>FUT011</li><li>FUT017</li><li>FUT019</li></ol>|
+|FUT005<br/>FUT006<br/>FUT007</li></ol>|CCT|<ol><li>FUT011</li><li>FUT017</li><li>FUT019</li></ol>|
 |FUT098|RGB|Most RGB LED Strip Controlers|
+|FUT020|RGB|Some other RGB LED strip controllers|
 |FUT092|RGB/CCT|<ol><li>FUT012</li><li>FUT013</li><li>FUT014</li><li>FUT015</li><li>FUT103</li><li>FUT104</li><li>FUT105</li><li>Many RGB/CCT LED Strip Controllers</li></ol>|
 |FUT091|CCT v2|Most newer dual white bulbs and controllers|
 |FUT089|8-zone RGB/CCT|Most newer rgb + dual white bulbs and controllers|
