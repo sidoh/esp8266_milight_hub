@@ -763,15 +763,19 @@ components:
         mqtt_topic_pattern:
           type: string
           description: Topic pattern to listen on for commands.  More detail on the format in README.
+          example: milight/commands/:device_id/:device_type/:group_id
         mqtt_update_topic_pattern:
           type: string
           description: Topic pattern individual intercepted commands will be sent to.  More detail on the format in README.
+          example: milight/updates/:device_id/:device_type/:group_id
         mqtt_update_state_pattern:
           type: string
           description: Topic pattern device state will be sent to.  More detail on the format in README.
+          example: milight/state/:device_id/:device_type/:group_id
         mqtt_client_status_topic:
           type: string
           description: Topic client status will be sent to.
+          example: milight/status
         simple_mqtt_client_status:
           type: boolean
           description: If true, will use a simple enum flag (`connected` or `disconnected`) to indicate status.  If false, will send a rich JSON message including IP address, version, etc.
@@ -880,11 +884,16 @@ components:
             $ref: '#/components/schemas/DeviceId'
           description:
             "List of saved device IDs, stored as 3-long arrays.  Elements are: 1) remote ID, 2) remote type, 3) group ID"
+          example:
+            - [1234, 'rgb_cct', 1]
+            - [5678, 'fut089', 5]
         gateway_configs:
           type: array
           items:
             type: integer
           description: "List of UDP servers, stored as 3-long arrays.  Elements are 1) remote ID to bind to, 2) UDP port to listen on, 3) protocol version (5 or 6)"
+          example:
+            - [1234, 5555, 6]
         group_state_fields:
           type: array
           items:
@@ -892,6 +901,9 @@ components:
         group_id_aliases:
           type: object
           description: Keys are aliases, values are 3-long arrays with same schema as items in `device_ids`.
+          example:
+            alias1: [1234, 'rgb_cct', 1]
+            alias2: [1234, 'rgb_cct', 2]
 
     BooleanResponse:
       type: object
