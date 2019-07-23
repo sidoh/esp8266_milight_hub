@@ -96,7 +96,13 @@ class ApiClient
   end
 
   def state_path(params = {})
-    "/gateways/#{params[:id]}/#{params[:type]}/#{params[:group_id]}?blockOnQueue=true"
+    query = if params[:blockOnQueue].nil? || params[:blockOnQueue]
+      "?blockOnQueue=true"
+    else
+      ""
+    end
+
+    "/gateways/#{params[:id]}/#{params[:type]}/#{params[:group_id]}#{query}"
   end
 
   def delete_state(params = {})

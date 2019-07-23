@@ -25,8 +25,9 @@ Support has been added for the following [bulb types](http://futlight.com/produc
 Model #|Name|Compatible Bulbs
 -------|-----------|----------------
 |FUT096|RGB/W|<ol><li>FUT014</li><li>FUT016</li><li>FUT103</li>|
-|FUT005, FUT006,FUT007</li></ol>|CCT|<ol><li>FUT011</li><li>FUT017</li><li>FUT019</li></ol>|
+|FUT005<br/>FUT006<br/>FUT007</li></ol>|CCT|<ol><li>FUT011</li><li>FUT017</li><li>FUT019</li></ol>|
 |FUT098|RGB|Most RGB LED Strip Controlers|
+|FUT020|RGB|Some other RGB LED strip controllers|
 |FUT092|RGB/CCT|<ol><li>FUT012</li><li>FUT013</li><li>FUT014</li><li>FUT015</li><li>FUT103</li><li>FUT104</li><li>FUT105</li><li>Many RGB/CCT LED Strip Controllers</li></ol>|
 |FUT091|CCT v2|Most newer dual white bulbs and controllers|
 |FUT089|8-zone RGB/CCT|Most newer rgb + dual white bulbs and controllers|
@@ -105,7 +106,7 @@ Both mDNS and SSDP are supported.
 
 The HTTP endpoints (shown below) will be fully functional at this point. You should also be able to navigate to `http://<ip_of_esp>`, or `http://milight-hub.local` if your client supports mDNS. The UI should look like this:
 
-![Web UI](https://user-images.githubusercontent.com/589893/39412360-0d95ab2e-4bd0-11e8-915c-7fef7ee38761.png)
+![Web UI](https://user-images.githubusercontent.com/589893/61682228-a8151700-acc5-11e9-8b86-1e21efa6cdbe.png)
 
 
 If it does not work as expected see [Troubleshooting](https://github.com/sidoh/esp8266_milight_hub/wiki/Troubleshooting).
@@ -142,75 +143,13 @@ You can configure aliases or labels for a given _(Device Type, Device ID, Group 
 * **In the REST API**: standard CRUD verbs (`GET`, `PUT`, and `DELETE`) allow you to interact with aliases via the `/gateways/:device_alias` route.
 * **MQTT**: you can configure topics to listen for commands and publish updates/state using aliases rather than IDs.
 
-## REST endpoints
+## REST API
 
-1. `GET /`. Opens web UI.
-1. `GET /about`. Return information about current firmware version.
-1. `POST /system`. Post commands in the form `{"comamnd": <command>}`. Currently supports the commands: `restart`.
-1. `POST /firmware`. OTA firmware update.
-1. `GET /settings`. Gets current settings as JSON.
-1. `PUT /settings`. Patches settings (e.g., doesn't overwrite keys that aren't present). Accepts a JSON blob in the body.
-1. `GET /remote_configs`. Get a list of supported remote configs (aka `device_type`s).
-1. `GET /gateway_traffic(/:device_type)?`. Starts an HTTP long poll. Returns any Milight traffic it hears. Useful if you need to know what your Milight gateway/remote ID is. Since protocols for RGBW/CCT are different, specify one of `rgbw`, `cct`, or `rgb_cct` as `:device_type.  The path `/gateway_traffic` without a `:device_type` will sniff for all protocols simultaneously.
-1. `PUT /gateways/:device_id/:device_type/:group_id`. Controls or sends commands to `:group_id` from `:device_id`. Accepts a JSON blob. The schema is documented below in the _Bulb commands_ section.
-1. `GET /gateways/:device_id/:device_type/:group_id`. Returns a JSON blob describing the state of the the provided group.
-1. `DELETE /gateways/:device_id/:device_type/:group_id`. Deletes state associated with the provided group.
-1. `(GET|PUT|DELETE) /gateways/:device_alias`.  Same as the previous three routes except acting on aliases instead of IDs.  404 is returned if the alias does not exist.
-1. `POST /raw_commands/:device_type`. Sends a raw RF packet with radio configs associated with `:device_type`. Example body:
-    ```
-    {"packet": "01 02 03 04 05 06 07 08 09", "num_repeats": 10}
-    ```
+The REST API is specified using
 
-#### Bulb commands
+[openapi.yaml](openapi.yaml) contains the raw spec, created using [OpenAPI v3](https://swagger.io/docs/specification/about/).
 
-Route (5) supports these commands. Note that each bulb type has support for a different subset of these commands:
-
-1. `status`. Toggles on/off. Can be "on", "off", "true", or "false".
-1. `hue`. Sets color. Should be in the range `[0, 359]`.
-1. `saturation`. Controls saturation.
-1. `level`. Controls brightness. Should be in the range `[0, 100]`.
-1. `temperature`. Controls white temperature. Should be in the range `[0, 100]`.
-1. `mode`. Sets "disco mode" setting to the specified value. Note that not all bulbs that have modes support this command. Some will only allow you to cycle through next/previous modes using commands.
-1. `command`. Sends a command to the group. Can be one of:
-   * `set_white`. Turns off RGB and enters WW/CW mode.
-   * `pair`. Emulates the pairing process. Send this command right as you connect an unpaired bulb and it will pair with the device ID being used.
-   * `unpair`. Emulates the unpairing process. Send as you connect a paired bulb to have it disassociate with the device ID being used.
-   * `next_mode`. Cycles to the next "disco mode".
-   * `previous_mode`. Cycles to the previous disco mode.
-   * `mode_speed_up`.
-   * `mode_speed_down`.
-   * `level_down`. Turns down the brightness. Not all dimmable bulbs support this command.
-   * `level_up`. Turns down the brightness. Not all dimmable bulbs support this command.
-   * `temperature_down`. Turns down the white temperature. Not all bulbs with adjustable white temperature support this command.
-   * `temperature_up`. Turns up the white temperature. Not all bulbs with adjustable white temperature support this command.
-   * `night_mode`. Enable "night mode", which is minimum brightness and bulbs only responding to on/off commands.
-   * `toggle`. Toggle on/off state.
-1. `commands`. An array containing any number of the above commands (including repeats).
-
-The following redundant commands are supported for the sake of compatibility with HomeAssistant's [`mqtt`](https://home-assistant.io/components/light.mqtt/) light platform with the `json` schema:
-
-1. `color`. Hash containing RGB color. All keys for r, g, and b should be present. For example, `{"r":255,"g":200,"b":255}`.
-1. `color_temp`. Controls white temperature. Value is in [mireds](https://en.wikipedia.org/wiki/Mired). Milight bulbs are in the range 153-370 mireds (2700K-6500K).
-1. `brightness`. Same as `level` with a range of `[0,255]`.
-1. `state`. Same as `status`.
-
-If you'd like to control bulbs in all groups paired with a particular device ID, set `:group_id` to 0.
-
-#### Examples
-
-Turn on group 2 for device ID 0xCD86, set hue to 100, and brightness to 50%:
-
-```
-$ curl -X PUT -H 'Content-Type: application/json' -d '{"status":"on","hue":100,"level":50}' http://esp8266/gateways/0xCD86/rgbw/2
-true%
-```
-
-Set color to white (disable RGB):
-
-```
-$ curl -X PUT -H 'Content-Type: application/json' -d '{"command":"set_white"}' -X PUT http://esp8266/gateways/0xCD86/rgbw/2
-true%
-```
+[You can view generated documentation here.](https://petstore.swagger.io/?url=https://raw.githubusercontent.com/sidoh/esp8266_milight_hub/blob/master/openapi.yaml#/)
 
 ## MQTT
 
@@ -284,15 +223,7 @@ irb(main):007:0> puts client.get.inspect
 
 ##### Customize fields
 
-You can select which fields should be included in state updates by configuring the `group_state_fields` parameter.  Available fields should be mostly self explanatory, with the possible exceptions of:
-
-1. `state` / `status` - same value with different keys (useful if your platform expects one or the other).
-1. `brightness` / `level` - [0, 255] and [0, 100] scales of the same value.
-1. `kelvin / color_temp` - [0, 100] and [153, 370] scales for the same value.  The later's unit is mireds.
-1. `bulb_mode` - what mode the bulb is in: white, rgb, etc.
-1. `color` / `computed_color` - behaves the same when bulb is in rgb mode.  `computed_color` will send RGB = 255,255,255 when in white mode.  This is useful for HomeAssistant where it always expects the color to be set.
-1. `oh_color` - same as `color` with a format compatible with [OpenHAB's colorRGB channel type](https://www.openhab.org/addons/bindings/mqtt.generic/#channel-type-colorrgb-colorhsb).
-1. `device_id` / `device_type` / `group_id` - this information is in the MQTT topic or REST route, but can be included in the payload in the case that processing the topic or route is more difficult.
+You can select which fields should be included in state updates by configuring the `group_state_fields` parameter.  Available fields should be mostly self explanatory, but are all documented in the REST API spec under `GroupStateField`.
 
 #### Client Status
 

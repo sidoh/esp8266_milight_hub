@@ -15,6 +15,20 @@ RSpec.describe 'State' do
     @client.delete_state(@id_params)
   end
 
+  context 'blockOnQueue parameter' do
+    it 'should not receive state if we don\'t block on the packet queue' do
+      response = @client.patch_state({status: 'ON'}, @id_params.merge(blockOnQueue: false))
+
+      expect(response).to eq({'success' => true})
+    end
+
+    it 'should receive state if we do block on the packet queue' do
+      response = @client.patch_state({status: 'ON'}, @id_params.merge(blockOnQueue: true))
+
+      expect(response).to eq({'status' => 'ON'})
+    end
+  end
+
   context 'initial state' do
     it 'should assume white mode for device types that are white-only' do
       %w(cct fut091).each do |type|
