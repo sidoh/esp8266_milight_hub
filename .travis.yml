@@ -13,8 +13,10 @@ install:
 - pip install -U platformio
 - platformio lib install
 - cd web && npm install && cd ..
+- npm install -g swagger-cli
 script:
 - platformio run
+- swagger-cli validate ./openapi.yaml
 before_deploy:
   - ./.prepare_release
 deploy:
