@@ -15,8 +15,8 @@ install:
 - cd web && npm install && cd ..
 - npm install -g swagger-cli
 script:
-- platformio run
 - swagger-cli validate ./openapi.yaml
+- platformio run
 before_deploy:
   - ./.prepare_release
 deploy:
