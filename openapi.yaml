@@ -265,6 +265,38 @@ paths:
               schema:
                 $ref: '#/components/schemas/BooleanResponse'
 
+  /raw_commands/{remote-type}:
+    parameters:
+      - $ref: '#/components/parameters/RemoteType'
+    post:
+      tags:
+        - devices
+      summary: Send a raw packet
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                packet:
+                  type: string
+                  pattern: "([A-Fa-f0-9]{2}[ ])+"
+                  description: Raw packet to send
+                  example: '01 02 03 04 05 06 07 08 09'
+                num_repeats:
+                  type: integer
+                  minimum: 1
+                  description: Number of repeated packets to send
+                  example: 50
+      responses:
+        200:
+            description: success
+            content:
+              applicaiton/json:
+                schema:
+                  $ref: '#/components/schemas/BooleanResponse'
+
+
   /transitions:
     get:
       tags:
