@@ -411,7 +411,8 @@ components:
     GroupId:
       name: group-id
       in: path
-      description: Group ID.  Should be 0-8, depending on remote type.
+      description: >
+        Group ID.  Should be 0-8, depending on remote type.  Group 0 is a "wildcard" group.  All bulbs paired with the same device ID will respond to commands sent to Group 0.
       schema:
         type: integer
         minimum: 0
