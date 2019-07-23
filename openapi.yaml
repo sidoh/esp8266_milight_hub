@@ -688,6 +688,22 @@ components:
       - group_id
       - device_type
       - oh_color
+      description: >
+        Defines a field which is a part of state for a particular light device.  Most fields are self-explanatory, but documentation for each follows:
+
+        * `state` / `status` - same value with different keys (useful if your platform expects one or the other).
+
+        * `brightness` / `level` - [0, 255] and [0, 100] scales of the same value.
+
+        * `kelvin / color_temp` - [0, 100] and [153, 370] scales for the same value.  The later's unit is mireds.
+
+        * `bulb_mode` - what mode the bulb is in: white, rgb, etc.
+
+        * `color` / `computed_color` - behaves the same when bulb is in rgb mode.  `computed_color` will send RGB = 255,255,255 when in white mode.  This is useful for HomeAssistant where it always expects the color to be set.
+
+        * `oh_color` - same as `color` with a format compatible with [OpenHAB's colorRGB channel type](https://www.openhab.org/addons/bindings/mqtt.generic/#channel-type-colorrgb-colorhsb).
+
+        * `device_id` / `device_type` / `group_id` - this information is in the MQTT topic or REST route, but can be included in the payload in the case that processing the topic or route is more difficult.
     DeviceId:
       type: array
       items: {}
