@@ -24,6 +24,8 @@ public:
     Builder& setPeriod(size_t period);
     Builder& setNumPeriods(size_t numPeriods);
 
+    void setDurationRaw(size_t duration);
+
     bool isSetDuration() const;
     bool isSetPeriod() const;
     bool isSetNumPeriods() const;
@@ -32,12 +34,15 @@ public:
     size_t getOrComputeDuration() const;
     size_t getOrComputeNumPeriods() const;
 
+    size_t getDuration() const;
+    size_t getPeriod() const;
+    size_t getNumPeriods() const;
+
     std::shared_ptr<Transition> build();
 
-  protected:
-    size_t id;
+    const size_t id;
     const BulbId& bulbId;
-    TransitionFn callback;
+    const TransitionFn callback;
 
   private:
     size_t duration;
@@ -56,6 +61,7 @@ public:
 
   const size_t id;
   const BulbId bulbId;
+  const TransitionFn callback;
 
   Transition(
     size_t id,
@@ -67,15 +73,14 @@ public:
   void tick();
   virtual bool isFinished() = 0;
   void serialize(JsonObject& doc);
+  virtual void step() = 0;
+  virtual void childSerialize(JsonObject& doc) = 0;
 
   static size_t calculatePeriod(int16_t distance, size_t stepSize, size_t duration);
 
 protected:
   const size_t period;
-  const TransitionFn callback;
   unsigned long lastSent;
 
-  virtual void step() = 0;
-  virtual void childSerialize(JsonObject& doc) = 0;
   static void stepValue(int16_t& current, int16_t end, int16_t stepSize);
 };

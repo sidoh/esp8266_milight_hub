@@ -1,7 +1,9 @@
 #include <Transition.h>
 #include <FieldTransition.h>
 #include <ColorTransition.h>
+#include <ChangeFieldOnFinishTransition.h>
 #include <GroupStateField.h>
+#include <MiLightStatus.h>
 
 #include <TransitionController.h>
 #include <LinkedList.h>
@@ -41,6 +43,30 @@ std::shared_ptr<Transition::Builder> TransitionController::buildFieldTransition(
     start,
     end
   );
+}
+
+std::shared_ptr<Transition::Builder> TransitionController::buildStatusTransition(const BulbId& bulbId, MiLightStatus status, uint8_t startLevel) {
+  uint16_t value = static_cast<uint16_t>(status);
+  uint16_t startValue = status == ON ? 0 : 100;
+  uint16_t endValue = status == ON ? 100 : 0;
+
+  std::shared_ptr<Transition::Builder> transition;
+
+  if (status == ON) {
+    // Make sure bulb is on before transitioning brightness
+    callback(bulbId, GroupStateField::STATUS, ON);
+
+    transition = buildFieldTransition(bulbId, GroupStateField::LEVEL, startLevel, 100);
+  } else {
+    transition = std::make_shared<ChangeFieldOnFinishTransition::Builder>(
+      currentId++,
+      GroupStateField::STATUS,
+      OFF,
+      buildFieldTransition(bulbId, GroupStateField::LEVEL, startLevel, 0)
+    );
+  }
+
+  return transition;
 }
 
 void TransitionController::addTransition(std::shared_ptr<Transition> transition) {

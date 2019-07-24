@@ -16,6 +16,10 @@ Transition::Builder& Transition::Builder::setDuration(float duration) {
   return *this;
 }
 
+void Transition::Builder::setDurationRaw(size_t duration) {
+  this->duration = duration;
+}
+
 Transition::Builder& Transition::Builder::setPeriod(size_t period) {
   this->period = period;
   return *this;
@@ -24,6 +28,18 @@ Transition::Builder& Transition::Builder::setPeriod(size_t period) {
 Transition::Builder& Transition::Builder::setNumPeriods(size_t numPeriods) {
   this->numPeriods = numPeriods;
   return *this;
+}
+
+size_t Transition::Builder::getNumPeriods() const {
+  return this->numPeriods;
+}
+
+size_t Transition::Builder::getDuration() const {
+  return this->duration;
+}
+
+size_t Transition::Builder::getPeriod() const {
+  return this->period;
 }
 
 bool Transition::Builder::isSetDuration() const {
@@ -103,8 +119,8 @@ Transition::Transition(
   TransitionFn callback
 ) : id(id)
   , bulbId(bulbId)
-  , period(period)
   , callback(callback)
+  , period(period)
   , lastSent(0)
 { }
 

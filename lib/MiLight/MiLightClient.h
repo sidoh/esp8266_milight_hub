@@ -110,7 +110,8 @@ public:
   // Clear the repeats override so that the default is used
   void clearRepeatsOverride();
 
-  uint8_t parseStatus(JsonObject object);
+  uint8_t parseStatus(JsonVariant object);
+  JsonVariant extractStatus(JsonObject object);
 
 protected:
   struct cmp_str {

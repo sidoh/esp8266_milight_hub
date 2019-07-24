@@ -233,6 +233,104 @@ RSpec.describe 'Transitions' do
       expect(id1_updates.length).to eq(@num_transition_updates)
       expect(id2_updates.length).to eq(@num_transition_updates)
     end
+
+    it 'should assume initial state if one is not provided' do
+      @client.patch_state({status: 'ON', level: 0}, @id_params)
+
+      seen_updates = []
+
+      @mqtt_client.on_update(@id_params) do |id, message|
+        seen_updates << message
+        message['brightness'] == 255
+      end
+
+      @client.schedule_transition(@id_params, @transition_params.reject { |x| x == :start_value }.merge(duration: 2, period: 500))
+
+      @mqtt_client.wait_for_listeners
+
+      expect(seen_updates.map { |x| x['brightness'] }).to eq([0, 64, 128, 191, 255])
+    end
+  end
+
+  context 'status transition' do
+    it 'should transition from off -> on' do
+      seen_updates = {}
+      @client.patch_state({status: 'OFF'}, @id_params)
+
+      @mqtt_client.on_update(@id_params) do |id, message|
+        message.each do |k, v|
+          seen_updates[k] ||= []
+          seen_updates[k] << v
+        end
+        seen_updates['brightness'] && seen_updates['brightness'].last == 255
+      end
+
+      @client.patch_state({status: 'ON', transition: 1.0}, @id_params)
+
+      @mqtt_client.wait_for_listeners
+
+      expect(seen_updates['state']).to eq(['ON'])
+      expect(seen_updates['brightness']).to eq([0, 64, 128, 191, 255])
+    end
+
+    it 'should transition from on -> off' do
+      seen_updates = {}
+      @client.patch_state({status: 'ON', level: 100}, @id_params)
+
+      @mqtt_client.on_update(@id_params) do |id, message|
+        message.each do |k, v|
+          seen_updates[k] ||= []
+          seen_updates[k] << v
+        end
+        seen_updates['state'] == ['OFF']
+      end
+
+      @client.patch_state({status: 'OFF', transition: 1.0}, @id_params)
+
+      @mqtt_client.wait_for_listeners
+
+      expect(seen_updates['state']).to eq(['OFF'])
+      expect(seen_updates['brightness']).to eq([255, 191, 128, 64, 0])
+    end
+
+    it 'should transition from off -> on with known last brightness' do
+      seen_updates = {}
+      @client.patch_state({status: 'ON', brightness: 99}, @id_params)
+      @client.patch_state({status: 'OFF'}, @id_params)
+
+      @mqtt_client.on_update(@id_params) do |id, message|
+        message.each do |k, v|
+          seen_updates[k] ||= []
+          seen_updates[k] << v
+        end
+        seen_updates['brightness'] && seen_updates['brightness'].last == 255
+      end
+
+      @client.patch_state({status: 'ON', transition: 1.0}, @id_params)
+
+      @mqtt_client.wait_for_listeners
+
+      expect(seen_updates['brightness']).to eq([99, 140, 181, 222, 255])
+    end
+
+    it 'should transition from on -> off with known last brightness' do
+      seen_updates = {}
+      @client.patch_state({status: 'ON', brightness: 99}, @id_params)
+
+      @mqtt_client.on_update(@id_params) do |id, message|
+        message.each do |k, v|
+          seen_updates[k] ||= []
+          seen_updates[k] << v
+        end
+        seen_updates['state'] == ['OFF']
+      end
+
+      @client.patch_state({status: 'OFF', transition: 1.0}, @id_params)
+
+      @mqtt_client.wait_for_listeners
+
+      expect(seen_updates['brightness']).to eq([99, 74, 48, 23, 0])
+    end
   end
 
   context 'field support' do

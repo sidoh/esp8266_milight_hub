@@ -300,7 +300,8 @@ void MiLightClient::update(JsonObject request) {
     this->updateBeginHandler();
   }
 
-  const uint8_t parsedStatus = this->parseStatus(request);
+  const JsonVariant status = this->extractStatus(request);
+  const uint8_t parsedStatus = this->parseStatus(status);
   const JsonVariant jsonTransition = request[RequestKeys::TRANSITION];
   float transition = 0;
 
@@ -316,7 +317,11 @@ void MiLightClient::update(JsonObject request) {
 
   // Always turn on first
   if (parsedStatus == ON) {
-    this->updateStatus(ON);
+    if (transition == 0) {
+      this->updateStatus(ON);
+    } else {
+      handleTransition(GroupStateField::STATUS, status, transition);
+    }
   }
 
   for (const char* fieldName : FIELD_ORDERINGS) {
@@ -345,7 +350,11 @@ void MiLightClient::update(JsonObject request) {
 
   // Always turn off last
   if (parsedStatus == OFF) {
-    this->updateStatus(OFF);
+    if (transition == 0) {
+      this->updateStatus(OFF);
+    } else {
+      handleTransition(GroupStateField::STATUS, status, transition);
+    }
   }
 
   if (this->updateEndHandler) {
@@ -429,6 +438,19 @@ void MiLightClient::handleTransition(GroupStateField field, JsonVariant value, f
       currentColor,
       endColor
     );
+  } else if (field == GroupStateField::STATUS || field == GroupStateField::STATE) {
+    uint8_t startLevel = 0;
+    MiLightStatus status = parseMilightStatus(value);
+
+    if (currentState->isSetBrightness()) {
+      startLevel = currentState->getBrightness();
+    } else if (status == ON) {
+      startLevel = 0;
+    } else {
+      startLevel = 100;
+    }
+
+    transitionBuilder = transitions.buildStatusTransition(bulbId, parseMilightStatus(value), startLevel);
   } else {
     uint16_t currentValue = currentState->getParsedFieldValue(field);
     uint16_t endValue = value;
@@ -452,13 +474,16 @@ void MiLightClient::handleTransition(GroupStateField field, JsonVariant value, f
 
 bool MiLightClient::handleTransition(JsonObject args, JsonDocument& responseObj) {
   if (! args.containsKey(FS(TransitionParams::FIELD))
-    || ! args.containsKey(FS(TransitionParams::START_VALUE))
     || ! args.containsKey(FS(TransitionParams::END_VALUE))) {
     responseObj[F("error")] = F("Ignoring transition missing required arguments");
     return false;
   }
 
+  const BulbId& bulbId = currentRemote->packetFormatter->currentBulbId();
   const char* fieldName = args[FS(TransitionParams::FIELD)];
+  const GroupState* groupState = stateStore->get(bulbId);
+  JsonVariant startValue = args[FS(TransitionParams::START_VALUE)];
+  JsonVariant endValue = args[FS(TransitionParams::END_VALUE)];
   GroupStateField field = GroupStateFieldHelpers::getFieldByName(fieldName);
   std::shared_ptr<Transition::Builder> transitionBuilder = nullptr;
 
@@ -477,11 +502,14 @@ bool MiLightClient::handleTransition(JsonObject args, JsonDocument& responseObj)
     case GroupStateField::LEVEL:
     case GroupStateField::KELVIN:
     case GroupStateField::COLOR_TEMP:
+
       transitionBuilder = transitions.buildFieldTransition(
-        currentRemote->packetFormatter->currentBulbId(),
+        bulbId,
         field,
-        args[FS(TransitionParams::START_VALUE)],
-        args[FS(TransitionParams::END_VALUE)]
+        startValue.isUndefined()
+          ? groupState->getParsedFieldValue(field)
+          : startValue.as<uint16_t>(),
+        endValue
       );
       break;
 
@@ -491,10 +519,12 @@ bool MiLightClient::handleTransition(JsonObject args, JsonDocument& responseObj)
 
   // Color can be decomposed into hue/saturation and these can be transitioned separately
   if (field == GroupStateField::COLOR) {
-    ParsedColor startColor = ParsedColor::fromJson(args[FS(TransitionParams::START_VALUE)]);
-    ParsedColor endColor = ParsedColor::fromJson(args[FS(TransitionParams::END_VALUE)]);
+    ParsedColor _startValue = startValue.isUndefined()
+      ? groupState->getColor()
+      : ParsedColor::fromJson(startValue);
+    ParsedColor endColor = ParsedColor::fromJson(endValue);
 
-    if (! startColor.success) {
+    if (! _startValue.success) {
       responseObj[F("error")] = F("Transition - error parsing start color");
       return false;
     }
@@ -504,10 +534,25 @@ bool MiLightClient::handleTransition(JsonObject args, JsonDocument& responseObj)
     }
 
     transitionBuilder = transitions.buildColorTransition(
-      currentRemote->packetFormatter->currentBulbId(),
-      startColor,
+      bulbId,
+      _startValue,
       endColor
     );
+  }
+
+  // Status is handled a little differently
+  if (field == GroupStateField::STATUS || field == GroupStateField::STATE) {
+    MiLightStatus toStatus = parseMilightStatus(endValue);
+    uint8_t startLevel;
+    if (groupState->isSetBrightness()) {
+      startLevel = groupState->getBrightness();
+    } else if (toStatus == ON) {
+      startLevel = 0;
+    } else {
+      startLevel = 100;
+    }
+
+    transitionBuilder = transitions.buildStatusTransition(bulbId, toStatus, startLevel);
   }
 
   if (transitionBuilder == nullptr) {
@@ -541,23 +586,22 @@ void MiLightClient::handleEffect(const String& effect) {
   }
 }
 
-uint8_t MiLightClient::parseStatus(JsonObject object) {
+JsonVariant MiLightClient::extractStatus(JsonObject object) {
   JsonVariant status;
 
-  if (object.containsKey(GroupStateFieldNames::STATUS)) {
-    status = object[GroupStateFieldNames::STATUS];
-  } else if (object.containsKey(GroupStateFieldNames::STATE)) {
-    status = object[GroupStateFieldNames::STATE];
+  if (object.containsKey(FS(GroupStateFieldNames::STATUS))) {
+    return object[FS(GroupStateFieldNames::STATUS)];
   } else {
+    return object[FS(GroupStateFieldNames::STATE)];
+  }
+}
+
+uint8_t MiLightClient::parseStatus(JsonVariant val) {
+  if (val.isUndefined()) {
     return 255;
   }
 
-  if (status.is<bool>()) {
-    return status.as<bool>() ? ON : OFF;
-  } else {
-    String strStatus(status.as<const char*>());
-    return (strStatus.equalsIgnoreCase("on") || strStatus.equalsIgnoreCase("true")) ? ON : OFF;
-  }
+  return parseMilightStatus(val);
 }
 
 void MiLightClient::setRepeatsOverride(size_t repeats) {

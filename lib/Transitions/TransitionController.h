@@ -16,6 +16,7 @@ public:
 
   std::shared_ptr<Transition::Builder> buildColorTransition(const BulbId& bulbId, const ParsedColor& start, const ParsedColor& end);
   std::shared_ptr<Transition::Builder> buildFieldTransition(const BulbId& bulbId, GroupStateField field, uint16_t start, uint16_t end);
+  std::shared_ptr<Transition::Builder> buildStatusTransition(const BulbId& bulbId, MiLightStatus toStatus, uint8_t startLevel);
 
   void addTransition(std::shared_ptr<Transition> transition);
   void clear();
