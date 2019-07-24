@@ -35,7 +35,7 @@ paths:
     get:
       tags:
         - system
-      description: Returns list of supported remote types
+      summary: Returns list of supported remote types
       responses:
         200:
           description: success
@@ -89,7 +89,7 @@ paths:
     get:
       tags:
       - settings
-      description: Get existing settings
+      summary: Get existing settings
       responses:
         200:
           description: success
@@ -100,7 +100,7 @@ paths:
     put:
       tags:
       - settings
-      description: Patch existing settings with provided keys
+      summary: Patch existing settings with provided keys
       requestBody:
         content:
           application/json:
@@ -116,7 +116,7 @@ paths:
     post:
       tags:
       - settings
-      description: Overwrite existing settings with the provided file
+      summary: Overwrite existing settings with the provided file
       requestBody:
         content:
           application/json:
@@ -159,7 +159,7 @@ paths:
     get:
       tags:
         - devices
-      description:
+      summary:
         Get device state
       parameters:
         - $ref: '#/components/parameters/BlockOnQueue'
@@ -173,7 +173,7 @@ paths:
     put:
       tags:
         - devices
-      description:
+      summary:
         Patch device state with the specified keys
       parameters:
         - $ref: '#/components/parameters/BlockOnQueue'
@@ -200,7 +200,7 @@ paths:
     delete:
       tags:
         - devices
-      description:
+      summary:
         Delete kept state for given device
       responses:
         200:
@@ -215,7 +215,7 @@ paths:
     get:
       tags:
         - devices
-      description: Get state for the provided alias
+      summary: Get state for the provided alias
       responses:
         404:
           description: provided device alias does not exist
@@ -228,8 +228,7 @@ paths:
     put:
       tags:
         - devices
-      description:
-        Patch device state with the specified keys
+      summary: Patch device state with the specified keys
       parameters:
         - $ref: '#/components/parameters/BlockOnQueue'
       requestBody:
@@ -255,8 +254,7 @@ paths:
     delete:
       tags:
         - devices
-      description:
-        Delete kept state for given device
+      summary: Delete kept state for given device
       responses:
         200:
           description: success
@@ -490,7 +488,13 @@ components:
         - kelvin
         - color_temp
         - color
+        - status
       example: brightness
+      description: >
+        If transitioning `status`:
+
+        * If transitioning to `OFF`, will fade to 0 brightness and then turn off.
+        * If transitioning to `ON`, will turn on, set brightness to 0, and fade to brightness 100.
     TransitionValue:
       oneOf:
         - type: integer
@@ -640,6 +644,11 @@ components:
           enum:
             - night_mode
             - white_mode
+        transition:
+          type: number
+          description: >
+            Enables a transition from current state to the provided state.
+          example: 2.0
 
     RemoteType:
       type: string
