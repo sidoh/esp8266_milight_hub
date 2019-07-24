@@ -30,6 +30,12 @@ const char* MiLightClient::FIELD_ORDERINGS[] = {
 };
 
 const std::map<const char*, std::function<void(MiLightClient*, JsonVariant)>, MiLightClient::cmp_str> MiLightClient::FIELD_SETTERS = {
+  {
+    GroupStateFieldNames::STATUS,
+    [](MiLightClient* client, JsonVariant val) {
+      client->updateStatus(parseMilightStatus(val));
+    }
+  },
   {GroupStateFieldNames::LEVEL, &MiLightClient::updateBrightness},
   {
     GroupStateFieldNames::BRIGHTNESS,
