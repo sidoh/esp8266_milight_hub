@@ -101,13 +101,15 @@ std::shared_ptr<Transition> Transition::Builder::build() {
   size_t numSet = numSetParams();
 
   if (numSet == 0) {
+    setDuration(DEFAULT_DURATION);
     setPeriod(DEFAULT_PERIOD);
-    setNumPeriods(DEFAULT_NUM_PERIODS);
   } else if (numSet == 1) {
-    if (isSetDuration() || isSetNumPeriods()) {
+    // If duration is unbound, bind it
+    if (! isSetDuration()) {
+      setDurationRaw(DEFAULT_DURATION);
+    // Otherwise, bind the period
+    } else {
       setPeriod(DEFAULT_PERIOD);
-    } else if (isSetPeriod()) {
-      setNumPeriods(DEFAULT_NUM_PERIODS);
     }
   }
 
