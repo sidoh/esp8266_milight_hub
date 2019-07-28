@@ -68,7 +68,8 @@ size_t Transition::Builder::getOrComputePeriod() const {
   if (period > 0) {
     return period;
   } else if (duration > 0 && numPeriods > 0) {
-    return floor(duration / static_cast<float>(numPeriods));
+    size_t computed = floor(duration / static_cast<float>(numPeriods));
+    return max(MIN_PERIOD, computed);
   } else {
     return 0;
   }
@@ -88,7 +89,8 @@ size_t Transition::Builder::getOrComputeNumPeriods() const {
   if (numPeriods > 0) {
     return numPeriods;
   } else if (period > 0 && duration > 0) {
-    return ceil(duration / static_cast<float>(period));
+    size_t _numPeriods = ceil(duration / static_cast<float>(period));
+    return max(static_cast<size_t>(1), _numPeriods);
   } else {
     return 0;
   }
