@@ -55,9 +55,12 @@ public:
 
   // Default time to wait between steps.  Do this rather than having a fixed step size because it's
   // more capable of adapting to different situations.
-  static const size_t DEFAULT_PERIOD = 300;
-  static const size_t DEFAULT_NUM_PERIODS = 20; // works out to a duration of 6s
-  static const size_t DEFAULT_DURATION = 6000;
+  static const size_t DEFAULT_PERIOD = 450;
+  static const size_t DEFAULT_NUM_PERIODS = 10;
+  static const size_t DEFAULT_DURATION = DEFAULT_PERIOD*DEFAULT_NUM_PERIODS;
+
+  // If period goes lower than this, throttle other parameters up to adjust.
+  static const size_t MIN_PERIOD = 150;
 
   const size_t id;
   const BulbId bulbId;
