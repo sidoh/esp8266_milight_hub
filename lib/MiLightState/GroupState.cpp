@@ -815,17 +815,11 @@ void GroupState::applyColor(JsonObject state, uint8_t r, uint8_t g, uint8_t b) c
 }
 
 void GroupState::applyOhColor(JsonObject state) const {
-  uint8_t rgb[3];
-  RGBConverter converter;
-  converter.hsvToRgb(
-    getHue()/360.0,
-    // Default to fully saturated
-    (isSetSaturation() ? getSaturation() : 100)/100.0,
-    1,
-    rgb
-  );
+  ParsedColor color = getColor();
+
   char ohColorStr[13];
-  sprintf(ohColorStr, "%d,%d,%d", rgb[0], rgb[1], rgb[2]);
+  sprintf(ohColorStr, "%d,%d,%d", color.r, color.g, color.b);
+
   state[GroupStateFieldNames::COLOR] = ohColorStr;
 }
 
