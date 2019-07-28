@@ -13,6 +13,7 @@ FieldTransition::Builder::Builder(size_t id, const BulbId& bulbId, TransitionFn 
 std::shared_ptr<Transition> FieldTransition::Builder::_build() const {
   size_t numPeriods = getOrComputeNumPeriods();
   size_t period = getOrComputePeriod();
+
   int16_t distance = end - start;
   int16_t stepSize = ceil(std::abs(distance / static_cast<float>(numPeriods)));
 

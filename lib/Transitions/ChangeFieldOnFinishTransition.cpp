@@ -14,9 +14,9 @@ ChangeFieldOnFinishTransition::Builder::Builder(
 { }
 
 std::shared_ptr<Transition> ChangeFieldOnFinishTransition::Builder::_build() const {
-  delegate->setPeriod(this->getPeriod());
-  delegate->setNumPeriods(this->getNumPeriods());
-  delegate->setDurationRaw(this->getDuration());
+  delegate->setDurationRaw(this->getOrComputeDuration());
+  delegate->setNumPeriods(this->getOrComputeNumPeriods());
+  delegate->setPeriod(this->getOrComputePeriod());
 
   return std::make_shared<ChangeFieldOnFinishTransition>(
     delegate->build(),
