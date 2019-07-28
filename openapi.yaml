@@ -335,7 +335,7 @@ paths:
     parameters:
       - name: id
         in: path
-        description: ID of transition
+        description: ID of transition.  This will be an auto-incrementing number reset after a restart.
         schema:
           type: integer
         required: true
@@ -465,17 +465,29 @@ components:
         Commands that affect a given group.  Descriptiosn follow:
 
         * `pair`. Emulates the pairing process. Send this command right as you connect an unpaired bulb and it will pair with the device ID being used.
+
         * `unpair`. Emulates the unpairing process. Send as you connect a paired bulb to have it disassociate with the device ID being used.
+
         * `set_white`. Turns off RGB and enters WW/CW mode.
+
         * `night_mode`.  Most devices support a "night mode," which has LEDs turned to a very dim setting -- lower than brightness 0.
+
         * `level_up`. Turns down the brightness. Not all dimmable bulbs support this command.
+
         * `level_down`. Turns down the brightness. Not all dimmable bulbs support this command.
+
         * `temperature_up`. Turns up the white temperature. Not all bulbs with adjustable white temperature support this command.
+
         * `temperature_down`. Turns down the white temperature. Not all bulbs with adjustable white temperature support this command.
+
         * `next_mode`. Cycles to the next "disco mode".
+
         * `previous_mode`. Cycles to the previous disco mode.
+
         * `mode_speed_up`. Turn transition speed for current mode up.
+
         * `mode_speed_down`. Turn transition speed for current mode down.
+
         * `toggle`. Toggle on/off state.
 
     TransitionField:
@@ -494,6 +506,7 @@ components:
         If transitioning `status`:
 
         * If transitioning to `OFF`, will fade to 0 brightness and then turn off.
+
         * If transitioning to `ON`, will turn on, set brightness to 0, and fade to brightness 100.
     TransitionValue:
       oneOf:
