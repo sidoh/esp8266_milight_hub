@@ -38,10 +38,10 @@
                 var list = $('#version-list');
                 var html = '<thead><th>Version</th><th></th><th></th></thead><tbody>';
 
-                html += generateDocsRow('master');
+                html += generateDocsRow('latest');
 
                 data.forEach(function(x) {
-                  if (x != 'master') {
+                  if (x != 'latest') {
                     html += generateDocsRow(x);
                   }
                 });
