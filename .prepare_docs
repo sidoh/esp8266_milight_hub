@@ -21,10 +21,10 @@ prepare_docs_log() {
 }
 
 # Only run for tagged commits
-# if [ -z "$(git tag -l --points-at HEAD)" ]; then
-  #prepare_docs_log "Skipping non-tagged commit."
-  #exit 0
-# fi
+if [ -z "$(git tag -l --points-at HEAD)" ]; then
+  prepare_docs_log "Skipping non-tagged commit."
+  exit 0
+fi
 
 DOCS_DIR="./docs"
 DIST_DIR="./dist/docs"
