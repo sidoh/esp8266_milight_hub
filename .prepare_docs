@@ -25,7 +25,7 @@ branch_docs_dir="${BRANCHES_DIR}/${git_ref_version}"
 redoc-cli bundle ${API_SPEC_FILE} -o ${redoc_bundle_file}
 
 # Check out current stuff from gh-pages (we'll append to it)
-git fetch
+git fetch origin 'refs/heads/gh-pages:refs/heads/gh-pages'
 git checkout origin/gh-pages -- docs
 
 # Create the docs bundle for our ref.  This will be the redoc bundle + a
