@@ -25,7 +25,8 @@ branch_docs_dir="${BRANCHES_DIR}/${git_ref_version}"
 redoc-cli bundle ${API_SPEC_FILE} -o ${redoc_bundle_file}
 
 # Check out current stuff from gh-pages (we'll append to it)
-git checkout gh-pages -- docs
+git fetch
+git checkout origin/gh-pages -- docs
 
 # Create the docs bundle for our ref.  This will be the redoc bundle + a
 # snapshot of the OpenAPI spec
