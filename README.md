@@ -149,7 +149,9 @@ The REST API is specified using
 
 [openapi.yaml](openapi.yaml) contains the raw spec, created using [OpenAPI v3](https://swagger.io/docs/specification/about/).
 
-[You can view generated documentation here.](https://petstore.swagger.io/?url=https://raw.githubusercontent.com/sidoh/esp8266_milight_hub/blob/master/openapi.yaml#/)
+[You can view generated documentation for the master branch here.](https://sidoh.github.io/esp8266_milight_hub/master)
+
+[Docs for other branches can be found here](https://sidoh.github.io/esp8266_milight_hub)
 
 ## MQTT
 
