@@ -33,7 +33,7 @@ deploy:
       tags: true
   - provider: pages
     skip_cleanup: true
-    local_dir: docs
+    local_dir: dist/docs
     github_token: $GITHUB_TOKEN
     keep_history: true
     on:
