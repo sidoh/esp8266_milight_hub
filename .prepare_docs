@@ -36,7 +36,7 @@ git_ref_version=$(git describe --always)
 branch_docs_dir="${BRANCHES_DIR}/${git_ref_version}"
 
 # Build Redoc bundle (a single HTML file)
-redoc-cli bundle ${API_SPEC_FILE} -o ${redoc_bundle_file}
+redoc-cli bundle ${API_SPEC_FILE} -o ${redoc_bundle_file} --title 'Milight Hub API Documentation'
 
 # Check out current stuff from gh-pages (we'll append to it)
 git fetch origin 'refs/heads/gh-pages:refs/heads/gh-pages'
