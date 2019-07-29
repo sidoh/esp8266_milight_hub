@@ -15,7 +15,7 @@ install:
 - cd web && npm install && cd ..
 - npm install -g swagger-cli redoc-cli
 script:
-- swagger-cli validate ./openapi.yaml
+- swagger-cli validate ./docs/openapi.yaml
 - platformio run
 before_deploy:
   - ./.prepare_release
