@@ -13,7 +13,7 @@ install:
 - pip install -U platformio
 - platformio lib install
 - cd web && npm install && cd ..
-- npm install -g swagger-cli
+- npm install -g swagger-cli redoc-cli
 script:
 - swagger-cli validate ./openapi.yaml
 - platformio run
