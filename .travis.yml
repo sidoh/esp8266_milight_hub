@@ -38,4 +38,4 @@ deploy:
     keep_history: true
     on:
       repo: sidoh/esp8266_milight_hub
-      #tags: true
+      tags: true
