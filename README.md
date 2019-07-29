@@ -149,7 +149,7 @@ The REST API is specified using
 
 [openapi.yaml](openapi.yaml) contains the raw spec, created using [OpenAPI v3](https://swagger.io/docs/specification/about/).
 
-[You can view generated documentation for the master branch here.](https://sidoh.github.io/esp8266_milight_hub/master)
+[You can view generated documentation for the master branch here.](https://sidoh.github.io/esp8266_milight_hub/branches/latest)
 
 [Docs for other branches can be found here](https://sidoh.github.io/esp8266_milight_hub)
 
