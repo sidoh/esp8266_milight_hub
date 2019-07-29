@@ -1,5 +1,19 @@
 #!/usr/bin/env bash
 
+# This script sets up API documentation bundles for deployment to Github Pages.
+# It expects the following structure:
+#
+# In development branches:
+#
+#   * ./docs/openapi.yaml - OpenAPI spec in
+#   * ./docs/gh-pages     - Any assets that should be copied to gh-pages root
+#
+# In Github Pages, it will generate:
+#
+#   * ./                      - Files from ./docs/gh-pages will be copied
+#   * ./branches/<branch>/... - Deployment bundles including an index.html
+#                               and a snapshot of the Open API spec.
+
 set -eo pipefail
 
 prepare_docs_log() {
@@ -7,10 +21,10 @@ prepare_docs_log() {
 }
 
 # Only run for tagged commits
-if [ -z "$(git tag -l --points-at HEAD)" ]; then
+# if [ -z "$(git tag -l --points-at HEAD)" ]; then
   #prepare_docs_log "Skipping non-tagged commit."
   #exit 0
-fi
+# fi
 
 DOCS_DIR="./docs"
 DIST_DIR="./dist/docs"
@@ -26,7 +40,15 @@ redoc-cli bundle ${API_SPEC_FILE} -o ${redoc_bundle_file}
 
 # Check out current stuff from gh-pages (we'll append to it)
 git fetch origin 'refs/heads/gh-pages:refs/heads/gh-pages'
-git checkout gh-pages -- docs
+git checkout gh-pages -- branches || prepare_docs_log "Failed to checkout branches from gh-pages, skipping..."
+
+if [ -e "./branches" ]; then
+  mv "./branches" "${BRANCHES_DIR}"
+else
+  mkdir -p "${BRANCHES_DIR}"
+fi
+
+cp -r ${DOCS_DIR}/gh-pages/* "${DIST_DIR}"
 
 # Create the docs bundle for our ref.  This will be the redoc bundle + a
 # snapshot of the OpenAPI spec
