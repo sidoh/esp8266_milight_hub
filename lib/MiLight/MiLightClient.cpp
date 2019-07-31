@@ -20,6 +20,7 @@ const char* MiLightClient::FIELD_ORDERINGS[] = {
   GroupStateFieldNames::TEMPERATURE,
   GroupStateFieldNames::COLOR_TEMP,
   GroupStateFieldNames::MODE,
+  GroupStateFieldNames::EFFECT,
   GroupStateFieldNames::COLOR,
   // Level/Brightness must be processed last because they're specific to a particular bulb mode.
   // So make sure bulb mode is set before applying level/brightness.
