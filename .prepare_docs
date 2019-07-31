@@ -42,10 +42,11 @@ redoc-cli bundle ${API_SPEC_FILE} -o ${redoc_bundle_file} --title 'Milight Hub A
 git fetch origin 'refs/heads/gh-pages:refs/heads/gh-pages'
 git checkout gh-pages -- branches || prepare_docs_log "Failed to checkout branches from gh-pages, skipping..."
 
-mkdir -p "${BRANCHES_DIR}"
-
 if [ -e "./branches" ]; then
-  mv ./branches/* "${BRANCHES_DIR}"
+  mkdir -p "${DIST_DIR}"
+  mv "./branches" "${BRANCHES_DIR}"
+else
+  mkdir -p "${BRANCHES_DIR}"
 fi
 
 if [ -e "${DOCS_DIR}/gh-pages" ]; then
