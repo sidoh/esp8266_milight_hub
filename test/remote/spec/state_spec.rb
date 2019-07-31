@@ -374,6 +374,14 @@ RSpec.describe 'State' do
       # Should retain previous brightness
       expect(result['level']).to eq(50)
     end
+
+    it 'should support the mode and effect fields' do
+      state = @client.patch_state({status: 'ON', mode: 0}, @id_params)
+      expect(state['effect']).to eq("0")
+
+      state = @client.patch_state({effect: 1}, @id_params)
+      expect(state['effect']).to eq("1")
+    end
   end
 
   context 'increment/decrement commands' do
