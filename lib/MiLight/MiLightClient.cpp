@@ -318,7 +318,13 @@ void MiLightClient::update(JsonObject request) {
 
   // Always turn on first
   if (parsedStatus == ON) {
-    if (transition == 0) {
+    if (
+         transition == 0
+      // Do not generate a transition if a brightness field is also set, since that will also
+      // generate a transition.
+      || request.containsKey(GroupStateFieldNames::BRIGHTNESS)
+      || request.containsKey(GroupStateFieldNames::LEVEL)
+    ) {
       this->updateStatus(ON);
     } else {
       handleTransition(GroupStateField::STATUS, status, transition);
