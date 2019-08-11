@@ -20,4 +20,5 @@ private:
 
   String buildTopic(const BulbId& bulbId);
   String bindTopicVariables(const String& topic, const char* alias, const BulbId& bulbId);
+  void addNumberedEffects(JsonArray& effectList, uint8_t start, uint8_t end);
 };

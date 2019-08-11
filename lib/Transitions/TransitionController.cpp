@@ -46,10 +46,6 @@ std::shared_ptr<Transition::Builder> TransitionController::buildFieldTransition(
 }
 
 std::shared_ptr<Transition::Builder> TransitionController::buildStatusTransition(const BulbId& bulbId, MiLightStatus status, uint8_t startLevel) {
-  uint16_t value = static_cast<uint16_t>(status);
-  uint16_t startValue = status == ON ? 0 : 100;
-  uint16_t endValue = status == ON ? 100 : 0;
-
   std::shared_ptr<Transition::Builder> transition;
 
   if (status == ON) {
