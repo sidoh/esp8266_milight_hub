@@ -302,9 +302,10 @@ var UI_FIELDS = [ {
     tab: "tab-mqtt"
   }, {
     tag:   "enable_automatic_mode_switching",
-    friendly: "Enable automatic mode switching",
-    help: "For RGBWW bulbs (using RGB+CCT or FUT089), enables automatic switching between modes in order to affect changes to " +
-    "temperature and saturation when otherwise it would not work",
+    friendly: "Switch to previous mode after saturation/color commands",
+    help: "For RGBWW bulbs (using RGB+CCT or FUT089), commands that adjust color saturation or white temperature "
+      + "will switch into the appropriate mode, make the change, and switch back to previous mode.  WARNING: this "
+      + "feature is not compatible with 'color' commands.",
     type: "option_buttons",
     options: {
       true: 'Enable',

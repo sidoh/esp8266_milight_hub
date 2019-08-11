@@ -207,5 +207,11 @@ RSpec.describe 'Settings' do
 
       expect(settings['group_state_fields']).to eq([])
     end
+
+    it 'for enable_automatic_mode_switching, default should be false' do
+      settings = @client.get('/settings')
+
+      expect(settings['enable_automatic_mode_switching']).to eq(false)
+    end
   end
 end
