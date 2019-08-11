@@ -562,14 +562,6 @@ RSpec.describe 'Transitions' do
   end
 
   context 'computed parameters' do
-    # it 'should accept no length parameters' do
-    #   result = @client.schedule_transition(@id_params, field: 'kelvin', end_value: 100)
-
-    #   puts @transition_defaults
-
-    #   expect(result).to eq({'success' => true})
-    # end
-
     (@transition_defaults = {
       duration: {default: 4.5, test: 2},
       num_periods: {default: 10, test: 5},
