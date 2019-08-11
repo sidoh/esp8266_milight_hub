@@ -6,6 +6,7 @@
 .sconsign.dblite
 /web/node_modules
 /web/build
+/web/package-lock.json
 /dist/*.bin
 /dist/docs
 .vscode/
