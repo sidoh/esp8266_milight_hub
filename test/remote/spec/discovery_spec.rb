@@ -115,7 +115,7 @@ RSpec.describe 'MQTT Discovery' do
 
       @mqtt_client.on_message("#{@test_discovery_prefix}light/+/#{@discovery_suffix}") do |topic, message|
         config = JSON.parse(message)
-        saw_message = config['device']['identifiers'][1] == @id_params[:id]
+        saw_message = config['device'] && config['device']['identifiers'] && config['device']['identifiers'][1] == @id_params[:id]
       end
 
       @client.patch_settings(
