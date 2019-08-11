@@ -40,6 +40,14 @@ void HomeAssistantDiscoveryClient::addConfig(const char* alias, const BulbId& bu
   config[F("name")] = alias;
   config[F("command_topic")] = mqttClient->bindTopicString(settings.mqttTopicPattern, bulbId);
   config[F("state_topic")] = mqttClient->bindTopicString(settings.mqttStateTopicPattern, bulbId);
+  JsonObject deviceMetadata = config.createNestedObject(F("device"));
+
+  deviceMetadata[F("manufacturer")] = F("esp8266_milight_hub");
+  deviceMetadata[F("sw_version")] = QUOTE(MILIGHT_HUB_VERSION);
+
+  JsonArray identifiers = deviceMetadata.createNestedArray(F("identifiers"));
+  identifiers.add(ESP.getChipId());
+  bulbId.serialize(identifiers);
 
   // HomeAssistant only supports simple client availability
   if (settings.mqttClientStatusTopic.length() > 0 && settings.simpleMqttClientStatus) {

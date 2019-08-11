@@ -18,4 +18,5 @@ struct BulbId {
   uint32_t getCompactId() const;
   String getHexDeviceId() const;
   void serialize(JsonObject json) const;
+  void serialize(JsonArray json) const;
 };

@@ -52,3 +52,9 @@ void BulbId::serialize(JsonObject json) const {
   json[GroupStateFieldNames::GROUP_ID] = groupId;
   json[GroupStateFieldNames::DEVICE_TYPE] = MiLightRemoteTypeHelpers::remoteTypeToString(deviceType);
 }
+
+void BulbId::serialize(JsonArray json) const {
+  json.add(deviceId);
+  json.add(MiLightRemoteTypeHelpers::remoteTypeToString(deviceType));
+  json.add(groupId);
+}

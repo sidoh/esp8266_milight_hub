@@ -101,8 +101,41 @@ RSpec.describe 'MQTT Discovery' do
         color_temp
         effect
         effect_list
+        device
       )
       expect(config.keys).to include(*expected_keys)
+    end
+
+    it 'should list identifiers for ESP and bulb' do
+      saw_message = false
+      config = nil
+
+      @mqtt_client.on_message("#{@test_discovery_prefix}light/+/#{@discovery_suffix}") do |topic, message|
+        config = JSON.parse(message)
+        saw_message = config['device']['identifiers'][1] == @id_params[:id]
+      end
+
+      @client.patch_settings(
+        home_assistant_discovery_prefix: @test_discovery_prefix,
+        group_id_aliases: {
+          'test_group' => [@id_params[:type], @id_params[:id], @id_params[:group_id]]
+        }
+      )
+
+      @mqtt_client.wait_for_listeners
+
+      expect(config.keys).to include('device')
+
+      device_data = config['device']
+
+      expect(device_data.keys).to include(*%w(manufacturer sw_version identifiers))
+      expect(device_data['manufacturer']).to eq('esp8266_milight_hub')
+
+      ids = device_data['identifiers']
+      expect(ids.length).to eq(4)
+      expect(ids[1]).to eq(@id_params[:id])
+      expect(ids[2]).to eq(@id_params[:type])
+      expect(ids[3]).to eq(@id_params[:group_id])
     end
 
     it 'should remove discoverable devices when alias is removed' do
