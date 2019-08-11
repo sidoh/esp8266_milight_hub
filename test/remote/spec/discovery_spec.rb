@@ -104,6 +104,9 @@ RSpec.describe 'MQTT Discovery' do
         device
       )
       expect(config.keys).to include(*expected_keys)
+
+      expect(config['effect_list']).to include(*%w(white_mode night_mode))
+      expect(config['effect_list']).to include(*(0..8).map(&:to_s))
     end
 
     it 'should list identifiers for ESP and bulb' do
