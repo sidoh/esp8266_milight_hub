@@ -31,6 +31,8 @@ DIST_DIR="./dist/docs"
 BRANCHES_DIR="${DIST_DIR}/branches"
 API_SPEC_FILE="${DOCS_DIR}/openapi.yaml"
 
+rm -rf "${DIST_DIR}"
+
 redoc_bundle_file=$(mktemp)
 git_ref_version=$(git describe --always)
 branch_docs_dir="${BRANCHES_DIR}/${git_ref_version}"
