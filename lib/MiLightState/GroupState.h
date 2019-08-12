@@ -216,6 +216,8 @@ private:
   void applyColor(JsonObject state) const;
   // Apply OpenHAB-style color, e.g., {"color":"0,0,0"}
   void applyOhColor(JsonObject state) const;
+  // Apply hex color, e.g., {"color":"#FF0000"}
+  void applyHexColor(JsonObject state) const;
 };
 
 extern const BulbId DEFAULT_BULB_ID;

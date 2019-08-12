@@ -2,6 +2,7 @@
 #include <RGBConverter.h>
 #include <TokenIterator.h>
 #include <GroupStateField.h>
+#include <IntParsing.h>
 
 ParsedColor ParsedColor::fromRgb(uint16_t r, uint16_t g, uint16_t b) {
   double hsv[3];
@@ -34,19 +35,28 @@ ParsedColor ParsedColor::fromJson(JsonVariant json) {
     const char* colorStr = json.as<const char*>();
     const size_t len = strlen(colorStr);
 
-    char colorCStr[len+1];
-    uint8_t parsedRgbColors[3] = {0, 0, 0};
+    if (colorStr[0] == '#' && len == 7) {
+      uint8_t parsedHex[3];
+      hexStrToBytes<uint8_t>(colorStr+1, len-1, parsedHex, 3);
 
-    strcpy(colorCStr, colorStr);
-    TokenIterator colorValueItr(colorCStr, len, ',');
+      r = parsedHex[0];
+      g = parsedHex[1];
+      b = parsedHex[2];
+    } else {
+      char colorCStr[len+1];
+      uint8_t parsedRgbColors[3] = {0, 0, 0};
 
-    for (size_t i = 0; i < 3 && colorValueItr.hasNext(); ++i) {
-      parsedRgbColors[i] = atoi(colorValueItr.nextToken());
+      strcpy(colorCStr, colorStr);
+      TokenIterator colorValueItr(colorCStr, len, ',');
+
+      for (size_t i = 0; i < 3 && colorValueItr.hasNext(); ++i) {
+        parsedRgbColors[i] = atoi(colorValueItr.nextToken());
+      }
+
+      r = parsedRgbColors[0];
+      g = parsedRgbColors[1];
+      b = parsedRgbColors[2];
     }
-
-    r = parsedRgbColors[0];
-    g = parsedRgbColors[1];
-    b = parsedRgbColors[2];
   } else {
     Serial.println(F("GroupState::parseJsonColor - unknown format for color"));
     return ParsedColor{ .success = false };

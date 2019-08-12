@@ -21,6 +21,7 @@ namespace GroupStateFieldNames {
   static const char GROUP_ID[] = "group_id";
   static const char DEVICE_TYPE[] = "device_type";
   static const char OH_COLOR[] = "oh_color";
+  static const char HEX_COLOR[] = "hex_color";
   static const char COMMAND[] = "command";
   static const char COMMANDS[] = "commands";
 };
@@ -43,7 +44,8 @@ enum class GroupStateField {
   DEVICE_ID,
   GROUP_ID,
   DEVICE_TYPE,
-  OH_COLOR
+  OH_COLOR,
+  HEX_COLOR
 };
 
 class GroupStateFieldHelpers {

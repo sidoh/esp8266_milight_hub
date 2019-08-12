@@ -350,6 +350,31 @@ RSpec.describe 'State' do
       expect(state.select { |x| desired_state.include?(x) } ).to eq(desired_state)
     end
 
+    it 'should support hex colors' do
+      {
+        'FF0000': 0,
+        '00FF00': 120,
+        '0000FF': 240
+      }.each do |hex_color, hue|
+        state = @client.patch_state({status: 'ON', color: "##{hex_color}"}, @id_params)
+        expect(state['hue']).to eq(hue), "Hex color #{hex_color} should map to hue = #{hue}, but was #{state['hue'].inspect}"
+      end
+    end
+
+    it 'should support getting color in hex format' do
+      fields = @client.get('/settings')['group_state_fields']
+      @client.patch_settings({group_state_fields: fields + ['hex_color']})
+      state = @client.patch_state({status: 'ON', color: '#FF0000'}, @id_params)
+      expect(state['color']).to eq('#FF0000')
+    end
+
+    it 'should support getting color in comma-separated format' do
+      fields = @client.get('/settings')['group_state_fields']
+      @client.patch_settings({group_state_fields: fields+['oh_color']})
+      state = @client.patch_state({status: 'ON', color: '#FF0000'}, @id_params)
+      expect(state['color']).to eq('255,0,0')
+    end
+
     it 'should support separate brightness fields for different modes' do
       desired_state = {
         'hue' => 0,

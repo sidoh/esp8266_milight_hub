@@ -172,6 +172,7 @@ bool GroupState::clearField(GroupStateField field) {
     case GroupStateField::COLOR:
     case GroupStateField::HUE:
     case GroupStateField::OH_COLOR:
+    case GroupStateField::HEX_COLOR:
       clearedAny = isSetHue();
       state.fields._isSetHue = 0;
       break;
@@ -228,6 +229,7 @@ bool GroupState::isSetField(GroupStateField field) const {
     case GroupStateField::COLOR:
     case GroupStateField::HUE:
     case GroupStateField::OH_COLOR:
+    case GroupStateField::HEX_COLOR:
       return isSetHue();
     case GroupStateField::SATURATION:
       return isSetSaturation();
@@ -823,6 +825,15 @@ void GroupState::applyOhColor(JsonObject state) const {
   state[GroupStateFieldNames::COLOR] = ohColorStr;
 }
 
+void GroupState::applyHexColor(JsonObject state) const {
+  ParsedColor color = getColor();
+
+  char hexColor[8];
+  sprintf(hexColor, "#%02X%02X%02X", color.r, color.g, color.b);
+
+  state[GroupStateFieldNames::COLOR] = hexColor;
+}
+
 // gather partial state for a single field; see GroupState::applyState to gather many fields
 void GroupState::applyField(JsonObject partialState, const BulbId& bulbId, GroupStateField field) const {
   if (isSetField(field)) {
@@ -853,6 +864,12 @@ void GroupState::applyField(JsonObject partialState, const BulbId& bulbId, Group
       case GroupStateField::OH_COLOR:
         if (getBulbMode() == BULB_MODE_COLOR) {
           applyOhColor(partialState);
+        }
+        break;
+
+      case GroupStateField::HEX_COLOR:
+        if (getBulbMode() == BULB_MODE_COLOR) {
+          applyHexColor(partialState);
         }
         break;
 

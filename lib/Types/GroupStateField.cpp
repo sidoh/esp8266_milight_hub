@@ -19,7 +19,8 @@ static const char* STATE_NAMES[] = {
   GroupStateFieldNames::DEVICE_ID,
   GroupStateFieldNames::GROUP_ID,
   GroupStateFieldNames::DEVICE_TYPE,
-  GroupStateFieldNames::OH_COLOR
+  GroupStateFieldNames::OH_COLOR,
+  GroupStateFieldNames::HEX_COLOR
 };
 
 GroupStateField GroupStateFieldHelpers::getFieldByName(const char* name) {
