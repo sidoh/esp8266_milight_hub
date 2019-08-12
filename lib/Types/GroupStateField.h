@@ -52,6 +52,7 @@ class GroupStateFieldHelpers {
 public:
   static const char* getFieldName(GroupStateField field);
   static GroupStateField getFieldByName(const char* name);
+  static bool isBrightnessField(GroupStateField field);
 };
 
 #endif

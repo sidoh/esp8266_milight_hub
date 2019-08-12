@@ -37,6 +37,9 @@ namespace TransitionParams {
 
 class MiLightClient {
 public:
+  // Used to indicate that the start value for a transition should be fetched from current state
+  static const int16_t FETCH_VALUE_FROM_STATE = -1;
+
   MiLightClient(
     RadioSwitchboard& radioSwitchboard,
     PacketSender& packetSender,
@@ -93,7 +96,7 @@ public:
   void handleCommand(JsonVariant command);
   void handleCommands(JsonArray commands);
   bool handleTransition(JsonObject args, JsonDocument& responseObj);
-  void handleTransition(GroupStateField field, JsonVariant value, float duration);
+  void handleTransition(GroupStateField field, JsonVariant value, float duration, int16_t startValue = FETCH_VALUE_FROM_STATE);
   void handleEffect(const String& effect);
 
   void onUpdateBegin(EventHandler handler);

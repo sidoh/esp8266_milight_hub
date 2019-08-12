@@ -10,6 +10,8 @@
 
 using namespace std::placeholders;
 
+static const uint8_t STATUS_UNDEFINED = 255;
+
 const char* MiLightClient::FIELD_ORDERINGS[] = {
   // These are handled manually
   // GroupStateFieldNames::STATE,
@@ -318,16 +320,23 @@ void MiLightClient::update(JsonObject request) {
 
   // Always turn on first
   if (parsedStatus == ON) {
-    if (
-         transition == 0
-      // Do not generate a transition if a brightness field is also set, since that will also
-      // generate a transition.
-      || request.containsKey(GroupStateFieldNames::BRIGHTNESS)
-      || request.containsKey(GroupStateFieldNames::LEVEL)
-    ) {
+    if (transition == 0) {
       this->updateStatus(ON);
     } else {
-      handleTransition(GroupStateField::STATUS, status, transition);
+      JsonVariant brightness = request[GroupStateFieldNames::BRIGHTNESS];
+      JsonVariant level = request[GroupStateFieldNames::LEVEL];
+
+      // The behavior for status transitions is to ramp up to max or down to min brightness.  If a
+      // brightness is specified, we shold ramp up or down to that value instead.
+      if (!brightness.isUndefined()) {
+        this->updateStatus(ON);
+        handleTransition(GroupStateField::BRIGHTNESS, brightness, transition, 0);
+      } else if (!level.isUndefined()) {
+        this->updateStatus(ON);
+        handleTransition(GroupStateField::LEVEL, level, transition, 0);
+      } else {
+        handleTransition(GroupStateField::STATUS, status, transition, 0);
+      }
     }
   }
 
@@ -337,14 +346,20 @@ void MiLightClient::update(JsonObject request) {
       JsonVariant value = request[fieldName];
 
       if (handler != FIELD_SETTERS.end()) {
-        if (transition != 0) {
-          handleTransition(
-            GroupStateFieldHelpers::getFieldByName(fieldName),
-            value,
-            transition
-          );
-        } else {
+        // No transition -- set field directly
+        if (transition == 0) {
           handler->second(this, value);
+        } else {
+          // Do not generate a brightness transition if a status field was specified.  Status will
+          // generate its own brightness transition, and generating another one will cause conflicts.
+          GroupStateField field = GroupStateFieldHelpers::getFieldByName(fieldName);
+
+          if (    !GroupStateFieldHelpers::isBrightnessField(field) // If field isn't brightness
+               || parsedStatus == STATUS_UNDEFINED                  // or if there was not a status field
+                                                                    // in the command
+          ) {
+            handleTransition(field, value, transition);
+          }
         }
       }
     }
@@ -421,7 +436,7 @@ void MiLightClient::handleCommand(JsonVariant command) {
   }
 }
 
-void MiLightClient::handleTransition(GroupStateField field, JsonVariant value, float duration) {
+void MiLightClient::handleTransition(GroupStateField field, JsonVariant value, float duration, int16_t startValue) {
   BulbId bulbId = currentRemote->packetFormatter->currentBulbId();
   GroupState* currentState = stateStore->get(bulbId);
   std::shared_ptr<Transition::Builder> transitionBuilder = nullptr;
@@ -446,10 +461,10 @@ void MiLightClient::handleTransition(GroupStateField field, JsonVariant value, f
       endColor
     );
   } else if (field == GroupStateField::STATUS || field == GroupStateField::STATE) {
-    uint8_t startLevel = 0;
+    uint8_t startLevel;
     MiLightStatus status = parseMilightStatus(value);
 
-    if (currentState->isSetBrightness()) {
+    if (startValue == FETCH_VALUE_FROM_STATE) {
       startLevel = currentState->getBrightness();
     } else if (status == ON) {
       startLevel = 0;
@@ -457,10 +472,16 @@ void MiLightClient::handleTransition(GroupStateField field, JsonVariant value, f
       startLevel = 100;
     }
 
-    transitionBuilder = transitions.buildStatusTransition(bulbId, parseMilightStatus(value), startLevel);
+    transitionBuilder = transitions.buildStatusTransition(bulbId, status, startLevel);
   } else {
-    uint16_t currentValue = currentState->getParsedFieldValue(field);
+    uint16_t currentValue;
     uint16_t endValue = value;
+
+    if (startValue == FETCH_VALUE_FROM_STATE) {
+      currentValue = currentState->getParsedFieldValue(field);
+    } else {
+      currentValue = startValue;
+    }
 
     transitionBuilder = transitions.buildFieldTransition(
       bulbId,
@@ -605,7 +626,7 @@ JsonVariant MiLightClient::extractStatus(JsonObject object) {
 
 uint8_t MiLightClient::parseStatus(JsonVariant val) {
   if (val.isUndefined()) {
-    return 255;
+    return STATUS_UNDEFINED;
   }
 
   return parseMilightStatus(val);

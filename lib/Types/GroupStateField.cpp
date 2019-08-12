@@ -40,3 +40,13 @@ const char* GroupStateFieldHelpers::getFieldName(GroupStateField field) {
   }
   return STATE_NAMES[0];
 }
+
+bool GroupStateFieldHelpers::isBrightnessField(GroupStateField field) {
+  switch (field) {
+    case GroupStateField::BRIGHTNESS:
+    case GroupStateField::LEVEL:
+      return true;
+    default:
+      return false;
+  }
+}
