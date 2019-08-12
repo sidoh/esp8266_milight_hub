@@ -115,26 +115,6 @@ If it does not work as expected see [Troubleshooting](https://github.com/sidoh/e
 
 If you need to pair some bulbs, how to do this is [described in the wiki](https://github.com/sidoh/esp8266_milight_hub/wiki/Pairing-new-bulbs).
 
-## LED Status
-
-Some ESP boards have a built-in LED, on pin #2.  This LED will flash to indicate the current status of the hub:
-
-* Wifi not configured: Fast flash (on/off once per second).  See [Configure Wifi](#configure-wifi) to configure the hub.
-* Wifi connected and ready: Occasional blips of light (a flicker of light every 1.5 seconds).
-* Packets sending/receiving: Rapid blips of light for brief periods (three rapid flashes).
-* Wifi failed to configure: Solid light.
-
-In the setup UI, you can turn on "enable_solid_led" to change the LED behavior to:
-
-* Wifi connected and ready: Solid LED light
-* Wifi failed to configure: Light off
-
-Note that you must restart the hub to affect the change in "enable_solid_led".
-
-You can configure the LED pin from the web console.  Note that pin means the GPIO number, not the D number ... for example, D2 is actually GPIO4 and therefore its pin 4.  If you specify the pin as a negative number, it will invert the LED signal (the built-in LED on pin 2 is inverted, so the default is -2).
-
-If you want to wire up your own LED on a pin, such as on D2/GPIO4, put a wire from D2 to one side of a 220 ohm resister.  On the other side, connect it to the positive side (the longer wire) of a 3.3V LED.  Then connect the negative side of the LED (the shorter wire) to ground.  If you use a different voltage LED, or a high current LED, you will need to add a driver circuit.
-
 ## Device Aliases
 
 You can configure aliases or labels for a given _(Device Type, Device ID, Group ID)_ tuple.  For example, you might want to call the RGB+CCT remote with the ID `0x1111` and the Group ID `1` to be called `living_room`.  Aliases are useful in a couple of different ways:
@@ -242,6 +222,26 @@ If you wish to have the simple messages `connected` and `disconnected` instead o
 You can add an arbitrary number of UDP gateways through the REST API or through the web UI. Each gateway server listens on a port and responds to the standard set of commands supported by the Milight protocol. This should allow you to use one of these with standard Milight integrations (SmartThings, Home Assistant, OpenHAB, etc.).
 
 You can select between versions 5 and 6 of the UDP protocol (documented [here](http://www.limitlessled.com/dev/)). Version 6 has support for the newer RGB+CCT bulbs and also includes response packets, which can theoretically improve reliability. Version 5 has much smaller packets and is probably lower latency.
+
+## LED Status
+
+Some ESP boards have a built-in LED, on pin #2.  This LED will flash to indicate the current status of the hub:
+
+* Wifi not configured: Fast flash (on/off once per second).  See [Configure Wifi](#configure-wifi) to configure the hub.
+* Wifi connected and ready: Occasional blips of light (a flicker of light every 1.5 seconds).
+* Packets sending/receiving: Rapid blips of light for brief periods (three rapid flashes).
+* Wifi failed to configure: Solid light.
+
+In the setup UI, you can turn on "enable_solid_led" to change the LED behavior to:
+
+* Wifi connected and ready: Solid LED light
+* Wifi failed to configure: Light off
+
+Note that you must restart the hub to affect the change in "enable_solid_led".
+
+You can configure the LED pin from the web console.  Note that pin means the GPIO number, not the D number ... for example, D2 is actually GPIO4 and therefore its pin 4.  If you specify the pin as a negative number, it will invert the LED signal (the built-in LED on pin 2 is inverted, so the default is -2).
+
+If you want to wire up your own LED on a pin, such as on D2/GPIO4, put a wire from D2 to one side of a 220 ohm resister.  On the other side, connect it to the positive side (the longer wire) of a 3.3V LED.  Then connect the negative side of the LED (the shorter wire) to ground.  If you use a different voltage LED, or a high current LED, you will need to add a driver circuit.
 
 ## Development
 
