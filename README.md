@@ -223,6 +223,41 @@ You can add an arbitrary number of UDP gateways through the REST API or through 
 
 You can select between versions 5 and 6 of the UDP protocol (documented [here](http://www.limitlessled.com/dev/)). Version 6 has support for the newer RGB+CCT bulbs and also includes response packets, which can theoretically improve reliability. Version 5 has much smaller packets and is probably lower latency.
 
+## Transitions
+
+Transitions between two given states are supported.  Depending on how transition commands are being issued, the duration and smoothness of the transition are both configurable.  There are a few ways to use transitions:
+
+#### RESTful `/transitions` routes
+
+These routes are fully documented in the [REST API documentation](https://sidoh.github.io/esp8266_milight_hub/branches/latest/#tag/Transitions).
+
+#### `transition` field when issuing commands
+
+When you issue a command to a bulb either via REST or MQTT, you can include a `transition` field.  The value of this field specifies the duration of the transition, in seconds (non-integer values are supported).
+
+For example, the command:
+
+```json
+{"brightness":255,"transition":60}
+```
+
+will transition from whatever the current brightness is to `brightness=255` over 60 seconds.
+
+#### Notes on transitions
+
+* espMH's transitions should work seamlessly with [HomeAssistant's transition functionality](https://www.home-assistant.io/components/light/).
+* You can issue commands specifying transitions between many fields at once.  For example:
+  ```json
+  {"brightness":255,"kelvin":0,"transition":10.5}
+  ```
+  will transition from current values for brightness and kelvin to the specified values -- 255 and 0 respectively -- over 10.5 seconds.
+* Color transitions are supported.  Under the hood, this is treated as a transition between current values for r, g, and b to the r, g, b values for the specified color.  Because milight uses hue-sat colors, this might not behave exactly as you'd expect for all colors.
+* You can transition to a given `status` or `state`.  For example,
+  ```json
+  {"status":"ON","transition":10}
+  ```
+  will turn the bulb on, immediately set the brightness to 0, and then transition to brightness=255 over 10 seconds.  If you specify a brightness value, the transition will stop there instead of 255.
+
 ## LED Status
 
 Some ESP boards have a built-in LED, on pin #2.  This LED will flash to indicate the current status of the hub:
