@@ -771,6 +771,7 @@ components:
       - group_id
       - device_type
       - oh_color
+      - hex_color
       description: >
         Defines a field which is a part of state for a particular light device.  Most fields are self-explanatory, but documentation for each follows:
 
@@ -785,6 +786,8 @@ components:
         * `color` / `computed_color` - behaves the same when bulb is in rgb mode.  `computed_color` will send RGB = 255,255,255 when in white mode.  This is useful for HomeAssistant where it always expects the color to be set.
 
         * `oh_color` - same as `color` with a format compatible with [OpenHAB's colorRGB channel type](https://www.openhab.org/addons/bindings/mqtt.generic/#channel-type-colorrgb-colorhsb).
+
+        * `hex_color` - same as `color` except in hex color (e.g., `#FF0000` for red).
 
         * `device_id` / `device_type` / `group_id` - this information is in the MQTT topic or REST route, but can be included in the payload in the case that processing the topic or route is more difficult.
     DeviceId:
