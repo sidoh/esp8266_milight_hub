@@ -363,7 +363,8 @@ var GROUP_STATE_KEYS = [
   "device_id",
   "group_id",
   "device_type",
-  "oh_color"
+  "oh_color",
+  "hex_color"
 ];
 
 var LED_MODES = [
