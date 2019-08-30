@@ -93,6 +93,8 @@ void MiLightClient::prepare(
   if (deviceId >= 0 && groupId >= 0) {
     currentRemote->packetFormatter->prepare(deviceId, groupId);
   }
+
+  this->currentState = stateStore->get(deviceId, groupId, config->type);
 }
 
 void MiLightClient::prepare(
@@ -318,24 +320,37 @@ void MiLightClient::update(JsonObject request) {
     }
   }
 
+  JsonVariant brightness = request[GroupStateFieldNames::BRIGHTNESS];
+  JsonVariant level = request[GroupStateFieldNames::LEVEL];
+  const bool isBrightnessDefined = !brightness.isUndefined() || !level.isUndefined();
+
   // Always turn on first
   if (parsedStatus == ON) {
     if (transition == 0) {
       this->updateStatus(ON);
-    } else {
-      JsonVariant brightness = request[GroupStateFieldNames::BRIGHTNESS];
-      JsonVariant level = request[GroupStateFieldNames::LEVEL];
-
-      // The behavior for status transitions is to ramp up to max or down to min brightness.  If a
-      // brightness is specified, we shold ramp up or down to that value instead.
-      if (!brightness.isUndefined()) {
-        this->updateStatus(ON);
-        handleTransition(GroupStateField::BRIGHTNESS, brightness, transition, 0);
-      } else if (!level.isUndefined()) {
-        this->updateStatus(ON);
-        handleTransition(GroupStateField::LEVEL, level, transition, 0);
-      } else {
+    }
+    // Don't do an "On" transition if the bulb is already on.  The reasons for this are:
+    //   * Ambiguous what the behavior should be.  Should it ramp to full brightness?
+    //   * HomeAssistant is only capable of sending transitions via the `light.turn_on`
+    //     service call, which ends up sending `{"status":"ON"}`.  So transitions which
+    //     have nothing to do with the status will include an "ON" command.
+    // If the user wants to transition brightness, they can just specify a brightness in
+    // the same command.  This avoids the need to make arbitrary calls on what the
+    // behavior should be.
+    else if (!currentState->isSetState() || !currentState->isOn()) {
+      // If a brightness is defined, we'll want to transition to that.  Status
+      // transitions only ramp up/down to the max/min.  Otherwise, just turn the bulb on
+      // and let field transitions handle the rest.
+      if (!isBrightnessDefined) {
         handleTransition(GroupStateField::STATUS, status, transition, 0);
+      } else {
+        this->updateStatus(ON);
+
+        if (! brightness.isUndefined()) {
+          handleTransition(GroupStateField::BRIGHTNESS, brightness, transition, 0);
+        } else if (! level.isUndefined()) {
+          handleTransition(GroupStateField::LEVEL, level, transition, 0);
+        }
       }
     }
   }
@@ -350,13 +365,11 @@ void MiLightClient::update(JsonObject request) {
         if (transition == 0) {
           handler->second(this, value);
         } else {
-          // Do not generate a brightness transition if a status field was specified.  Status will
-          // generate its own brightness transition, and generating another one will cause conflicts.
           GroupStateField field = GroupStateFieldHelpers::getFieldByName(fieldName);
 
-          if (    !GroupStateFieldHelpers::isBrightnessField(field) // If field isn't brightness
+          if (   !GroupStateFieldHelpers::isBrightnessField(field)  // If field isn't brightness
                || parsedStatus == STATUS_UNDEFINED                  // or if there was not a status field
-                                                                    // in the command
+               || currentState->isOn()                              // or if bulb was already on
           ) {
             handleTransition(field, value, transition);
           }
@@ -438,7 +451,6 @@ void MiLightClient::handleCommand(JsonVariant command) {
 
 void MiLightClient::handleTransition(GroupStateField field, JsonVariant value, float duration, int16_t startValue) {
   BulbId bulbId = currentRemote->packetFormatter->currentBulbId();
-  GroupState* currentState = stateStore->get(bulbId);
   std::shared_ptr<Transition::Builder> transitionBuilder = nullptr;
 
   if (currentState == nullptr) {
@@ -464,12 +476,10 @@ void MiLightClient::handleTransition(GroupStateField field, JsonVariant value, f
     uint8_t startLevel;
     MiLightStatus status = parseMilightStatus(value);
 
-    if (startValue == FETCH_VALUE_FROM_STATE) {
+    if (startValue == FETCH_VALUE_FROM_STATE || currentState->isOn()) {
       startLevel = currentState->getBrightness();
-    } else if (status == ON) {
-      startLevel = 0;
     } else {
-      startLevel = 100;
+      startLevel = startValue;
     }
 
     transitionBuilder = transitions.buildStatusTransition(bulbId, status, startLevel);
@@ -477,7 +487,7 @@ void MiLightClient::handleTransition(GroupStateField field, JsonVariant value, f
     uint16_t currentValue;
     uint16_t endValue = value;
 
-    if (startValue == FETCH_VALUE_FROM_STATE) {
+    if (startValue == FETCH_VALUE_FROM_STATE || currentState->isOn()) {
       currentValue = currentState->getParsedFieldValue(field);
     } else {
       currentValue = startValue;
@@ -509,7 +519,6 @@ bool MiLightClient::handleTransition(JsonObject args, JsonDocument& responseObj)
 
   const BulbId& bulbId = currentRemote->packetFormatter->currentBulbId();
   const char* fieldName = args[FS(TransitionParams::FIELD)];
-  const GroupState* groupState = stateStore->get(bulbId);
   JsonVariant startValue = args[FS(TransitionParams::START_VALUE)];
   JsonVariant endValue = args[FS(TransitionParams::END_VALUE)];
   GroupStateField field = GroupStateFieldHelpers::getFieldByName(fieldName);
@@ -535,7 +544,7 @@ bool MiLightClient::handleTransition(JsonObject args, JsonDocument& responseObj)
         bulbId,
         field,
         startValue.isUndefined()
-          ? groupState->getParsedFieldValue(field)
+          ? currentState->getParsedFieldValue(field)
           : startValue.as<uint16_t>(),
         endValue
       );
@@ -548,7 +557,7 @@ bool MiLightClient::handleTransition(JsonObject args, JsonDocument& responseObj)
   // Color can be decomposed into hue/saturation and these can be transitioned separately
   if (field == GroupStateField::COLOR) {
     ParsedColor _startValue = startValue.isUndefined()
-      ? groupState->getColor()
+      ? currentState->getColor()
       : ParsedColor::fromJson(startValue);
     ParsedColor endColor = ParsedColor::fromJson(endValue);
 
@@ -572,8 +581,8 @@ bool MiLightClient::handleTransition(JsonObject args, JsonDocument& responseObj)
   if (field == GroupStateField::STATUS || field == GroupStateField::STATE) {
     MiLightStatus toStatus = parseMilightStatus(endValue);
     uint8_t startLevel;
-    if (groupState->isSetBrightness()) {
-      startLevel = groupState->getBrightness();
+    if (currentState->isSetBrightness()) {
+      startLevel = currentState->getBrightness();
     } else if (toStatus == ON) {
       startLevel = 0;
     } else {

@@ -134,6 +134,7 @@ protected:
   EventHandler updateEndHandler;
 
   GroupStateStore* stateStore;
+  const GroupState* currentState;
   Settings& settings;
   PacketSender& packetSender;
   TransitionController& transitions;

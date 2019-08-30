@@ -321,7 +321,7 @@ RSpec.describe 'Transitions' do
       )
     end
 
-    it 'should transition from off -> on from 0 to a provided brightness, event when there is a last known brightness' do
+    it 'should transition from off -> on from 0 to a provided brightness, even when there is a last known brightness' do
       seen_updates = {}
       @client.patch_state({status: 'ON', brightness: 99}, @id_params)
       @client.patch_state({status: 'OFF'}, @id_params)
@@ -346,7 +346,7 @@ RSpec.describe 'Transitions' do
       )
     end
 
-    it 'should transition from off -> on from 0 to 100, even when there is a last known brightness' do
+    it 'should transition from off -> on from 0 to 100, even when there is a last known brightness if the bulb is off' do
       seen_updates = {}
       @client.patch_state({status: 'ON', brightness: 99}, @id_params)
       @client.patch_state({status: 'OFF'}, @id_params)
@@ -359,12 +359,36 @@ RSpec.describe 'Transitions' do
         seen_updates['brightness'] && seen_updates['brightness'].last == 255
       end
 
-      @client.patch_state({status: 'ON', transition: 1.0}, @id_params)
+      @mqtt_client.patch_state(@id_params, {state: 'ON', transition: 1.0})
 
       @mqtt_client.wait_for_listeners
 
       transitions_are_equal(
         expected: calculate_transition_steps(start_value: 0, end_value: 255, duration: 1000),
+        seen: seen_updates['brightness'],
+        # Allow some variation for the lossy level -> brightness conversion
+        allowed_variation: 4
+      )
+    end
+
+    it 'should transition from last known brightness if the bulb is already on' do
+      seen_updates = {}
+      @client.patch_state({status: 'ON', brightness: 99}, @id_params)
+
+      @mqtt_client.on_update(@id_params) do |id, message|
+        message.each do |k, v|
+          seen_updates[k] ||= []
+          seen_updates[k] << v
+        end
+        seen_updates['brightness'] && seen_updates['brightness'].last == 255
+      end
+
+      @mqtt_client.patch_state(@id_params, {state: 'ON', brightness: 255, transition: 1.0})
+
+      @mqtt_client.wait_for_listeners
+
+      transitions_are_equal(
+        expected: calculate_transition_steps(start_value: 99, end_value: 255, duration: 1000),
         seen: seen_updates['brightness'],
         # Allow some variation for the lossy level -> brightness conversion
         allowed_variation: 4
