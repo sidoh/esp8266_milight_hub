@@ -7,8 +7,13 @@
 #include <Size.h>
 #include <LEDStatus.h>
 #include <AuthProviders.h>
+
+#include <MiLightRemoteType.h>
+#include <BulbId.h>
+
 #include <vector>
 #include <memory>
+#include <map>
 
 #ifndef _SETTINGS_H_INCLUDED
 #define _SETTINGS_H_INCLUDED
@@ -56,6 +61,10 @@
 enum RadioInterfaceType {
   nRF24 = 0,
   LT8900 = 1,
+};
+
+enum class WifiMode {
+  B, G, N
 };
 
 static const std::vector<GroupStateField> DEFAULT_GROUP_STATE_FIELDS({
@@ -107,6 +116,8 @@ public:
     rf24Channels(RF24ChannelHelpers::allValues()),
     groupStateFields(DEFAULT_GROUP_STATE_FIELDS),
     rf24ListenChannel(RF24Channel::RF24_LOW),
+    packetRepeatsPerLoop(10),
+    wifiMode(WifiMode::N),
     _autoRestartPeriod(0)
   { }
 
@@ -133,6 +144,7 @@ public:
   void patch(JsonObject obj);
   String mqttServer();
   uint16_t mqttPort();
+  std::map<String, BulbId>::const_iterator findAlias(MiLightRemoteType deviceType, uint16_t deviceId, uint8_t groupId);
 
   String adminUsername;
   String adminPassword;
@@ -174,9 +186,20 @@ public:
   String wifiStaticIP;
   String wifiStaticIPNetmask;
   String wifiStaticIPGateway;
+  size_t packetRepeatsPerLoop;
+  std::map<String, BulbId> groupIdAliases;
+  std::map<uint32_t, BulbId> deletedGroupIdAliases;
+  String homeAssistantDiscoveryPrefix;
+  WifiMode wifiMode;
 
 protected:
   size_t _autoRestartPeriod;
+
+  void parseGroupIdAliases(JsonObject json);
+  void dumpGroupIdAliases(JsonObject json);
+
+  static WifiMode wifiModeFromString(const String& mode);
+  static String wifiModeToString(WifiMode mode);
 
   template <typename T>
   void setIfPresent(JsonObject obj, const char* key, T& var) {

@@ -1,4 +1,5 @@
 #include <MiLightRemoteConfig.h>
+#include <MiLightRemoteType.h>
 
 /**
  * IMPORTANT NOTE: These should be in the same order as MiLightRemoteType.
@@ -9,38 +10,14 @@ const MiLightRemoteConfig* MiLightRemoteConfig::ALL_REMOTES[] = {
   &FUT092Config, // rgb+cct
   &FUT098Config, // rgb
   &FUT089Config, // 8-group rgb+cct (b8, fut089)
-  &FUT091Config
+  &FUT091Config,
+  &FUT020Config
 };
 
+const size_t MiLightRemoteConfig::NUM_REMOTES = size(ALL_REMOTES);
+
 const MiLightRemoteConfig* MiLightRemoteConfig::fromType(const String& type) {
-  if (type.equalsIgnoreCase("rgbw") || type.equalsIgnoreCase("fut096")) {
-    return &FUT096Config;
-  }
-
-  if (type.equalsIgnoreCase("cct") || type.equalsIgnoreCase("fut007")) {
-    return &FUT007Config;
-  }
-
-  if (type.equalsIgnoreCase("rgb_cct") || type.equalsIgnoreCase("fut092")) {
-    return &FUT092Config;
-  }
-
-  if (type.equalsIgnoreCase("fut089")) {
-    return &FUT089Config;
-  }
-
-  if (type.equalsIgnoreCase("rgb") || type.equalsIgnoreCase("fut098")) {
-    return &FUT098Config;
-  }
-
-  if (type.equalsIgnoreCase("v2_cct") || type.equalsIgnoreCase("fut091")) {
-    return &FUT091Config;
-  }
-
-  Serial.print(F("MiLightRemoteConfig::fromType: ERROR - tried to fetch remote config for type: "));
-  Serial.println(type);
-
-  return NULL;
+  return fromType(MiLightRemoteTypeHelpers::remoteTypeFromString(type));
 }
 
 const MiLightRemoteConfig* MiLightRemoteConfig::fromType(MiLightRemoteType type) {
@@ -119,5 +96,13 @@ const MiLightRemoteConfig FUT098Config( //rgb
   MiLightRadioConfig::ALL_CONFIGS[3],
   REMOTE_TYPE_RGB,
   "rgb",
+  0
+);
+
+const MiLightRemoteConfig FUT020Config(
+  new FUT020PacketFormatter(),
+  MiLightRadioConfig::ALL_CONFIGS[4],
+  REMOTE_TYPE_FUT020,
+  "fut020",
   0
 );

@@ -47,6 +47,23 @@ void MiLightHttpServer::begin() {
     .on(HTTP_GET, std::bind(&MiLightHttpServer::handleGetGroup, this, _1));
 
   server
+    .buildHandler("/gateways/:device_alias")
+    .on(HTTP_PUT, std::bind(&MiLightHttpServer::handleUpdateGroupAlias, this, _1))
+    .on(HTTP_POST, std::bind(&MiLightHttpServer::handleUpdateGroupAlias, this, _1))
+    .on(HTTP_DELETE, std::bind(&MiLightHttpServer::handleDeleteGroupAlias, this, _1))
+    .on(HTTP_GET, std::bind(&MiLightHttpServer::handleGetGroupAlias, this, _1));
+
+  server
+    .buildHandler("/transitions/:id")
+    .on(HTTP_GET, std::bind(&MiLightHttpServer::handleGetTransition, this, _1))
+    .on(HTTP_DELETE, std::bind(&MiLightHttpServer::handleDeleteTransition, this, _1));
+
+  server
+    .buildHandler("/transitions")
+    .on(HTTP_GET, std::bind(&MiLightHttpServer::handleListTransitions, this, _1))
+    .on(HTTP_POST, std::bind(&MiLightHttpServer::handleCreateTransition, this, _1));
+
+  server
     .buildHandler("/raw_commands/:type")
     .on(HTTP_ANY, std::bind(&MiLightHttpServer::handleSendRaw, this, _1));
 
@@ -93,8 +110,8 @@ void MiLightHttpServer::handleSystemPost(RequestContext& request) {
 
   bool handled = false;
 
-  if (requestBody.containsKey("command")) {
-    if (requestBody["command"] == "restart") {
+  if (requestBody.containsKey(GroupStateFieldNames::COMMAND)) {
+    if (requestBody[GroupStateFieldNames::COMMAND] == "restart") {
       Serial.println(F("Restarting..."));
       server.send_P(200, TEXT_PLAIN, PSTR("true"));
 
@@ -103,7 +120,7 @@ void MiLightHttpServer::handleSystemPost(RequestContext& request) {
       ESP.restart();
 
       handled = true;
-    } else if (requestBody["command"] == "clear_wifi_config") {
+    } else if (requestBody[GroupStateFieldNames::COMMAND] == "clear_wifi_config") {
         Serial.println(F("Resetting Wifi and then Restarting..."));
         server.send_P(200, TEXT_PLAIN, PSTR("true"));
 
@@ -141,6 +158,10 @@ void MiLightHttpServer::onGroupDeleted(GroupDeletedHandler handler) {
 
 void MiLightHttpServer::handleAbout(RequestContext& request) {
   AboutHelper::generateAboutObject(request.response.json);
+
+  JsonObject queueStats = request.response.json.createNestedObject("queue_stats");
+  queueStats[F("length")] = packetSender->queueLength();
+  queueStats[F("dropped_packets")] = packetSender->droppedPackets();
 }
 
 void MiLightHttpServer::handleGetRadioConfigs(RequestContext& request) {
@@ -270,7 +291,7 @@ void MiLightHttpServer::handleListenGateway(RequestContext& request) {
   }
 
   if (tmpRemoteConfig != NULL) {
-    radio = milightClient->switchRadio(tmpRemoteConfig);
+    radio = radios->switchRadio(tmpRemoteConfig);
   }
 
   while (remoteConfig == NULL) {
@@ -279,13 +300,13 @@ void MiLightHttpServer::handleListenGateway(RequestContext& request) {
     }
 
     if (listenAll) {
-      radio = milightClient->switchRadio(configIx++ % milightClient->getNumRadios());
+      radio = radios->switchRadio(configIx++ % radios->getNumRadios());
     } else {
       radio->configure();
     }
 
-    if (milightClient->available()) {
-      size_t packetLen = milightClient->read(packet);
+    if (radios->available()) {
+      size_t packetLen = radios->read(packet);
       remoteConfig = MiLightRemoteConfig::fromReceivedPacket(
         radio->config(),
         packet,
@@ -311,34 +332,44 @@ void MiLightHttpServer::handleListenGateway(RequestContext& request) {
 }
 
 void MiLightHttpServer::sendGroupState(BulbId& bulbId, GroupState* state, RichHttp::Response& response) {
+  bool blockOnQueue = server.arg("blockOnQueue").equalsIgnoreCase("true");
+
+  // Wait for packet queue to flush out.  State will not have been updated before that.
+  // Bit hacky to call loop outside of main loop, but should be fine.
+  while (blockOnQueue && packetSender->isSending()) {
+    packetSender->loop();
+  }
+
   JsonObject obj = response.json.to<JsonObject>();
 
-  if (state != NULL) {
+  if (blockOnQueue && state != NULL) {
     state->applyState(obj, bulbId, settings.groupStateFields);
-    state->debugState("test");
+  } else {
+    obj[F("success")] = true;
   }
 }
 
-void MiLightHttpServer::handleGetGroup(RequestContext& request) {
-  const String _deviceId = request.pathVariables.get("device_id");
-  uint8_t _groupId = atoi(request.pathVariables.get("group_id"));
-  const MiLightRemoteConfig* _remoteType = MiLightRemoteConfig::fromType(request.pathVariables.get("type"));
-
-  if (_remoteType == NULL) {
-    char buffer[40];
-    sprintf_P(buffer, PSTR("Unknown device type\n"));
-    request.response.setCode(400);
-    request.response.json["error"] = buffer;
-    return;
-  }
-
-  BulbId bulbId(parseInt<uint16_t>(_deviceId), _groupId, _remoteType->type);
+void MiLightHttpServer::_handleGetGroup(BulbId bulbId, RequestContext& request) {
   sendGroupState(bulbId, stateStore->get(bulbId), request.response);
 }
 
-void MiLightHttpServer::handleDeleteGroup(RequestContext& request) {
-  const String _deviceId = request.pathVariables.get("device_id");
-  uint8_t _groupId = atoi(request.pathVariables.get("group_id"));
+void MiLightHttpServer::handleGetGroupAlias(RequestContext& request) {
+  const String alias = request.pathVariables.get("device_alias");
+
+  std::map<String, BulbId>::iterator it = settings.groupIdAliases.find(alias);
+
+  if (it == settings.groupIdAliases.end()) {
+    request.response.setCode(404);
+    request.response.json[F("error")] = F("Device alias not found");
+    return;
+  }
+
+  _handleGetGroup(it->second, request);
+}
+
+void MiLightHttpServer::handleGetGroup(RequestContext& request) {
+  const String _deviceId = request.pathVariables.get(GroupStateFieldNames::DEVICE_ID);
+  uint8_t _groupId = atoi(request.pathVariables.get(GroupStateFieldNames::GROUP_ID));
   const MiLightRemoteConfig* _remoteType = MiLightRemoteConfig::fromType(request.pathVariables.get("type"));
 
   if (_remoteType == NULL) {
@@ -350,6 +381,41 @@ void MiLightHttpServer::handleDeleteGroup(RequestContext& request) {
   }
 
   BulbId bulbId(parseInt<uint16_t>(_deviceId), _groupId, _remoteType->type);
+  _handleGetGroup(bulbId, request);
+}
+
+void MiLightHttpServer::handleDeleteGroup(RequestContext& request) {
+  const String _deviceId = request.pathVariables.get(GroupStateFieldNames::DEVICE_ID);
+  uint8_t _groupId = atoi(request.pathVariables.get(GroupStateFieldNames::GROUP_ID));
+  const MiLightRemoteConfig* _remoteType = MiLightRemoteConfig::fromType(request.pathVariables.get("type"));
+
+  if (_remoteType == NULL) {
+    char buffer[40];
+    sprintf_P(buffer, PSTR("Unknown device type\n"));
+    request.response.setCode(400);
+    request.response.json["error"] = buffer;
+    return;
+  }
+
+  BulbId bulbId(parseInt<uint16_t>(_deviceId), _groupId, _remoteType->type);
+  _handleDeleteGroup(bulbId, request);
+}
+
+void MiLightHttpServer::handleDeleteGroupAlias(RequestContext& request) {
+  const String alias = request.pathVariables.get("device_alias");
+
+  std::map<String, BulbId>::iterator it = settings.groupIdAliases.find(alias);
+
+  if (it == settings.groupIdAliases.end()) {
+    request.response.setCode(404);
+    request.response.json[F("error")] = F("Device alias not found");
+    return;
+  }
+
+  _handleDeleteGroup(it->second, request);
+}
+
+void MiLightHttpServer::_handleDeleteGroup(BulbId bulbId, RequestContext& request) {
   stateStore->clear(bulbId);
 
   if (groupDeletedHandler != NULL) {
@@ -359,15 +425,38 @@ void MiLightHttpServer::handleDeleteGroup(RequestContext& request) {
   request.response.json["success"] = true;
 }
 
+void MiLightHttpServer::handleUpdateGroupAlias(RequestContext& request) {
+  const String alias = request.pathVariables.get("device_alias");
+
+  std::map<String, BulbId>::iterator it = settings.groupIdAliases.find(alias);
+
+  if (it == settings.groupIdAliases.end()) {
+    request.response.setCode(404);
+    request.response.json[F("error")] = F("Device alias not found");
+    return;
+  }
+
+  BulbId& bulbId = it->second;
+  const MiLightRemoteConfig* config = MiLightRemoteConfig::fromType(bulbId.deviceType);
+
+  if (config == NULL) {
+    char buffer[40];
+    sprintf_P(buffer, PSTR("Unknown device type: %s"), bulbId.deviceType);
+    request.response.setCode(400);
+    request.response.json["error"] = buffer;
+    return;
+  }
+
+  milightClient->prepare(config, bulbId.deviceId, bulbId.groupId);
+  handleRequest(request.getJsonBody().as<JsonObject>());
+  sendGroupState(bulbId, stateStore->get(bulbId), request.response);
+}
+
 void MiLightHttpServer::handleUpdateGroup(RequestContext& request) {
   JsonObject reqObj = request.getJsonBody().as<JsonObject>();
 
-  milightClient->setResendCount(
-    settings.httpRepeatFactor * settings.packetRepeats
-  );
-
-  String _deviceIds = request.pathVariables.get("device_id");
-  String _groupIds = request.pathVariables.get("group_id");
+  String _deviceIds = request.pathVariables.get(GroupStateFieldNames::DEVICE_ID);
+  String _groupIds = request.pathVariables.get(GroupStateFieldNames::GROUP_ID);
   String _remoteTypes = request.pathVariables.get("type");
   char deviceIds[_deviceIds.length()];
   char groupIds[_groupIds.length()];
@@ -419,7 +508,11 @@ void MiLightHttpServer::handleUpdateGroup(RequestContext& request) {
 }
 
 void MiLightHttpServer::handleRequest(const JsonObject& request) {
+  milightClient->setRepeatsOverride(
+    settings.httpRepeatFactor * settings.packetRepeats
+  );
   milightClient->update(request);
+  milightClient->clearRepeatsOverride();
 }
 
 void MiLightHttpServer::handleSendRaw(RequestContext& request) {
@@ -438,15 +531,16 @@ void MiLightHttpServer::handleSendRaw(RequestContext& request) {
   const String& hexPacket = requestBody["packet"];
   hexStrToBytes<uint8_t>(hexPacket.c_str(), hexPacket.length(), packet, MILIGHT_MAX_PACKET_LENGTH);
 
-  size_t numRepeats = MILIGHT_DEFAULT_RESEND_COUNT;
+  size_t numRepeats = settings.packetRepeats;
   if (requestBody.containsKey("num_repeats")) {
     numRepeats = requestBody["num_repeats"];
   }
 
-  milightClient->prepare(config, 0, 0);
+  packetSender->enqueue(packet, config, numRepeats);
 
-  for (size_t i = 0; i < numRepeats; i++) {
-    milightClient->write(packet);
+  // To make this response synchronous, wait for packet to be flushed
+  while (packetSender->isSending()) {
+    packetSender->loop();
   }
 
   request.response.json["success"] = true;
@@ -500,3 +594,73 @@ void MiLightHttpServer::handleServe_P(const char* data, size_t length) {
   server.client().stop();
 }
 
+void MiLightHttpServer::handleGetTransition(RequestContext& request) {
+  size_t id = atoi(request.pathVariables.get("id"));
+  auto transition = transitions.getTransition(id);
+
+  if (transition == nullptr) {
+    request.response.setCode(404);
+    request.response.json["error"] = "Not found";
+  } else {
+    JsonObject response = request.response.json.to<JsonObject>();
+    transition->serialize(response);
+  }
+}
+
+void MiLightHttpServer::handleDeleteTransition(RequestContext& request) {
+  size_t id = atoi(request.pathVariables.get("id"));
+  bool success = transitions.deleteTransition(id);
+
+  if (success) {
+    request.response.json["success"] = true;
+  } else {
+    request.response.setCode(404);
+    request.response.json["error"] = "Not found";
+  }
+}
+
+void MiLightHttpServer::handleListTransitions(RequestContext& request) {
+  auto current = transitions.getTransitions();
+  JsonArray transitions = request.response.json.to<JsonObject>().createNestedArray(F("transitions"));
+
+  while (current != nullptr) {
+    JsonObject json = transitions.createNestedObject();
+    current->data->serialize(json);
+    current = current->next;
+  }
+}
+
+void MiLightHttpServer::handleCreateTransition(RequestContext& request) {
+  JsonObject body = request.getJsonBody().as<JsonObject>();
+
+  if (! body.containsKey(GroupStateFieldNames::DEVICE_ID)
+    || ! body.containsKey(GroupStateFieldNames::GROUP_ID)
+    || ! body.containsKey(F("remote_type"))) {
+    char buffer[200];
+    sprintf_P(buffer, PSTR("Must specify required keys: device_id, group_id, remote_type"));
+
+    request.response.setCode(400);
+    request.response.json[F("error")] = buffer;
+    return;
+  }
+
+  const String _deviceId = body[GroupStateFieldNames::DEVICE_ID];
+  uint8_t _groupId = body[GroupStateFieldNames::GROUP_ID];
+  const MiLightRemoteConfig* _remoteType = MiLightRemoteConfig::fromType(body[F("remote_type")].as<const char*>());
+
+  if (_remoteType == nullptr) {
+    char buffer[40];
+    sprintf_P(buffer, PSTR("Unknown device type\n"));
+    request.response.setCode(400);
+    request.response.json[F("error")] = buffer;
+    return;
+  }
+
+  milightClient->prepare(_remoteType, parseInt<uint16_t>(_deviceId), _groupId);
+
+  if (milightClient->handleTransition(request.getJsonBody().as<JsonObject>(), request.response.json)) {
+    request.response.json[F("success")] = true;
+  } else {
+    request.response.setCode(400);
+  }
+}

@@ -4,6 +4,15 @@ GroupStateCache::GroupStateCache(const size_t maxSize)
   : maxSize(maxSize)
 { }
 
+GroupStateCache::~GroupStateCache() {
+  ListNode<GroupCacheNode*>* cur = cache.getHead();
+
+  while (cur != NULL) {
+    delete cur->data;
+    cur = cur->next;
+  }
+}
+
 GroupState* GroupStateCache::get(const BulbId& id) {
   return getInternal(id);
 }

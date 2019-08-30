@@ -14,7 +14,7 @@ def is_tool(name):
         check_output([cmd, "git"])
         return True
     except:
-        return False;
+        return False
 
 version = "UNKNOWN"
 
@@ -28,4 +28,4 @@ if is_tool("git"):
             pass
         pass
 
-sys.stdout.write("-DMILIGHT_HUB_VERSION=%s %s" % (version, ' '.join(sys.argv[1:])))
+sys.stdout.write("-DMILIGHT_HUB_VERSION=%s %s" % (version.decode('utf-8'), ' '.join(sys.argv[1:])))

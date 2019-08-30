@@ -1,6 +1,7 @@
 #include <FUT091PacketFormatter.h>
 #include <V2RFEncoding.h>
 #include <Units.h>
+#include <MiLightCommands.h>
 
 static const uint8_t BRIGHTNESS_SCALE_MAX = 0x97;
 static const uint8_t KELVIN_SCALE_MAX = 0xC5;
@@ -34,20 +35,20 @@ BulbId FUT091PacketFormatter::parsePacket(const uint8_t *packet, JsonObject resu
 
   if (command == (uint8_t)FUT091Command::ON_OFF) {
     if ((packetCopy[V2_COMMAND_INDEX] & 0x80) == 0x80) {
-      result["command"] = "night_mode";
+      result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::NIGHT_MODE;
     } else if (arg < 5) { // Group is not reliably encoded in group byte. Extract from arg byte
-      result["state"] = "ON";
+      result[GroupStateFieldNames::STATE] = "ON";
       bulbId.groupId = arg;
     } else {
-      result["state"] = "OFF";
+      result[GroupStateFieldNames::STATE] = "OFF";
       bulbId.groupId = arg-5;
     }
   } else if (command == (uint8_t)FUT091Command::BRIGHTNESS) {
     uint8_t level = V2PacketFormatter::fromv2scale(arg, BRIGHTNESS_SCALE_MAX, 2, true);
-    result["brightness"] = Units::rescale<uint8_t, uint8_t>(level, 255, 100);
+    result[GroupStateFieldNames::BRIGHTNESS] = Units::rescale<uint8_t, uint8_t>(level, 255, 100);
   } else if (command == (uint8_t)FUT091Command::KELVIN) {
     uint8_t kelvin = V2PacketFormatter::fromv2scale(arg, KELVIN_SCALE_MAX, 2, false);
-    result["color_temp"] = Units::whiteValToMireds(kelvin, 100);
+    result[GroupStateFieldNames::COLOR_TEMP] = Units::whiteValToMireds(kelvin, 100);
   } else {
     result["button_id"] = command;
     result["argument"] = arg;

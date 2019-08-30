@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+
+# This script sets up API documentation bundles for deployment to Github Pages.
+# It expects the following structure:
+#
+# In development branches:
+#
+#   * ./docs/openapi.yaml - OpenAPI spec in
+#   * ./docs/gh-pages     - Any assets that should be copied to gh-pages root
+#
+# In Github Pages, it will generate:
+#
+#   * ./                      - Files from ./docs/gh-pages will be copied
+#   * ./branches/<branch>/... - Deployment bundles including an index.html
+#                               and a snapshot of the Open API spec.
+
+set -eo pipefail
+
+prepare_docs_log() {
+  echo "[prepare docs release] -- $@"
+}
+
+# Only run for tagged commits
+if [ -z "$(git tag -l --points-at HEAD)" ]; then
+  prepare_docs_log "Skipping non-tagged commit."
+  exit 0
+fi
+
+DOCS_DIR="./docs"
+DIST_DIR="./dist/docs"
+BRANCHES_DIR="${DIST_DIR}/branches"
+API_SPEC_FILE="${DOCS_DIR}/openapi.yaml"
+
+rm -rf "${DIST_DIR}"
+
+redoc_bundle_file=$(mktemp)
+git_ref_version=$(git describe --always)
+branch_docs_dir="${BRANCHES_DIR}/${git_ref_version}"
+
+# Build Redoc bundle (a single HTML file)
+redoc-cli bundle ${API_SPEC_FILE} -o ${redoc_bundle_file} --title 'Milight Hub API Documentation'
+
+# Check out current stuff from gh-pages (we'll append to it)
+git fetch origin 'refs/heads/gh-pages:refs/heads/gh-pages'
+git checkout gh-pages -- branches || prepare_docs_log "Failed to checkout branches from gh-pages, skipping..."
+
+if [ -e "./branches" ]; then
+  mkdir -p "${DIST_DIR}"
+  mv "./branches" "${BRANCHES_DIR}"
+else
+  mkdir -p "${BRANCHES_DIR}"
+fi
+
+if [ -e "${DOCS_DIR}/gh-pages" ]; then
+  cp -r ${DOCS_DIR}/gh-pages/* "${DIST_DIR}"
+else
+  prepare_docs_log "Skipping copy of gh-pages dir, doesn't exist"
+fi
+
+# Create the docs bundle for our ref.  This will be the redoc bundle + a
+# snapshot of the OpenAPI spec
+mkdir -p "${branch_docs_dir}"
+cp "${API_SPEC_FILE}" "${branch_docs_dir}"
+cp "${redoc_bundle_file}" "${branch_docs_dir}/index.html"
+
+# Update `latest` symlink to this branch
+rm -rf "${BRANCHES_DIR}/latest"
+ln -s "${git_ref_version}" "${BRANCHES_DIR}/latest"
+
+# Create a JSON file containing a list of all branches with docs (we'll
+# have an index page that renders the list).
+ls "${BRANCHES_DIR}" | jq -Rc '.' | jq -sc '.' > "${DIST_DIR}/branches.json"

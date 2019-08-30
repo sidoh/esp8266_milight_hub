@@ -5,7 +5,7 @@ module MqttHelpers
     ENV.fetch('ESPMH_MQTT_TOPIC_PREFIX')
   end
 
-  def mqtt_parameters
+  def mqtt_parameters(overrides = {})
     topic_prefix = mqtt_topic_prefix()
 
     {
@@ -15,17 +15,20 @@ module MqttHelpers
       mqtt_topic_pattern: "#{topic_prefix}commands/:device_id/:device_type/:group_id",
       mqtt_state_topic_pattern: "#{topic_prefix}state/:device_id/:device_type/:group_id",
       mqtt_update_topic_pattern: "#{topic_prefix}updates/:device_id/:device_type/:group_id"
-    }
+    }.merge(overrides)
   end
 
-  def create_mqtt_client
-    params = mqtt_parameters
+  def create_mqtt_client(overrides = {})
+    params =
+      mqtt_parameters
+      .merge({topic_prefix: mqtt_topic_prefix()})
+      .merge(overrides)
 
     MqttClient.new(
-      params[:mqtt_server],
+      ENV['ESPMH_LOCAL_MQTT_SERVER'] || params[:mqtt_server],
       params[:mqtt_username],
       params[:mqtt_password],
-      mqtt_topic_prefix()
+      params[:topic_prefix]
     )
   end
 end

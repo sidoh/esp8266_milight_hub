@@ -1,10 +1,12 @@
 require 'api_client'
 
-RSpec.describe 'State' do
+RSpec.describe 'MQTT' do
   before(:all) do
     @client = ApiClient.new(ENV.fetch('ESPMH_HOSTNAME'), ENV.fetch('ESPMH_TEST_DEVICE_ID_BASE'))
     @client.upload_json('/settings', 'settings.json')
+  end
 
+  before(:each) do
     mqtt_params = mqtt_parameters()
     @updates_topic = mqtt_params[:updates_topic]
     @topic_prefix = mqtt_topic_prefix()
@@ -13,9 +15,7 @@ RSpec.describe 'State' do
       '/settings',
       mqtt_params
     )
-  end
 
-  before(:each) do
     @id_params = {
       id: @client.generate_id,
       type: 'rgb_cct',
@@ -28,7 +28,7 @@ RSpec.describe 'State' do
 
   context 'deleting' do
     it 'should remove retained state' do
-      @client.patch_state(@id_params, status: 'ON')
+      @client.patch_state({status: 'ON'}, @id_params)
 
       seen_blank = false
 
@@ -45,7 +45,7 @@ RSpec.describe 'State' do
 
   context 'client status topic' do
     before(:all) do
-      @status_topic = "#{@topic_prefix}client_status"
+      @status_topic = "#{mqtt_topic_prefix()}client_status"
       @client.patch_settings(mqtt_client_status_topic: @status_topic)
     end
 
@@ -104,6 +104,10 @@ RSpec.describe 'State' do
       @client.patch_state({level: 50, status: 'off'}, @id_params)
 
       @mqtt_client.patch_state(@id_params, status: 'on', level: 70)
+
+      # wait for packet to be sent...
+      sleep(1)
+
       state = @client.get_state(@id_params)
 
       expect(state.keys).to      include(*%w(level status))
@@ -118,7 +122,7 @@ RSpec.describe 'State' do
       @client.patch_state({status: 'off'}, @id_params)
 
       @mqtt_client.on_state(@id_params) do |id, message|
-        seen_state = (id == @id_params && desired_state.all? { |k,v| v == message[k] })
+        seen_state = desired_state.all? { |k,v| v == message[k] }
       end
 
       @mqtt_client.patch_state(@id_params, desired_state)
@@ -187,7 +191,7 @@ RSpec.describe 'State' do
       avg = update_timestamp_gaps.sum / update_timestamp_gaps.length
 
       expect(update_timestamp_gaps.length).to be >= 3
-      expect((avg - 0.5).abs).to be < 0.02
+      expect((avg - 0.5).abs).to be < 0.15, "Should be within margin of error of rate limit"
     end
   end
 
@@ -283,7 +287,7 @@ RSpec.describe 'State' do
     end
   end
 
-  context ':hex_device_id for update/state topics' do
+  describe ':hex_device_id for update/state topics' do
     before(:all) do
       @client.put(
         '/settings',
@@ -300,36 +304,38 @@ RSpec.describe 'State' do
       )
     end
 
-    it 'should publish updates with hexadecimal device ID' do
-      seen_update = false
+    context 'state and updates' do
+      it 'should publish updates with hexadecimal device ID' do
+        seen_update = false
 
-      @mqtt_client.on_update(@id_params) do |id, message|
-        seen_update = (message['state'] == 'ON')
+        @mqtt_client.on_update(@id_params) do |id, message|
+          seen_update = (message['state'] == 'ON')
+        end
+
+        # Will use hex by default
+        @mqtt_client.patch_state(@id_params, status: 'ON')
+        @mqtt_client.wait_for_listeners
+
+        expect(seen_update).to eq(true)
       end
 
-      # Will use hex by default
-      @mqtt_client.patch_state(@id_params, status: 'ON')
-      @mqtt_client.wait_for_listeners
+      it 'should publish state with hexadecimal device ID' do
+        seen_state = false
 
-      expect(seen_update).to eq(true)
-    end
+        @mqtt_client.on_state(@id_params) do |id, message|
+          seen_state = (message['status'] == 'ON')
+        end
 
-    it 'should publish state with hexadecimal device ID' do
-      seen_state = false
+        # Will use hex by default
+        @mqtt_client.patch_state(@id_params, status: 'ON')
+        @mqtt_client.wait_for_listeners
 
-      @mqtt_client.on_state(@id_params) do |id, message|
-        seen_state = (message['status'] == 'ON')
+        expect(seen_state).to eq(true)
       end
-
-      # Will use hex by default
-      @mqtt_client.patch_state(@id_params, status: 'ON')
-      @mqtt_client.wait_for_listeners
-
-      expect(seen_state).to eq(true)
     end
   end
 
-  context ':dec_device_id for update/state topics' do
+  describe ':dec_device_id for update/state topics' do
     before(:all) do
       @client.put(
         '/settings',
@@ -346,34 +352,132 @@ RSpec.describe 'State' do
       )
     end
 
-    it 'should publish updates with hexadecimal device ID' do
-      seen_update = false
-      @id_params = @id_params.merge(id_format: 'decimal')
+    context 'state and updates' do
+      it 'should publish updates with hexadecimal device ID' do
+        seen_update = false
+        @id_params = @id_params.merge(id_format: 'decimal')
 
-      @mqtt_client.on_update(@id_params) do |id, message|
-        seen_update = (message['state'] == 'ON')
+        @mqtt_client.on_update(@id_params) do |id, message|
+          seen_update = (message['state'] == 'ON')
+        end
+
+        # Will use hex by default
+        @mqtt_client.patch_state(@id_params, status: 'ON')
+        @mqtt_client.wait_for_listeners
+
+        expect(seen_update).to eq(true)
       end
 
-      # Will use hex by default
-      @mqtt_client.patch_state(@id_params, status: 'ON')
-      @mqtt_client.wait_for_listeners
+      it 'should publish state with hexadecimal device ID' do
+        seen_state = false
+        @id_params = @id_params.merge(id_format: 'decimal')
 
-      expect(seen_update).to eq(true)
+        @mqtt_client.on_state(@id_params) do |id, message|
+          seen_state = (message['status'] == 'ON')
+        end
+
+        sleep 1
+
+        # Will use hex by default
+        @mqtt_client.patch_state(@id_params, status: 'ON')
+        @mqtt_client.wait_for_listeners
+
+        expect(seen_state).to eq(true)
+      end
+    end
+  end
+
+  describe 'device aliases' do
+    before(:each) do
+      @aliases_topic = "#{mqtt_topic_prefix()}commands/:device_alias"
+      @client.patch_settings(
+        mqtt_topic_pattern: @aliases_topic,
+        group_id_aliases: {
+          'test_group' => [@id_params[:type], @id_params[:id], @id_params[:group_id]]
+        }
+      )
+      @client.delete_state(@id_params)
     end
 
-    it 'should publish state with hexadecimal device ID' do
-      seen_state = false
-      @id_params = @id_params.merge(id_format: 'decimal')
+    context ':device_alias token' do
+      it 'should accept it for command topic' do
+        @client.patch_settings(mqtt_topic_pattern: @aliases_topic)
 
-      @mqtt_client.on_state(@id_params) do |id, message|
-        seen_state = (message['status'] == 'ON')
+        @mqtt_client.publish("#{mqtt_topic_prefix()}commands/test_group", status: 'ON')
+
+        sleep(1)
+
+        state = @client.get_state(@id_params)
+        expect(state['status']).to eq('ON')
       end
 
-      # Will use hex by default
-      @mqtt_client.patch_state(@id_params, status: 'ON')
-      @mqtt_client.wait_for_listeners
+      it 'should support publishing state to device alias topic' do
+        @client.patch_settings(
+          mqtt_topic_pattern: @aliases_topic,
+          mqtt_state_topic_pattern: "#{mqtt_topic_prefix()}state/:device_alias"
+        )
 
-      expect(seen_state).to eq(true)
+        seen_alias = nil
+        seen_state = nil
+
+        @mqtt_client.on_message("#{mqtt_topic_prefix()}state/+") do |topic, message|
+          parts = topic.split('/')
+
+          seen_alias = parts.last
+          seen_state = JSON.parse(message)
+
+          seen_alias == 'test_group'
+        end
+        @mqtt_client.publish("#{mqtt_topic_prefix()}commands/test_group", status: 'ON')
+
+        @mqtt_client.wait_for_listeners
+
+        expect(seen_alias).to eq('test_group')
+        expect(seen_state['status']).to eq('ON')
+      end
+
+      it 'should support publishing updates to device alias topic' do
+        @client.patch_settings(
+          mqtt_topic_pattern: @aliases_topic,
+          mqtt_update_topic_pattern: "#{mqtt_topic_prefix()}updates/:device_alias"
+        )
+
+        seen_alias = nil
+        seen_state = nil
+
+        @mqtt_client.on_message("#{mqtt_topic_prefix()}updates/+") do |topic, message|
+          parts = topic.split('/')
+
+          seen_alias = parts.last
+          seen_state = JSON.parse(message)
+
+          seen_alias == 'test_group'
+        end
+        @mqtt_client.publish("#{mqtt_topic_prefix()}commands/test_group", status: 'ON')
+
+        @mqtt_client.wait_for_listeners
+
+        expect(seen_alias).to eq('test_group')
+        expect(seen_state['state']).to eq('ON')
+      end
+
+      it 'should delete retained alias messages' do
+        seen_empty_message = false
+
+        @client.patch_settings(mqtt_state_topic_pattern: "#{mqtt_topic_prefix()}state/:device_alias")
+        @client.patch_state(@id_params, status: 'ON')
+
+        @mqtt_client.on_message("#{mqtt_topic_prefix()}state/test_group") do |topic, message|
+          seen_empty_message = message.empty?
+        end
+
+        @client.patch_state(@id_params, hue: 100)
+        @client.delete_state(@id_params)
+
+        @mqtt_client.wait_for_listeners
+
+        expect(seen_empty_message).to eq(true)
+      end
     end
   end
 end

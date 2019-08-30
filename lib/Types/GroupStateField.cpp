@@ -2,24 +2,25 @@
 #include <Size.h>
 
 static const char* STATE_NAMES[] = {
-  "unknown",
-  "state",
-  "status",
-  "brightness",
-  "level",
-  "hue",
-  "saturation",
-  "color",
-  "mode",
-  "kelvin",
-  "color_temp",
-  "bulb_mode",
-  "computed_color",
-  "effect",
-  "device_id",
-  "group_id",
-  "device_type",
-  "oh_color"
+  GroupStateFieldNames::UNKNOWN,
+  GroupStateFieldNames::STATE,
+  GroupStateFieldNames::STATUS,
+  GroupStateFieldNames::BRIGHTNESS,
+  GroupStateFieldNames::LEVEL,
+  GroupStateFieldNames::HUE,
+  GroupStateFieldNames::SATURATION,
+  GroupStateFieldNames::COLOR,
+  GroupStateFieldNames::MODE,
+  GroupStateFieldNames::KELVIN,
+  GroupStateFieldNames::COLOR_TEMP,
+  GroupStateFieldNames::BULB_MODE,
+  GroupStateFieldNames::COMPUTED_COLOR,
+  GroupStateFieldNames::EFFECT,
+  GroupStateFieldNames::DEVICE_ID,
+  GroupStateFieldNames::GROUP_ID,
+  GroupStateFieldNames::DEVICE_TYPE,
+  GroupStateFieldNames::OH_COLOR,
+  GroupStateFieldNames::HEX_COLOR
 };
 
 GroupStateField GroupStateFieldHelpers::getFieldByName(const char* name) {
@@ -38,4 +39,14 @@ const char* GroupStateFieldHelpers::getFieldName(GroupStateField field) {
     }
   }
   return STATE_NAMES[0];
+}
+
+bool GroupStateFieldHelpers::isBrightnessField(GroupStateField field) {
+  switch (field) {
+    case GroupStateField::BRIGHTNESS:
+    case GroupStateField::LEVEL:
+      return true;
+    default:
+      return false;
+  }
 }

@@ -4,152 +4,105 @@
 #include <RGBConverter.h>
 #include <Units.h>
 #include <TokenIterator.h>
+#include <ParsedColor.h>
+#include <MiLightCommands.h>
+#include <functional>
+
+using namespace std::placeholders;
+
+static const uint8_t STATUS_UNDEFINED = 255;
+
+const char* MiLightClient::FIELD_ORDERINGS[] = {
+  // These are handled manually
+  // GroupStateFieldNames::STATE,
+  // GroupStateFieldNames::STATUS,
+  GroupStateFieldNames::HUE,
+  GroupStateFieldNames::SATURATION,
+  GroupStateFieldNames::KELVIN,
+  GroupStateFieldNames::TEMPERATURE,
+  GroupStateFieldNames::COLOR_TEMP,
+  GroupStateFieldNames::MODE,
+  GroupStateFieldNames::EFFECT,
+  GroupStateFieldNames::COLOR,
+  // Level/Brightness must be processed last because they're specific to a particular bulb mode.
+  // So make sure bulb mode is set before applying level/brightness.
+  GroupStateFieldNames::LEVEL,
+  GroupStateFieldNames::BRIGHTNESS,
+  GroupStateFieldNames::COMMAND,
+  GroupStateFieldNames::COMMANDS
+};
+
+const std::map<const char*, std::function<void(MiLightClient*, JsonVariant)>, MiLightClient::cmp_str> MiLightClient::FIELD_SETTERS = {
+  {
+    GroupStateFieldNames::STATUS,
+    [](MiLightClient* client, JsonVariant val) {
+      client->updateStatus(parseMilightStatus(val));
+    }
+  },
+  {GroupStateFieldNames::LEVEL, &MiLightClient::updateBrightness},
+  {
+    GroupStateFieldNames::BRIGHTNESS,
+    [](MiLightClient* client, uint16_t arg) {
+      client->updateBrightness(Units::rescale<uint16_t, uint16_t>(arg, 100, 255));
+    }
+  },
+  {GroupStateFieldNames::HUE, &MiLightClient::updateHue},
+  {GroupStateFieldNames::SATURATION, &MiLightClient::updateSaturation},
+  {GroupStateFieldNames::KELVIN, &MiLightClient::updateTemperature},
+  {GroupStateFieldNames::TEMPERATURE, &MiLightClient::updateTemperature},
+  {
+    GroupStateFieldNames::COLOR_TEMP,
+    [](MiLightClient* client, uint16_t arg) {
+      client->updateTemperature(Units::miredsToWhiteVal(arg, 100));
+    }
+  },
+  {GroupStateFieldNames::MODE, &MiLightClient::updateMode},
+  {GroupStateFieldNames::COLOR, &MiLightClient::updateColor},
+  {GroupStateFieldNames::EFFECT, &MiLightClient::handleEffect},
+  {GroupStateFieldNames::COMMAND, &MiLightClient::handleCommand},
+  {GroupStateFieldNames::COMMANDS, &MiLightClient::handleCommands}
+};
 
 MiLightClient::MiLightClient(
-  std::shared_ptr<MiLightRadioFactory> radioFactory,
+  RadioSwitchboard& radioSwitchboard,
+  PacketSender& packetSender,
   GroupStateStore* stateStore,
-  Settings* settings
-)
-  : currentRadio(NULL),
-    currentRemote(NULL),
-    packetSentHandler(NULL),
-    updateBeginHandler(NULL),
-    updateEndHandler(NULL),
-    stateStore(stateStore),
-    settings(settings),
-    lastSend(0),
-    baseResendCount(MILIGHT_DEFAULT_RESEND_COUNT)
-{
-  for (size_t i = 0; i < MiLightRadioConfig::NUM_CONFIGS; i++) {
-    radios.push_back(radioFactory->create(MiLightRadioConfig::ALL_CONFIGS[i]));
-  }
-}
-
-void MiLightClient::begin() {
-  for (size_t i = 0; i < radios.size(); i++) {
-    radios[i]->begin();
-  }
-
-  switchRadio(static_cast<size_t>(0));
-
-  // Little gross to do this here as it's relying on global state.  A better alternative
-  // would be to statically construct remote config factories which take in a stateStore
-  // and settings pointer.  The objects could then be initialized by calling the factory
-  // in main.
-  for (size_t i = 0; i < MiLightRemoteConfig::NUM_REMOTES; i++) {
-    MiLightRemoteConfig::ALL_REMOTES[i]->packetFormatter->initialize(stateStore, settings);
-  }
-}
+  Settings& settings,
+  TransitionController& transitions
+) : radioSwitchboard(radioSwitchboard)
+  , updateBeginHandler(NULL)
+  , updateEndHandler(NULL)
+  , stateStore(stateStore)
+  , settings(settings)
+  , packetSender(packetSender)
+  , transitions(transitions)
+  , repeatsOverride(0)
+{ }
 
 void MiLightClient::setHeld(bool held) {
   currentRemote->packetFormatter->setHeld(held);
 }
 
-size_t MiLightClient::getNumRadios() const {
-  return radios.size();
-}
-
-std::shared_ptr<MiLightRadio> MiLightClient::switchRadio(size_t radioIx) {
-  if (radioIx >= getNumRadios()) {
-    return NULL;
-  }
-
-  if (this->currentRadio != radios[radioIx]) {
-    this->currentRadio = radios[radioIx];
-    this->currentRadio->configure();
-  }
-
-  return this->currentRadio;
-}
-
-std::shared_ptr<MiLightRadio> MiLightClient::switchRadio(const MiLightRemoteConfig* remoteConfig) {
-  std::shared_ptr<MiLightRadio> radio = NULL;
-
-  for (size_t i = 0; i < radios.size(); i++) {
-    if (&this->radios[i]->config() == &remoteConfig->radioConfig) {
-      radio = switchRadio(i);
-      break;
-    }
-  }
-
-  return radio;
-}
-
-void MiLightClient::prepare(const MiLightRemoteConfig* config,
+void MiLightClient::prepare(
+  const MiLightRemoteConfig* config,
   const uint16_t deviceId,
   const uint8_t groupId
 ) {
-  switchRadio(config);
-
   this->currentRemote = config;
 
   if (deviceId >= 0 && groupId >= 0) {
     currentRemote->packetFormatter->prepare(deviceId, groupId);
   }
+
+  this->currentState = stateStore->get(deviceId, groupId, config->type);
 }
 
-void MiLightClient::prepare(const MiLightRemoteType type,
+void MiLightClient::prepare(
+  const MiLightRemoteType type,
   const uint16_t deviceId,
   const uint8_t groupId
 ) {
   prepare(MiLightRemoteConfig::fromType(type), deviceId, groupId);
-}
-
-void MiLightClient::setResendCount(const unsigned int resendCount) {
-  this->baseResendCount = resendCount;
-  this->currentResendCount = resendCount;
-  this->throttleMultiplier = ceil((settings->packetRepeatThrottleSensitivity / 1000.0) * this->baseResendCount);
-}
-
-bool MiLightClient::available() {
-  if (currentRadio == NULL) {
-    return false;
-  }
-
-  return currentRadio->available();
-}
-
-size_t MiLightClient::read(uint8_t packet[]) {
-  if (currentRadio == NULL) {
-    return 0;
-  }
-
-  size_t length;
-  currentRadio->read(packet, length);
-
-  return length;
-}
-
-void MiLightClient::write(uint8_t packet[]) {
-  if (currentRadio == NULL) {
-    return;
-  }
-
-#ifdef DEBUG_PRINTF
-  Serial.printf_P(PSTR("Sending packet (%d repeats): \n"), this->currentResendCount);
-  for (int i = 0; i < currentRemote->packetFormatter->getPacketLength(); i++) {
-    Serial.printf_P(PSTR("%02X "), packet[i]);
-  }
-  Serial.println();
-  int iStart = millis();
-#endif
-
-  // send the packet out (multiple times for "reliability")
-  for (int i = 0; i < this->currentResendCount; i++) {
-    currentRadio->write(packet, currentRemote->packetFormatter->getPacketLength());
-  }
-
-  // if we have a packetSendHandler defined (see MiLightClient::onPacketSent), call it now that
-  // the packet has been dispatched
-  if (this->packetSentHandler) {
-    this->packetSentHandler(packet, *currentRemote);
-  }
-
-#ifdef DEBUG_PRINTF
-  int iElapsed = millis() - iStart;
-  Serial.print("Elapsed: ");
-  Serial.println(iElapsed);
-#endif
 }
 
 void MiLightClient::updateColorRaw(const uint8_t color) {
@@ -327,117 +280,102 @@ void MiLightClient::toggleStatus() {
   flushPacket();
 }
 
+void MiLightClient::updateColor(JsonVariant json) {
+  ParsedColor color = ParsedColor::fromJson(json);
+
+  if (!color.success) {
+    Serial.println(F("Error parsing color field, unrecognized format"));
+    return;
+  }
+
+  // We consider an RGB color "white" if all color intensities are roughly the
+  // same value.  An unscientific value of 10 (~4%) is chosen.
+  if ( abs(color.r - color.g) < RGB_WHITE_THRESHOLD
+    && abs(color.g - color.b) < RGB_WHITE_THRESHOLD
+    && abs(color.r - color.b) < RGB_WHITE_THRESHOLD) {
+      this->updateColorWhite();
+  } else {
+    this->updateHue(color.hue);
+    this->updateSaturation(color.saturation);
+  }
+}
+
 void MiLightClient::update(JsonObject request) {
   if (this->updateBeginHandler) {
     this->updateBeginHandler();
   }
 
-  const uint8_t parsedStatus = this->parseStatus(request);
+  const JsonVariant status = this->extractStatus(request);
+  const uint8_t parsedStatus = this->parseStatus(status);
+  const JsonVariant jsonTransition = request[RequestKeys::TRANSITION];
+  float transition = 0;
+
+  if (!jsonTransition.isNull()) {
+    if (jsonTransition.is<float>()) {
+      transition = jsonTransition.as<float>();
+    } else if (jsonTransition.is<size_t>()) {
+      transition = jsonTransition.as<size_t>();
+    } else {
+      Serial.println(F("MiLightClient - WARN: unsupported transition type.  Must be float or int."));
+    }
+  }
+
+  JsonVariant brightness = request[GroupStateFieldNames::BRIGHTNESS];
+  JsonVariant level = request[GroupStateFieldNames::LEVEL];
+  const bool isBrightnessDefined = !brightness.isUndefined() || !level.isUndefined();
 
   // Always turn on first
   if (parsedStatus == ON) {
-    this->updateStatus(ON);
-  }
+    if (transition == 0) {
+      this->updateStatus(ON);
+    }
+    // Don't do an "On" transition if the bulb is already on.  The reasons for this are:
+    //   * Ambiguous what the behavior should be.  Should it ramp to full brightness?
+    //   * HomeAssistant is only capable of sending transitions via the `light.turn_on`
+    //     service call, which ends up sending `{"status":"ON"}`.  So transitions which
+    //     have nothing to do with the status will include an "ON" command.
+    // If the user wants to transition brightness, they can just specify a brightness in
+    // the same command.  This avoids the need to make arbitrary calls on what the
+    // behavior should be.
+    else if (!currentState->isSetState() || !currentState->isOn()) {
+      // If a brightness is defined, we'll want to transition to that.  Status
+      // transitions only ramp up/down to the max/min.  Otherwise, just turn the bulb on
+      // and let field transitions handle the rest.
+      if (!isBrightnessDefined) {
+        handleTransition(GroupStateField::STATUS, status, transition, 0);
+      } else {
+        this->updateStatus(ON);
 
-  if (request.containsKey("command")) {
-    this->handleCommand(request["command"]);
-  }
-
-  if (request.containsKey("commands")) {
-    JsonArray commands = request["commands"];
-
-    if (! commands.isNull()) {
-      for (size_t i = 0; i < commands.size(); i++) {
-        this->handleCommand(commands[i].as<const char*>());
+        if (! brightness.isUndefined()) {
+          handleTransition(GroupStateField::BRIGHTNESS, brightness, transition, 0);
+        } else if (! level.isUndefined()) {
+          handleTransition(GroupStateField::LEVEL, level, transition, 0);
+        }
       }
     }
   }
 
-  //Homeassistant - Handle effect
-  if (request.containsKey("effect")) {
-    this->handleEffect(request["effect"]);
-  }
+  for (const char* fieldName : FIELD_ORDERINGS) {
+    if (request.containsKey(fieldName)) {
+      auto handler = FIELD_SETTERS.find(fieldName);
+      JsonVariant value = request[fieldName];
 
-  if (request.containsKey("hue")) {
-    this->updateHue(request["hue"]);
-  }
-  if (request.containsKey("saturation")) {
-    this->updateSaturation(request["saturation"]);
-  }
+      if (handler != FIELD_SETTERS.end()) {
+        // No transition -- set field directly
+        if (transition == 0) {
+          handler->second(this, value);
+        } else {
+          GroupStateField field = GroupStateFieldHelpers::getFieldByName(fieldName);
 
-  // Convert RGB to HSV
-  if (request.containsKey("color")) {
-    uint16_t r, g, b;
-
-    if (request["color"].is<JsonObject>()) {
-      JsonObject color = request["color"];
-
-      r = color["r"];
-      g = color["g"];
-      b = color["b"];
-    } else if (request["color"].is<const char*>()) {
-      String colorStr = request["color"];
-      char colorCStr[colorStr.length()];
-      uint8_t parsedRgbColors[3] = {0, 0, 0};
-
-      strcpy(colorCStr, colorStr.c_str());
-      TokenIterator colorValueItr(colorCStr, strlen(colorCStr), ',');
-
-      for (size_t i = 0; i < 3 && colorValueItr.hasNext(); ++i) {
-        parsedRgbColors[i] = atoi(colorValueItr.nextToken());
+          if (   !GroupStateFieldHelpers::isBrightnessField(field)  // If field isn't brightness
+               || parsedStatus == STATUS_UNDEFINED                  // or if there was not a status field
+               || currentState->isOn()                              // or if bulb was already on
+          ) {
+            handleTransition(field, value, transition);
+          }
+        }
       }
-
-      r = parsedRgbColors[0];
-      g = parsedRgbColors[1];
-      b = parsedRgbColors[2];
-    } else {
-      Serial.println(F("Unknown format for `color' command"));
-      return;
     }
-
-    // We consider an RGB color "white" if all color intensities are roughly the
-    // same value.  An unscientific value of 10 (~4%) is chosen.
-    if ( abs(r - g) < RGB_WHITE_THRESHOLD
-      && abs(g - b) < RGB_WHITE_THRESHOLD
-      && abs(r - b) < RGB_WHITE_THRESHOLD) {
-        this->updateColorWhite();
-    } else {
-      double hsv[3];
-      RGBConverter converter;
-      converter.rgbToHsv(r, g, b, hsv);
-
-      uint16_t hue = round(hsv[0]*360);
-      uint8_t saturation = round(hsv[1]*100);
-
-      this->updateHue(hue);
-      this->updateSaturation(saturation);
-    }
-  }
-
-  if (request.containsKey("level")) {
-    this->updateBrightness(request["level"]);
-  }
-  // HomeAssistant
-  if (request.containsKey("brightness")) {
-    uint8_t scaledBrightness = Units::rescale(request["brightness"].as<uint8_t>(), 100, 255);
-    this->updateBrightness(scaledBrightness);
-  }
-
-  if (request.containsKey("temperature")) {
-    this->updateTemperature(request["temperature"]);
-  }
-  if (request.containsKey("kelvin")) {
-    this->updateTemperature(request["kelvin"]);
-  }
-  // HomeAssistant
-  if (request.containsKey("color_temp")) {
-    this->updateTemperature(
-      Units::miredsToWhiteVal(request["color_temp"], 100)
-    );
-  }
-
-  if (request.containsKey("mode")) {
-    this->updateMode(request["mode"]);
   }
 
   // Raw packet command/args
@@ -447,7 +385,11 @@ void MiLightClient::update(JsonObject request) {
 
   // Always turn off last
   if (parsedStatus == OFF) {
-    this->updateStatus(OFF);
+    if (transition == 0) {
+      this->updateStatus(OFF);
+    } else {
+      handleTransition(GroupStateField::STATUS, status, transition);
+    }
   }
 
   if (this->updateEndHandler) {
@@ -455,38 +397,224 @@ void MiLightClient::update(JsonObject request) {
   }
 }
 
-void MiLightClient::handleCommand(const String& command) {
-  if (command == "unpair") {
-    this->unpair();
-  } else if (command == "pair") {
-    this->pair();
-  } else if (command == "set_white") {
-    this->updateColorWhite();
-  } else if (command == "night_mode") {
-    this->enableNightMode();
-  } else if (command == "level_up") {
-    this->increaseBrightness();
-  } else if (command == "level_down") {
-    this->decreaseBrightness();
-  } else if (command == "temperature_up") {
-    this->increaseTemperature();
-  } else if (command == "temperature_down") {
-    this->decreaseTemperature();
-  } else if (command == "next_mode") {
-    this->nextMode();
-  } else if (command == "previous_mode") {
-    this->previousMode();
-  } else if (command == "mode_speed_down") {
-    this->modeSpeedDown();
-  } else if (command == "mode_speed_up") {
-    this->modeSpeedUp();
-  } else if (command == "toggle") {
-    this->toggleStatus();
+void MiLightClient::handleCommands(JsonArray commands) {
+  if (! commands.isNull()) {
+    for (size_t i = 0; i < commands.size(); i++) {
+      this->handleCommand(commands[i]);
+    }
   }
 }
 
+void MiLightClient::handleCommand(JsonVariant command) {
+  String cmdName;
+  JsonObject args;
+
+  if (command.is<JsonObject>()) {
+    JsonObject cmdObj = command.as<JsonObject>();
+    cmdName = cmdObj[GroupStateFieldNames::COMMAND].as<const char*>();
+    args = cmdObj["args"];
+  } else if (command.is<const char*>()) {
+    cmdName = command.as<const char*>();
+  }
+
+  if (cmdName == MiLightCommandNames::UNPAIR) {
+    this->unpair();
+  } else if (cmdName == MiLightCommandNames::PAIR) {
+    this->pair();
+  } else if (cmdName == MiLightCommandNames::SET_WHITE) {
+    this->updateColorWhite();
+  } else if (cmdName == MiLightCommandNames::NIGHT_MODE) {
+    this->enableNightMode();
+  } else if (cmdName == MiLightCommandNames::LEVEL_UP) {
+    this->increaseBrightness();
+  } else if (cmdName == MiLightCommandNames::LEVEL_DOWN) {
+    this->decreaseBrightness();
+  } else if (cmdName == MiLightCommandNames::TEMPERATURE_UP) {
+    this->increaseTemperature();
+  } else if (cmdName == MiLightCommandNames::TEMPERATURE_DOWN) {
+    this->decreaseTemperature();
+  } else if (cmdName == MiLightCommandNames::NEXT_MODE) {
+    this->nextMode();
+  } else if (cmdName == MiLightCommandNames::PREVIOUS_MODE) {
+    this->previousMode();
+  } else if (cmdName == MiLightCommandNames::MODE_SPEED_DOWN) {
+    this->modeSpeedDown();
+  } else if (cmdName == MiLightCommandNames::MODE_SPEED_UP) {
+    this->modeSpeedUp();
+  } else if (cmdName == MiLightCommandNames::TOGGLE) {
+    this->toggleStatus();
+  } else if (cmdName == MiLightCommandNames::TRANSITION) {
+    StaticJsonDocument<100> fakedoc;
+    this->handleTransition(args, fakedoc);
+  }
+}
+
+void MiLightClient::handleTransition(GroupStateField field, JsonVariant value, float duration, int16_t startValue) {
+  BulbId bulbId = currentRemote->packetFormatter->currentBulbId();
+  std::shared_ptr<Transition::Builder> transitionBuilder = nullptr;
+
+  if (currentState == nullptr) {
+    Serial.println(F("Error planning transition: could not find current bulb state."));
+    return;
+  }
+
+  if (!currentState->isSetField(field)) {
+    Serial.println(F("Error planning transition: current state for field could not be determined"));
+    return;
+  }
+
+  if (field == GroupStateField::COLOR) {
+    ParsedColor currentColor = currentState->getColor();
+    ParsedColor endColor = ParsedColor::fromJson(value);
+
+    transitionBuilder = transitions.buildColorTransition(
+      bulbId,
+      currentColor,
+      endColor
+    );
+  } else if (field == GroupStateField::STATUS || field == GroupStateField::STATE) {
+    uint8_t startLevel;
+    MiLightStatus status = parseMilightStatus(value);
+
+    if (startValue == FETCH_VALUE_FROM_STATE || currentState->isOn()) {
+      startLevel = currentState->getBrightness();
+    } else {
+      startLevel = startValue;
+    }
+
+    transitionBuilder = transitions.buildStatusTransition(bulbId, status, startLevel);
+  } else {
+    uint16_t currentValue;
+    uint16_t endValue = value;
+
+    if (startValue == FETCH_VALUE_FROM_STATE || currentState->isOn()) {
+      currentValue = currentState->getParsedFieldValue(field);
+    } else {
+      currentValue = startValue;
+    }
+
+    transitionBuilder = transitions.buildFieldTransition(
+      bulbId,
+      field,
+      currentValue,
+      endValue
+    );
+  }
+
+  if (transitionBuilder == nullptr) {
+    Serial.printf_P(PSTR("Unsupported transition field: %s\n"), GroupStateFieldHelpers::getFieldName(field));
+    return;
+  }
+
+  transitionBuilder->setDuration(duration);
+  transitions.addTransition(transitionBuilder->build());
+}
+
+bool MiLightClient::handleTransition(JsonObject args, JsonDocument& responseObj) {
+  if (! args.containsKey(FS(TransitionParams::FIELD))
+    || ! args.containsKey(FS(TransitionParams::END_VALUE))) {
+    responseObj[F("error")] = F("Ignoring transition missing required arguments");
+    return false;
+  }
+
+  const BulbId& bulbId = currentRemote->packetFormatter->currentBulbId();
+  const char* fieldName = args[FS(TransitionParams::FIELD)];
+  JsonVariant startValue = args[FS(TransitionParams::START_VALUE)];
+  JsonVariant endValue = args[FS(TransitionParams::END_VALUE)];
+  GroupStateField field = GroupStateFieldHelpers::getFieldByName(fieldName);
+  std::shared_ptr<Transition::Builder> transitionBuilder = nullptr;
+
+  if (field == GroupStateField::UNKNOWN) {
+    char errorMsg[30];
+    sprintf_P(errorMsg, PSTR("Unknown transition field: %s\n"), fieldName);
+    responseObj[F("error")] = errorMsg;
+    return false;
+  }
+
+  // These fields can be transitioned directly.
+  switch (field) {
+    case GroupStateField::HUE:
+    case GroupStateField::SATURATION:
+    case GroupStateField::BRIGHTNESS:
+    case GroupStateField::LEVEL:
+    case GroupStateField::KELVIN:
+    case GroupStateField::COLOR_TEMP:
+
+      transitionBuilder = transitions.buildFieldTransition(
+        bulbId,
+        field,
+        startValue.isUndefined()
+          ? currentState->getParsedFieldValue(field)
+          : startValue.as<uint16_t>(),
+        endValue
+      );
+      break;
+
+    default:
+      break;
+  }
+
+  // Color can be decomposed into hue/saturation and these can be transitioned separately
+  if (field == GroupStateField::COLOR) {
+    ParsedColor _startValue = startValue.isUndefined()
+      ? currentState->getColor()
+      : ParsedColor::fromJson(startValue);
+    ParsedColor endColor = ParsedColor::fromJson(endValue);
+
+    if (! _startValue.success) {
+      responseObj[F("error")] = F("Transition - error parsing start color");
+      return false;
+    }
+    if (! endColor.success) {
+      responseObj[F("error")] = F("Transition - error parsing end color");
+      return false;
+    }
+
+    transitionBuilder = transitions.buildColorTransition(
+      bulbId,
+      _startValue,
+      endColor
+    );
+  }
+
+  // Status is handled a little differently
+  if (field == GroupStateField::STATUS || field == GroupStateField::STATE) {
+    MiLightStatus toStatus = parseMilightStatus(endValue);
+    uint8_t startLevel;
+    if (currentState->isSetBrightness()) {
+      startLevel = currentState->getBrightness();
+    } else if (toStatus == ON) {
+      startLevel = 0;
+    } else {
+      startLevel = 100;
+    }
+
+    transitionBuilder = transitions.buildStatusTransition(bulbId, toStatus, startLevel);
+  }
+
+  if (transitionBuilder == nullptr) {
+    char errorMsg[30];
+    sprintf_P(errorMsg, PSTR("Recognized, but unsupported transition field: %s\n"), fieldName);
+    responseObj[F("error")] = errorMsg;
+    return false;
+  }
+
+  if (args.containsKey(FS(TransitionParams::DURATION))) {
+    transitionBuilder->setDuration(args[FS(TransitionParams::DURATION)]);
+  }
+  if (args.containsKey(FS(TransitionParams::PERIOD))) {
+    transitionBuilder->setPeriod(args[FS(TransitionParams::PERIOD)]);
+  }
+  if (args.containsKey(FS(TransitionParams::NUM_PERIODS))) {
+    transitionBuilder->setNumPeriods(args[FS(TransitionParams::NUM_PERIODS)]);
+  }
+
+  transitions.addTransition(transitionBuilder->build());
+  return true;
+}
+
 void MiLightClient::handleEffect(const String& effect) {
-  if (effect == "night_mode") {
+  if (effect == MiLightCommandNames::NIGHT_MODE) {
     this->enableNightMode();
   } else if (effect == "white" || effect == "white_mode") {
     this->updateColorWhite();
@@ -495,59 +623,40 @@ void MiLightClient::handleEffect(const String& effect) {
   }
 }
 
-uint8_t MiLightClient::parseStatus(JsonObject object) {
+JsonVariant MiLightClient::extractStatus(JsonObject object) {
   JsonVariant status;
 
-  if (object.containsKey("status")) {
-    status = object["status"];
-  } else if (object.containsKey("state")) {
-    status = object["state"];
+  if (object.containsKey(FS(GroupStateFieldNames::STATUS))) {
+    return object[FS(GroupStateFieldNames::STATUS)];
   } else {
-    return 255;
-  }
-
-  if (status.is<bool>()) {
-    return status.as<bool>() ? ON : OFF;
-  } else {
-    String strStatus(status.as<const char*>());
-    return (strStatus.equalsIgnoreCase("on") || strStatus.equalsIgnoreCase("true")) ? ON : OFF;
+    return object[FS(GroupStateFieldNames::STATE)];
   }
 }
 
-void MiLightClient::updateResendCount() {
-  unsigned long now = millis();
-  long millisSinceLastSend = now - lastSend;
-  long x = (millisSinceLastSend - settings->packetRepeatThrottleThreshold);
-  long delta = x * throttleMultiplier;
+uint8_t MiLightClient::parseStatus(JsonVariant val) {
+  if (val.isUndefined()) {
+    return STATUS_UNDEFINED;
+  }
 
-  this->currentResendCount = constrain(
-    static_cast<size_t>(this->currentResendCount + delta),
-    settings->packetRepeatMinimum,
-    this->baseResendCount
-  );
-  this->lastSend = now;
+  return parseMilightStatus(val);
+}
+
+void MiLightClient::setRepeatsOverride(size_t repeats) {
+  this->repeatsOverride = repeats;
+}
+
+void MiLightClient::clearRepeatsOverride() {
+  this->repeatsOverride = PacketSender::DEFAULT_PACKET_SENDS_VALUE;
 }
 
 void MiLightClient::flushPacket() {
   PacketStream& stream = currentRemote->packetFormatter->buildPackets();
-  updateResendCount();
 
   while (stream.hasNext()) {
-    write(stream.next());
-
-    if (stream.hasNext()) {
-      delay(10);
-    }
+    packetSender.enqueue(stream.next(), currentRemote, repeatsOverride);
   }
 
   currentRemote->packetFormatter->reset();
-}
-
-/*
-  Register a callback for when packets are sent
-*/
-void MiLightClient::onPacketSent(PacketSentHandler handler) {
-  this->packetSentHandler = handler;
 }
 
 void MiLightClient::onUpdateBegin(EventHandler handler) {

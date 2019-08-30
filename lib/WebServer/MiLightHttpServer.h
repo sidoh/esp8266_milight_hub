@@ -3,6 +3,9 @@
 #include <Settings.h>
 #include <WebSocketsServer.h>
 #include <GroupStateStore.h>
+#include <RadioSwitchboard.h>
+#include <PacketSender.h>
+#include <TransitionController.h>
 
 #ifndef _MILIGHT_HTTP_SERVER
 #define _MILIGHT_HTTP_SERVER
@@ -20,7 +23,14 @@ const char APPLICATION_JSON[] = "application/json";
 
 class MiLightHttpServer {
 public:
-  MiLightHttpServer(Settings& settings, MiLightClient*& milightClient, GroupStateStore*& stateStore)
+  MiLightHttpServer(
+    Settings& settings,
+    MiLightClient*& milightClient,
+    GroupStateStore*& stateStore,
+    PacketSender*& packetSender,
+    RadioSwitchboard*& radios,
+    TransitionController& transitions
+  )
     : authProvider(settings)
     , server(80, authProvider)
     , wsServer(WebSocketsServer(81))
@@ -28,6 +38,9 @@ public:
     , milightClient(milightClient)
     , settings(settings)
     , stateStore(stateStore)
+    , packetSender(packetSender)
+    , radios(radios)
+    , transitions(transitions)
   { }
 
   void begin();
@@ -57,9 +70,22 @@ protected:
   void handleFirmwarePost();
   void handleListenGateway(RequestContext& request);
   void handleSendRaw(RequestContext& request);
+
   void handleUpdateGroup(RequestContext& request);
-  void handleDeleteGroup(RequestContext& request);
+  void handleUpdateGroupAlias(RequestContext& request);
+
   void handleGetGroup(RequestContext& request);
+  void handleGetGroupAlias(RequestContext& request);
+  void _handleGetGroup(BulbId bulbId, RequestContext& request);
+
+  void handleDeleteGroup(RequestContext& request);
+  void handleDeleteGroupAlias(RequestContext& request);
+  void _handleDeleteGroup(BulbId bulbId, RequestContext& request);
+
+  void handleGetTransition(RequestContext& request);
+  void handleDeleteTransition(RequestContext& request);
+  void handleCreateTransition(RequestContext& request);
+  void handleListTransitions(RequestContext& request);
 
   void handleRequest(const JsonObject& request);
   void handleWsEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length);
@@ -76,6 +102,9 @@ protected:
   SettingsSavedHandler settingsSavedHandler;
   GroupDeletedHandler groupDeletedHandler;
   ESP8266WebServer::THandlerFunction _handleRootPage;
+  PacketSender*& packetSender;
+  RadioSwitchboard*& radios;
+  TransitionController& transitions;
 
 };
 

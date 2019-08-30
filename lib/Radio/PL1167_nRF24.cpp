@@ -11,89 +11,67 @@
  */
 
 #include "PL1167_nRF24.h"
+#include <RadioUtils.h>
+#include <MiLightRadioConfig.h>
 
 static uint16_t calc_crc(uint8_t *data, size_t data_length);
-static uint8_t reverse_bits(uint8_t data);
 
 PL1167_nRF24::PL1167_nRF24(RF24 &radio)
   : _radio(radio)
 { }
 
-int PL1167_nRF24::open()
-{
+int PL1167_nRF24::open() {
   _radio.begin();
   _radio.setAutoAck(false);
   _radio.setDataRate(RF24_1MBPS);
   _radio.disableCRC();
 
-  _syncwordLength = 5;
+  _syncwordLength = MiLightRadioConfig::SYNCWORD_LENGTH;
   _radio.setAddressWidth(_syncwordLength);
 
   return recalc_parameters();
 }
 
-int PL1167_nRF24::recalc_parameters()
-{
-  int packet_length = _maxPacketLength + 2;
-  int nrf_address_pos = _syncwordLength;
+int PL1167_nRF24::recalc_parameters() {
+  size_t nrf_address_length = _syncwordLength;
 
-  if (_syncword0 & 0x01) {
-    _nrf_pipe[ --nrf_address_pos ] = reverse_bits( ( (_syncword0 << 4) & 0xf0 ) + 0x05 );
-  } else {
-    _nrf_pipe[ --nrf_address_pos ] = reverse_bits( ( (_syncword0 << 4) & 0xf0 ) + 0x0a );
+  // +2 for CRC
+  size_t packet_length = _maxPacketLength + 2;
+
+  // Read an extra byte if we don't include the trailer in the syncword
+  if (_syncwordLength < 5) {
+    ++packet_length;
   }
-  _nrf_pipe[ --nrf_address_pos ] = reverse_bits( (_syncword0 >> 4) & 0xff);
-  _nrf_pipe[ --nrf_address_pos ] = reverse_bits( ( (_syncword0 >> 12) & 0x0f ) + ( (_syncword3 << 4) & 0xf0) );
-  _nrf_pipe[ --nrf_address_pos ] = reverse_bits( (_syncword3 >> 4) & 0xff);
-  _nrf_pipe[ --nrf_address_pos ] = reverse_bits( ( (_syncword3 >> 12) & 0x0f ) + 0x50 );	// kh: spi says trailer is always "5" ?
+
+  if (packet_length > sizeof(_packet) || nrf_address_length < 3) {
+    return -1;
+  }
+
+  if (_syncwordBytes != nullptr) {
+    _radio.openWritingPipe(_syncwordBytes);
+    _radio.openReadingPipe(1, _syncwordBytes);
+  }
 
   _receive_length = packet_length;
 
-  _radio.openWritingPipe(_nrf_pipe);
-  _radio.openReadingPipe(1, _nrf_pipe);
-
   _radio.setChannel(2 + _channel);
-
   _radio.setPayloadSize( packet_length );
+
   return 0;
 }
 
-
-int PL1167_nRF24::setPreambleLength(uint8_t preambleLength)
-{ return 0; }
-/* kh- no thanks, I'll take care of this */
-
-
-int PL1167_nRF24::setSyncword(uint16_t syncword0, uint16_t syncword3)
-{
-  _syncwordLength = 5;
-  _syncword0 = syncword0;
-  _syncword3 = syncword3;
+int PL1167_nRF24::setSyncword(const uint8_t syncword[], size_t syncwordLength) {
+  _syncwordLength = syncwordLength;
+  _syncwordBytes = syncword;
   return recalc_parameters();
 }
 
-int PL1167_nRF24::setTrailerLength(uint8_t trailerLength)
-{ return 0; }
-/* kh- no thanks, I'll take care of that.
-   One could argue there is potential value to "defining" the trailer - such that
-   we can use those "values" for internal (repeateR?) functions since they are
-   ignored by the real PL1167..  But there is no value in _this_ implementation...
-*/
-
-int PL1167_nRF24::setCRC(bool crc)
-{
-  _crc = crc;
-  return recalc_parameters();
-}
-
-int PL1167_nRF24::setMaxPacketLength(uint8_t maxPacketLength)
-{
+int PL1167_nRF24::setMaxPacketLength(uint8_t maxPacketLength) {
   _maxPacketLength = maxPacketLength;
   return recalc_parameters();
 }
 
-int PL1167_nRF24::receive(uint8_t channel)
-{
+int PL1167_nRF24::receive(uint8_t channel) {
   if (channel != _channel) {
     _channel = channel;
     int retval = recalc_parameters();
@@ -147,8 +125,7 @@ int PL1167_nRF24::writeFIFO(const uint8_t data[], size_t data_length)
   return data_length;
 }
 
-int PL1167_nRF24::transmit(uint8_t channel)
-{
+int PL1167_nRF24::transmit(uint8_t channel) {
   if (channel != _channel) {
     _channel = channel;
     int retval = recalc_parameters();
@@ -162,16 +139,16 @@ int PL1167_nRF24::transmit(uint8_t channel)
   uint8_t tmp[sizeof(_packet)];
   int outp=0;
 
-  uint16_t crc;
-  if (_crc) {
-    crc = calc_crc(_packet, _packet_length);
-  }
+  uint16_t crc = calc_crc(_packet, _packet_length);
 
-  for (int inp = 0; inp < _packet_length + (_crc ? 2 : 0) + 1; inp++) {
+  // +1 for packet length
+  // +2 for crc
+  // = 3
+  for (int inp = 0; inp < _packet_length + 3; inp++) {
     if (inp < _packet_length) {
-      tmp[outp++] = reverse_bits(_packet[inp]);}
-    else if (_crc && inp < _packet_length + 2) {
-      tmp[outp++] = reverse_bits((crc >> ( (inp - _packet_length) * 8)) & 0xff);
+      tmp[outp++] = reverseBits(_packet[inp]);}
+    else if (inp < _packet_length + 2) {
+      tmp[outp++] = reverseBits((crc >> ( (inp - _packet_length) * 8)) & 0xff);
     }
   }
 
@@ -181,9 +158,18 @@ int PL1167_nRF24::transmit(uint8_t channel)
   return 0;
 }
 
-
-int PL1167_nRF24::internal_receive()
-{
+/**
+ * The over-the-air packet structure sent by the PL1167 is as follows (lengths
+ * measured in bits)
+ *
+ * Preamble ( 8) | Syncword (32) | Trailer ( 4) | Packet Len ( 8) | Packet (...)
+ *
+ * Note that because the Trailer is 4 bits, the remaining data is not byte-aligned.
+ *
+ * Bit-order is reversed.
+ *
+ */
+int PL1167_nRF24::internal_receive() {
   uint8_t tmp[sizeof(_packet)];
   int outp = 0;
 
@@ -192,45 +178,57 @@ int PL1167_nRF24::internal_receive()
   // HACK HACK HACK: Reset radio
   open();
 
-#ifdef DEBUG_PRINTF
-  printf("Packet received: ");
-  for (int i = 0; i < _receive_length; i++) {
-    printf("%02X", tmp[i]);
-  }
-  printf("\n");
-#endif
+// Currently, the syncword width is set to 5 in order to include the
+// PL1167 trailer.  The trailer is 4 bits, which pushes packet data
+// out of byte-alignment.
+//
+// The following code reads un-byte-aligned packet data.
+//
+// #ifdef DEBUG_PRINTF
+//   Serial.printf_P(PSTR("Packet received (%d bytes) RAW: "), outp);
+//   for (int i = 0; i < _receive_length; i++) {
+//     Serial.printf_P(PSTR("%02X "), tmp[i]);
+//   }
+//   Serial.print(F("\n"));
+// #endif
+//
+//   uint16_t buffer = tmp[0];
+//
+//   for (int inp = 1; inp < _receive_length; inp++) {
+//     uint8_t currentByte = tmp[inp];
+//     tmp[outp++] = reverseBits((buffer << 4) | (currentByte >> 4));
+//     buffer = (buffer << 8) | currentByte;
+//   }
 
   for (int inp = 0; inp < _receive_length; inp++) {
-      tmp[outp++] = reverse_bits(tmp[inp]);
+    tmp[outp++] = reverseBits(tmp[inp]);
   }
 
-
 #ifdef DEBUG_PRINTF
-  printf("Packet transformed: ");
+  Serial.printf_P(PSTR("Packet received (%d bytes): "), outp);
   for (int i = 0; i < outp; i++) {
-    printf("%02X", tmp[i]);
+    Serial.printf_P(PSTR("%02X "), tmp[i]);
   }
-  printf("\n");
+  Serial.print(F("\n"));
 #endif
 
-
-  if (_crc) {
-    if (outp < 2) {
+  if (outp < 2) {
 #ifdef DEBUG_PRINTF
-  printf("Failed CRC: outp < 2\n");
+    Serial.println(F("Failed CRC: outp < 2"));
 #endif
-      return 0;
-    }
-    uint16_t crc = calc_crc(tmp, outp - 2);
-    if ( ((crc & 0xff) != tmp[outp - 2]) || (((crc >> 8) & 0xff) != tmp[outp - 1]) ) {
-#ifdef DEBUG_PRINTF
-  uint16_t recv_crc = ((tmp[outp - 2] & 0xFF) << 8) | (tmp[outp - 1] & 0xFF);
-  printf("Failed CRC: expected %d, got %d\n", crc, recv_crc);
-#endif
-      return 0;
-    }
-    outp -= 2;
+    return 0;
   }
+
+  uint16_t crc = calc_crc(tmp, outp - 2);
+  uint16_t recvCrc = (tmp[outp - 1] << 8) | tmp[outp - 2];
+
+  if ( crc != recvCrc ) {
+#ifdef DEBUG_PRINTF
+    Serial.printf_P(PSTR("Failed CRC: expected %04X, got %04X\n"), crc, recvCrc);
+#endif
+    return 0;
+  }
+  outp -= 2;
 
   memcpy(_packet, tmp, outp);
 
@@ -238,7 +236,7 @@ int PL1167_nRF24::internal_receive()
   _received = true;
 
 #ifdef DEBUG_PRINTF
-  printf("Successfully parsed packet of length %d\n", _packet_length);
+  Serial.printf_P(PSTR("Successfully parsed packet of length %d\n"), _packet_length);
 #endif
 
   return outp;
@@ -260,14 +258,4 @@ static uint16_t calc_crc(uint8_t *data, size_t data_length) {
     }
   }
   return state;
-}
-
-static uint8_t reverse_bits(uint8_t data) {
-  uint8_t result = 0;
-  for (int i = 0; i < 8; i++) {
-    result <<= 1;
-    result |= data & 1;
-    data >>= 1;
-  }
-  return result;
 }

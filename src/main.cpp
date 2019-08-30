@@ -8,10 +8,12 @@
 #include <IntParsing.h>
 #include <Size.h>
 #include <LinkedList.h>
+#include <LEDStatus.h>
 #include <GroupStateStore.h>
 #include <MiLightRadioConfig.h>
 #include <MiLightRemoteConfig.h>
 #include <MiLightHttpServer.h>
+#include <MiLightRemoteType.h>
 #include <Settings.h>
 #include <MiLightUdpServer.h>
 #include <ESP8266mDNS.h>
@@ -21,7 +23,10 @@
 #include <MiLightDiscoveryServer.h>
 #include <MiLightClient.h>
 #include <BulbStateUpdater.h>
-#include <LEDStatus.h>
+#include <RadioSwitchboard.h>
+#include <PacketSender.h>
+#include <HomeAssistantDiscoveryClient.h>
+#include <TransitionController.h>
 
 #include <vector>
 #include <memory>
@@ -37,6 +42,8 @@ static LEDStatus *ledStatus;
 Settings settings;
 
 MiLightClient* milightClient = NULL;
+RadioSwitchboard* radios = nullptr;
+PacketSender* packetSender = nullptr;
 std::shared_ptr<MiLightRadioFactory> radioFactory;
 MiLightHttpServer *httpServer = NULL;
 MqttClient* mqttClient = NULL;
@@ -46,6 +53,7 @@ uint8_t currentRadioType = 0;
 // For tracking and managing group state
 GroupStateStore* stateStore = NULL;
 BulbStateUpdater* bulbStateUpdater = NULL;
+TransitionController transitions;
 
 int numUdpServers = 0;
 std::vector<std::shared_ptr<MiLightUdpServer>> udpServers;
@@ -133,16 +141,19 @@ void onPacketSentHandler(uint8_t* packet, const MiLightRemoteConfig& config) {
  * called.
  */
 void handleListen() {
-  if (! settings.listenRepeats) {
+  // Do not handle listens while there are packets enqueued to be sent
+  // Doing so causes the radio module to need to be reinitialized inbetween
+  // repeats, which slows things down.
+  if (! settings.listenRepeats || packetSender->isSending()) {
     return;
   }
 
-  std::shared_ptr<MiLightRadio> radio = milightClient->switchRadio(currentRadioType++ % milightClient->getNumRadios());
+  std::shared_ptr<MiLightRadio> radio = radios->switchRadio(currentRadioType++ % radios->getNumRadios());
 
   for (size_t i = 0; i < settings.listenRepeats; i++) {
-    if (milightClient->available()) {
+    if (radios->available()) {
       uint8_t readPacket[MILIGHT_MAX_PACKET_LENGTH];
-      size_t packetLen = milightClient->read(readPacket);
+      size_t packetLen = radios->read(readPacket);
 
       const MiLightRemoteConfig* remoteConfig = MiLightRemoteConfig::fromReceivedPacket(
         radio->config(),
@@ -201,6 +212,12 @@ void applySettings() {
   if (stateStore) {
     delete stateStore;
   }
+  if (packetSender) {
+    delete packetSender;
+  }
+  if (radios) {
+    delete radios;
+  }
 
   radioFactory = MiLightRadioFactory::fromSettings(settings);
 
@@ -210,20 +227,32 @@ void applySettings() {
 
   stateStore = new GroupStateStore(MILIGHT_MAX_STATE_ITEMS, settings.stateFlushInterval);
 
+  radios = new RadioSwitchboard(radioFactory, stateStore, settings);
+  packetSender = new PacketSender(*radios, settings, onPacketSentHandler);
+
   milightClient = new MiLightClient(
-    radioFactory,
+    *radios,
+    *packetSender,
     stateStore,
-    &settings
+    settings,
+    transitions
   );
-  milightClient->begin();
-  milightClient->onPacketSent(onPacketSentHandler);
   milightClient->onUpdateBegin(onUpdateBegin);
   milightClient->onUpdateEnd(onUpdateEnd);
-  milightClient->setResendCount(settings.packetRepeats);
 
   if (settings.mqttServer().length() > 0) {
     mqttClient = new MqttClient(settings, milightClient);
     mqttClient->begin();
+    mqttClient->onConnect([]() {
+      if (settings.homeAssistantDiscoveryPrefix.length() > 0) {
+        HomeAssistantDiscoveryClient discoveryClient(settings, mqttClient);
+        discoveryClient.sendDiscoverableDevices(settings.groupIdAliases);
+        discoveryClient.removeOldDevices(settings.deletedGroupIdAliases);
+
+        settings.deletedGroupIdAliases.clear();
+      }
+    });
+
     bulbStateUpdater = new BulbStateUpdater(settings, *mqttClient, *stateStore);
   }
 
@@ -245,6 +274,21 @@ void applySettings() {
   }
 
   WiFi.hostname(settings.hostname);
+
+  WiFiPhyMode_t wifiMode;
+  switch (settings.wifiMode) {
+    case WifiMode::B:
+      wifiMode = WIFI_PHY_MODE_11B;
+      break;
+    case WifiMode::G:
+      wifiMode = WIFI_PHY_MODE_11G;
+      break;
+    default:
+    case WifiMode::N:
+      wifiMode = WIFI_PHY_MODE_11N;
+      break;
+  }
+  WiFi.setPhyMode(wifiMode);
 }
 
 /**
@@ -375,11 +419,23 @@ void setup() {
   SSDP.setDeviceType("upnp:rootdevice");
   SSDP.begin();
 
-  httpServer = new MiLightHttpServer(settings, milightClient, stateStore);
+  httpServer = new MiLightHttpServer(settings, milightClient, stateStore, packetSender, radios, transitions);
   httpServer->onSettingsSaved(applySettings);
   httpServer->onGroupDeleted(onGroupDeleted);
   httpServer->on("/description.xml", HTTP_GET, []() { SSDP.schema(httpServer->client()); });
   httpServer->begin();
+
+  transitions.addListener(
+    [](const BulbId& bulbId, GroupStateField field, uint16_t value) {
+      StaticJsonDocument<100> buffer;
+
+      const char* fieldName = GroupStateFieldHelpers::getFieldName(field);
+      buffer[fieldName] = value;
+
+      milightClient->prepare(bulbId.deviceType, bulbId.deviceId, bulbId.groupId);
+      milightClient->update(buffer.as<JsonObject>());
+    }
+  );
 
   Serial.printf_P(PSTR("Setup complete (version %s)\n"), QUOTE(MILIGHT_HUB_VERSION));
 }
@@ -403,9 +459,12 @@ void loop() {
   handleListen();
 
   stateStore->limitedFlush();
+  packetSender->loop();
 
   // update LED with status
   ledStatus->handle();
+
+  transitions.loop();
 
   if (shouldRestart()) {
     Serial.println(F("Auto-restart triggered. Restarting..."));

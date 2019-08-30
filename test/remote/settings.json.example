@@ -30,6 +30,7 @@
     "status",
     "level",
     "color_temp",
+    "kelvin",
     "bulb_mode",
     "hue",
     "saturation",

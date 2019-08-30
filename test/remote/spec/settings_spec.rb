@@ -26,11 +26,14 @@ RSpec.describe 'Settings' do
   context 'keys' do
     it 'should persist known settings keys' do
       {
-        'simple_mqtt_client_status' => [true, false]
+        'simple_mqtt_client_status' => [true, false],
+        'packet_repeats_per_loop' => [10],
+        'home_assistant_discovery_prefix' => ['', 'abc', 'a/b/c'],
+        'wifi_mode' => %w(b g n)
       }.each do |key, values|
         values.each do |v|
           @client.patch_settings({key => v})
-          expect(@client.get('/settings')[key]).to eq(v)
+          expect(@client.get('/settings')[key]).to eq(v), "Should persist #{key} possible value: #{v}"
         end
       end
     end
@@ -94,7 +97,7 @@ RSpec.describe 'Settings' do
 
       end_mem = @client.get('/about')['free_heap']
 
-      expect(end_mem - start_mem).to_not be < -200
+      expect(end_mem).to be_within(250).of(start_mem)
     end
   end
 
@@ -124,6 +127,23 @@ RSpec.describe 'Settings' do
       @client.put('/settings', rf24_listen_channel: 'LOW')
       result = @client.get('/settings')
       expect(result['rf24_listen_channel']).to eq('LOW')
+    end
+  end
+
+  context 'group id labels' do
+    it 'should store ID labels' do
+      id = 1
+
+      aliases = Hash[
+        StateHelpers::ALL_REMOTE_TYPES.map do |remote_type|
+          ["test_#{id += 1}", [remote_type, id, 1]]
+        end
+      ]
+
+      @client.patch_settings(group_id_aliases: aliases)
+      settings = @client.get('/settings')
+
+      expect(settings['group_id_aliases']).to eq(aliases)
     end
   end
 
@@ -186,6 +206,12 @@ RSpec.describe 'Settings' do
       settings = @client.get('/settings')
 
       expect(settings['group_state_fields']).to eq([])
+    end
+
+    it 'for enable_automatic_mode_switching, default should be false' do
+      settings = @client.get('/settings')
+
+      expect(settings['enable_automatic_mode_switching']).to eq(false)
     end
   end
 end

@@ -171,14 +171,18 @@ void PacketFormatter::format(uint8_t const* packet, char* buffer) {
 }
 
 void PacketFormatter::formatV1Packet(uint8_t const* packet, char* buffer) {
-  buffer += sprintf_P(buffer, "Request type  : %02X\n", packet[0]) ;
-  buffer += sprintf_P(buffer, "Device ID     : %02X%02X\n", packet[1], packet[2]);
-  buffer += sprintf_P(buffer, "b1            : %02X\n", packet[3]);
-  buffer += sprintf_P(buffer, "b2            : %02X\n", packet[4]);
-  buffer += sprintf_P(buffer, "b3            : %02X\n", packet[5]);
-  buffer += sprintf_P(buffer, "Sequence Num. : %02X", packet[6]);
+  buffer += sprintf_P(buffer, PSTR("Request type  : %02X\n"), packet[0]) ;
+  buffer += sprintf_P(buffer, PSTR("Device ID     : %02X%02X\n"), packet[1], packet[2]);
+  buffer += sprintf_P(buffer, PSTR("b1            : %02X\n"), packet[3]);
+  buffer += sprintf_P(buffer, PSTR("b2            : %02X\n"), packet[4]);
+  buffer += sprintf_P(buffer, PSTR("b3            : %02X\n"), packet[5]);
+  buffer += sprintf_P(buffer, PSTR("Sequence Num. : %02X"), packet[6]);
 }
 
 size_t PacketFormatter::getPacketLength() const {
   return packetLength;
+}
+
+BulbId PacketFormatter::currentBulbId() const {
+  return BulbId(deviceId, groupId, deviceType);
 }

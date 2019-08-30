@@ -67,6 +67,7 @@ public:
     else, decrement _size
   */
   virtual T remove(int index);
+  virtual void remove(ListNode<T>* node);
   /*
     Remove last object;
   */
@@ -193,6 +194,7 @@ bool LinkedList<T>::add(T _t){
   if(root){
     // Already have elements inserted
     last->next = tmp;
+    tmp->prev = last;
     last = tmp;
   }else{
     // First element being inserted
@@ -274,6 +276,24 @@ T LinkedList<T>::shift(){
     return pop();
   }
 
+}
+
+template<typename T>
+void LinkedList<T>::remove(ListNode<T>* node){
+  if (node == root) {
+    shift();
+  } else if (node == last) {
+    pop();
+  } else {
+    ListNode<T>* prev = node->prev;
+    ListNode<T>* next = node->next;
+
+    prev->next = next;
+    next->prev = prev;
+
+    delete node;
+    --_size;
+  }
 }
 
 template<typename T>

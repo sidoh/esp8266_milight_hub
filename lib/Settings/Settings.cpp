@@ -97,6 +97,12 @@ void Settings::patch(JsonObject parsedSettings) {
   this->setIfPresent(parsedSettings, "wifi_static_ip", wifiStaticIP);
   this->setIfPresent(parsedSettings, "wifi_static_ip_gateway", wifiStaticIPGateway);
   this->setIfPresent(parsedSettings, "wifi_static_ip_netmask", wifiStaticIPNetmask);
+  this->setIfPresent(parsedSettings, "packet_repeats_per_loop", packetRepeatsPerLoop);
+  this->setIfPresent(parsedSettings, "home_assistant_discovery_prefix", homeAssistantDiscoveryPrefix);
+
+  if (parsedSettings.containsKey("wifi_mode")) {
+    this->wifiMode = wifiModeFromString(parsedSettings["wifi_mode"]);
+  }
 
   if (parsedSettings.containsKey("rf24_channels")) {
     JsonArray arr = parsedSettings["rf24_channels"];
@@ -142,6 +148,59 @@ void Settings::patch(JsonObject parsedSettings) {
   if (parsedSettings.containsKey("group_state_fields")) {
     JsonArray arr = parsedSettings["group_state_fields"];
     groupStateFields = JsonHelpers::jsonArrToVector<GroupStateField, const char*>(arr, GroupStateFieldHelpers::getFieldByName);
+  }
+
+  if (parsedSettings.containsKey("group_id_aliases")) {
+    parseGroupIdAliases(parsedSettings);
+  }
+}
+
+std::map<String, BulbId>::const_iterator Settings::findAlias(MiLightRemoteType deviceType, uint16_t deviceId, uint8_t groupId) {
+  BulbId searchId{ deviceId, groupId, deviceType };
+
+  for (auto it = groupIdAliases.begin(); it != groupIdAliases.end(); ++it) {
+    if (searchId == it->second) {
+      return it;
+    }
+  }
+
+  return groupIdAliases.end();
+}
+
+void Settings::parseGroupIdAliases(JsonObject json) {
+  JsonObject aliases = json["group_id_aliases"];
+
+  // Save group IDs that were deleted so that they can be processed by discovery
+  // if necessary
+  for (auto it = groupIdAliases.begin(); it != groupIdAliases.end(); ++it) {
+    deletedGroupIdAliases[it->second.getCompactId()] = it->second;
+  }
+
+  groupIdAliases.clear();
+
+  for (JsonPair kv : aliases) {
+    JsonArray bulbIdProps = kv.value();
+    BulbId bulbId = {
+      bulbIdProps[1].as<uint16_t>(),
+      bulbIdProps[2].as<uint8_t>(),
+      MiLightRemoteTypeHelpers::remoteTypeFromString(bulbIdProps[0].as<String>())
+    };
+    groupIdAliases[kv.key().c_str()] = bulbId;
+
+    // If added this round, do not mark as deleted.
+    deletedGroupIdAliases.erase(bulbId.getCompactId());
+  }
+}
+
+void Settings::dumpGroupIdAliases(JsonObject json) {
+  JsonObject aliases = json.createNestedObject("group_id_aliases");
+
+  for (std::map<String, BulbId>::iterator itr = groupIdAliases.begin(); itr != groupIdAliases.end(); ++itr) {
+    JsonArray bulbProps = aliases.createNestedArray(itr->first);
+    BulbId bulbId = itr->second;
+    bulbProps.add(MiLightRemoteTypeHelpers::remoteTypeToString(bulbId.deviceType));
+    bulbProps.add(bulbId.deviceId);
+    bulbProps.add(bulbId.groupId);
   }
 }
 
@@ -226,6 +285,9 @@ void Settings::serialize(Print& stream, const bool prettyPrint) {
   root["wifi_static_ip"] = this->wifiStaticIP;
   root["wifi_static_ip_gateway"] = this->wifiStaticIPGateway;
   root["wifi_static_ip_netmask"] = this->wifiStaticIPNetmask;
+  root["packet_repeats_per_loop"] = this->packetRepeatsPerLoop;
+  root["home_assistant_discovery_prefix"] = this->homeAssistantDiscoveryPrefix;
+  root["wifi_mode"] = wifiModeToString(this->wifiMode);
 
   JsonArray channelArr = root.createNestedArray("rf24_channels");
   JsonHelpers::vectorToJsonArr<RF24Channel, String>(channelArr, rf24Channels, RF24ChannelHelpers::nameFromValue);
@@ -243,6 +305,8 @@ void Settings::serialize(Print& stream, const bool prettyPrint) {
 
   JsonArray groupStateFieldArr = root.createNestedArray("group_state_fields");
   JsonHelpers::vectorToJsonArr<GroupStateField, const char*>(groupStateFieldArr, groupStateFields, GroupStateFieldHelpers::getFieldName);
+
+  dumpGroupIdAliases(root.as<JsonObject>());
 
   if (prettyPrint) {
     serializeJsonPretty(root, stream);
@@ -287,5 +351,27 @@ String Settings::typeToString(RadioInterfaceType type) {
     case nRF24:
     default:
       return "nRF24";
+  }
+}
+
+WifiMode Settings::wifiModeFromString(const String& mode) {
+  if (mode.equalsIgnoreCase("b")) {
+    return WifiMode::B;
+  } else if (mode.equalsIgnoreCase("g")) {
+    return WifiMode::G;
+  } else {
+    return WifiMode::N;
+  }
+}
+
+String Settings::wifiModeToString(WifiMode mode) {
+  switch (mode) {
+    case WifiMode::B:
+      return "b";
+    case WifiMode::G:
+      return "g";
+    case WifiMode::N:
+    default:
+      return "n";
   }
 }

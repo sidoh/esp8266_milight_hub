@@ -1,4 +1,4 @@
-#include "LEDStatus.h"
+#include <LEDStatus.h>
 
 // constructor defines which pin the LED is attached to
 LEDStatus::LEDStatus(int8_t ledPin) {
@@ -80,7 +80,7 @@ void LEDStatus::oneshot(uint16_t ledOffMs, uint16_t ledOnMs, uint8_t count) {
   _timer = millis();
 }
 
-// call this function in your loop - it will return quickly after calculating if any changes need to 
+// call this function in your loop - it will return quickly after calculating if any changes need to
 // be made to the pin to flash the LED
 void LEDStatus::LEDStatus::handle() {
   // is a pin defined?
@@ -109,7 +109,7 @@ void LEDStatus::LEDStatus::handle() {
             }
             _oneshotCurrentlyOn = true;
             _timer += _oneshotOffMs;
-          }            
+          }
       }
   } else {
     // operate using continuous

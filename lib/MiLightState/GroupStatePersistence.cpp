@@ -35,6 +35,6 @@ void GroupStatePersistence::clear(const BulbId &id) {
 }
 
 char* GroupStatePersistence::buildFilename(const BulbId &id, char *buffer) {
-  uint32_t compactId = (id.deviceId << 24) | (id.deviceType << 8) | id.groupId;
+  uint32_t compactId = id.getCompactId();
   return buffer + sprintf(buffer, "%s%x", FILE_PREFIX, compactId);
 }

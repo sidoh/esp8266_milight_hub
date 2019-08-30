@@ -66,6 +66,17 @@
   </nav>
 
   <div class="container" id="content">
+    <div class="row" id="device-id-aliases-row">
+      <div class="col-sm-3">
+        <label for="deviceAliases" id="device-id-aliases">
+          Device Name
+        </label>
+        <select id="deviceAliases" placeholder="Create alias...">
+				</select>
+      </div>
+    </div>
+    <div></div>
+
     <div class="row">
       <div class="col-sm-3">
         <label for="deviceId" id="device-id-label">
@@ -138,13 +149,16 @@
             <li data-value="fut091">
               <a href="#">FUT091 / B2</a>
             </li>
+            <li data-value="fut020">
+              <a href="#">FUT020</a>
+            </li>
           </ul>
         </div>
       </div>
     </div>
 
     <div class="row"><div class="col-sm-12">
-    <div class="mode-option" data-for="rgbw,rgb_cct,rgb,fut089">
+    <div class="mode-option" data-for="rgbw,rgb_cct,rgb,fut089,fut020">
       <div class="row">
         <div class="col-sm-12">
           <h5>Hue</h5>
@@ -226,7 +240,7 @@
           <li>
             <input type="checkbox" name="status" class="raw-update" data-toggle="toggle" checked/>
           </li>
-          <div class="mode-option inline" data-for="rgbw,rgb_cct,fut089">
+          <div class="mode-option inline" data-for="rgbw,rgb_cct,fut089,fut020">
             <li>
               <button type="button" class="btn btn-secondary command-btn" data-command="set_white">White</button>
             </li>
@@ -249,7 +263,7 @@
         </ul>
         <p></p>
         <ul class="command-buttons">
-          <div class="mode-option inline" data-for="rgb">
+          <div class="mode-option inline" data-for="rgb,fut020">
             <li>
               <div class="plus-minus-group">
                 <button type="button" class="btn btn-default btn-number command-btn" data-command="previous_mode">
