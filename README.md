@@ -125,9 +125,9 @@ You can configure aliases or labels for a given _(Device Type, Device ID, Group 
 
 ## REST API
 
-The REST API is specified using
+The REST API is specified using the [OpenAPI v3](https://swagger.io/docs/specification/about/) specification.
 
-[openapi.yaml](openapi.yaml) contains the raw spec, created using [OpenAPI v3](https://swagger.io/docs/specification/about/).
+[openapi.yaml](docs/openapi.yaml) contains the raw spec.
 
 [You can view generated documentation for the master branch here.](https://sidoh.github.io/esp8266_milight_hub/branches/latest)
 
