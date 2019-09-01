@@ -2,7 +2,7 @@
 #include <Arduino.h>
 
 ColorTransition::Builder::Builder(size_t id, const BulbId& bulbId, TransitionFn callback, const ParsedColor& start, const ParsedColor& end)
-  : Transition::Builder(id, bulbId, callback)
+  : Transition::Builder(id, bulbId, callback, calculateMaxDistance(start, end))
   , start(start)
   , end(end)
 { }
@@ -84,7 +84,7 @@ ColorTransition::ColorTransition(
   stepSizes.b = calculateStepSizePart(db, duration, period);
 }
 
-size_t ColorTransition::calculateColorPeriod(ColorTransition* t, const ParsedColor& start, const ParsedColor& end, size_t stepSize, size_t duration) {
+size_t ColorTransition::calculateMaxDistance(const ParsedColor& start, const ParsedColor& end) {
   int16_t dr = end.r - start.r
         , dg = end.g - start.g
         , db = end.b - start.b;
@@ -93,7 +93,11 @@ size_t ColorTransition::calculateColorPeriod(ColorTransition* t, const ParsedCol
   int16_t min = std::min(std::min(dr, dg), db);
   int16_t maxAbs = std::abs(min) > std::abs(max) ? min : max;
 
-  return Transition::calculatePeriod(maxAbs, stepSize, duration);
+  return maxAbs;
+}
+
+size_t ColorTransition::calculateColorPeriod(ColorTransition* t, const ParsedColor& start, const ParsedColor& end, size_t stepSize, size_t duration) {
+  return Transition::calculatePeriod(calculateMaxDistance(start, end), stepSize, duration);
 }
 
 int16_t ColorTransition::calculateStepSizePart(int16_t distance, size_t duration, size_t period) {

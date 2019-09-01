@@ -39,6 +39,7 @@ public:
   );
 
   static size_t calculateColorPeriod(ColorTransition* t, const ParsedColor& start, const ParsedColor& end, size_t stepSize, size_t duration);
+  inline static size_t calculateMaxDistance(const ParsedColor& start, const ParsedColor& end);
   inline static int16_t calculateStepSizePart(int16_t distance, size_t duration, size_t period);
   virtual bool isFinished() override;
 

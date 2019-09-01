@@ -181,6 +181,16 @@ RSpec.describe 'Transitions' do
       expect(updates['hue'].length == updates['brightness'].length).to eq(true), "Should have the same number of updates for both fields"
       expect(updates['hue'].length).to eq(expected_updates.length)
     end
+
+    it 'should support creating long transitions' do
+      @client.patch_state({status: 'ON', level: 0}, @id_params)
+      @client.patch_state({level: 100, transition: 60000}, @id_params)
+
+      t = @client.transitions.last
+      calculated_duration = t['period'] * (100.to_f / t['step_size'])
+
+      expect(calculated_duration).to be_within(100).of(60000*1000), "Calculated duration should be close to 600s"
+    end
   end
 
   context 'transition packets' do

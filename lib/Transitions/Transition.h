@@ -18,11 +18,24 @@ public:
 
   class Builder {
   public:
-    Builder(size_t id, const BulbId& bulbId, TransitionFn callback);
+    Builder(size_t id, const BulbId& bulbId, TransitionFn callback, size_t maxSteps);
 
     Builder& setDuration(float duration);
     Builder& setPeriod(size_t period);
     Builder& setNumPeriods(size_t numPeriods);
+
+    /**
+     * Users are typically defining transitions using:
+     *   1. The desired end state (and implicitly the start state, assumed to be current)
+     *   2. The duraiton
+     * The user only cares about the period to the degree that it affects the smoothness of
+     * the transition.
+     *
+     * For example, if the user wants to throttle brightness from 0 -> 100 over 5min, the
+     * default period is going to be way too short to enable that.  So we need to force the
+     * period to be longer to fit the duration.
+     */
+    Builder& setDurationAwarePeriod(size_t desiredPeriod, size_t duration, size_t maxSteps);
 
     void setDurationRaw(size_t duration);
 
@@ -37,6 +50,7 @@ public:
     size_t getDuration() const;
     size_t getPeriod() const;
     size_t getNumPeriods() const;
+    size_t getMaxSteps() const;
 
     std::shared_ptr<Transition> build();
 
@@ -48,6 +62,7 @@ public:
     size_t duration;
     size_t period;
     size_t numPeriods;
+    size_t maxSteps;
 
     virtual std::shared_ptr<Transition> _build() const = 0;
     size_t numSetParams() const;

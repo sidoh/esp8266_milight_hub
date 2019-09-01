@@ -3,7 +3,7 @@
 #include <algorithm>
 
 FieldTransition::Builder::Builder(size_t id, const BulbId& bulbId, TransitionFn callback, GroupStateField field, uint16_t start, uint16_t end)
-  : Transition::Builder(id, bulbId, callback)
+  : Transition::Builder(id, bulbId, callback, std::ceil(static_cast<int16_t>(end) - start))
   , stepSize(0)
   , field(field)
   , start(start)

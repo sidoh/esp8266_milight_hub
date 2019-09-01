@@ -2,9 +2,9 @@ require 'chroma'
 
 module TransitionHelpers
   module Defaults
-    DURATION = 4500
-    PERIOD = 450
-    NUM_PERIODS = 10
+    PERIOD = 225
+    NUM_PERIODS = 20
+    DURATION = PERIOD * NUM_PERIODS
   end
 
   def highlight_value(a, highlight_ix)
@@ -47,7 +47,10 @@ module TransitionHelpers
       s << "  Seen     : #{highlight_value(seen, i)}"
     end
 
-    expect(expected.length).to eq(seen.length)
+    expect(expected.length).to eq(seen.length),
+      "Transition was a different length than expected.\n" <<
+      "  Expected : #{expected}\n" <<
+      "  Seen     : #{seen}"
 
     expected.zip(seen).each_with_index do |x, i|
       a, b = x
