@@ -37,6 +37,7 @@ Transition::Builder& Transition::Builder::setDurationAwarePeriod(size_t period, 
   } else {
     setPeriod(period);
   }
+  return *this;
 }
 
 size_t Transition::Builder::getNumPeriods() const {

@@ -281,6 +281,20 @@ RSpec.describe 'Transitions' do
   end
 
   context 'status transition' do
+    it 'should turn off even if starting brightness is 0' do
+      @client.patch_state({status: 'ON', brightness: 0}, @id_params)
+      seen_off = false
+
+      @mqtt_client.on_update(@id_params) do |id, message|
+        seen_off = (message['state'] == 'OFF')
+      end
+
+      @client.patch_state({status: "OFF", transition: 1}, @id_params)
+      @mqtt_client.wait_for_listeners
+
+      expect(seen_off).to eq(true)
+    end
+
     it 'should transition from off -> on' do
       seen_updates = {}
       @client.patch_state({status: 'OFF'}, @id_params)
