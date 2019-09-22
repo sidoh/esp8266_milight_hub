@@ -680,4 +680,33 @@ RSpec.describe 'Transitions' do
       end
     end
   end
+
+  context 'default parameters in settings' do
+    it 'should respect the default parameter setting key' do
+      [500, 1000, 2000].each do |period|
+        field = 'brightness'
+
+        @client.patch_settings(default_transition_period: period)
+        @client.delete_state(@id_params)
+        @client.patch_state({'status' => 'ON', field => 0}, @id_params)
+        seen_updates = []
+
+        @mqtt_client.on_update(@id_params) do |id, message|
+          seen_updates << message[field] if !message[field].nil?
+          seen_updates.last == 255
+        end
+
+        @client.patch_state({field => 255, 'transition' => 2.0, period: period}, @id_params)
+
+        @mqtt_client.wait_for_listeners
+        @mqtt_client = create_mqtt_client()
+
+        transitions_are_equal(
+          expected: calculate_transition_steps(start_value: 0, end_value: 255, duration: 2000, period: period),
+          seen: seen_updates,
+          allowed_variation: 3
+        )
+      end
+    end
+  end
 end
