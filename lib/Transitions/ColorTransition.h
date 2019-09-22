@@ -16,7 +16,7 @@ public:
 
   class Builder : public Transition::Builder {
   public:
-    Builder(size_t id, const BulbId& bulbId, TransitionFn callback, const ParsedColor& start, const ParsedColor& end);
+    Builder(size_t id, uint16_t defaultPeriod, const BulbId& bulbId, TransitionFn callback, const ParsedColor& start, const ParsedColor& end);
 
     virtual std::shared_ptr<Transition> _build() const override;
 

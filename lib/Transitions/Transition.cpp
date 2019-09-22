@@ -2,8 +2,9 @@
 #include <Arduino.h>
 #include <cmath>
 
-Transition::Builder::Builder(size_t id, const BulbId& bulbId, TransitionFn callback, size_t maxSteps)
+Transition::Builder::Builder(size_t id, uint16_t defaultPeriod, const BulbId& bulbId, TransitionFn callback, size_t maxSteps)
   : id(id)
+  , defaultPeriod(defaultPeriod)
   , bulbId(bulbId)
   , callback(callback)
   , duration(0)
@@ -23,11 +24,6 @@ void Transition::Builder::setDurationRaw(size_t duration) {
 
 Transition::Builder& Transition::Builder::setPeriod(size_t period) {
   this->period = period;
-  return *this;
-}
-
-Transition::Builder& Transition::Builder::setNumPeriods(size_t numPeriods) {
-  this->numPeriods = numPeriods;
   return *this;
 }
 
@@ -116,14 +112,14 @@ std::shared_ptr<Transition> Transition::Builder::build() {
 
   if (numSet == 0) {
     setDuration(DEFAULT_DURATION);
-    setDurationAwarePeriod(DEFAULT_PERIOD, duration, maxSteps);
+    setDurationAwarePeriod(defaultPeriod, duration, maxSteps);
   } else if (numSet == 1) {
     // If duration is unbound, bind it
     if (! isSetDuration()) {
       setDurationRaw(DEFAULT_DURATION);
     // Otherwise, bind the period
     } else {
-      setDurationAwarePeriod(DEFAULT_PERIOD, duration, maxSteps);
+      setDurationAwarePeriod(defaultPeriod, duration, maxSteps);
     }
   }
 

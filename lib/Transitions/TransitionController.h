@@ -13,6 +13,7 @@ public:
 
   void clearListeners();
   void addListener(Transition::TransitionFn fn);
+  void setDefaultPeriod(uint16_t period);
 
   std::shared_ptr<Transition::Builder> buildColorTransition(const BulbId& bulbId, const ParsedColor& start, const ParsedColor& end);
   std::shared_ptr<Transition::Builder> buildFieldTransition(const BulbId& bulbId, GroupStateField field, uint16_t start, uint16_t end);
@@ -32,6 +33,7 @@ private:
   LinkedList<std::shared_ptr<Transition>> activeTransitions;
   std::vector<Transition::TransitionFn> observers;
   size_t currentId;
+  uint16_t defaultPeriod;
 
   void transitionCallback(const BulbId& bulbId, GroupStateField field, uint16_t arg);
 };

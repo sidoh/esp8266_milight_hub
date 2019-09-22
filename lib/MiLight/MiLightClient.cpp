@@ -605,9 +605,6 @@ bool MiLightClient::handleTransition(JsonObject args, JsonDocument& responseObj)
   if (args.containsKey(FS(TransitionParams::PERIOD))) {
     transitionBuilder->setPeriod(args[FS(TransitionParams::PERIOD)]);
   }
-  if (args.containsKey(FS(TransitionParams::NUM_PERIODS))) {
-    transitionBuilder->setNumPeriods(args[FS(TransitionParams::NUM_PERIODS)]);
-  }
 
   transitions.addTransition(transitionBuilder->build());
   return true;

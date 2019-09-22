@@ -18,11 +18,10 @@ public:
 
   class Builder {
   public:
-    Builder(size_t id, const BulbId& bulbId, TransitionFn callback, size_t maxSteps);
+    Builder(size_t id, uint16_t defaultPeriod, const BulbId& bulbId, TransitionFn callback, size_t maxSteps);
 
     Builder& setDuration(float duration);
     Builder& setPeriod(size_t period);
-    Builder& setNumPeriods(size_t numPeriods);
 
     /**
      * Users are typically defining transitions using:
@@ -55,6 +54,7 @@ public:
     std::shared_ptr<Transition> build();
 
     const size_t id;
+    const uint16_t defaultPeriod;
     const BulbId& bulbId;
     const TransitionFn callback;
 
@@ -68,14 +68,9 @@ public:
     size_t numSetParams() const;
   };
 
-  // Default time to wait between steps.  Do this rather than having a fixed step size because it's
-  // more capable of adapting to different situations.
-  static const size_t DEFAULT_PERIOD = 225;
-  static const size_t DEFAULT_NUM_PERIODS = 20;
-  static const size_t DEFAULT_DURATION = DEFAULT_PERIOD*DEFAULT_NUM_PERIODS;
-
   // If period goes lower than this, throttle other parameters up to adjust.
   static const size_t MIN_PERIOD = 150;
+  static const size_t DEFAULT_DURATION = 10000;
 
   const size_t id;
   const BulbId bulbId;

@@ -2,9 +2,10 @@
 #include <cmath>
 #include <algorithm>
 
-FieldTransition::Builder::Builder(size_t id, const BulbId& bulbId, TransitionFn callback, GroupStateField field, uint16_t start, uint16_t end)
+FieldTransition::Builder::Builder(size_t id, uint16_t defaultPeriod, const BulbId& bulbId, TransitionFn callback, GroupStateField field, uint16_t start, uint16_t end)
   : Transition::Builder(
       id,
+      defaultPeriod,
       bulbId,
       callback,
       max(
