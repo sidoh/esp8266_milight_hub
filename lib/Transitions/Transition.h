@@ -22,7 +22,6 @@ public:
 
     Builder& setDuration(float duration);
     Builder& setPeriod(size_t period);
-    Builder& setNumPeriods(size_t numPeriods);
 
     /**
      * Users are typically defining transitions using:

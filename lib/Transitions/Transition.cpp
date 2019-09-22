@@ -26,11 +26,6 @@ Transition::Builder& Transition::Builder::setPeriod(size_t period) {
   return *this;
 }
 
-Transition::Builder& Transition::Builder::setNumPeriods(size_t numPeriods) {
-  this->numPeriods = numPeriods;
-  return *this;
-}
-
 Transition::Builder& Transition::Builder::setDurationAwarePeriod(size_t period, size_t duration, size_t maxSteps) {
   if ((period * maxSteps) < duration) {
     setPeriod(std::ceil(duration / static_cast<float>(maxSteps)));
