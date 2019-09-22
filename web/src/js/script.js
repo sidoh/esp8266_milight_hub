@@ -1231,6 +1231,27 @@ $(function() {
 
   $('#settings').prepend(settings);
 
+  function saveSettings(settingsEntries) {
+    var entries = settingsEntries.slice(0)
+
+    function saveBatch() {
+      if (entries.length > 0) {
+        var batch = Object.fromEntries(entries.splice(0, 30))
+        $.ajax(
+          "/settings",
+          {
+            method: "PUT",
+            contentType: "application/json",
+            data: JSON.stringify(batch)
+          }
+        )
+        .done(saveBatch)
+      }
+    }
+
+    saveBatch()
+  }
+
   $('#settings').submit(function(e) {
     e.preventDefault();
 
@@ -1262,15 +1283,7 @@ $(function() {
       // Make sure we're submitting a value for group_state_fields (will be empty
       // if no values were selected).
       obj = $.extend({group_state_fields: []}, obj);
-
-      $.ajax(
-        "/settings",
-        {
-          method: 'put',
-          contentType: 'application/json',
-          data: JSON.stringify(obj)
-        }
-      );
+      saveSettings(Object.entries(obj))
     }
 
     $('#settings-modal').modal('hide');
