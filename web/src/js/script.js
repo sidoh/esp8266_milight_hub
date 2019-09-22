@@ -39,6 +39,9 @@ var UI_TABS = [ {
   }, {
     tag: "tab-mqtt",
     friendly: "MQTT"
+  }, {
+    tag: "tab-transitions",
+    friendly: "Transitions"
   }
 ];
 
@@ -342,6 +345,13 @@ var UI_FIELDS = [ {
     help: "Number of times the LED will flash when packets are changing",
     type: "string",
     tab: "tab-led"
+  }, {
+    tag: "default_transition_period",
+    friendly: "Default transition period (milliseconds)",
+    help: "Controls how many milliseconds pass between transition packets. "+
+      "For more granular transitions, set this lower.",
+    type: "string",
+    tab: "tab-transitions"
   }
 ];
 
