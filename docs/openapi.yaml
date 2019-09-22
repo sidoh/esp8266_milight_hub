@@ -582,9 +582,6 @@ components:
         period:
           type: integer
           description: Length of time between updates in a transition, measured in milliseconds
-        num_periods:
-          type: integer
-          description: Number of packets sent over the course of the transition
     TransitionData:
       allOf:
         - $ref: '#/components/schemas/TransitionArgs'
@@ -990,6 +987,11 @@ components:
           example:
             alias1: [1234, 'rgb_cct', 1]
             alias2: [1234, 'rgb_cct', 2]
+        default_transition_period:
+          type: integer
+          description: |
+            Default number of milliseconds between transition packets.  Set this value lower for more granular transitions, or higher if
+            you are having performance issues during transitions.
 
     BooleanResponse:
       type: object
