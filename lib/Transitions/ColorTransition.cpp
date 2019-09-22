@@ -1,8 +1,8 @@
 #include <ColorTransition.h>
 #include <Arduino.h>
 
-ColorTransition::Builder::Builder(size_t id, const BulbId& bulbId, TransitionFn callback, const ParsedColor& start, const ParsedColor& end)
-  : Transition::Builder(id, bulbId, callback, calculateMaxDistance(start, end))
+ColorTransition::Builder::Builder(size_t id, uint16_t defaultPeriod, const BulbId& bulbId, TransitionFn callback, const ParsedColor& start, const ParsedColor& end)
+  : Transition::Builder(id, defaultPeriod, bulbId, callback, calculateMaxDistance(start, end))
   , start(start)
   , end(end)
 { }

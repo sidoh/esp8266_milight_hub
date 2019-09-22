@@ -219,6 +219,8 @@ void applySettings() {
     delete radios;
   }
 
+  transitions.setDefaultPeriod(settings.defaultTransitionPeriod);
+
   radioFactory = MiLightRadioFactory::fromSettings(settings);
 
   if (radioFactory == NULL) {

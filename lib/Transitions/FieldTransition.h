@@ -12,7 +12,7 @@ public:
 
   class Builder : public Transition::Builder {
   public:
-    Builder(size_t id, const BulbId& bulbId, TransitionFn callback, GroupStateField field, uint16_t start, uint16_t end);
+    Builder(size_t id, uint16_t defaultPeriod, const BulbId& bulbId, TransitionFn callback, GroupStateField field, uint16_t start, uint16_t end);
 
     virtual std::shared_ptr<Transition> _build() const override;
 

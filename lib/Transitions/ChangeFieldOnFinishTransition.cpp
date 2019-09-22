@@ -7,7 +7,7 @@ ChangeFieldOnFinishTransition::Builder::Builder(
   uint16_t arg,
   std::shared_ptr<Transition::Builder> delegate
 )
-  : Transition::Builder(delegate->id, delegate->bulbId, delegate->callback, delegate->getMaxSteps())
+  : Transition::Builder(delegate->id, delegate->defaultPeriod, delegate->bulbId, delegate->callback, delegate->getMaxSteps())
   , delegate(delegate)
   , field(field)
   , arg(arg)

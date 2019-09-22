@@ -14,7 +14,12 @@ using namespace std::placeholders;
 TransitionController::TransitionController()
   : callback(std::bind(&TransitionController::transitionCallback, this, _1, _2, _3))
   , currentId(0)
+  , defaultPeriod(500)
 { }
+
+void TransitionController::setDefaultPeriod(uint16_t defaultPeriod) {
+  this->defaultPeriod = defaultPeriod;
+}
 
 void TransitionController::clearListeners() {
   observers.clear();
@@ -27,6 +32,7 @@ void TransitionController::addListener(Transition::TransitionFn fn) {
 std::shared_ptr<Transition::Builder> TransitionController::buildColorTransition(const BulbId& bulbId, const ParsedColor& start, const ParsedColor& end) {
   return std::make_shared<ColorTransition::Builder>(
     currentId++,
+    defaultPeriod,
     bulbId,
     callback,
     start,
@@ -37,6 +43,7 @@ std::shared_ptr<Transition::Builder> TransitionController::buildColorTransition(
 std::shared_ptr<Transition::Builder> TransitionController::buildFieldTransition(const BulbId& bulbId, GroupStateField field, uint16_t start, uint16_t end) {
   return std::make_shared<FieldTransition::Builder>(
     currentId++,
+    defaultPeriod,
     bulbId,
     callback,
     field,
