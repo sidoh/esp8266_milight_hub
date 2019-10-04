@@ -26,6 +26,7 @@ label:not(.error) .error-info { display: none; }
 .inline { display: inline-block; }
 .white-temp-picker {
   height: 2em;
+  width: 100%;
   background: linear-gradient(to right,
     rgb(166, 209, 255) 0%,
     rgb(255, 255, 255) 50%,
@@ -84,7 +85,6 @@ label:not(.error) .error-info { display: none; }
   border-style: solid;
   padding: 5px 5px 5px 7px;
   margin: 0;
-  height: 34px;
   line-height: 1.49;
   float: left;
   display: block;

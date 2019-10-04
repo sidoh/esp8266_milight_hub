@@ -6,7 +6,7 @@
 
   <title>MiLight Hub</title>
 
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"/>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" title="main"/>
   <link href="https://gitcdn.github.io/bootstrap-toggle/2.2.2/css/bootstrap-toggle.min.css" rel="stylesheet"/>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/9.7.0/css/bootstrap-slider.min.css" rel="stylesheet"/>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.6/css/selectize.bootstrap3.min.css" rel="stylesheet"/>
@@ -44,6 +44,12 @@
       </div>
       <div class="collapse navbar-collapse">
         <ul class="nav navbar-nav">
+          <li class="dropdown" id="theme-dropdown">
+            <a id="theme-label" href="#" class="dropdown-toggle" data-toggle="dropdown">Theme<b class="caret"></b></a>
+            <ul id="theme-list" class="dropdown-menu">
+              <li><a href="#" class="change-style-menu-item">Bootstrap (Default)</a></li>
+            </ul>
+          </li>
           <li><a href="#settings" data-toggle="modal" data-target="#settings-modal">Settings</a></li>
           <li>
             <a href="#sniff" id="sniff">
@@ -68,7 +74,7 @@
 
   <div class="container" id="content">
     <div class="row" id="device-id-aliases-row">
-      <div class="col-sm-3">
+      <div class="col-sm-6 col-xs-12">
         <label for="deviceAliases" id="device-id-aliases">
           Device Name
         </label>
@@ -79,7 +85,7 @@
     <div></div>
 
     <div class="row">
-      <div class="col-sm-3">
+      <div class="col-sm-3 col-xs-7">
         <label for="deviceId" id="device-id-label">
           Device Id
           <span class="error-info"></span>
@@ -87,8 +93,43 @@
         <select id="deviceId" placeholder="Enter hub ID">
 				</select>
       </div>
+      
+      <div class="col-sm-3 col-xs-5">
+        <label for="mode">Remote Type</label>
+        <div class="dropdown">
+          <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">
+            <label>Mode</label>
+            <span class="caret"></span>
+          </button>
+          <ul class="dropdown-menu" id="mode">
+            <li data-value="rgbw">
+              <a href="#">RGBW</a>
+            </li>
+            <li data-value="cct">
+              <a href="#">CCT</a>
+            </li>
+            <li data-value="rgb_cct" class="active">
+              <a href="#">RGB+CCT</a>
+            </li>
+            <li data-value="rgb">
+              <a href="#">RGB</a>
+            </li>
+            <li data-value="fut089">
+              <a href="#">FUT089 / B8</a>
+            </li>
+            <li data-value="fut091">
+              <a href="#">FUT091 / B2</a>
+            </li>
+            <li data-value="fut020">
+              <a href="#">FUT020</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
 
-      <div class="col-sm-4">
+    <div class="row">
+      <div class="col-sm-6 col-xs-12">
         <div class="mode-option" id="group-option" data-for="cct,rgbw,rgb_cct,fut089,fut091">
           <label for="groupId">Group</label>
 
@@ -123,51 +164,19 @@
           </div>
         </div>
       </div>
-
-      <div class="col-sm-4">
-        <label for="mode">Remote Type</label>
-        <div class="dropdown">
-          <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">
-            <label>Mode</label>
-            <span class="caret"></span>
-          </button>
-          <ul class="dropdown-menu" id="mode">
-            <li data-value="rgbw">
-              <a href="#">RGBW</a>
-            </li>
-            <li data-value="cct">
-              <a href="#">CCT</a>
-            </li>
-            <li data-value="rgb_cct" class="active">
-              <a href="#">RGB+CCT</a>
-            </li>
-            <li data-value="rgb">
-              <a href="#">RGB</a>
-            </li>
-            <li data-value="fut089">
-              <a href="#">FUT089 / B8</a>
-            </li>
-            <li data-value="fut091">
-              <a href="#">FUT091 / B2</a>
-            </li>
-            <li data-value="fut020">
-              <a href="#">FUT020</a>
-            </li>
-          </ul>
-        </div>
-      </div>
     </div>
 
-    <div class="row"><div class="col-sm-12">
+    <div class="row">
+    <div class="col-sm-12 col-xs-12">
     <div class="mode-option" data-for="rgbw,rgb_cct,rgb,fut089,fut020">
       <div class="row">
-        <div class="col-sm-12">
+        <div class="col-sm-12 col-xs-12">
           <h5>Hue</h5>
         </div>
       </div>
 
       <div class="row">
-        <div class="col-sm-6">
+        <div class="col-sm-6 col-xs-12">
           <span class="hue-picker">
             <span class="hue-picker-inner"></span>
             <span class="hue-value-display"></span>
@@ -175,16 +184,17 @@
         </div>
       </div>
     </div>
-    </div></div>
+    </div>
+    </div>
 
     <div class="mode-option" data-for="rgb_cct,fut089">
       <div class="row">
-        <div class="col-sm-12">
+        <div class="col-sm-12 col-xs-12">
           <h5>Saturation</h5>
         </div>
       </div>
       <div class="row">
-        <div class="col-sm-6">
+        <div class="col-sm-6 col-xs-12">
           <input class="slider raw-update" name="saturation"
               data-slider-min="0"
               data-slider-max="100"
@@ -196,12 +206,12 @@
 
     <div class="mode-option" data-for="cct,rgb_cct,fut089,fut091">
       <div class="row">
-        <div class="col-sm-12">
+        <div class="col-sm-12 col-xs-12">
           <h5>Color Temperature</h5>
         </div>
       </div>
       <div class="row">
-        <div class="col-sm-6">
+        <div class="col-sm-6 col-xs-12">
           <div class="white-temp-picker">
             <input class="slider raw-update" name="temperature"
                 data-slider-min="0"
@@ -214,13 +224,13 @@
     </div>
 
     <div class="row">
-      <div class="col-sm-12">
+      <div class="col-sm-12 col-xs-12">
         <h5>Brightness</h5>
       </div>
     </div>
 
     <div class="row">
-      <div class="col-sm-12">
+      <div class="col-sm-6 col-xs-12">
         <input class="slider raw-update" name="level"
             data-slider-min="0"
             data-slider-max="100"
@@ -247,19 +257,7 @@
             </li>
           </div>
           <li>
-            <button type="button" class="btn btn-info command-btn" data-command="night_mode">Night</button>
-          </li>
-          <li>
-            <button type="button" class="btn btn-success command-btn" data-command="pair">
-              <i class="glyphicon glyphicon-plus"></i>
-              Pair
-            </button>
-          </li>
-          <li>
-            <button type="button" class="btn btn-danger command-btn" data-command="unpair">
-              <i class="glyphicon glyphicon-remove"></i>
-              Unpair
-            </button>
+            <button type="button" id="btnHeight" class="btn btn-info command-btn" data-command="night_mode">Night</button>
           </li>
         </ul>
         <p></p>
@@ -304,6 +302,21 @@
               </div>
             </li>
           </div>
+        </ul>
+        <p></p>
+        <ul class="command-buttons">
+          <li>
+            <button type="button" class="btn btn-success command-btn" data-command="pair">
+              <i class="glyphicon glyphicon-plus"></i>
+              Pair
+            </button>
+          </li>
+          <li>
+            <button type="button" class="btn btn-danger command-btn" data-command="unpair">
+              <i class="glyphicon glyphicon-remove"></i>
+              Unpair
+            </button>
+          </li>
         </ul>
       </div>
     </div>
@@ -557,5 +570,6 @@
 
     </div>
   </div>
+  <script src="js/theme-select.js" lang="text/javascript"></script>
 </body>
 </html>

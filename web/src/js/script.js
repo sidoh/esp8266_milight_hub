@@ -1010,7 +1010,7 @@ $(function() {
       }
     });
 
-  $('.slider').slider();
+  $('.slider').css("width", "100%").slider();
 
   $('.raw-update').change(function() {
     var data = {}
