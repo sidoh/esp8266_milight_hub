@@ -1,17 +1,18 @@
 <!doctype html>
-
 <html lang="en">
 <head>
   <meta charset="utf-8">
-
+  
   <title>MiLight Hub</title>
 
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" title="main"/>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" title="main"/>
   <link href="https://gitcdn.github.io/bootstrap-toggle/2.2.2/css/bootstrap-toggle.min.css" rel="stylesheet"/>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/9.7.0/css/bootstrap-slider.min.css" rel="stylesheet"/>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/10.6.2/css/bootstrap-slider.min.css" rel="stylesheet"/>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.6/css/selectize.bootstrap3.min.css" rel="stylesheet"/>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.12.4/css/bootstrap-select.min.css" rel="stylesheet"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.13.11/css/bootstrap-select.min.css" rel="stylesheet"/>
+  <link href="https://use.fontawesome.com/releases/v5.11.2/css/all.css" rel="stylesheet"/>
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
   <!--[if lt IE 9]>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv.js"></script>
   <![endif]-->
@@ -20,58 +21,52 @@
 </head>
 
 <body>
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
-  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
   <script src="https://gitcdn.github.io/bootstrap-toggle/2.2.2/js/bootstrap-toggle.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/9.7.0/bootstrap-slider.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.9.1/underscore-min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/10.6.2/bootstrap-slider.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.6/js/standalone/selectize.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.12.4/js/bootstrap-select.min.js"></script>
-
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.13.11/js/bootstrap-select.min.js"></script>
   <script src="js/rgb2hsv.js" lang="text/javascript"></script>
   <script src="js/script.js" lang="text/javascript"></script>
 
-  <nav class="navbar navbar-inverse">
+  <nav class="navbar navbar-expand-sm bg-dark navbar-dark">
     <div class="container">
-      <div class="navbar-header">
-        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
-          <span class="sr-only">Toggle navigation</span>
-          <span class="icon-bar"></span>
-          <span class="icon-bar"></span>
-          <span class="icon-bar"></span>
-        </button>
+  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#collapsibleNavbar">
+    <span class="navbar-toggler-icon"></span>
+  </button>
         <a class="navbar-brand" href="/">MiLight Hub</a>
-      </div>
-      <div class="collapse navbar-collapse">
-        <ul class="nav navbar-nav">
-          <li><a href="#settings" data-toggle="modal" data-target="#settings-modal">Settings</a></li>
-          <li>
-            <a href="#sniff" id="sniff">
-              <i class="glyphicon glyphicon-play"></i>
+      <div class="collapse navbar-collapse" id="collapsibleNavbar">
+        <ul class="navbar-nav">
+          <li class="nav-item"><a class="nav-link" href="#settings" data-toggle="modal" data-target="#settings-modal">Settings</a></li>
+          <li class="nav-item">
+            <a class="nav-link" href="#sniff" id="sniff">
+              <i class="fas fa-play"></i>
               <span>Start Sniffing</span>
             </a>
           </li>
-          <li class="dropdown">
-            <a href="#admin" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Admin <span class="caret"></span></a>
+          <li class="nav-item dropdown">
+            <a href="#admin" class="nav-link dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Admin <span class="caret"></span></a>
             <ul class="dropdown-menu">
-              <li><a href="#admin-actions" data-toggle="modal" data-target="#admin-actions-modal">Actions</a></li>
-              <li role="separator" class="divider"></li>
-              <li><a href="#check-updates" id="updates-btn" data-toggle="modal" data-target="#updates-modal">Check for Updates</a></li>
-              <li><a href="#updates" data-toggle="modal" data-target="#update-firmware-modal">Update Firmware</a></li>
-              <li><a href="#backup" data-toggle="modal" data-target="#backup-settings-modal">Backup</a></li>
+              <li><a class="dropdown-item" href="#admin-actions" data-toggle="modal" data-target="#admin-actions-modal">Actions</a></li>
+              <li role="separator" class="dropdown-divider"></li>
+              <li><a class="dropdown-item" href="#check-updates" id="updates-btn" data-toggle="modal" data-target="#updates-modal">Check for Updates</a></li>
+              <li><a class="dropdown-item" href="#updates" data-toggle="modal" data-target="#update-firmware-modal">Update Firmware</a></li>
+              <li><a class="dropdown-item" href="#backup" data-toggle="modal" data-target="#backup-settings-modal">Backup</a></li>
             </ul>
           </li>
-          <li class="dropdown" id="theme-dropdown">
-            <a id="theme-label" href="#" class="dropdown-toggle" data-toggle="dropdown">Theme<b class="caret"></b></a>
+          <li class="nav-item dropdown" id="theme-dropdown">
+            <a id="theme-label" href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">Theme<b class="caret"></b></a>
             <ul id="theme-list" class="dropdown-menu">
-              <li><a href="#" class="change-style-menu-item">Bootstrap (Default)</a></li>
+              <li><a class="dropdown-item change-style-menu-item" href="#" >Bootstrap (Default)</a></li>
             </ul>
           </li>
         </ul>
       </div>
     </div>
   </nav>
-
   <div class="container" id="content">
     <div class="row" id="device-id-aliases-row">
       <div class="col-sm-6 col-xs-12">
@@ -97,7 +92,7 @@
       <div class="col-sm-3 col-xs-5">
         <label for="mode">Remote Type</label>
         <div class="dropdown">
-          <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">
+          <button class="btn btn-secondary dropdown-toggle" type="button" data-toggle="dropdown">
             <label>Mode</label>
             <span class="caret"></span>
           </button>
@@ -134,32 +129,32 @@
           <label for="groupId">Group</label>
 
           <div class="btn-group" id="groupId" data-toggle="buttons">
-            <label class="btn btn-default active">
-              <input type="radio" name="options" autocomplete="off" data-value="1" checked> 1
+            <label class="btn btn-secondary active">
+              <input type="radio" name="options" class="custom-control-input" autocomplete="off" data-value="1" checked> 1
             </label>
-            <label class="btn btn-default">
-              <input type="radio" name="options" autocomplete="off" data-value="2"> 2
+            <label class="btn btn-secondary">
+              <input type="radio" name="options" class="custom-control-input" autocomplete="off" data-value="2"> 2
             </label>
-            <label class="btn btn-default">
-              <input type="radio" name="options" autocomplete="off" data-value="3"> 3
+            <label class="btn btn-secondary">
+              <input type="radio" name="options" class="custom-control-input" autocomplete="off" data-value="3"> 3
             </label>
-            <label class="btn btn-default">
-              <input type="radio" name="options" autocomplete="off" data-value="4"> 4
+            <label class="btn btn-secondary">
+              <input type="radio" name="options" class="custom-control-input" autocomplete="off" data-value="4"> 4
             </label>
-            <label class="btn btn-default mode-option" data-for="fut089">
-              <input type="radio" name="options" autocomplete="off" data-value="5"> 5
+            <label class="btn btn-secondary mode-option" data-for="fut089">
+              <input type="radio" name="options" class="custom-control-input" autocomplete="off" data-value="5"> 5
             </label>
-            <label class="btn btn-default mode-option" data-for="fut089">
-              <input type="radio" name="options" autocomplete="off" data-value="6"> 6
+            <label class="btn btn-secondary mode-option" data-for="fut089">
+              <input type="radio" name="options" class="custom-control-input" autocomplete="off" data-value="6"> 6
             </label>
-            <label class="btn btn-default mode-option" data-for="fut089">
-              <input type="radio" name="options" autocomplete="off" data-value="7"> 7
+            <label class="btn btn-secondary mode-option" data-for="fut089">
+              <input type="radio" name="options" class="custom-control-input" autocomplete="off" data-value="7"> 7
             </label>
-            <label class="btn btn-default mode-option" data-for="fut089">
-              <input type="radio" name="options" autocomplete="off" data-value="8"> 8
+            <label class="btn btn-secondary mode-option" data-for="fut089">
+              <input type="radio" name="options" class="custom-control-input" autocomplete="off" data-value="8"> 8
             </label>
-            <label class="btn btn-default">
-              <input type="radio" name="options" autocomplete="off" data-value="0"> All
+            <label class="btn btn-secondary">
+              <input type="radio" name="options" class="custom-control-input" autocomplete="off" data-value="0"> All
             </label>
           </div>
         </div>
@@ -253,7 +248,7 @@
           </li>
           <div class="mode-option inline" data-for="rgbw,rgb_cct,fut089,fut020">
             <li>
-              <button type="button" class="btn btn-default command-btn" data-command="set_white">White</button>
+              <button type="button" class="btn btn-secondary command-btn" data-command="set_white">White</button>
             </li>
           </div>
           <li>
@@ -265,12 +260,12 @@
           <div class="mode-option inline" data-for="rgb,fut020">
             <li>
               <div class="plus-minus-group">
-                <button type="button" class="btn btn-default btn-number command-btn" data-command="previous_mode">
-                  <span class="glyphicon glyphicon-minus"></span>
+                <button type="button" class="btn btn-secondary btn-number command-btn" data-command="previous_mode">
+                  <span class="fas fa-minus"></span>
                 </button>
                 <span class="title">Mode</span>
-                <button type="button" class="btn btn-default btn-number command-btn clearfix" data-command="next_mode">
-                  <span class="glyphicon glyphicon-plus"></span>
+                <button type="button" class="btn btn-secondary btn-number command-btn clearfix" data-command="next_mode">
+                  <span class="fas fa-plus"></span>
                 </button>
                 <div class="clearfix"></div>
               </div>
@@ -279,7 +274,7 @@
           <div class="mode-option inline" data-for="rgbw,rgb_cct,fut089">
             <li>
               <div class="dropdown">
-                <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">
+                <button class="btn btn-secondary dropdown-toggle" type="button" data-toggle="dropdown">
                   Mode
                   <span class="caret"></span>
                 </button>
@@ -291,12 +286,12 @@
           <div class="mode-option inline" data-for="rgb,rgbw,rgb_cct,fut089">
             <li>
               <div class="plus-minus-group">
-                <button type="button" class="btn btn-default btn-number command-btn" data-command="mode_speed_down">
-                  <span class="glyphicon glyphicon-minus"></span>
+                <button type="button" class="btn btn-secondary btn-number command-btn" data-command="mode_speed_down">
+                  <span class="fas fa-minus"></span>
                 </button>
                 <span class="title">Speed</span>
-                <button type="button" class="btn btn-default btn-number command-btn" data-command="mode_speed_up">
-                  <span class="glyphicon glyphicon-plus"></span>
+                <button type="button" class="btn btn-secondary btn-number command-btn" data-command="mode_speed_up">
+                  <span class="fas fa-plus"></span>
                 </button>
                 <div class="clearfix"></div>
               </div>
@@ -307,13 +302,13 @@
         <ul class="command-buttons">
           <li>
             <button type="button" class="btn btn-success command-btn" data-command="pair">
-              <i class="glyphicon glyphicon-plus"></i>
+              <i class="fas fa-plus"></i>
               Pair
             </button>
           </li>
           <li>
             <button type="button" class="btn btn-danger command-btn" data-command="unpair">
-              <i class="glyphicon glyphicon-remove"></i>
+              <i class="fas fa-remove"></i>
               Unpair
             </button>
           </li>
@@ -343,7 +338,7 @@
                         <th>Protocol Version</th>
                         <th>
                           <a class="btn btn-success gateway-add-btn" id="add-server-btn">
-                            <i class="glyphicon glyphicon-plus"></i>
+                            <i class="fas fa-plus"></i>
                           </a>
                         </th>
                       </tr>
@@ -446,7 +441,7 @@
           </form>
 		</div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
         </div>
 </div>
 
@@ -494,7 +489,7 @@
          </div>
        </div>
        <div class="modal-footer">
-         <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+         <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
        </div>
      </div>
    </div>
@@ -538,7 +533,7 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
         </div>
       </div>
 
@@ -564,7 +559,7 @@
           </ul>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
         </div>
       </div>
 

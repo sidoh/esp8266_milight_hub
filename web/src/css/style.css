@@ -17,8 +17,6 @@ label:not(.error) .error-info { display: none; }
 #traffic-sniff { display: none; }
 #sniffed-traffic { max-height: 50em; overflow-y: auto; }
 .dropdown label { display: inline-block; }
-.navbar { background-color: rgba(41,41,45,.9) !important; border-radius: 0 }
-.navbar-brand, .navbar-brand:hover { color: white; }
 .inline { display: inline-block; }
 .white-temp-picker {
   height: 2em;
@@ -91,7 +89,7 @@ label:not(.error) .error-info { display: none; }
   font-size: 1.25em;
   margin-left: 0.5em;
 }
-.glyphicon.spinning {
+.fas.spinning {
   animation: spin 1s infinite linear;
   -webkit-animation: spin2 1s infinite linear;
 }
@@ -132,11 +130,11 @@ footer {
   padding-bottom: 0.2em;
 }
 
-#sniff .glyphicon-play {
+#sniff .fa-play {
   color: #6f6;
 }
 
-#sniff .glyphicon-stop {
+#sniff .fa-stop {
   color: #f66;
 }
 

@@ -1,11 +1,11 @@
 // Change current theme
 // Adapted from : https://wdtz.org/bootswatch-theme-selector.html
 
-$.getJSON("https://bootswatch.com/api/3.json", function (data) {
+$.getJSON("https://bootswatch.com/api/4.json", function (data) {
   var themes = data.themes;
   var list = $("#theme-list");
   themes.forEach(function(value, index){
-    var elmt = '<li><a href="#" class="change-style-menu-item" url='+value.cssCdn+'>'+value.name+'</a></li>'
+    var elmt = '<li><a class="dropdown-item change-style-menu-item" href="#" url='+value.cssCdn+'>'+value.name+'</a></li>'
     list.append(elmt);
   });
 });
@@ -32,7 +32,7 @@ jQuery(function($){
     console.log("Theme set to " + theme_name);
     var url_theme = "";
     if ( theme_name === "Bootstrap (Default)" ) {
-      url_theme = "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css";
+      url_theme = "https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css";
     } else {
       url_theme = $(this).attr('url');
     }

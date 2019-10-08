@@ -551,7 +551,7 @@ var gatewayServerRow = function(deviceId, port, version) {
       , selected = (version == val || (val == DEFAULT_UDP_PROTOCL_VERSION && !UDP_PROTOCOL_VERSIONS.includes(version)));
 
     elmt += '<label class="btn btn-secondary' + (selected ? ' active' : '') + '">';
-    elmt += '<input type="radio" name="versions[]" autocomplete="off" data-value="' + val + '" '
+    elmt += '<input type="radio" name="versions[]" class="custom-control-input" autocomplete="off" data-value="' + val + '" '
       + (selected ? 'checked' : '') +'> ' + val;
     elmt += '</label>';
   }
@@ -559,7 +559,7 @@ var gatewayServerRow = function(deviceId, port, version) {
   elmt += '</div></td>';
   elmt += '<td>';
   elmt += '<button class="btn btn-danger remove-gateway-server">';
-  elmt += '<i class="glyphicon glyphicon-remove"></i>';
+  elmt += '<i class="fas fa-times"></i>';
   elmt += '</button>';
   elmt += '</td>';
   elmt += '</tr>';
@@ -872,7 +872,7 @@ var handleCheckForUpdates = function() {
     console.log(d);
   }
 
-  $('#current-version,#latest-version .status').html('<i class="spinning glyphicon glyphicon-refresh"></i>');
+  $('#current-version,#latest-version .status').html('<i class="spinning fas fa-sync-alt"></i>');
   $('#version-summary').html('');
   $('#latest-version-info').hide();
 
@@ -944,8 +944,8 @@ var stopSniffing = function() {
 
   sniffing = false;
   $('i', elmt)
-    .removeClass('glyphicon-stop')
-    .addClass('glyphicon-play');
+    .removeClass('fa-stop')
+    .addClass('fa-play');
   $('span', elmt).html('Start Sniffing');
 };
 
@@ -954,8 +954,8 @@ var startSniffing = function() {
 
   sniffing = true;
   $('i', elmt)
-    .removeClass('glyphicon-play')
-    .addClass('glyphicon-stop');
+    .removeClass('fa-play')
+    .addClass('fa-stop');
   $('span', elmt).html('Stop Sniffing');
   $("#traffic-sniff").show();
 };
@@ -967,7 +967,7 @@ var generateDropdownField = function(fieldName, options, settings) {
   Object.keys(options).forEach(function(optionValue) {
     var optionLabel = options[optionValue];
     s += '<label class="btn btn-secondary">' +
-           '<input type="' + inputType + '" id="' + fieldName + '" name="' + fieldName + '" autocomplete="off" value="' + optionValue + '" /> ' + optionLabel +
+           '<input type="' + inputType + '" id="' + fieldName + '" name="' + fieldName + '" class="custom-control-input" autocomplete="off" value="' + optionValue + '" /> ' + optionLabel +
          '</label>';
   });
 
@@ -1093,7 +1093,7 @@ $(function() {
       option: function(data, escape) {
         // Mousedown selects an option -- prevent event from bubbling up to select option
         // when delete button is clicked.
-        var deleteBtn = $('<span class="selectize-delete"><a href="#"><i class="glyphicon glyphicon-trash"></i></a></span>')
+        var deleteBtn = $('<span class="selectize-delete"><a href="#"><i class="fas fa-trash"></i></a></span>')
           .mousedown(function(e) {
             e.preventDefault();
             return false;
@@ -1133,7 +1133,7 @@ $(function() {
       option: function(data, escape) {
         // Mousedown selects an option -- prevent event from bubbling up to select option
         // when delete button is clicked.
-        var deleteBtn = $('<span class="selectize-delete"><a href="#"><i class="glyphicon glyphicon-trash"></i></a></span>')
+        var deleteBtn = $('<span class="selectize-delete"><a href="#"><i class="fas fa-trash"></i></a></span>')
           .mousedown(function(e) {
             e.preventDefault();
             return false;
@@ -1179,18 +1179,18 @@ $(function() {
   });
   selectize = selectize[0].selectize;
 
-  var settings = '<ul class="nav nav-tabs" id="setupTabs">';
+  var settings = '<ul class="nav nav-tabs" id="setupTabs" role="tablist">';
   var tabClass = 'active';
   UI_TABS.forEach(function(t) {
-    settings += '<li class="' + tabClass + '"><a href="#' + t.tag + '" data-toggle="tab">' + t.friendly + '</a></li>';
+    settings += '<li class="nav-item"><a class="nav-link ' + tabClass + '" href="#' + t.tag + '" data-toggle="tab">' + t.friendly + '</a></li>';
     tabClass = '';
   });
-  settings += '<li><a href="#tab-udp-gateways" data-toggle="tab">UDP</a></li>';
+  settings += '<li class="nav-item"><a class="nav-link" href="#tab-udp-gateways" data-toggle="tab">UDP</a></li>';
   settings += "</ul>";
 
   settings += '<div class="tab-content">';
 
-  tabClass = 'active in';
+  tabClass = 'in show active';
 
   UI_TABS.forEach(function(t) {
     settings += '<div class="tab-pane fade ' + tabClass + '" id="' + t.tag + '">';
@@ -1208,13 +1208,13 @@ $(function() {
         elmt += '</div>';
 
         if (k.type == 'group_state_fields') {
-          elmt += '<select class="selectpicker select-init" name="group_state_fields" multiple>';
+          elmt += '<select class="selectpicker select-init form-control" name="group_state_fields" multiple>';
           GROUP_STATE_KEYS.forEach(function(stateKey) {
             elmt += '<option>' + stateKey + '</option>';
           });
           elmt += '</select>';
         } else if (k.type == 'led_mode') {
-          elmt += '<select class="selectpicker select-init" name="' + k.tag + '">';
+          elmt += '<select class="selectpicker select-init form-control" name="' + k.tag + '">';
           LED_MODES.forEach(function(stateKey) {
             elmt += '<option>' + stateKey + '</option>';
           });
@@ -1310,7 +1310,7 @@ $(function() {
 
   $('.field-help').each(function() {
     var elmt = $('<i></i>')
-      .addClass('glyphicon glyphicon-question-sign')
+      .addClass('fas fa-question-circle')
       .tooltip({
         placement: 'top',
         title: $(this).data('help-text'),
