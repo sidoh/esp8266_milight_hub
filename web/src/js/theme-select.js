@@ -17,7 +17,10 @@ if (supports_storage) {
   if ( typeof theme != 'undefined' ) {
     console.log("Changing theme to " + theme);
     $('link[title="main"]').attr('href', localStorage.theme_url)
-    changeHeight()
+    setTimeout(function() {
+    $('#theme-label').html("Theme : " + theme);
+    }, 1000)
+    newThemeLoaded();
   }
 } 
 
@@ -40,7 +43,7 @@ jQuery(function($){
     }
     console.log("URL theme : " + url_theme);
     $('link[title="main"]').attr('href', url_theme);
-    changeHeight()
+    newThemeLoaded();
   });
 });
 
@@ -64,4 +67,27 @@ function changeHeight() {
         height: raw
       });
   }, 1000)
+}
+function newThemeLoaded() {
+  var btnCssHeight = $("#btnHeight").css("height");
+  var interval = setInterval(check, 500);
+  var times = 0;
+  var dbCheck = 0;
+  function check() {
+    var newCssHeight = $("#btnHeight").css("height");
+    var raw = newCssHeight.replace("px", "")
+    if ((btnCssHeight != "22px" && newCssHeight != "22px") && btnCssHeight != newCssHeight) {
+      btnCssHeight = newCssHeight
+      $(".plus-minus-group .title").css("height", btnCssHeight);
+      $('input[name="status"]')
+        .bootstrapToggle('destroy')
+        .bootstrapToggle({
+          height: raw
+        });
+    } if (times == 10) {
+      clearInterval(interval);
+    } else {
+      times++; 
+    }
+  }
 }

@@ -19,10 +19,6 @@ label:not(.error) .error-info { display: none; }
 .dropdown label { display: inline-block; }
 .navbar { background-color: rgba(41,41,45,.9) !important; border-radius: 0 }
 .navbar-brand, .navbar-brand:hover { color: white; }
-.btn-secondary {
-  background-color: #fff;
-  border: 1px solid #ccc;
-}
 .inline { display: inline-block; }
 .white-temp-picker {
   height: 2em;
@@ -87,7 +83,8 @@ label:not(.error) .error-info { display: none; }
   margin: 0;
   line-height: 1.49;
   float: left;
-  display: block;
+  display: flex;
+  align-items: center;
 }
 .field-help {
   display: inline-block;
