@@ -6,7 +6,7 @@
 
   <title>MiLight Hub</title>
 
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"/>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" title="main"/>
   <link href="https://gitcdn.github.io/bootstrap-toggle/2.2.2/css/bootstrap-toggle.min.css" rel="stylesheet"/>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/9.7.0/css/bootstrap-slider.min.css" rel="stylesheet"/>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.6/css/selectize.bootstrap3.min.css" rel="stylesheet"/>
@@ -20,6 +20,7 @@
 
 <body>
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+  <script src="js/theme-select.js" lang="text/javascript"></script>
   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
   <script src="https://gitcdn.github.io/bootstrap-toggle/2.2.2/js/bootstrap-toggle.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
@@ -60,6 +61,12 @@
               <li><a href="#backup" data-toggle="modal" data-target="#backup-settings-modal">Backup</a></li>
             </ul>
           </li>
+          <li class="dropdown" id="theme-dropdown">
+            <a id="theme-label" href="#" class="dropdown-toggle" data-toggle="dropdown">Theme<b class="caret"></b></a>
+            <ul id="theme-list" class="dropdown-menu">
+              <li><a href="#" class="change-style-menu-item">Bootstrap (Default)</a></li>
+            </ul>
+          </li>
         </ul>
       </div>
     </div>
@@ -72,7 +79,7 @@
           Device Name
         </label>
         <select id="deviceAliases" placeholder="Create alias...">
-				</select>
+        </select>
       </div>
     </div>
     <div></div>
@@ -84,7 +91,7 @@
           <span class="error-info"></span>
         </label>
         <select id="deviceId" placeholder="Enter hub ID">
-				</select>
+        </select>
       </div>
 
       <div class="col-sm-4">
@@ -92,31 +99,31 @@
           <label for="groupId">Group</label>
 
           <div class="btn-group" id="groupId" data-toggle="buttons">
-            <label class="btn btn-secondary active">
+            <label class="btn btn-default active">
               <input type="radio" name="options" autocomplete="off" data-value="1" checked> 1
             </label>
-            <label class="btn btn-secondary">
+            <label class="btn btn-default">
               <input type="radio" name="options" autocomplete="off" data-value="2"> 2
             </label>
-            <label class="btn btn-secondary">
+            <label class="btn btn-default">
               <input type="radio" name="options" autocomplete="off" data-value="3"> 3
             </label>
-            <label class="btn btn-secondary">
+            <label class="btn btn-default">
               <input type="radio" name="options" autocomplete="off" data-value="4"> 4
             </label>
-            <label class="btn btn-secondary mode-option" data-for="fut089">
+            <label class="btn btn-default mode-option" data-for="fut089">
               <input type="radio" name="options" autocomplete="off" data-value="5"> 5
             </label>
-            <label class="btn btn-secondary mode-option" data-for="fut089">
+            <label class="btn btn-default mode-option" data-for="fut089">
               <input type="radio" name="options" autocomplete="off" data-value="6"> 6
             </label>
-            <label class="btn btn-secondary mode-option" data-for="fut089">
+            <label class="btn btn-default mode-option" data-for="fut089">
               <input type="radio" name="options" autocomplete="off" data-value="7"> 7
             </label>
-            <label class="btn btn-secondary mode-option" data-for="fut089">
+            <label class="btn btn-default mode-option" data-for="fut089">
               <input type="radio" name="options" autocomplete="off" data-value="8"> 8
             </label>
-            <label class="btn btn-secondary">
+            <label class="btn btn-default">
               <input type="radio" name="options" autocomplete="off" data-value="0"> All
             </label>
           </div>
@@ -242,11 +249,11 @@
           </li>
           <div class="mode-option inline" data-for="rgbw,rgb_cct,fut089,fut020">
             <li>
-              <button type="button" class="btn btn-secondary command-btn" data-command="set_white">White</button>
+              <button type="button" class="btn btn-default command-btn" data-command="set_white">White</button>
             </li>
           </div>
           <li>
-            <button type="button" class="btn btn-info command-btn" data-command="night_mode">Night</button>
+            <button type="button" id="btnHeight" class="btn btn-info command-btn" data-command="night_mode">Night</button>
           </li>
           <li>
             <button type="button" class="btn btn-success command-btn" data-command="pair">
@@ -430,7 +437,7 @@
               </label>
             </div>
           </form>
-		</div>
+    </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
         </div>
