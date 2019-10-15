@@ -707,5 +707,25 @@ RSpec.describe 'Transitions' do
         )
       end
     end
+
+    it 'for upwards transition, should throttle frequency if step size does not allow for default period' do
+      @client.patch_state({status: "ON", brightness: 0}, @id_params)
+      @client.patch_state({brightness: 255, transition: 3600}, @id_params)
+
+      transitions = @client.transitions
+
+      expect(transitions.count).to eq(1)
+      expect(transitions.first['period']).to eq((3600000/255.0).round)
+    end
+
+    it 'for downwards transition, should throttle frequency if step size does not allow for default period' do
+      @client.patch_state({status: "ON", brightness: 255}, @id_params)
+      @client.patch_state({brightness: 0, transition: 3600}, @id_params)
+
+      transitions = @client.transitions
+
+      expect(transitions.count).to eq(1)
+      expect(transitions.first['period']).to eq((3600000/255.0).round)
+    end
   end
 end
