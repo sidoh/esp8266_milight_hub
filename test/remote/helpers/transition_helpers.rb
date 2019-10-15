@@ -2,7 +2,7 @@ require 'chroma'
 
 module TransitionHelpers
   module Defaults
-    PERIOD = 225
+    PERIOD = 500
     NUM_PERIODS = 20
     DURATION = PERIOD * NUM_PERIODS
   end
