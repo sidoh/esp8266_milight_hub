@@ -636,9 +636,8 @@ RSpec.describe 'Transitions' do
 
   context 'computed parameters' do
     (@transition_defaults = {
-      duration: {default: 4.5, test: 2},
-      num_periods: {default: 10, test: 5},
-      period: {default: 450, test: 225}
+      duration: {default: 10.0, test: 2},
+      period: {default: 500, test: 225}
     }).each do |k, params|
       it "it should compute other parameters given only #{k}" do
         seen_values = 0
@@ -675,7 +674,7 @@ RSpec.describe 'Transitions' do
         expected_duration = (k == :duration ? params[:test] : (TransitionHelpers::Defaults::DURATION/1000.0))
         num_periods = (expected_duration/period.to_f)*1000
 
-        expect(duration).to be_within(1.5).of(expected_duration)
+        expect(duration).to be_within(2).of(expected_duration)
         expect(gap).to be_within(10).of((255/num_periods).ceil)
       end
     end
@@ -707,6 +706,26 @@ RSpec.describe 'Transitions' do
           allowed_variation: 3
         )
       end
+    end
+
+    it 'for upwards transition, should throttle frequency if step size does not allow for default period' do
+      @client.patch_state({status: "ON", brightness: 0}, @id_params)
+      @client.patch_state({brightness: 255, transition: 3600}, @id_params)
+
+      transitions = @client.transitions
+
+      expect(transitions.count).to eq(1)
+      expect(transitions.first['period']).to eq((3600000/255.0).round)
+    end
+
+    it 'for downwards transition, should throttle frequency if step size does not allow for default period' do
+      @client.patch_state({status: "ON", brightness: 255}, @id_params)
+      @client.patch_state({brightness: 0, transition: 3600}, @id_params)
+
+      transitions = @client.transitions
+
+      expect(transitions.count).to eq(1)
+      expect(transitions.first['period']).to eq((3600000/255.0).round)
     end
   end
 end

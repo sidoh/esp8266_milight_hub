@@ -10,7 +10,7 @@ FieldTransition::Builder::Builder(size_t id, uint16_t defaultPeriod, const BulbI
       callback,
       max(
         static_cast<size_t>(1),
-        static_cast<size_t>(std::ceil(static_cast<int16_t>(end) - start))
+        static_cast<size_t>(std::abs(static_cast<int16_t>(end) - static_cast<uint16_t>(start)))
       )
   )
   , stepSize(0)
