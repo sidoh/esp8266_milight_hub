@@ -17,12 +17,6 @@ label:not(.error) .error-info { display: none; }
 #traffic-sniff { display: none; }
 #sniffed-traffic { max-height: 50em; overflow-y: auto; }
 .dropdown label { display: inline-block; }
-.navbar { background-color: rgba(41,41,45,.9) !important; border-radius: 0 }
-.navbar-brand, .navbar-brand:hover { color: white; }
-.btn-secondary {
-  background-color: #fff;
-  border: 1px solid #ccc;
-}
 .inline { display: inline-block; }
 .white-temp-picker {
   height: 2em;
@@ -84,10 +78,10 @@ label:not(.error) .error-info { display: none; }
   border-style: solid;
   padding: 5px 5px 5px 7px;
   margin: 0;
-  height: 34px;
   line-height: 1.49;
   float: left;
-  display: block;
+  display: flex;
+  align-items: center
 }
 .field-help {
   display: inline-block;
