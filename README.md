@@ -296,6 +296,12 @@ substituting `d1_mini` for the environment of your choice.
 
 A remote integration test suite built using rspec is available under [`./test/remote`](test/remote).
 
+## Ready-Made Hub
+
+h4nc (h4nc.zigbee(a)gmail.com) created a PCB and 3D-printable case for espMH.  He's offering ready-made versions.  Please get in touch with him at the aforementioned email address for further information.
+
+Find more information from the [espmh_pcb](https://github.com/sidoh/espmh_pcb) repository.
+
 ## Acknowledgements
 
 * @WoodsterDK added support for LT8900 radios.
