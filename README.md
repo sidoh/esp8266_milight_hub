@@ -151,7 +151,7 @@ To configure your ESP to integrate with MQTT, fill out the following settings:
 1. `:group_id` - Group.  0-4 for most remotes.  The "All" group is group 0.
 1. `:device_alias` - Alias for the given device.  Note that if an alias is not configured, a default token `__unnamed_group` will be substituted instead.
 
-Messages should be JSON objects using exactly the same schema that the REST gateway uses for the `/gateways/:device_id/:device_type/:group_id` endpoint. Documented above in the _Bulb commands_ section.
+Messages should be JSON objects using exactly the same schema that the [REST gateway](https://sidoh.github.io/esp8266_milight_hub/branches/latest/#tag/Device-Control/paths/~1gateways~1{device-id}~1{remote-type}~1{group-id}/put) uses for the `/gateways/:device_id/:device_type/:group_id` endpoint.
 
 #### Example:
 
