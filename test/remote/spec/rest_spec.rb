@@ -9,6 +9,15 @@ RSpec.describe 'REST Server' do
     @password = 'a'
   end
 
+  before(:each) do
+    @id_params = {
+      id: @client.generate_id,
+      type: 'rgb_cct',
+      group_id: 1
+    }
+    @client.delete_state(@id_params)
+  end
+
   context 'authentication' do
     after(:all) do
       @client.set_auth!(@username, @password)
@@ -170,6 +179,15 @@ RSpec.describe 'REST Server' do
           @client.patch_settings(group_id_aliases: v)
         }.to_not raise_error
       end
+    end
+  end
+
+  context 'async state' do
+    it 'should respond with state for GET, regardless of blockOnQueue param value' do
+      @client.patch_state({status: 'ON'}, @id_params)
+      response = @client.get_state(@id_params.merge(blockOnQueue: false))
+
+      expect(response['status']).to eq('ON')
     end
   end
 end
