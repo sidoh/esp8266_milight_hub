@@ -369,7 +369,9 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/TransitionData'
+              allOf:
+                - $ref: '#/components/schemas/TransitionData'
+                - $ref: '#/components/schemas/BulbId'
       responses:
         400:
           description: error
@@ -588,12 +590,16 @@ components:
         - type: object
           properties:
             id:
+              readOnly: true
               type: integer
             last_sent:
+              readOnly: true
               type: integer
               description: Timestamp since last update was sent.
             bulb:
-              $ref: '#/components/schemas/BulbId'
+              readOnly: true
+              allOf:
+                - $ref: '#/components/schemas/BulbId'
             type:
               readOnly: true
               description: >
@@ -603,9 +609,13 @@ components:
                 - field
                 - color
             current_value:
-              $ref: '#/components/schemas/TransitionValue'
+              readOnly: true
+              allOf:
+                - $ref: '#/components/schemas/TransitionValue'
             end_value:
-              $ref: '#/components/schemas/TransitionValue'
+              readOnly: true
+              allOf:
+                - $ref: '#/components/schemas/TransitionValue'
 
     BulbId:
       type: object
