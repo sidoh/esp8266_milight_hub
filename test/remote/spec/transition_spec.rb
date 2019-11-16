@@ -57,6 +57,17 @@ RSpec.describe 'Transitions' do
       expect(response['success']).to eq(true)
     end
 
+    it 'should accept device_type as an ID parameter' do
+      params = {
+        device_id: @id_params[:id],
+        device_type: @id_params[:type],
+        group_id: @id_params[:group_id]
+      }.merge(@transition_params)
+      response = @client.post("/transitions", params)
+
+      expect(response['success']).to eq(true)
+    end
+
     it 'should list active transitions' do
       @client.schedule_transition(@id_params, @transition_params)
 
