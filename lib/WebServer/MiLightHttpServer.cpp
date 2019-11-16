@@ -331,7 +331,7 @@ void MiLightHttpServer::handleListenGateway(RequestContext& request) {
   request.response.json["packet_info"] = responseBody;
 }
 
-void MiLightHttpServer::sendGroupState(BulbId& bulbId, GroupState* state, RichHttp::Response& response) {
+void MiLightHttpServer::sendGroupState(bool allowAsync, BulbId& bulbId, RichHttp::Response& response) {
   bool blockOnQueue = server.arg("blockOnQueue").equalsIgnoreCase("true");
 
   // Wait for packet queue to flush out.  State will not have been updated before that.
@@ -341,16 +341,22 @@ void MiLightHttpServer::sendGroupState(BulbId& bulbId, GroupState* state, RichHt
   }
 
   JsonObject obj = response.json.to<JsonObject>();
+  GroupState* state = stateStore->get(bulbId);
 
-  if (blockOnQueue && state != NULL) {
-    state->applyState(obj, bulbId, settings.groupStateFields);
+  if (blockOnQueue || allowAsync) {
+    if (state == nullptr) {
+      obj[F("error")] = F("not found");
+      response.setCode(404);
+    } else {
+      state->applyState(obj, bulbId, settings.groupStateFields);
+    }
   } else {
     obj[F("success")] = true;
   }
 }
 
-void MiLightHttpServer::_handleGetGroup(BulbId bulbId, RequestContext& request) {
-  sendGroupState(bulbId, stateStore->get(bulbId), request.response);
+void MiLightHttpServer::_handleGetGroup(bool allowAsync, BulbId bulbId, RequestContext& request) {
+  sendGroupState(allowAsync, bulbId, request.response);
 }
 
 void MiLightHttpServer::handleGetGroupAlias(RequestContext& request) {
@@ -364,7 +370,7 @@ void MiLightHttpServer::handleGetGroupAlias(RequestContext& request) {
     return;
   }
 
-  _handleGetGroup(it->second, request);
+  _handleGetGroup(true, it->second, request);
 }
 
 void MiLightHttpServer::handleGetGroup(RequestContext& request) {
@@ -381,7 +387,7 @@ void MiLightHttpServer::handleGetGroup(RequestContext& request) {
   }
 
   BulbId bulbId(parseInt<uint16_t>(_deviceId), _groupId, _remoteType->type);
-  _handleGetGroup(bulbId, request);
+  _handleGetGroup(true, bulbId, request);
 }
 
 void MiLightHttpServer::handleDeleteGroup(RequestContext& request) {
@@ -449,7 +455,7 @@ void MiLightHttpServer::handleUpdateGroupAlias(RequestContext& request) {
 
   milightClient->prepare(config, bulbId.deviceId, bulbId.groupId);
   handleRequest(request.getJsonBody().as<JsonObject>());
-  sendGroupState(bulbId, stateStore->get(bulbId), request.response);
+  sendGroupState(false, bulbId, request.response);
 }
 
 void MiLightHttpServer::handleUpdateGroup(RequestContext& request) {
@@ -501,7 +507,7 @@ void MiLightHttpServer::handleUpdateGroup(RequestContext& request) {
   }
 
   if (groupCount == 1) {
-    sendGroupState(foundBulbId, stateStore->get(foundBulbId), request.response);
+    sendGroupState(false, foundBulbId, request.response);
   } else {
     request.response.json["success"] = true;
   }
@@ -635,9 +641,9 @@ void MiLightHttpServer::handleCreateTransition(RequestContext& request) {
 
   if (! body.containsKey(GroupStateFieldNames::DEVICE_ID)
     || ! body.containsKey(GroupStateFieldNames::GROUP_ID)
-    || ! body.containsKey(F("remote_type"))) {
+    || (!body.containsKey(F("remote_type")) && !body.containsKey(GroupStateFieldNames::DEVICE_TYPE))) {
     char buffer[200];
-    sprintf_P(buffer, PSTR("Must specify required keys: device_id, group_id, remote_type"));
+    sprintf_P(buffer, PSTR("Must specify required keys: device_id, group_id, device_type"));
 
     request.response.setCode(400);
     request.response.json[F("error")] = buffer;
@@ -646,7 +652,13 @@ void MiLightHttpServer::handleCreateTransition(RequestContext& request) {
 
   const String _deviceId = body[GroupStateFieldNames::DEVICE_ID];
   uint8_t _groupId = body[GroupStateFieldNames::GROUP_ID];
-  const MiLightRemoteConfig* _remoteType = MiLightRemoteConfig::fromType(body[F("remote_type")].as<const char*>());
+  const MiLightRemoteConfig* _remoteType = nullptr;
+
+  if (body.containsKey(GroupStateFieldNames::DEVICE_TYPE)) {
+    _remoteType = MiLightRemoteConfig::fromType(body[GroupStateFieldNames::DEVICE_TYPE].as<const char*>());
+  } else if (body.containsKey(F("remote_type"))) {
+    _remoteType = MiLightRemoteConfig::fromType(body[F("remote_type")].as<const char*>());
+  }
 
   if (_remoteType == nullptr) {
     char buffer[40];

@@ -55,7 +55,7 @@ protected:
 
   bool serveFile(const char* file, const char* contentType = "text/html");
   void handleServe_P(const char* data, size_t length);
-  void sendGroupState(BulbId& bulbId, GroupState* state, RichHttp::Response& response);
+  void sendGroupState(bool allowAsync, BulbId& bulbId, RichHttp::Response& response);
 
   void serveSettings();
   void handleUpdateSettings(RequestContext& request);
@@ -76,7 +76,7 @@ protected:
 
   void handleGetGroup(RequestContext& request);
   void handleGetGroupAlias(RequestContext& request);
-  void _handleGetGroup(BulbId bulbId, RequestContext& request);
+  void _handleGetGroup(bool allowAsync, BulbId bulbId, RequestContext& request);
 
   void handleDeleteGroup(RequestContext& request);
   void handleDeleteGroupAlias(RequestContext& request);
