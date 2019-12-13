@@ -278,7 +278,7 @@ You can configure the LED pin from the web console.  Note that pin means the GPI
 
 If you want to wire up your own LED parallel to the built-in LED you will have to connect it to D4/GPIO2. Put a wire from D4 to one side of a 220 ohm resistor. On the other side, connect it to the positive side (the longer wire) of a 3.3V LED.  Then connect the negative side of the LED (the shorter wire) to ground.  If you use a different voltage LED, or a high current LED, you will need to add a driver circuit.
 
-In a former version D2/GPIO4 was recommended to be used to connect your own LED, but since the CE-pin of the NRF24L0 module is connected to D2/GPIO4 this isn't possible any more. 
+To use an external LED, use the same instructions above to wire the LED to a GPIO pin of your choosing (D1/GPIO5 is a good choice).
 
 ## Development
 
