@@ -274,7 +274,7 @@ In the setup UI, you can turn on "enable_solid_led" to change the LED behavior t
 
 Note that you must restart the hub to affect the change in "enable_solid_led".
 
-You can configure the LED pin from the web console.  Note that pin means the GPIO number, not the D number ... for example, D2 is actually GPIO4 and therefore its pin 4.  If you specify the pin as a negative number, it will invert the LED signal (the built-in LED on pin 2 is inverted, so the default is -2).
+You can configure the LED pin from the web console.  Note that pin means the GPIO number, not the D number ... for example, D1 is actually GPIO5 and therefore its pin 5.  If you specify the pin as a negative number, it will invert the LED signal (the built-in LED on pin 2 is inverted, so the default is -2).
 
 If you want to wire up your own LED parallel to the built-in LED you will have to connect it to D4/GPIO2. Put a wire from D4 to one side of a 220 ohm resistor. On the other side, connect it to the positive side (the longer wire) of a 3.3V LED.  Then connect the negative side of the LED (the shorter wire) to ground.  If you use a different voltage LED, or a high current LED, you will need to add a driver circuit.
 
