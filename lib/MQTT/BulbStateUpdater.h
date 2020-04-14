@@ -25,6 +25,7 @@ private:
   GroupStateStore& stateStore;
   CircularBuffer<BulbId, MILIGHT_MAX_STALE_MQTT_GROUPS> staleGroups;
   unsigned long lastFlush;
+  unsigned long lastQueue;
   bool enabled;
 
   inline void flushGroup(BulbId bulbId, GroupState& state);

@@ -889,6 +889,10 @@ components:
           type: integer
           description: Controls how many miliseconds must pass between MQTT state updates.  Set to 0 to disable throttling.
           default: 500
+        mqtt_debounce_delay:
+          type: integer
+          description: Controls how much time has to pass after the last status update was queued.
+          default: 500
         packet_repeat_throttle_threshold:
           type: integer
           description:
