@@ -8,14 +8,18 @@ import subprocess
 Import("env")
 
 def is_tool(name):
+    print("Platform:", platform.system())
+
     cmd = "where" if platform.system() == "Windows" else "which"
     try:
         check_output([cmd, name])
         return True
     except:
-        return False;
+        return False
 
 def build_web():
+    print("Searching for npm...")
+
     if is_tool("npm"):
         os.chdir("web")
         print("Attempting to build webpage...")
@@ -40,6 +44,9 @@ def build_web():
             print("Encountered error", type(e).__name__, "building webpage:", e)
             print("WARNING: Failed to build web package. Using pre-built page.")
         finally:
-            os.chdir("..");
+            os.chdir("..")
+
+    else:
+        print("npm not found")
 
 build_web()

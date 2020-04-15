@@ -76,7 +76,7 @@ public:
 
   const size_t packetLength;
 
-  static const size_t NUM_CONFIGS = 5;
+  static const size_t NUM_CONFIGS = 6;
   static MiLightRadioConfig ALL_CONFIGS[NUM_CONFIGS];
 };
 

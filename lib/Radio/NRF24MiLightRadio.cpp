@@ -9,10 +9,10 @@ NRF24MiLightRadio::NRF24MiLightRadio(
   RF24& rf24,
   const MiLightRadioConfig& config,
   const std::vector<RF24Channel>& channels,
-  RF24Channel listenChannel
+  uint8_t listenChannel
 )
   : channels(channels),
-    listenChannelIx(static_cast<size_t>(listenChannel)),
+    listenChannelIx(listenChannel -1),
     _pl1167(PL1167_nRF24(rf24)),
     _config(config),
     _waiting(false)
@@ -57,7 +57,7 @@ bool NRF24MiLightRadio::available() {
     return true;
   }
 
-  if (_pl1167.receive(_config.channels[listenChannelIx]) > 0) {
+  if (_pl1167.receive(listenChannelIx) > 0) {
 #ifdef DEBUG_PRINTF
   printf("NRF24MiLightRadio - received packet!\n");
 #endif

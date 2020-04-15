@@ -24,7 +24,7 @@ NRF24Factory::NRF24Factory(
   uint8_t cePin,
   RF24PowerLevel rF24PowerLevel,
   const std::vector<RF24Channel>& channels,
-  RF24Channel listenChannel
+  uint8_t listenChannel
 )
 : rf24(RF24(cePin, csnPin)),
   channels(channels),

@@ -231,13 +231,8 @@ var UI_FIELDS = [ {
   }, {
     tag:   "rf24_listen_channel",
     friendly: "nRF24 Listen Channel",
-    help: "Which channels to listen for messages on the nRF24",
-    type: "option_buttons",
-    options: {
-      'LOW': 'Min',
-      'MID': 'Mid',
-      'HIGH': 'High'
-    },
+    help: "Which channel to listen for messages on the nRF24",
+    type: "string",
     tab: "tab-radio"
   }, {
     tag:   "rf24_channels",

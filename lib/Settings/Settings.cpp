@@ -101,6 +101,8 @@ void Settings::patch(JsonObject parsedSettings) {
   this->setIfPresent(parsedSettings, "home_assistant_discovery_prefix", homeAssistantDiscoveryPrefix);
   this->setIfPresent(parsedSettings, "default_transition_period", defaultTransitionPeriod);
 
+  this->setIfPresent(parsedSettings, "rf24_listen_channel", rf24ListenChannel);  
+
   if (parsedSettings.containsKey("wifi_mode")) {
     this->wifiMode = wifiModeFromString(parsedSettings["wifi_mode"]);
   }
@@ -109,11 +111,11 @@ void Settings::patch(JsonObject parsedSettings) {
     JsonArray arr = parsedSettings["rf24_channels"];
     rf24Channels = JsonHelpers::jsonArrToVector<RF24Channel, String>(arr, RF24ChannelHelpers::valueFromName);
   }
-
+/*
   if (parsedSettings.containsKey("rf24_listen_channel")) {
-    this->rf24ListenChannel = RF24ChannelHelpers::valueFromName(parsedSettings["rf24_listen_channel"]);
+    this->rf24ListenChannel = parsedSettings["rf24_listen_channel"];
   }
-
+*/
   if (parsedSettings.containsKey("rf24_power_level")) {
     this->rf24PowerLevel = RF24PowerLevelHelpers::valueFromName(parsedSettings["rf24_power_level"]);
   }
@@ -282,7 +284,7 @@ void Settings::serialize(Print& stream, const bool prettyPrint) {
   root["led_mode_packet_count"] = this->ledModePacketCount;
   root["hostname"] = this->hostname;
   root["rf24_power_level"] = RF24PowerLevelHelpers::nameFromValue(this->rf24PowerLevel);
-  root["rf24_listen_channel"] = RF24ChannelHelpers::nameFromValue(rf24ListenChannel);
+  root["rf24_listen_channel"] = this->rf24ListenChannel;
   root["wifi_static_ip"] = this->wifiStaticIP;
   root["wifi_static_ip_gateway"] = this->wifiStaticIPGateway;
   root["wifi_static_ip_netmask"] = this->wifiStaticIPNetmask;

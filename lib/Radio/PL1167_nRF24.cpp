@@ -81,6 +81,13 @@ int PL1167_nRF24::receive(uint8_t channel) {
   }
 
   _radio.startListening();
+
+  #ifdef DEBUG_PRINTF
+  if (_radio.testCarrier()) {
+    printf("Carrier found\n");
+  }
+  #endif
+
   if (_radio.available()) {
 #ifdef DEBUG_PRINTF
   printf("Radio is available\n");
@@ -181,43 +188,48 @@ int PL1167_nRF24::internal_receive() {
 // Currently, the syncword width is set to 5 in order to include the
 // PL1167 trailer.  The trailer is 4 bits, which pushes packet data
 // out of byte-alignment.
-//
-// The following code reads un-byte-aligned packet data.
-//
-// #ifdef DEBUG_PRINTF
-//   Serial.printf_P(PSTR("Packet received (%d bytes) RAW: "), outp);
-//   for (int i = 0; i < _receive_length; i++) {
-//     Serial.printf_P(PSTR("%02X "), tmp[i]);
-//   }
-//   Serial.print(F("\n"));
-// #endif
-//
-//   uint16_t buffer = tmp[0];
-//
-//   for (int inp = 1; inp < _receive_length; inp++) {
-//     uint8_t currentByte = tmp[inp];
-//     tmp[outp++] = reverseBits((buffer << 4) | (currentByte >> 4));
-//     buffer = (buffer << 8) | currentByte;
-//   }
 
-  for (int inp = 0; inp < _receive_length; inp++) {
-    tmp[outp++] = reverseBits(tmp[inp]);
-  }
+  if(MiLightRadioConfig::SYNCWORD_LENGTH == 4) {
+    // The following code reads un-byte-aligned packet data.
 
-#ifdef DEBUG_PRINTF
-  Serial.printf_P(PSTR("Packet received (%d bytes): "), outp);
-  for (int i = 0; i < outp; i++) {
-    Serial.printf_P(PSTR("%02X "), tmp[i]);
-  }
-  Serial.print(F("\n"));
-#endif
+    #ifdef DEBUG_PRINTF
+      Serial.printf_P(PSTR("Packet received (%d bytes) RAW: "), outp);
+      for (int i = 0; i < _receive_length; i++) {
+        Serial.printf_P(PSTR("%02X "), tmp[i]);
+      }
+      Serial.print(F("\n"));
+    #endif
+
+    uint16_t buffer = tmp[0];
+
+    for (int inp = 1; inp < _receive_length; inp++) {
+      uint8_t currentByte = tmp[inp];
+      tmp[outp++] = reverseBits((buffer << 4) | (currentByte >> 4));
+      buffer = (buffer << 8) | currentByte;
+    }
+
+  } else {
+    for (int inp = 0; inp < _receive_length; inp++) {
+      tmp[outp++] = reverseBits(tmp[inp]);
+    }
+
+    #ifdef DEBUG_PRINTF
+      Serial.printf_P(PSTR("Packet received (%d bytes): "), outp);
+      for (int i = 0; i < outp; i++) {
+        Serial.printf_P(PSTR("%02X "), tmp[i]);
+      }
+      
+    #endif
+  }  
 
   if (outp < 2) {
 #ifdef DEBUG_PRINTF
     Serial.println(F("Failed CRC: outp < 2"));
 #endif
     return 0;
-  }
+  } 
+
+  Serial.print(F(" - CRC OK\n"));
 
   uint16_t crc = calc_crc(tmp, outp - 2);
   uint16_t recvCrc = (tmp[outp - 1] << 8) | tmp[outp - 2];

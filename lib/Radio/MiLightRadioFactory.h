@@ -31,7 +31,7 @@ public:
     uint8_t csnPin,
     RF24PowerLevel rF24PowerLevel,
     const std::vector<RF24Channel>& channels,
-    RF24Channel listenChannel
+    uint8_t listenChannel
   );
 
   virtual std::shared_ptr<MiLightRadio> create(const MiLightRadioConfig& config);
@@ -40,7 +40,7 @@ protected:
 
   RF24 rf24;
   const std::vector<RF24Channel>& channels;
-  const RF24Channel listenChannel;
+  const uint8_t listenChannel;
 
 };
 

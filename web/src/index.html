@@ -96,7 +96,7 @@
       </div>
 
       <div class="col-sm-4">
-        <div class="mode-option" id="group-option" data-for="cct,rgbw,rgb_cct,fut089,fut091">
+        <div class="mode-option" id="group-option" data-for="cct,rgbw,rgb_cct,fut089,fut091,casalux">
           <label for="groupId">Group</label>
 
           <div class="btn-group" id="groupId" data-toggle="buttons">
@@ -160,6 +160,12 @@
             <li data-value="fut020">
               <a href="#">FUT020</a>
             </li>
+            <li data-value="casalux">
+              <a href="#">Casalux</a>
+            </li>
+            <li data-value="NLG">
+              <a href="#">NLG</a>
+            </li>
           </ul>
         </div>
       </div>
@@ -201,7 +207,7 @@
       </div>
     </div>
 
-    <div class="mode-option" data-for="cct,rgb_cct,fut089,fut091">
+    <div class="mode-option" data-for="cct,rgb_cct,fut089,fut091,casalux">
       <div class="row">
         <div class="col-sm-12">
           <h5>Color Temperature</h5>
@@ -252,10 +258,10 @@
             <li>
               <button type="button" class="btn btn-default command-btn" data-command="set_white">White</button>
             </li>
+            <li>
+              <button type="button" id="btnHeight" class="btn btn-info command-btn" data-command="night_mode">Night</button>
+            </li>
           </div>
-          <li>
-            <button type="button" id="btnHeight" class="btn btn-info command-btn" data-command="night_mode">Night</button>
-          </li>
           <li>
             <button type="button" class="btn btn-success command-btn" data-command="pair">
               <i class="glyphicon glyphicon-plus"></i>

@@ -115,7 +115,7 @@ public:
     rf24PowerLevel(RF24PowerLevelHelpers::defaultValue()),
     rf24Channels(RF24ChannelHelpers::allValues()),
     groupStateFields(DEFAULT_GROUP_STATE_FIELDS),
-    rf24ListenChannel(RF24Channel::RF24_LOW),
+    rf24ListenChannel(8),
     packetRepeatsPerLoop(10),
     wifiMode(WifiMode::N),
     defaultTransitionPeriod(500),
@@ -183,7 +183,7 @@ public:
   std::vector<RF24Channel> rf24Channels;
   std::vector<GroupStateField> groupStateFields;
   std::vector<std::shared_ptr<GatewayConfig>> gatewayConfigs;
-  RF24Channel rf24ListenChannel;
+  uint8_t rf24ListenChannel;
   String wifiStaticIP;
   String wifiStaticIPNetmask;
   String wifiStaticIPGateway;
