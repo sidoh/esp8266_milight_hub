@@ -33,7 +33,7 @@ private:
   PacketQueue queue;
 
   // The current packet we're sending and the number of repeats left
-  std::shared_ptr<QueuedPacket> currentPacket;
+  QueuedPacket* currentPacket;
   size_t packetRepeatsRemaining;
 
   // Handler called after packets are sent.  Will not be called multiple times
