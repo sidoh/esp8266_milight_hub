@@ -5,6 +5,7 @@ BulbStateUpdater::BulbStateUpdater(Settings& settings, MqttClient& mqttClient, G
     mqttClient(mqttClient),
     stateStore(stateStore),
     lastFlush(0),
+    lastQueue(0),
     enabled(true)
 { }
 
@@ -17,12 +18,10 @@ void BulbStateUpdater::disable() {
 }
 
 void BulbStateUpdater::enqueueUpdate(BulbId bulbId, GroupState& groupState) {
-  // If can flush immediately, do so (avoids lookup of group state later).
-  if (canFlush()) {
-    flushGroup(bulbId, groupState);
-  } else {
-    staleGroups.push(bulbId);
-  }
+  staleGroups.push(bulbId);
+  //Remember time, when queue was added for debounce delay
+  lastQueue = millis();
+
 }
 
 void BulbStateUpdater::loop() {
@@ -56,5 +55,5 @@ inline void BulbStateUpdater::flushGroup(BulbId bulbId, GroupState& state) {
 }
 
 inline bool BulbStateUpdater::canFlush() const {
-  return enabled && (millis() > (lastFlush + settings.mqttStateRateLimit));
+  return enabled && (millis() > (lastFlush + settings.mqttStateRateLimit) && millis() > (lastQueue + settings.mqttDebounceDelay));
 }

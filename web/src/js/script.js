@@ -274,6 +274,12 @@ var UI_FIELDS = [ {
     type: "string",
     tab: "tab-mqtt"
   }, {
+    tag:   "mqtt_debounce_delay",
+    friendly: "MQTT debounce delay",
+    help: "Minimum number of milliseconds delay for MQTT state updates after change (defaults to 500)",
+    type: "string",
+    tab: "tab-mqtt"
+  }, {
     tag:   "packet_repeat_throttle_threshold",
     friendly: "Packet repeat throttle threshold",
     help: "Controls how packet repeats are throttled.  Packets sent " +

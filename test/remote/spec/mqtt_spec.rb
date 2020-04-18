@@ -193,6 +193,58 @@ RSpec.describe 'MQTT' do
       expect(update_timestamp_gaps.length).to be >= 3
       expect((avg - 0.5).abs).to be < 0.15, "Should be within margin of error of rate limit"
     end
+
+    it 'should respect the update debouce interval' do
+      @client.put(
+        '/settings',
+        mqtt_debounce_delay: 1000,
+        packet_repeats: 1
+      )
+
+      start_time = Time.now
+
+      @mqtt_client.on_state(@id_params) do |id, message|
+        true
+      end
+
+      # Set initial state
+      @client.patch_state({status: 'ON', level: 0}, @id_params)
+      @mqtt_client.wait_for_listeners
+
+      expect(Time.now - start_time).to be >= 1
+    end
+
+    it 'should only send one state update for many commands if debounce interval is enabled' do
+      @client.put(
+        '/settings',
+        mqtt_update_topic_pattern: '',
+        mqtt_debounce_delay: 1000,
+        packet_repeats: 1
+      )
+
+      # Set initial state
+      @client.patch_state({status: 'ON', level: 0}, @id_params)
+
+      num_updates = 10
+      seen_updates = 0
+      last_level_value = 0
+
+      @mqtt_client.on_state(@id_params) do |id, message|
+        seen_updates += 1
+        last_level_value = message['level']
+        last_level_value == num_updates
+      end
+
+      (1..num_updates).each do |i|
+        @mqtt_client.patch_state(@id_params, level: i)
+        sleep 0.5
+      end
+
+      @mqtt_client.wait_for_listeners
+
+      expect(seen_updates).to eq(1)
+      expect(last_level_value).to eq(num_updates)
+    end
   end
 
   context ':device_id token for command topic' do
