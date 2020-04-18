@@ -19,7 +19,7 @@ void BulbStateUpdater::disable() {
 
 void BulbStateUpdater::enqueueUpdate(BulbId bulbId, GroupState& groupState) {
   staleGroups.push(bulbId);
-  //Remember time, when queue was added for bebounce delay
+  //Remember time, when queue was added for debounce delay
   lastQueue = millis();
 
 }
