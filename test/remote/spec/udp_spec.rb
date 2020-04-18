@@ -48,6 +48,7 @@ RSpec.describe 'UDP servers' do
 
   context 'on/off commands' do
     it 'should result in state changes' do
+      @client.delete_state(@id_params)
       @udp_client.group(@id_params[:group_id]).on
 
       # Wait for packet to be processed
@@ -66,6 +67,7 @@ RSpec.describe 'UDP servers' do
     end
 
     it 'should result in an MQTT update' do
+      @client.delete_state(@id_params)
       desired_state = {
         'status' => 'ON',
         'level' => 48
