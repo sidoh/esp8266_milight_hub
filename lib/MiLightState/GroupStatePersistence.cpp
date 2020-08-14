@@ -1,5 +1,6 @@
 #include <GroupStatePersistence.h>
 #include <FS.h>
+#include <SPIFFS.h>
 
 static const char FILE_PREFIX[] = "group_states/";
 

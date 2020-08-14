@@ -1,7 +1,8 @@
 #include <MiLightUdpServer.h>
 #include <V5MiLightUdpServer.h>
 #include <V6MiLightUdpServer.h>
-#include <ESP8266WiFi.h>
+// #include <ESP8266WiFi.h>
+#include <WiFi.h>
 
 MiLightUdpServer::MiLightUdpServer(MiLightClient*& client, uint16_t port, uint16_t deviceId)
   : client(client),

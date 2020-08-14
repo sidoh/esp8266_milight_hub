@@ -1,4 +1,5 @@
 #include <FS.h>
+#include <SPIFFS.h>
 #include <WiFiUdp.h>
 #include <IntParsing.h>
 #include <Settings.h>
@@ -101,7 +102,7 @@ WiFiClient MiLightHttpServer::client() {
   return server.client();
 }
 
-void MiLightHttpServer::on(const char* path, HTTPMethod method, ESP8266WebServer::THandlerFunction handler) {
+void MiLightHttpServer::on(const char* path, HTTPMethod method, THandlerFunction handler) {
   server.on(path, method, handler);
 }
 
@@ -125,7 +126,7 @@ void MiLightHttpServer::handleSystemPost(RequestContext& request) {
         server.send_P(200, TEXT_PLAIN, PSTR("true"));
 
         delay(100);
-        ESP.eraseConfig();
+        // ESP.eraseConfig();
         delay(100);
         ESP.restart();
 
@@ -225,47 +226,47 @@ void MiLightHttpServer::handleUpdateSettingsPost(RequestContext& request) {
 }
 
 void MiLightHttpServer::handleFirmwarePost() {
-  server.sendHeader("Connection", "close");
-  server.sendHeader("Access-Control-Allow-Origin", "*");
+  // server.sendHeader("Connection", "close");
+  // server.sendHeader("Access-Control-Allow-Origin", "*");
 
-  if (Update.hasError()) {
-    server.send_P(
-      500,
-      TEXT_PLAIN,
-      PSTR("Failed updating firmware. Check serial logs for more information. You may need to re-flash the device.")
-    );
-  } else {
-    server.send_P(
-      200,
-      TEXT_PLAIN,
-      PSTR("Success. Device will now reboot.")
-    );
-  }
+  // if (Update.hasError()) {
+  //   server.send_P(
+  //     500,
+  //     TEXT_PLAIN,
+  //     PSTR("Failed updating firmware. Check serial logs for more information. You may need to re-flash the device.")
+  //   );
+  // } else {
+  //   server.send_P(
+  //     200,
+  //     TEXT_PLAIN,
+  //     PSTR("Success. Device will now reboot.")
+  //   );
+  // }
 
-  delay(1000);
+  // delay(1000);
 
-  ESP.restart();
+  // ESP.restart();
 }
 
 void MiLightHttpServer::handleFirmwareUpload() {
-  HTTPUpload& upload = server.upload();
-  if(upload.status == UPLOAD_FILE_START){
-    WiFiUDP::stopAll();
-    uint32_t maxSketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
-    if(!Update.begin(maxSketchSpace)){//start with max available size
-      Update.printError(Serial);
-    }
-  } else if(upload.status == UPLOAD_FILE_WRITE){
-    if(Update.write(upload.buf, upload.currentSize) != upload.currentSize){
-      Update.printError(Serial);
-    }
-  } else if(upload.status == UPLOAD_FILE_END){
-    if(Update.end(true)){ //true to set the size to the current progress
-    } else {
-      Update.printError(Serial);
-    }
-  }
-  yield();
+  // HTTPUpload& upload = server.upload();
+  // if(upload.status == UPLOAD_FILE_START){
+  //   WiFiUDP::stopAll();
+  //   uint32_t maxSketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
+  //   if(!Update.begin(maxSketchSpace)){//start with max available size
+  //     Update.printError(Serial);
+  //   }
+  // } else if(upload.status == UPLOAD_FILE_WRITE){
+  //   if(Update.write(upload.buf, upload.currentSize) != upload.currentSize){
+  //     Update.printError(Serial);
+  //   }
+  // } else if(upload.status == UPLOAD_FILE_END){
+  //   if(Update.end(true)){ //true to set the size to the current progress
+  //   } else {
+  //     Update.printError(Serial);
+  //   }
+  // }
+  // yield();
 }
 
 
