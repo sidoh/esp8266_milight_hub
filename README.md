@@ -1,3 +1,14 @@
+# TODO's for ESP32
+
+- Implement handleFirmwarePost() and handleFirmwareUpload() in MiLightHttpServer.cpp
+- Erase config in MiLightHttpServer.cpp
+- Wifi set hostname in main.cpp
+- Set Wifi physical (setPhyMode) in main.cpp
+- SSDP (Service discovery) support in main.cpp
+- LED callback in WiFiManager loop in main.cpp
+- Implement other TODO's in main.cpp
+- Reset reason in AboutHelper.cpp
+
 # esp8266_milight_hub [![Build Status](https://travis-ci.org/sidoh/esp8266_milight_hub.svg?branch=master)](https://travis-ci.org/sidoh/esp8266_milight_hub) [![License][shield-license]][info-license]
 
 This is a replacement for a Milight/LimitlessLED remote/gateway hosted on an ESP8266. Leverages [Henryk Plötz's awesome reverse-engineering work](https://hackaday.io/project/5888-reverse-engineering-the-milight-on-air-protocol).

@@ -5,7 +5,6 @@
 #include <ArduinoJson.h>
 #include <stdlib.h>
 #include <FS.h>
-#include <SPIFFS.h>
 #include <IntParsing.h>
 #include <Size.h>
 #include <LinkedList.h>
@@ -17,9 +16,6 @@
 #include <MiLightRemoteType.h>
 #include <Settings.h>
 #include <MiLightUdpServer.h>
-// #include <ESP8266mDNS.h>
-#include <ESPmDNS.h>
-//#include <ESP8266SSDP.h>
 #include <MqttClient.h>
 #include <RGBConverter.h>
 #include <MiLightDiscoveryServer.h>
@@ -29,6 +25,15 @@
 #include <PacketSender.h>
 #include <HomeAssistantDiscoveryClient.h>
 #include <TransitionController.h>
+#include <ESPId.h>
+
+#ifdef ESP8266
+  #include <ESP8266mDNS.h>
+  #include <ESP8266SSDP.h>
+#elif ESP32
+  #include <SPIFFS.h>
+  #include <ESPmDNS.h>
+#endif
 
 #include <vector>
 #include <memory>
@@ -201,8 +206,6 @@ void onUpdateEnd() {
  * Apply what's in the Settings object.
  */
 void applySettings() {
-  Serial.println("Applying settings...");
-
   if (milightClient) {
     delete milightClient;
   }
@@ -223,25 +226,19 @@ void applySettings() {
     delete radios;
   }
 
-  Serial.println("Applying transitions.setDefaultPeriod...");
   transitions.setDefaultPeriod(settings.defaultTransitionPeriod);
 
-  Serial.println("Applying MiLightRadioFactory...");
   radioFactory = MiLightRadioFactory::fromSettings(settings);
 
   if (radioFactory == NULL) {
     Serial.println(F("ERROR: unable to construct radio factory"));
   }
 
-  Serial.println("Applying GroupStateStore...");
   stateStore = new GroupStateStore(MILIGHT_MAX_STATE_ITEMS, settings.stateFlushInterval);
 
-  Serial.println("Applying RadioSwitchboard...");
   radios = new RadioSwitchboard(radioFactory, stateStore, settings);
-  Serial.println("Applying PacketSender...");
   packetSender = new PacketSender(*radios, settings, onPacketSentHandler);
 
-  Serial.println("Applying MiLightClient...");
   milightClient = new MiLightClient(
     *radios,
     *packetSender,
@@ -252,7 +249,6 @@ void applySettings() {
   milightClient->onUpdateBegin(onUpdateBegin);
   milightClient->onUpdateEnd(onUpdateEnd);
 
-  Serial.println("Applying MqttClient...");
   if (settings.mqttServer().length() > 0) {
     mqttClient = new MqttClient(settings, milightClient);
     mqttClient->begin();
@@ -269,27 +265,22 @@ void applySettings() {
     bulbStateUpdater = new BulbStateUpdater(settings, *mqttClient, *stateStore);
   }
 
-  Serial.println("Applying initMilightUdpServers...");
   initMilightUdpServers();
 
-  Serial.println("Applying discoveryServer...");
   if (discoveryServer) {
-    Serial.println("Applying discoveryServer... deleting");
     delete discoveryServer;
     discoveryServer = NULL;
   }
   if (settings.discoveryPort != 0) {
-    Serial.println("Applying discoveryServer... cretae with port " + String(settings.discoveryPort));
     discoveryServer = new MiLightDiscoveryServer(settings);
-    // Serial.println("Applying discoveryServer... beginning...");
+#ifdef ESP8266
+    discoveryServer->begin();
+#elif ESP32
+    // TODO check if valid to call this on wifi connected
+#endif
 
-    Serial.println("Applying discoveryServer... TODO!");
-    // ESP32: wifi needs to be connected?
-    // discoveryServer->begin();
-    // Serial.println("Applying discoveryServer... begon");
   }
 
-  Serial.println("Applying ledStatus...");
   // update LED pin and operating mode
   if (ledStatus) {
     ledStatus->changePin(settings.ledPin);
@@ -312,8 +303,6 @@ void applySettings() {
   //     break;
   // }
   // WiFi.setPhyMode(wifiMode);
-
-  Serial.println("Settings applied");
 }
 
 /**
@@ -355,28 +344,24 @@ void onGroupDeleted(const BulbId& id) {
 void setup() {
   Serial.begin(9600);
 
-  Serial.println("Initializing...");
-
-  // String ssid = "ESP" + String(ESP.getChipId());
-  String ssid = "ESP" + String((uint32_t)ESP.getEfuseMac()); // lower 4 bytes (6 in total)
-  Serial.println("ssid=" + ssid);
-
-  Serial.println("Initializing SPIFFS...");
+  String ssid = "ESP" + String(getESPId());
 
   // load up our persistent settings from the file system
+#ifdef ESP8266
+  SPIFFS.begin();
+#elif ESP32
   if(!SPIFFS.begin(true)){
-    Serial.println("An Error has occurred while mounting SPIFFS");
+    Serial.println(F("Error while mounting SPIFFS"));
   }
-  Serial.println("Initializing settings...");
+#endif
+
   Settings::load(settings);
   applySettings();
 
-  Serial.println("Initializing ledstatus...");
   // set up the LED status for wifi configuration
   ledStatus = new LEDStatus(settings.ledPin);
   ledStatus->continuous(settings.ledModeWifiConfig);
 
-  Serial.println("Initializing MDNS...");
   // start up the wifi manager
   if (! MDNS.begin("milight-hub")) {
     Serial.println(F("Error setting up MDNS responder"));
@@ -386,9 +371,11 @@ void setup() {
   // allows the "autoConnect" method to be non-blocking which can implement this same functionality.  However,
   // that change is only on the development branch so we are going to continue to use this fork until
   // that is merged and ready.
-  // wifiManager.setSetupLoopCallback(handleLED);
-  Serial.println("Initializing WiFiManager...");
-  wifiManager.setConfigResetCallback(handleLED);
+#ifdef ESP8266
+  wifiManager.setSetupLoopCallback(handleLED);
+#elif ESP32
+  // TODO check if the non-blocking implementation can be used or create a version with setSetupLoopCallback
+#endif
 
   // Allows us to have static IP config in the captive portal. Yucky pointers to pointers, just to have the settings carry through
   wifiManager.setSaveConfigCallback(wifiExtraSettingsChange);
@@ -439,10 +426,12 @@ void setup() {
     // if the config portal was started, make sure to turn off the config AP
     WiFi.mode(WIFI_STA);
 
-    // TODO ESP32: udp socket begin needs wifi?
+#ifdef ESP32
+    // TODO verify is this is correct
     if (discoveryServer) {
       discoveryServer->begin();
     }
+#endif
   } else {
     // set LED mode for Wifi failed
     ledStatus->continuous(settings.ledModeWifiFailed);
@@ -452,22 +441,29 @@ void setup() {
     ESP.restart();
   }
 
-  Serial.println("Initializing webserver...");
-
   MDNS.addService("http", "tcp", 80);
 
-  // SSDP.setSchemaURL("description.xml");
-  // SSDP.setHTTPPort(80);
-  // SSDP.setName("ESP8266 MiLight Gateway");
-  // SSDP.setSerialNumber(ESP.getChipId());
-  // SSDP.setURL("/");
-  // SSDP.setDeviceType("upnp:rootdevice");
-  // SSDP.begin();
+#ifdef ESP8266
+  SSDP.setSchemaURL("description.xml");
+  SSDP.setHTTPPort(80);
+  SSDP.setName("ESP8266 MiLight Gateway");
+  SSDP.setSerialNumber(ESP.getChipId());
+  SSDP.setURL("/");
+  SSDP.setDeviceType("upnp:rootdevice");
+  SSDP.begin();
+#elif ESP32
+  // TODO SSDP
+#endif
+
 
   httpServer = new MiLightHttpServer(settings, milightClient, stateStore, packetSender, radios, transitions);
   httpServer->onSettingsSaved(applySettings);
   httpServer->onGroupDeleted(onGroupDeleted);
-  // httpServer->on("/description.xml", HTTP_GET, []() { SSDP.schema(httpServer->client()); });
+#ifdef ESP8266
+  httpServer->on("/description.xml", HTTP_GET, []() { SSDP.schema(httpServer->client()); });
+#elif ESP32
+  // TODO SSDP
+#endif
   httpServer->begin();
 
   transitions.addListener(
@@ -486,8 +482,6 @@ void setup() {
 }
 
 void loop() {
-
-  Serial.println("Loop start");
 
   httpServer->handleClient();
 
@@ -518,8 +512,6 @@ void loop() {
     Serial.println(F("Auto-restart triggered. Restarting..."));
     ESP.restart();
   }
-
-  Serial.println("Loop end");
 }
 
 #endif

@@ -1,10 +1,13 @@
 #include <Settings.h>
 #include <ArduinoJson.h>
 #include <FS.h>
-#include <SPIFFS.h>
 #include <IntParsing.h>
 #include <algorithm>
 #include <JsonHelpers.h>
+
+#ifdef ESP32
+  #include <SPIFFS.h>
+#endif
 
 #define PORT_POSITION(s) ( s.indexOf(':') )
 
@@ -62,13 +65,11 @@ void Settings::updateGatewayConfigs(JsonArray arr) {
   }
 }
 
-void Settings::patch(JsonObject parsedSettings) {  
+void Settings::patch(JsonObject parsedSettings) {
   if (parsedSettings.isNull()) {
     Serial.println(F("Skipping patching loaded settings.  Parsed settings was null."));
     return;
   }
-
-  Serial.println("Patching settings...");
 
   this->setIfPresent(parsedSettings, "admin_username", adminUsername);
   this->setIfPresent(parsedSettings, "admin_password", adminPassword);
@@ -105,76 +106,59 @@ void Settings::patch(JsonObject parsedSettings) {
   this->setIfPresent(parsedSettings, "home_assistant_discovery_prefix", homeAssistantDiscoveryPrefix);
   this->setIfPresent(parsedSettings, "default_transition_period", defaultTransitionPeriod);
 
-
   if (parsedSettings.containsKey("wifi_mode")) {
-    Serial.println("Patching wifi_mode");
     this->wifiMode = wifiModeFromString(parsedSettings["wifi_mode"]);
   }
 
-
   if (parsedSettings.containsKey("rf24_channels")) {
-    Serial.println("Patching rf24_channels");
     JsonArray arr = parsedSettings["rf24_channels"];
     rf24Channels = JsonHelpers::jsonArrToVector<RF24Channel, String>(arr, RF24ChannelHelpers::valueFromName);
   }
 
   if (parsedSettings.containsKey("rf24_listen_channel")) {
-    Serial.println("Patching rf24_listen_channel");
     this->rf24ListenChannel = RF24ChannelHelpers::valueFromName(parsedSettings["rf24_listen_channel"]);
   }
 
   if (parsedSettings.containsKey("rf24_power_level")) {
-    Serial.println("Patching rf24_power_level");
     this->rf24PowerLevel = RF24PowerLevelHelpers::valueFromName(parsedSettings["rf24_power_level"]);
   }
 
   if (parsedSettings.containsKey("led_mode_wifi_config")) {
-    Serial.println("Patching led_mode_wifi_config");
     this->ledModeWifiConfig = LEDStatus::stringToLEDMode(parsedSettings["led_mode_wifi_config"]);
   }
 
   if (parsedSettings.containsKey("led_mode_wifi_failed")) {
-    Serial.println("Patching led_mode_wifi_failed");
     this->ledModeWifiFailed = LEDStatus::stringToLEDMode(parsedSettings["led_mode_wifi_failed"]);
   }
 
   if (parsedSettings.containsKey("led_mode_operating")) {
-    Serial.println("Patching led_mode_operating");
     this->ledModeOperating = LEDStatus::stringToLEDMode(parsedSettings["led_mode_operating"]);
   }
 
   if (parsedSettings.containsKey("led_mode_packet")) {
-    Serial.println("Patching led_mode_packet");
     this->ledModePacket = LEDStatus::stringToLEDMode(parsedSettings["led_mode_packet"]);
   }
 
   if (parsedSettings.containsKey("radio_interface_type")) {
-    Serial.println("Patching radio_interface_type");
     this->radioInterfaceType = Settings::typeFromString(parsedSettings["radio_interface_type"]);
   }
 
   if (parsedSettings.containsKey("device_ids")) {
-    Serial.println("Patching device_ids");
     JsonArray arr = parsedSettings["device_ids"];
     updateDeviceIds(arr);
   }
   if (parsedSettings.containsKey("gateway_configs")) {
-    Serial.println("Patching gateway_configs");
     JsonArray arr = parsedSettings["gateway_configs"];
     updateGatewayConfigs(arr);
   }
   if (parsedSettings.containsKey("group_state_fields")) {
-    Serial.println("Patching group_state_fields");
     JsonArray arr = parsedSettings["group_state_fields"];
     groupStateFields = JsonHelpers::jsonArrToVector<GroupStateField, const char*>(arr, GroupStateFieldHelpers::getFieldByName);
   }
 
   if (parsedSettings.containsKey("group_id_aliases")) {
-    Serial.println("Patching group_id_aliases");
     parseGroupIdAliases(parsedSettings);
   }
-
-  Serial.println("Patched settings");
 }
 
 std::map<String, BulbId>::const_iterator Settings::findAlias(MiLightRemoteType deviceType, uint16_t deviceId, uint8_t groupId) {
@@ -228,21 +212,14 @@ void Settings::dumpGroupIdAliases(JsonObject json) {
 
 void Settings::load(Settings& settings) {
 
-  Serial.println("Settings loading...");
-
   if (SPIFFS.exists(SETTINGS_FILE)) {
     // Clear in-memory settings
     settings = Settings();
     
-    Serial.println("Settings loading from file " + String(SETTINGS_FILE));
-
     File f = SPIFFS.open(SETTINGS_FILE, "r");
-
-    Serial.println("Settings loading... file opened");
 
     DynamicJsonDocument json(MILIGHT_HUB_SETTINGS_BUFFER_SIZE);
     auto error = deserializeJson(json, f);
-    Serial.println("Settings loading... json deserialized");
     f.close();
 
     if (! error) {
@@ -253,8 +230,6 @@ void Settings::load(Settings& settings) {
       Serial.println(error.c_str());
     }
   } else {
-    Serial.println("Settings loading... no existing file found. Loadingd defaults.");
-
     settings.save();
   }
 }

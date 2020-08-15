@@ -1,6 +1,9 @@
 #include <GroupStatePersistence.h>
 #include <FS.h>
-#include <SPIFFS.h>
+
+#ifdef ESP32
+  #include <SPIFFS.h>
+#endif
 
 static const char FILE_PREFIX[] = "group_states/";
 
