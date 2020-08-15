@@ -273,11 +273,13 @@ void applySettings() {
   }
   if (settings.discoveryPort != 0) {
     discoveryServer = new MiLightDiscoveryServer(settings);
-#ifdef ESP8266
+ #ifdef ESP8266
     discoveryServer->begin();
-#elif ESP32
-    // TODO check if valid to call this on wifi connected
-#endif
+ #elif ESP32
+    if (WiFi.isConnected()) {
+      discoveryServer->begin();
+    }
+ #endif
 
   }
 
@@ -427,7 +429,6 @@ void setup() {
     WiFi.mode(WIFI_STA);
 
 #ifdef ESP32
-    // TODO verify is this is correct
     if (discoveryServer) {
       discoveryServer->begin();
     }
