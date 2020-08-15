@@ -273,13 +273,7 @@ void applySettings() {
   }
   if (settings.discoveryPort != 0) {
     discoveryServer = new MiLightDiscoveryServer(settings);
- #ifdef ESP8266
     discoveryServer->begin();
- #elif ESP32
-    if (WiFi.isConnected()) {
-      discoveryServer->begin();
-    }
- #endif
 
   }
 
@@ -358,7 +352,9 @@ void setup() {
 #endif
 
   Settings::load(settings);
+#ifdef ESP8266
   applySettings();
+#endif    
 
   // set up the LED status for wifi configuration
   ledStatus = new LEDStatus(settings.ledPin);
@@ -429,10 +425,8 @@ void setup() {
     WiFi.mode(WIFI_STA);
 
 #ifdef ESP32
-    if (discoveryServer) {
-      discoveryServer->begin();
-    }
-#endif
+    applySettings();
+#endif    
   } else {
     // set LED mode for Wifi failed
     ledStatus->continuous(settings.ledModeWifiFailed);
