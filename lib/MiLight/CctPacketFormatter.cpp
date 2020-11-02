@@ -206,9 +206,9 @@ BulbId CctPacketFormatter::parsePacket(const uint8_t* packet, JsonObject result)
   } else if (onOffGroupId < 255) {
     result[GroupStateFieldNames::STATE] = cctCommandToStatus(command) == ON ? "ON" : "OFF";
   } else if (command == CCT_BRIGHTNESS_DOWN) {
-    result[GroupStateFieldNames::COMMAND] = "brightness_down";
+    result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::LEVEL_DOWN;
   } else if (command == CCT_BRIGHTNESS_UP) {
-    result[GroupStateFieldNames::COMMAND] = "brightness_up";
+    result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::LEVEL_UP;
   } else if (command == CCT_TEMPERATURE_DOWN) {
     result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::TEMPERATURE_DOWN;
   } else if (command == CCT_TEMPERATURE_UP) {

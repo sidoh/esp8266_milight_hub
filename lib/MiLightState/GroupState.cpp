@@ -781,9 +781,9 @@ bool GroupState::patch(JsonObject state) {
       changes |= setBulbMode(BULB_MODE_WHITE);
     } else if (command == MiLightCommandNames::NIGHT_MODE) {
       changes |= setBulbMode(BULB_MODE_NIGHT);
-    } else if (isOn() && command == "brightness_up") {
+    } else if (isOn() && command == MiLightCommandNames::LEVEL_UP) {
       changes |= applyIncrementCommand(GroupStateField::BRIGHTNESS, IncrementDirection::INCREASE);
-    } else if (isOn() && command == "brightness_down") {
+    } else if (isOn() && command == MiLightCommandNames::LEVEL_DOWN) {
       changes |= applyIncrementCommand(GroupStateField::BRIGHTNESS, IncrementDirection::DECREASE);
     } else if (isOn() && command == MiLightCommandNames::TEMPERATURE_UP) {
       changes |= applyIncrementCommand(GroupStateField::KELVIN, IncrementDirection::INCREASE);
