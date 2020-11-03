@@ -477,6 +477,23 @@ RSpec.describe 'State' do
       expect(state['level']).to  eq(90)
       expect(state['kelvin']).to eq(90)
     end
+
+    %w(rgb fut020 cct).each do |protocol|
+      it "should set brightness to a level if value is not known for #{protocol} protocol" do
+        # RGB / fut020 don't have groups -- so use group 0 for them.
+        id = @id_params.merge(type: protocol, group_id: protocol == 'cct' ? 1 : 0)
+
+        @client.delete_state(id)
+
+        expect(@client.get_state(id)).to_not include('level', 'kelvin')
+
+        @client.patch_state({status: 'ON', level: 50}, id)
+
+        state = @client.get_state(id)
+        expect(state).to           include('level')
+        expect(state['level']).to  eq(50)
+      end
+    end
   end
 
   context 'state updates while off' do
