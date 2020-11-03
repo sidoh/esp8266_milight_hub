@@ -110,9 +110,9 @@ BulbId RgbPacketFormatter::parsePacket(const uint8_t* packet, JsonObject result)
   } else if (command == RGB_SPEED_UP) {
     result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::MODE_SPEED_UP;
   } else if (command == RGB_BRIGHTNESS_DOWN) {
-    result[GroupStateFieldNames::COMMAND] = "brightness_down";
+    result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::LEVEL_DOWN;
   } else if (command == RGB_BRIGHTNESS_UP) {
-    result[GroupStateFieldNames::COMMAND] = "brightness_up";
+    result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::LEVEL_UP;
   } else {
     result["button_id"] = command;
   }

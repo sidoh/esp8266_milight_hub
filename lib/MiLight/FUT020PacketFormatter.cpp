@@ -60,11 +60,11 @@ BulbId FUT020PacketFormatter::parsePacket(const uint8_t* packet, JsonObject resu
       break;
 
     case FUT020Command::BRIGHTNESS_DOWN:
-      result[F("command")] = F("brightness_down");
+      result[F("command")] = F("level_down");
       break;
 
     case FUT020Command::BRIGHTNESS_UP:
-      result[F("command")] = F("brightness_up");
+      result[F("command")] = F("level_up");
       break;
 
     case FUT020Command::MODE_SWITCH:
