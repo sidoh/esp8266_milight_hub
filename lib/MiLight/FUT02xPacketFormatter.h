@@ -6,7 +6,7 @@ class FUT02xPacketFormatter : public PacketFormatter {
 public:
   static const uint8_t FUT02X_COMMAND_INDEX = 4;
   static const uint8_t FUT02X_ARGUMENT_INDEX = 3;
-  static const uint8_t NUM_BRIGHTNESS_INTERVALS = 8;
+  static const uint8_t NUM_BRIGHTNESS_INTERVALS = 10;
 
   FUT02xPacketFormatter(MiLightRemoteType type)
     : PacketFormatter(type, 6, 10)
