@@ -526,7 +526,7 @@ components:
 
         * `night_mode`.  Most devices support a "night mode," which has LEDs turned to a very dim setting -- lower than brightness 0.
 
-        * `level_up`. Turns down the brightness. Not all dimmable bulbs support this command.
+        * `level_up`. Turns up the brightness. Not all dimmable bulbs support this command.
 
         * `level_down`. Turns down the brightness. Not all dimmable bulbs support this command.
 
