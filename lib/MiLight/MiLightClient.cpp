@@ -429,6 +429,10 @@ void MiLightClient::handleCommand(JsonVariant command) {
     this->increaseBrightness();
   } else if (cmdName == MiLightCommandNames::LEVEL_DOWN) {
     this->decreaseBrightness();
+  } else if (cmdName == "brightness_up") {
+    this->increaseBrightness();
+  } else if (cmdName == "brightness_down") {
+    this->decreaseBrightness();
   } else if (cmdName == MiLightCommandNames::TEMPERATURE_UP) {
     this->increaseTemperature();
   } else if (cmdName == MiLightCommandNames::TEMPERATURE_DOWN) {
