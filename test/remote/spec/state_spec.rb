@@ -468,7 +468,7 @@ RSpec.describe 'State' do
       end
 
       @client.patch_state(
-        { commands: ['level_down', 'temperature_down'] },
+        { commands: ['brightness_down', 'temperature_down'] },
         id
       )
 
