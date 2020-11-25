@@ -685,7 +685,7 @@ RSpec.describe 'Transitions' do
         expected_duration = (k == :duration ? params[:test] : (TransitionHelpers::Defaults::DURATION/1000.0))
         num_periods = (expected_duration/period.to_f)*1000
 
-        expect(duration).to be_within(2).of(expected_duration)
+        expect(duration).to be_within(3).of(expected_duration)
         expect(gap).to be_within(10).of((255/num_periods).ceil)
       end
     end

@@ -13,7 +13,7 @@ RSpec.describe 'MQTT' do
 
     @client.put(
       '/settings',
-      mqtt_params
+      mqtt_params.merge(mqtt_retain: true)
     )
 
     @id_params = {
@@ -40,6 +40,30 @@ RSpec.describe 'MQTT' do
       @mqtt_client.wait_for_listeners
 
       expect(seen_blank).to eq(true)
+    end
+  end
+
+  context 'retained messages' do
+    it 'should publish retained state messages when enabled' do
+      @client.put('/settings', mqtt_retain: 'true')
+      @client.patch_state({status: 'ON'}, @id_params)
+
+      # Sleep to make sure we're getting a retained message
+      sleep 1
+
+      @mqtt_client.on_state(@id_params) { true }
+      @mqtt_client.wait_for_listeners
+    end
+
+    it 'should not publish retained state messages when not enabled' do
+      @client.put('/settings', mqtt_retain: 'false')
+      @client.patch_state({status: 'ON'}, @id_params)
+
+      # Sleep to make sure we're getting a retained message
+      sleep 1
+
+      @mqtt_client.on_state(@id_params) { true }
+      expect { @mqtt_client.wait_for_listeners }.to raise_error(Timeout::Error)
     end
   end
 

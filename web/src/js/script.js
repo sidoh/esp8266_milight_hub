@@ -191,6 +191,16 @@ var UI_FIELDS = [ {
     type: "string",
     tab: "tab-mqtt"
   }, {
+    tag:   "mqtt_retain",
+    friendly: "Publish state messages with retain flag",
+    help: "If enabled, state messages will be published with the MQTT retain flag.",
+    type: "option_buttons",
+    options: {
+      true: "Enabled",
+      false: "Disabled"
+    },
+    tab: "tab-mqtt"
+  }, {
     tag:   "simple_mqtt_client_status",
     friendly: "Client Status Messages Mode",
     help: "In simple mode, only the strings 'connected' and 'disconnected' will be published.  In detailed mode, data about the version, IP address, etc. will be included.",
