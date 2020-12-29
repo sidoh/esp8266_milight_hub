@@ -37,7 +37,7 @@ void HomeAssistantDiscoveryClient::addConfig(const char* alias, const BulbId& bu
   DynamicJsonDocument config(1024);
   
   char uniqidBuffer[30];
-  sprintf_P(uniqidBuffer, PSTR("%X-%s"), ESP.getChipId(), alias);
+  sprintf_P(uniqidBuffer, PSTR("%X-%s"), getESPId(), alias);
 
   config[F("schema")] = F("json");
   config[F("name")] = alias;
