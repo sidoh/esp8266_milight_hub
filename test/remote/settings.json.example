@@ -14,6 +14,7 @@
   "state_flush_interval": 2000,
   "mqtt_state_rate_limit": 1000,
   "mqtt_debounce_delay": 0,
+  "mqtt_retain": true,
   "packet_repeat_throttle_sensitivity": 0,
   "packet_repeat_throttle_threshold": 200,
   "packet_repeat_minimum": 3,

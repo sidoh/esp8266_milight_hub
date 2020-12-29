@@ -1,5 +1,5 @@
 const fs = require('fs');
-const gulp = require('gulp');
+const { src, dest, series } = require('gulp');
 const htmlmin = require('gulp-htmlmin');
 const cleancss = require('gulp-clean-css');
 const uglify = require('gulp-uglify');
@@ -11,13 +11,11 @@ const favicon = require('gulp-base64-favicon');
 
 const dataFolder = 'build/';
 
-gulp.task('clean', function() {
-    del([ dataFolder + '*']);
-    return true;
-});
+function clean() {
+    return del([ dataFolder + '*']);
+}
 
-gulp.task('buildfs_embeded', ['buildfs_inline'], function() {
-
+function buildfs_embeded() {
     var source = dataFolder + 'index.html.gz';
     var destination = dataFolder + 'index.html.gz.h';
 
@@ -39,12 +37,11 @@ gulp.task('buildfs_embeded', ['buildfs_inline'], function() {
     wstream.write('};')
     wstream.end();
 
-    del();
+    return del();
+}
 
-});
-
-gulp.task('buildfs_inline', ['clean'], function() {
-    return gulp.src('src/*.html')
+function buildfs_inline() {
+    return src('src/*.html')
         // .pipe(favicon())
         .pipe(inline({
             base: 'src/',
@@ -59,7 +56,8 @@ gulp.task('buildfs_inline', ['clean'], function() {
             minifyJS: true
         }))
         .pipe(gzip())
-        .pipe(gulp.dest(dataFolder));
-})
+        .pipe(dest(dataFolder));
+}
 
-gulp.task('default', ['buildfs_embeded']);
+exports.clean = clean;
+exports.default = series(clean, buildfs_inline, buildfs_embeded);

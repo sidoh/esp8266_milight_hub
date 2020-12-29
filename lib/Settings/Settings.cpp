@@ -93,6 +93,7 @@ void Settings::patch(JsonObject parsedSettings) {
   this->setIfPresent(parsedSettings, "state_flush_interval", stateFlushInterval);
   this->setIfPresent(parsedSettings, "mqtt_state_rate_limit", mqttStateRateLimit);
   this->setIfPresent(parsedSettings, "mqtt_debounce_delay", mqttDebounceDelay);
+  this->setIfPresent(parsedSettings, "mqtt_retain", mqttRetain);
   this->setIfPresent(parsedSettings, "packet_repeat_throttle_threshold", packetRepeatThrottleThreshold);
   this->setIfPresent(parsedSettings, "packet_repeat_throttle_sensitivity", packetRepeatThrottleSensitivity);
   this->setIfPresent(parsedSettings, "packet_repeat_minimum", packetRepeatMinimum);
@@ -278,6 +279,7 @@ void Settings::serialize(Print& stream, const bool prettyPrint) {
   root["state_flush_interval"] = this->stateFlushInterval;
   root["mqtt_state_rate_limit"] = this->mqttStateRateLimit;
   root["mqtt_debounce_delay"] = this->mqttDebounceDelay;
+  root["mqtt_retain"] = this->mqttRetain;
   root["packet_repeat_throttle_sensitivity"] = this->packetRepeatThrottleSensitivity;
   root["packet_repeat_throttle_threshold"] = this->packetRepeatThrottleThreshold;
   root["packet_repeat_minimum"] = this->packetRepeatMinimum;

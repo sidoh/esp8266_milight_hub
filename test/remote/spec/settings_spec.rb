@@ -27,6 +27,7 @@ RSpec.describe 'Settings' do
     it 'should persist known settings keys' do
       {
         'simple_mqtt_client_status' => [true, false],
+        'mqtt_retain' => [true, false],
         'packet_repeats_per_loop' => [10],
         'home_assistant_discovery_prefix' => ['', 'abc', 'a/b/c'],
         'wifi_mode' => %w(b g n),
