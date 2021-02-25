@@ -133,7 +133,7 @@ void ColorTransition::step() {
 }
 
 bool ColorTransition::isFinished() {
-  return finished;
+  return currentColor == endColor; 
 }
 
 void ColorTransition::childSerialize(JsonObject& json) {
