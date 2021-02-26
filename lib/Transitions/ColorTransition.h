@@ -51,7 +51,6 @@ protected:
   // Store these to avoid wasted packets
   uint16_t lastHue;
   uint16_t lastSaturation;
-  bool finished;
 
   virtual void step() override;
   virtual void childSerialize(JsonObject& json) override;
