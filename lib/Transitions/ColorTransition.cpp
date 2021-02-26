@@ -122,8 +122,7 @@ void ColorTransition::step() {
     lastSaturation = parsedColor.saturation;
   }
   
-  if(!isFinished())
-  {
+  if (!isFinished()) {
     Transition::stepValue(currentColor.r, endColor.r, stepSizes.r);
     Transition::stepValue(currentColor.g, endColor.g, stepSizes.g);
     Transition::stepValue(currentColor.b, endColor.b, stepSizes.b);
