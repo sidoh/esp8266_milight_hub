@@ -73,7 +73,6 @@ ColorTransition::ColorTransition(
   , stepSizes(stepSizes)
   , lastHue(400)         // use impossible values to force a packet send
   , lastSaturation(200)
-  , finished(false)
 {
   int16_t dr = endColor.r - startColor.r
         , dg = endColor.g - startColor.g
@@ -122,10 +121,8 @@ void ColorTransition::step() {
     callback(bulbId, GroupStateField::SATURATION, parsedColor.saturation);
     lastSaturation = parsedColor.saturation;
   }
-
-  if (currentColor == endColor) {
-    finished = true;
-  } else {
+  
+  if (!isFinished()) {
     Transition::stepValue(currentColor.r, endColor.r, stepSizes.r);
     Transition::stepValue(currentColor.g, endColor.g, stepSizes.g);
     Transition::stepValue(currentColor.b, endColor.b, stepSizes.b);
@@ -133,7 +130,7 @@ void ColorTransition::step() {
 }
 
 bool ColorTransition::isFinished() {
-  return finished;
+  return currentColor == endColor; 
 }
 
 void ColorTransition::childSerialize(JsonObject& json) {
