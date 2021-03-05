@@ -111,22 +111,30 @@ BulbId FUT089PacketFormatter::parsePacket(const uint8_t *packet, JsonObject resu
 
   uint8_t command = (packetCopy[V2_COMMAND_INDEX] & 0x7F);
   uint8_t arg = packetCopy[V2_ARGUMENT_INDEX];
+  bool long_press = (packetCopy[V2_COMMAND_INDEX] & 0x80) == 0x80;
 
   if (command == FUT089_ON) {
-    if ((packetCopy[V2_COMMAND_INDEX] & 0x80) == 0x80) {
-      result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::NIGHT_MODE;
-    } else if (arg == FUT089_MODE_SPEED_DOWN) {
+    if (arg == FUT089_MODE_SPEED_DOWN) {
       result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::MODE_SPEED_DOWN;
+      result[GroupStateFieldNames::LONG_PRESS] = long_press;
     } else if (arg == FUT089_MODE_SPEED_UP) {
       result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::MODE_SPEED_UP;
+      result[GroupStateFieldNames::LONG_PRESS] = long_press;
     } else if (arg == FUT089_WHITE_MODE) {
       result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::SET_WHITE;
+      result[GroupStateFieldNames::LONG_PRESS] = long_press;
     } else if (arg <= 8) { // Group is not reliably encoded in group byte. Extract from arg byte
       result[GroupStateFieldNames::STATE] = "ON";
       bulbId.groupId = arg;
+      result[GroupStateFieldNames::LONG_PRESS] = long_press;
     } else if (arg >= 9 && arg <= 17) {
       result[GroupStateFieldNames::STATE] = "OFF";
       bulbId.groupId = arg-9;
+      result[GroupStateFieldNames::LONG_PRESS] = long_press;
+      if (long_press) {
+        result[GroupStateFieldNames::STATE] = "ON";
+        result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::NIGHT_MODE;
+      }
     }
   } else if (command == FUT089_COLOR) {
     uint8_t rescaledColor = (arg - FUT089_COLOR_OFFSET) % 0x100;
@@ -147,6 +155,7 @@ BulbId FUT089PacketFormatter::parsePacket(const uint8_t *packet, JsonObject resu
     }
   } else if (command == FUT089_MODE) {
     result[GroupStateFieldNames::MODE] = arg;
+    result[GroupStateFieldNames::LONG_PRESS] = long_press;
   } else {
     result["button_id"] = command;
     result["argument"] = arg;
