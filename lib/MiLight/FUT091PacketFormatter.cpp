@@ -32,16 +32,21 @@ BulbId FUT091PacketFormatter::parsePacket(const uint8_t *packet, JsonObject resu
 
   uint8_t command = (packetCopy[V2_COMMAND_INDEX] & 0x7F);
   uint8_t arg = packetCopy[V2_ARGUMENT_INDEX];
+  bool long_press = (packetCopy[V2_COMMAND_INDEX] & 0x80) == 0x80;
 
   if (command == (uint8_t)FUT091Command::ON_OFF) {
-    if ((packetCopy[V2_COMMAND_INDEX] & 0x80) == 0x80) {
-      result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::NIGHT_MODE;
-    } else if (arg < 5) { // Group is not reliably encoded in group byte. Extract from arg byte
+    if (arg < 5) { // Group is not reliably encoded in group byte. Extract from arg byte
       result[GroupStateFieldNames::STATE] = "ON";
+      result[GroupStateFieldNames::LONG_PRESS] = long_press;
       bulbId.groupId = arg;
     } else {
       result[GroupStateFieldNames::STATE] = "OFF";
       bulbId.groupId = arg-5;
+      result[GroupStateFieldNames::LONG_PRESS] = long_press;
+      if (long_press) {
+        result[GroupStateFieldNames::STATE] = "ON";
+        result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::NIGHT_MODE;
+      }
     }
   } else if (command == (uint8_t)FUT091Command::BRIGHTNESS) {
     uint8_t level = V2PacketFormatter::fromv2scale(arg, BRIGHTNESS_SCALE_MAX, 2, true);
