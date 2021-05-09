@@ -5,6 +5,10 @@
 #include <algorithm>
 #include <JsonHelpers.h>
 
+#ifdef ESP32
+  #include <SPIFFS.h>
+#endif
+
 #define PORT_POSITION(s) ( s.indexOf(':') )
 
 GatewayConfig::GatewayConfig(uint16_t deviceId, uint16_t port, uint8_t protocolVersion)
@@ -208,10 +212,11 @@ void Settings::dumpGroupIdAliases(JsonObject json) {
 }
 
 void Settings::load(Settings& settings) {
+
   if (SPIFFS.exists(SETTINGS_FILE)) {
     // Clear in-memory settings
     settings = Settings();
-
+    
     File f = SPIFFS.open(SETTINGS_FILE, "r");
 
     DynamicJsonDocument json(MILIGHT_HUB_SETTINGS_BUFFER_SIZE);
@@ -220,7 +225,7 @@ void Settings::load(Settings& settings) {
 
     if (! error) {
       JsonObject parsedSettings = json.as<JsonObject>();
-      settings.patch(parsedSettings);
+      settings.patch(parsedSettings);      
     } else {
       Serial.print(F("Error parsing saved settings file: "));
       Serial.println(error.c_str());

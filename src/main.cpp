@@ -16,8 +16,6 @@
 #include <MiLightRemoteType.h>
 #include <Settings.h>
 #include <MiLightUdpServer.h>
-#include <ESP8266mDNS.h>
-#include <ESP8266SSDP.h>
 #include <MqttClient.h>
 #include <RGBConverter.h>
 #include <MiLightDiscoveryServer.h>
@@ -27,6 +25,15 @@
 #include <PacketSender.h>
 #include <HomeAssistantDiscoveryClient.h>
 #include <TransitionController.h>
+#include <ESPId.h>
+
+#ifdef ESP8266
+  #include <ESP8266mDNS.h>
+  #include <ESP8266SSDP.h>
+#elif ESP32
+  #include <SPIFFS.h>
+  #include <ESPmDNS.h>
+#endif
 
 #include <vector>
 #include <memory>
@@ -267,6 +274,7 @@ void applySettings() {
   if (settings.discoveryPort != 0) {
     discoveryServer = new MiLightDiscoveryServer(settings);
     discoveryServer->begin();
+
   }
 
   // update LED pin and operating mode
@@ -275,22 +283,22 @@ void applySettings() {
     ledStatus->continuous(settings.ledModeOperating);
   }
 
-  WiFi.hostname(settings.hostname);
+  // WiFi.hostname(settings.hostname);
 
-  WiFiPhyMode_t wifiMode;
-  switch (settings.wifiMode) {
-    case WifiMode::B:
-      wifiMode = WIFI_PHY_MODE_11B;
-      break;
-    case WifiMode::G:
-      wifiMode = WIFI_PHY_MODE_11G;
-      break;
-    default:
-    case WifiMode::N:
-      wifiMode = WIFI_PHY_MODE_11N;
-      break;
-  }
-  WiFi.setPhyMode(wifiMode);
+  // WiFiPhyMode_t wifiMode;
+  // switch (settings.wifiMode) {
+  //   case WifiMode::B:
+  //     wifiMode = WIFI_PHY_MODE_11B;
+  //     break;
+  //   case WifiMode::G:
+  //     wifiMode = WIFI_PHY_MODE_11G;
+  //     break;
+  //   default:
+  //   case WifiMode::N:
+  //     wifiMode = WIFI_PHY_MODE_11N;
+  //     break;
+  // }
+  // WiFi.setPhyMode(wifiMode);
 }
 
 /**
@@ -331,12 +339,22 @@ void onGroupDeleted(const BulbId& id) {
 
 void setup() {
   Serial.begin(9600);
-  String ssid = "ESP" + String(ESP.getChipId());
+
+  String ssid = "ESP" + String(getESPId());
 
   // load up our persistent settings from the file system
+#ifdef ESP8266
   SPIFFS.begin();
+#elif ESP32
+  if(!SPIFFS.begin(true)){
+    Serial.println(F("Error while mounting SPIFFS"));
+  }
+#endif
+
   Settings::load(settings);
+#ifdef ESP8266
   applySettings();
+#endif    
 
   // set up the LED status for wifi configuration
   ledStatus = new LEDStatus(settings.ledPin);
@@ -351,7 +369,11 @@ void setup() {
   // allows the "autoConnect" method to be non-blocking which can implement this same functionality.  However,
   // that change is only on the development branch so we are going to continue to use this fork until
   // that is merged and ready.
+#ifdef ESP8266
   wifiManager.setSetupLoopCallback(handleLED);
+#elif ESP32
+  // TODO check if the non-blocking implementation can be used or create a version with setSetupLoopCallback
+#endif
 
   // Allows us to have static IP config in the captive portal. Yucky pointers to pointers, just to have the settings carry through
   wifiManager.setSaveConfigCallback(wifiExtraSettingsChange);
@@ -401,6 +423,10 @@ void setup() {
 
     // if the config portal was started, make sure to turn off the config AP
     WiFi.mode(WIFI_STA);
+
+#ifdef ESP32
+    applySettings();
+#endif    
   } else {
     // set LED mode for Wifi failed
     ledStatus->continuous(settings.ledModeWifiFailed);
@@ -410,9 +436,9 @@ void setup() {
     ESP.restart();
   }
 
-
   MDNS.addService("http", "tcp", 80);
 
+#ifdef ESP8266
   SSDP.setSchemaURL("description.xml");
   SSDP.setHTTPPort(80);
   SSDP.setName("ESP8266 MiLight Gateway");
@@ -420,11 +446,19 @@ void setup() {
   SSDP.setURL("/");
   SSDP.setDeviceType("upnp:rootdevice");
   SSDP.begin();
+#elif ESP32
+  // TODO SSDP
+#endif
+
 
   httpServer = new MiLightHttpServer(settings, milightClient, stateStore, packetSender, radios, transitions);
   httpServer->onSettingsSaved(applySettings);
   httpServer->onGroupDeleted(onGroupDeleted);
+#ifdef ESP8266
   httpServer->on("/description.xml", HTTP_GET, []() { SSDP.schema(httpServer->client()); });
+#elif ESP32
+  // TODO SSDP
+#endif
   httpServer->begin();
 
   transitions.addListener(
@@ -443,6 +477,7 @@ void setup() {
 }
 
 void loop() {
+
   httpServer->handleClient();
 
   if (mqttClient) {

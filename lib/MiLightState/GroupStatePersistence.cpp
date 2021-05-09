@@ -1,6 +1,10 @@
 #include <GroupStatePersistence.h>
 #include <FS.h>
 
+#ifdef ESP32
+  #include <SPIFFS.h>
+#endif
+
 static const char FILE_PREFIX[] = "group_states/";
 
 void GroupStatePersistence::get(const BulbId &id, GroupState& state) {

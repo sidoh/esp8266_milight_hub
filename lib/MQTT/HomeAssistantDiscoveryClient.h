@@ -2,6 +2,7 @@
 
 #include <BulbId.h>
 #include <MqttClient.h>
+#include <ESPId.h>
 #include <map>
 
 class HomeAssistantDiscoveryClient {
