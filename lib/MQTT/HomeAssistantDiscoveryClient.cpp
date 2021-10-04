@@ -1,5 +1,6 @@
 #include <HomeAssistantDiscoveryClient.h>
 #include <MiLightCommands.h>
+#include <..\Helpers\Units.h>
 
 HomeAssistantDiscoveryClient::HomeAssistantDiscoveryClient(Settings& settings, MqttClient* mqttClient)
   : settings(settings)
@@ -35,7 +36,7 @@ void HomeAssistantDiscoveryClient::removeConfig(const BulbId& bulbId) {
 void HomeAssistantDiscoveryClient::addConfig(const char* alias, const BulbId& bulbId) {
   String topic = buildTopic(bulbId);
   DynamicJsonDocument config(1024);
-  
+
   char uniqidBuffer[30];
   sprintf_P(uniqidBuffer, PSTR("%X-%s"), ESP.getChipId(), alias);
 
@@ -44,6 +45,8 @@ void HomeAssistantDiscoveryClient::addConfig(const char* alias, const BulbId& bu
   config[F("command_topic")] = mqttClient->bindTopicString(settings.mqttTopicPattern, bulbId);
   config[F("state_topic")] = mqttClient->bindTopicString(settings.mqttStateTopicPattern, bulbId);
   config[F("uniq_id")] = mqttClient->bindTopicString(uniqidBuffer, bulbId);
+  config[F("max_mireds")] = COLOR_TEMP_MAX_MIREDS;
+  config[F("min_mireds")] = COLOR_TEMP_MIN_MIREDS;
   JsonObject deviceMetadata = config.createNestedObject(F("device"));
 
   deviceMetadata[F("manufacturer")] = F("esp8266_milight_hub");
