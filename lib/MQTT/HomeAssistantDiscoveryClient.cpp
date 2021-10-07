@@ -45,8 +45,6 @@ void HomeAssistantDiscoveryClient::addConfig(const char* alias, const BulbId& bu
   config[F("command_topic")] = mqttClient->bindTopicString(settings.mqttTopicPattern, bulbId);
   config[F("state_topic")] = mqttClient->bindTopicString(settings.mqttStateTopicPattern, bulbId);
   config[F("uniq_id")] = mqttClient->bindTopicString(uniqidBuffer, bulbId);
-  config[F("max_mireds")] = COLOR_TEMP_MAX_MIREDS;
-  config[F("min_mireds")] = COLOR_TEMP_MIN_MIREDS;
   JsonObject deviceMetadata = config.createNestedObject(F("device"));
 
   deviceMetadata[F("manufacturer")] = F("esp8266_milight_hub");
@@ -114,6 +112,8 @@ void HomeAssistantDiscoveryClient::addConfig(const char* alias, const BulbId& bu
     case REMOTE_TYPE_FUT091:
     case REMOTE_TYPE_RGB_CCT:
       config[GroupStateFieldNames::COLOR_TEMP] = true;
+      config[F("max_mireds")] = COLOR_TEMP_MAX_MIREDS;
+      config[F("min_mireds")] = COLOR_TEMP_MIN_MIREDS;
       break;
     default:
       break; //nothing
