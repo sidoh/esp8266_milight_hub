@@ -6,7 +6,7 @@ cache:
   directories:
   - "~/.platformio"
 env:
-  - NODE_VERSION="10"
+  - NODE_VERSION="12"
 before_install:
   - nvm install $NODE_VERSION
 install:
