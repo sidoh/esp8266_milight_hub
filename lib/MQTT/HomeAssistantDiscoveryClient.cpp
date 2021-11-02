@@ -1,6 +1,6 @@
 #include <HomeAssistantDiscoveryClient.h>
 #include <MiLightCommands.h>
-#include <..\Helpers\Units.h>
+#include <Units.h>
 
 HomeAssistantDiscoveryClient::HomeAssistantDiscoveryClient(Settings& settings, MqttClient* mqttClient)
   : settings(settings)
