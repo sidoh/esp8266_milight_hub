@@ -17,7 +17,7 @@
 //#define DEBUG_PRINTF
 //#define DEBUG_CLIENT_COMMANDS     // enable to show each individual change command (like hue, brightness, etc)
 
-#define FS(str) (reinterpret_cast<const __FlashStringHelper*>(str))
+#define FSH(str) (reinterpret_cast<const __FlashStringHelper*>(str))
 
 namespace RequestKeys {
   static const char TRANSITION[] = "transition";
