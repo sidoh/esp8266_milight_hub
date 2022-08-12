@@ -152,11 +152,10 @@ ListNode<T>* LinkedList<T>::getNode(int index){
 
   while(_pos < index && current){
     current = current->next;
-
     _pos++;
   }
 
-  return false;
+  return current; //might be null
 }
 
 template<typename T>
@@ -177,10 +176,12 @@ bool LinkedList<T>::add(int index, T _t){
          *_prev = getNode(index-1);
   tmp->data = _t;
   tmp->next = _prev->next;
+  //we know that there is a next node, since 0<index<_size
+  tmp->next->prev = tmp;
+  tmp->prev = _prev;
   _prev->next = tmp;
 
   _size++;
-
   return true;
 }
 
@@ -267,6 +268,7 @@ T LinkedList<T>::shift(){
     ListNode<T> *_next = root->next;
     T ret = root->data;
     delete(root);
+    _next->prev = NULL;
     root = _next;
     _size --;
 
@@ -314,7 +316,8 @@ T LinkedList<T>::remove(int index){
   ListNode<T> *tmp = getNode(index - 1);
   ListNode<T> *toDelete = tmp->next;
   T ret = toDelete->data;
-  tmp->next = tmp->next->next;
+  tmp->next = toDelete->next;
+  toDelete->next->prev = tmp;
   delete(toDelete);
   _size--;
   return ret;
