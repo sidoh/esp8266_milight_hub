@@ -3,6 +3,7 @@
 #include <PubSubClient.h>
 #include <WiFiClient.h>
 #include <MiLightRadioConfig.h>
+#include <ESPId.h>
 
 #ifndef MQTT_CONNECTION_ATTEMPT_FREQUENCY
 #define MQTT_CONNECTION_ATTEMPT_FREQUENCY 5000

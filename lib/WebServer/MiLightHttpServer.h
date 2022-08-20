@@ -14,6 +14,7 @@
 
 typedef std::function<void(void)> SettingsSavedHandler;
 typedef std::function<void(const BulbId& id)> GroupDeletedHandler;
+typedef std::function<void(void)> THandlerFunction;
 
 using RichHttpConfig = RichHttp::Generics::Configs::EspressifBuiltin;
 using RequestContext = RichHttpConfig::RequestContextType;
@@ -47,7 +48,7 @@ public:
   void handleClient();
   void onSettingsSaved(SettingsSavedHandler handler);
   void onGroupDeleted(GroupDeletedHandler handler);
-  void on(const char* path, HTTPMethod method, ESP8266WebServer::THandlerFunction handler);
+  void on(const char* path, HTTPMethod method, THandlerFunction handler);
   void handlePacketSent(uint8_t* packet, const MiLightRemoteConfig& config);
   WiFiClient client();
 
@@ -101,7 +102,7 @@ protected:
   GroupStateStore*& stateStore;
   SettingsSavedHandler settingsSavedHandler;
   GroupDeletedHandler groupDeletedHandler;
-  ESP8266WebServer::THandlerFunction _handleRootPage;
+  THandlerFunction _handleRootPage;
   PacketSender*& packetSender;
   RadioSwitchboard*& radios;
   TransitionController& transitions;

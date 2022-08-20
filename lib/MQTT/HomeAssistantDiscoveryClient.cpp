@@ -38,7 +38,7 @@ void HomeAssistantDiscoveryClient::addConfig(const char* alias, const BulbId& bu
   DynamicJsonDocument config(1024);
 
   char uniqidBuffer[30];
-  sprintf_P(uniqidBuffer, PSTR("%X-%s"), ESP.getChipId(), alias);
+  sprintf_P(uniqidBuffer, PSTR("%X-%s"), getESPId(), alias);
 
   config[F("schema")] = F("json");
   config[F("name")] = alias;
@@ -51,7 +51,8 @@ void HomeAssistantDiscoveryClient::addConfig(const char* alias, const BulbId& bu
   deviceMetadata[F("sw_version")] = QUOTE(MILIGHT_HUB_VERSION);
 
   JsonArray identifiers = deviceMetadata.createNestedArray(F("identifiers"));
-  identifiers.add(ESP.getChipId());
+  identifiers.add(getESPId());
+
   bulbId.serialize(identifiers);
 
   // HomeAssistant only supports simple client availability
@@ -145,7 +146,7 @@ String HomeAssistantDiscoveryClient::buildTopic(const BulbId& bulbId) {
 
   topic += "light/";
   // Use a static ID that doesn't depend on configuration.
-  topic += "milight_hub_" + String(ESP.getChipId());
+  topic += "milight_hub_" + String(getESPId());
 
   // make the object ID based on the actual parameters rather than the alias.
   topic += "/";

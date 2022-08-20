@@ -9,6 +9,10 @@
 #include <AboutHelper.h>
 #include <index.html.gz.h>
 
+#ifdef ESP32
+  #include <SPIFFS.h>
+#endif
+
 using namespace std::placeholders;
 
 void MiLightHttpServer::begin() {
@@ -101,7 +105,7 @@ WiFiClient MiLightHttpServer::client() {
   return server.client();
 }
 
-void MiLightHttpServer::on(const char* path, HTTPMethod method, ESP8266WebServer::THandlerFunction handler) {
+void MiLightHttpServer::on(const char* path, HTTPMethod method, THandlerFunction handler) {
   server.on(path, method, handler);
 }
 
@@ -125,7 +129,11 @@ void MiLightHttpServer::handleSystemPost(RequestContext& request) {
         server.send_P(200, TEXT_PLAIN, PSTR("true"));
 
         delay(100);
+#ifdef ESP8266
         ESP.eraseConfig();
+#elif ESP32
+        // TODO erase config
+#endif
         delay(100);
         ESP.restart();
 
@@ -225,6 +233,7 @@ void MiLightHttpServer::handleUpdateSettingsPost(RequestContext& request) {
 }
 
 void MiLightHttpServer::handleFirmwarePost() {
+#ifdef ESP8266
   server.sendHeader("Connection", "close");
   server.sendHeader("Access-Control-Allow-Origin", "*");
 
@@ -245,9 +254,13 @@ void MiLightHttpServer::handleFirmwarePost() {
   delay(1000);
 
   ESP.restart();
+#elif ESP32
+  // TODO implement firmware post
+#endif
 }
 
 void MiLightHttpServer::handleFirmwareUpload() {
+#ifdef ESP8266
   HTTPUpload& upload = server.upload();
   if(upload.status == UPLOAD_FILE_START){
     WiFiUDP::stopAll();
@@ -266,6 +279,9 @@ void MiLightHttpServer::handleFirmwareUpload() {
     }
   }
   yield();
+#elif ESP32
+  // TODO implement firmware upload
+#endif
 }
 
 

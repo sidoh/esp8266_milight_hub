@@ -56,7 +56,8 @@ void MqttClient::begin() {
 
 bool MqttClient::connect() {
   char nameBuffer[30];
-  sprintf_P(nameBuffer, PSTR("milight-hub-%u"), ESP.getChipId());
+  sprintf_P(nameBuffer, PSTR("milight-hub-%u"), getESPId());
+
 
 #ifdef MQTT_DEBUG
     Serial.println(F("MqttClient - connecting using name"));

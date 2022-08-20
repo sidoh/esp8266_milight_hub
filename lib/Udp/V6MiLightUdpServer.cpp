@@ -1,8 +1,13 @@
 #include <V6MiLightUdpServer.h>
-#include <ESP8266WiFi.h>
 #include <Arduino.h>
 #include <Size.h>
 #include <V6CommandHandler.h>
+
+#ifdef ESP8266
+  #include <ESP8266WiFi.h>
+#elif ESP32
+  #include <WiFi.h>
+#endif
 
 #define MATCHES_PACKET(packet1) ( \
   matchesPacket(packet1, size(packet1), packet, packetSize) \
