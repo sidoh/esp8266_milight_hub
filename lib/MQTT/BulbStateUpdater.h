@@ -14,7 +14,7 @@ class BulbStateUpdater {
 public:
   BulbStateUpdater(Settings& settings, MqttClient& mqttClient, GroupStateStore& stateStore);
 
-  void enqueueUpdate(BulbId bulbId, GroupState& groupState);
+  void enqueueUpdate(BulbId bulbId);
   void loop();
   void enable();
   void disable();
