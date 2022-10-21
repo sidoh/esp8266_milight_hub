@@ -251,6 +251,10 @@ void applySettings() {
 
         settings.deletedGroupIdAliases.clear();
       }
+      // make sure state is up to date
+      for (auto itr = settings.groupIdAliases.begin(); itr != settings.groupIdAliases.end(); ++itr) {
+        bulbStateUpdater->enqueueUpdate(itr->second);
+      }
     });
 
     bulbStateUpdater = new BulbStateUpdater(settings, *mqttClient, *stateStore);
