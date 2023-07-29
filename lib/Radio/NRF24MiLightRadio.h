@@ -42,8 +42,8 @@ class NRF24MiLightRadio : public MiLightRadio {
     const MiLightRadioConfig& _config;
     uint32_t _prev_packet_id;
 
-    uint8_t _packet[10];
-    uint8_t _out_packet[10];
+    uint8_t _packet[11];
+    uint8_t _out_packet[11];
     bool _waiting;
     int _dupes_received;
 };

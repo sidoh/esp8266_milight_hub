@@ -32,6 +32,8 @@ Model #|Name|Compatible Bulbs
 |FUT091|CCT v2|Most newer dual white bulbs and controllers|
 |FUT089|8-zone RGB/CCT|Most newer rgb + dual white bulbs and controllers|
 
+|Casalux|CCT|sold by Aldi in Germany
+
 Other remotes or bulbs, but have not been tested.
 
 ## What you'll need

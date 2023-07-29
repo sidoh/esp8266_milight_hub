@@ -77,8 +77,8 @@ class LT8900MiLightRadio : public MiLightRadio {
     const MiLightRadioConfig& _config;
 
     uint8_t _channel;
-    uint8_t _packet[10];
-    uint8_t _out_packet[10];
+    uint8_t _packet[11];
+    uint8_t _out_packet[11];
     bool _waiting;
     int _dupes_received;
     size_t _currentPacketLen;
