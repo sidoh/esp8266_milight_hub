@@ -33,7 +33,7 @@ class NRF24MiLightRadio : public MiLightRadio {
     int resend();
     int configure();
     const MiLightRadioConfig& config();
-
+    
   private:
     const std::vector<RF24Channel>& channels;
     const size_t listenChannelIx;
@@ -42,8 +42,8 @@ class NRF24MiLightRadio : public MiLightRadio {
     const MiLightRadioConfig& _config;
     uint32_t _prev_packet_id;
 
-    uint8_t _packet[11];
-    uint8_t _out_packet[11];
+    uint8_t _packet[15];
+    uint8_t _out_packet[15];
     bool _waiting;
     int _dupes_received;
 };

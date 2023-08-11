@@ -9,6 +9,7 @@
 #include <FUT091PacketFormatter.h>
 #include <FUT020PacketFormatter.h>
 #include <CasaluxPacketFormatter.h>
+#include <NLGPacketFormatter.h>
 
 #ifndef _MILIGHT_REMOTE_CONFIG_H
 #define _MILIGHT_REMOTE_CONFIG_H
@@ -50,5 +51,6 @@ extern const MiLightRemoteConfig FUT098Config; //rgb
 extern const MiLightRemoteConfig FUT091Config; //v2 cct
 extern const MiLightRemoteConfig FUT020Config;
 extern const MiLightRemoteConfig CasaluxConfig;
+extern const MiLightRemoteConfig NLGConfig;
 
 #endif

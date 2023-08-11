@@ -12,7 +12,8 @@ const MiLightRemoteConfig* MiLightRemoteConfig::ALL_REMOTES[] = {
   &FUT089Config, // 8-group rgb+cct (b8, fut089)
   &FUT091Config,
   &FUT020Config,
-  &CasaluxConfig
+  &CasaluxConfig,
+  &NLGConfig
 };
 
 const size_t MiLightRemoteConfig::NUM_REMOTES = size(ALL_REMOTES);
@@ -113,5 +114,13 @@ const MiLightRemoteConfig CasaluxConfig(
   MiLightRadioConfig::ALL_CONFIGS[5],
   REMOTE_TYPE_CASALUX,
   "casalux",
+  4
+);
+
+const MiLightRemoteConfig NLGConfig(
+  new NLGPacketFormatter(),
+  MiLightRadioConfig::ALL_CONFIGS[6],
+  REMOTE_TYPE_NLG,
+  "nlg",
   4
 );
