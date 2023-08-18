@@ -13,7 +13,10 @@
 // Most packets sent is for CCT bulbs, which always includes 10 down commands
 // and can include up to 10 up commands.  CCT packets are 7 bytes.
 //   (10 * 7) + (10 * 7) = 140
-#define PACKET_FORMATTER_BUFFER_SIZE 140
+// unreliable size calculation !!!
+// Packets can be 11 Bytes and repeats can set to 30 via GUI, impossible to calc max buffer size, 
+// so declare just high enough
+#define PACKET_FORMATTER_BUFFER_SIZE 4096
 
 struct PacketStream {
   PacketStream();

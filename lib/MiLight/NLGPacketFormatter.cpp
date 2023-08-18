@@ -35,7 +35,7 @@ void NLGPacketFormatter::initializePacket(uint8_t* packet) {
 
   // Byte 0: Packet length = 7 bytes
 
-  // Byte 1: NLG protocol
+  // Byte 1: NLG protocol????
   packet[packetPtr++] = 0x00;
 
   // Byte 2 and 3: Device ID
@@ -51,7 +51,6 @@ void NLGPacketFormatter::initializePacket(uint8_t* packet) {
 
   
   // Byte 6: Packet sequence number 0..254
-  // increased by 2
   sequenceNum += 2;
   packet[packetPtr++] = sequenceNum;
 
@@ -69,26 +68,33 @@ void NLGPacketFormatter::updateBrightness(uint8_t value) {
   const GroupState* state = this->stateStore->get(deviceId, groupId, MiLightRemoteType::REMOTE_TYPE_NLG);
   int8_t knownValue = (state != NULL && state->isSetBrightness()) ? state->getBrightness() : -1;
 
+  Serial.printf("Brightness %d\n", knownValue);
+
   valueByStepFunction(
     &PacketFormatter::increaseBrightness,
     &PacketFormatter::decreaseBrightness,
-    20,
-    value / 20,
-    knownValue / 20
+    13,
+    value,
+    knownValue
   );
+
 }
 
 void NLGPacketFormatter::updateTemperature(uint8_t value) {
   const GroupState* state = this->stateStore->get(deviceId, groupId, MiLightRemoteType::REMOTE_TYPE_NLG);
   int8_t knownValue = (state != NULL && state->isSetKelvin()) ? state->getKelvin() : -1;
 
+  Serial.printf("Temp %d\n", knownValue);
+
   valueByStepFunction(
     &PacketFormatter::increaseTemperature,
     &PacketFormatter::decreaseTemperature,
-    20,
-    value / 20,
-    knownValue / 20
+    13,
+    value,
+    knownValue
   );
+
+  
 }
 
 void NLGPacketFormatter::command(uint8_t command, uint8_t arg) {
@@ -121,19 +127,20 @@ uint8_t NLGPacketFormatter::groupToGroupId(uint8_t group){
 }
 
 BulbId NLGPacketFormatter::parsePacket(const uint8_t* packet, JsonObject result) {
-  Serial.println("NLG parse");
   uint8_t command = packet[4]; 
 
   if(command > 6) { // On/Off
-    groupId = groupIdToGroup(command); // groupid only included if command >6
+    if(command != 0xEE) {   // If not Button release
+      groupId = groupIdToGroup(command); // groupid only included if command >6
     
-    result[GroupStateFieldNames::STATE] = command & 0x01 ? "ON" : "OFF";
+      result[GroupStateFieldNames::STATE] = command & 0x01 ? "ON" : "OFF";
+    }
 
   } else {
     // DPAD 
     switch(command){
         case 0x03:
-          result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::LEVEL_UP;
+          result[GroupStateFieldNames::COMMAND] = "brightness_up";
           break;
 
         case 0x04:
@@ -145,7 +152,7 @@ BulbId NLGPacketFormatter::parsePacket(const uint8_t* packet, JsonObject result)
           break;
 
         case 0x06:
-          result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::LEVEL_DOWN;
+          result[GroupStateFieldNames::COMMAND] = "brightness_down";
           break;
 
         default:
@@ -179,11 +186,11 @@ uint8_t NLGPacketFormatter::groupIdToGroup(uint8_t groupId){
 }
 
 void NLGPacketFormatter::increaseTemperature() {
-  command(0x04, 1);
+  command(0x05, 1);
 }
 
 void NLGPacketFormatter::decreaseTemperature() {
-  command(0x05, 1);
+  command(0x04, 1);
 }
 
 void NLGPacketFormatter::increaseBrightness() {
@@ -195,11 +202,10 @@ void NLGPacketFormatter::decreaseBrightness() {
 }
 
 void NLGPacketFormatter::format(uint8_t const* packet, char* buffer) {
-  buffer += sprintf_P(buffer, PSTR("Byte 1 (00)   : %02X\n"), packet[0]) ;
-  buffer += sprintf_P(buffer, PSTR("Device ID     : %02X%02X\n"), packet[1], packet[2]);
-  buffer += sprintf_P(buffer, PSTR("Group         : %02X\n"), packet[3]);
-  buffer += sprintf_P(buffer, PSTR("CMD           : %02X\n"), packet[4]);
-  buffer += sprintf_P(buffer, PSTR("Sequence Num. : %02X\n"), packet[5]);
-  buffer += sprintf_P(buffer, PSTR("Byte 7 (00)   : %02X\n"), packet[6]) ;
-  //buffer += sprintf_P(buffer, PSTR("Payload Chksum: %02X%02X\n"), packet[7], packet[8]);
+  buffer += sprintf_P(buffer, PSTR("Byte 1 (00)       : %02X\n"), packet[0]) ;
+  buffer += sprintf_P(buffer, PSTR("Byte 2,3 Device ID: %02X%02X\n"), packet[1], packet[2]);
+  buffer += sprintf_P(buffer, PSTR("Byte 4 Group      : %02X\n"), packet[3]);
+  buffer += sprintf_P(buffer, PSTR("Byte 5 CMD        : %02X\n"), packet[4]);
+  buffer += sprintf_P(buffer, PSTR("Byte 6 Seq. Num.  : %02X\n"), packet[5]);
+  buffer += sprintf_P(buffer, PSTR("Byte 7 (00)       : %02X\n"), packet[6]);
 }

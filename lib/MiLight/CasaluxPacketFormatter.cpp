@@ -58,12 +58,14 @@ void CasaluxPacketFormatter::updateBrightness(uint8_t value) {
   const GroupState* state = this->stateStore->get(deviceId, groupId, MiLightRemoteType::REMOTE_TYPE_CASALUX);
   int8_t knownValue = (state != NULL && state->isSetBrightness()) ? state->getBrightness() : -1;
 
+  Serial.printf("Brightness %d\n", knownValue);
+
   valueByStepFunction(
     &PacketFormatter::increaseBrightness,
     &PacketFormatter::decreaseBrightness,
-    20,
-    value / 20,
-    knownValue / 20
+    10,
+    value,
+    knownValue
   );
 }
 
@@ -71,12 +73,14 @@ void CasaluxPacketFormatter::updateTemperature(uint8_t value) {
   const GroupState* state = this->stateStore->get(deviceId, groupId, MiLightRemoteType::REMOTE_TYPE_CASALUX);
   int8_t knownValue = (state != NULL && state->isSetKelvin()) ? state->getKelvin() : -1;
 
+  Serial.printf("Temp %d\n", knownValue);
+
   valueByStepFunction(
     &PacketFormatter::increaseTemperature,
     &PacketFormatter::decreaseTemperature,
-    20,
-    value / 20,
-    knownValue / 20
+    10,
+    value,
+    knownValue
   );
 }
 
@@ -104,6 +108,49 @@ void CasaluxPacketFormatter::increaseBrightness() {
 
 void CasaluxPacketFormatter::decreaseBrightness() {
   command(0x65, 0);
+}
+
+
+BulbId CasaluxPacketFormatter::parsePacket(const uint8_t* packet, JsonObject result) {
+  uint8_t command = packet[0];
+
+  uint8_t onOffGroup = groupIdToGroup(packet[5]);
+
+  BulbId bulbId(
+    (packet[3] << 8) | packet[4],
+    onOffGroup,
+    REMOTE_TYPE_CASALUX
+  );
+
+  sequenceNum = packet[7];
+
+  switch(command){
+    case 0x65:
+      result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::LEVEL_DOWN;
+      break;
+
+    case 0x66:
+      result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::LEVEL_UP;
+      break;
+
+    case 0x6A:
+      result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::TEMPERATURE_DOWN;
+      break;
+
+    case 0x69:
+      result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::TEMPERATURE_UP;
+      break;
+
+    default:
+      if(onOffGroup < 255) {
+        result[GroupStateFieldNames::STATE] = command == 0x6F ? "ON" : "OFF";
+      }
+
+      result["button_id"] = command;
+      break;
+  }
+
+  return bulbId;
 }
 
 uint8_t CasaluxPacketFormatter::groupToGroupId(uint8_t group){
@@ -136,41 +183,10 @@ uint8_t CasaluxPacketFormatter::groupIdToGroup(uint8_t groupId){
   }
 }
 
-BulbId CasaluxPacketFormatter::parsePacket(const uint8_t* packet, JsonObject result) {
-  uint8_t command = packet[0];
-
-  uint8_t onOffGroup = groupIdToGroup(packet[5]);
-
-  BulbId bulbId(
-    (packet[3] << 8) | packet[4],
-    onOffGroup,
-    REMOTE_TYPE_CASALUX
-  );
-
-  sequenceNum = packet[7];
-  sequenceNum++;
-  
-  if(onOffGroup < 255) {
-    result[GroupStateFieldNames::STATE] = command == 0x6F ? "ON" : "OFF";
-  }
-  
-  if (command == 0x65) {
-    result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::LEVEL_DOWN;
-  } else if (command == 0x66) {
-    result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::LEVEL_UP;
-  } else if (command == 0x6A) {
-    result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::TEMPERATURE_DOWN;
-  } else if (command == 0x69) {
-    result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::TEMPERATURE_UP;
-  } else {
-    result["button_id"] = command;
-  }
-
-  return bulbId;
-}
 
 void CasaluxPacketFormatter::format(uint8_t const* packet, char* buffer) {
   buffer += sprintf_P(buffer, PSTR("Request type  : %02X\n"), packet[0]) ;
+  buffer += sprintf_P(buffer, PSTR("Byte 2 (01)   : %02X\n"), packet[1]);
   buffer += sprintf_P(buffer, PSTR("Byte 3 (11)   : %02X\n"), packet[2]);
   buffer += sprintf_P(buffer, PSTR("Device ID     : %02X%02X\n"), packet[3], packet[4]);
   buffer += sprintf_P(buffer, PSTR("Group         : %02X\n"), packet[5]);
