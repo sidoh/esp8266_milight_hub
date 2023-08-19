@@ -227,6 +227,24 @@ var UI_FIELDS = [ {
     },
     tab: "tab-radio"
   }, {
+    tag:   "active_radio_configs",
+    friendly: "Active Radio Configs",
+    help: "More active configs means more channel hopping",
+    type: "option_buttons",
+    settings: {
+      multiple: true,
+    },
+    options: {
+      '0': 'RGBW',
+      '1': 'CCT',
+      '2': 'Fut89, RGB+CCT',
+      '3': 'RGB',
+      '4': 'FUT020',
+      '5': 'Casalux',
+      '6': 'NLG'
+    },
+    tab: "tab-radio"
+  }, {
     tag:   "rf24_power_level",
     friendly: "nRF24 Power Level",
     help: "Power level for nRF24L01",

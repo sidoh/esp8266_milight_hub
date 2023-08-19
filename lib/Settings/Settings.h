@@ -143,6 +143,7 @@ public:
   String toJson(const bool prettyPrint = true);
   void serialize(Print& stream, const bool prettyPrint = false);
   void updateDeviceIds(JsonArray arr);
+  void updateActiveConfigs(JsonArray arr);
   void updateGatewayConfigs(JsonArray arr);
   void patch(JsonObject obj);
   String mqttServer();
@@ -185,6 +186,7 @@ public:
   RF24PowerLevel rf24PowerLevel;
   std::vector<uint16_t> deviceIds;
   std::vector<RF24Channel> rf24Channels;
+  std::vector<uint8_t> activeRadioConfigs;
   std::vector<GroupStateField> groupStateFields;
   std::vector<std::shared_ptr<GatewayConfig>> gatewayConfigs;
   RF24Channel rf24ListenChannel;

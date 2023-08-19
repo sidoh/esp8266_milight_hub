@@ -87,27 +87,12 @@ void CasaluxPacketFormatter::updateTemperature(uint8_t value) {
 void CasaluxPacketFormatter::command(uint8_t command, uint8_t arg) {
   pushPacket();
   currentPacket[0] = command;
+  currentPacket[5] = groupToGroupId(arg);
 }
 
 void CasaluxPacketFormatter::updateStatus(MiLightStatus status, uint8_t groupId) {
-  if(status == ON) command(0x6F,0);
-  else command(0x60,0);
-}
-
-void CasaluxPacketFormatter::increaseTemperature() {
-  command(0x69, 0);
-}
-
-void CasaluxPacketFormatter::decreaseTemperature() {
-  command(0x6A, 0);
-}
-
-void CasaluxPacketFormatter::increaseBrightness() {
-  command(0x66, 0);
-}
-
-void CasaluxPacketFormatter::decreaseBrightness() {
-  command(0x65, 0);
+  if(status == ON) command(0x6F, groupId);
+  else command(0x60, groupId);
 }
 
 
@@ -126,11 +111,11 @@ BulbId CasaluxPacketFormatter::parsePacket(const uint8_t* packet, JsonObject res
 
   switch(command){
     case 0x65:
-      result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::LEVEL_DOWN;
+      result[GroupStateFieldNames::COMMAND] = "brightness_down";
       break;
 
     case 0x66:
-      result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::LEVEL_UP;
+      result[GroupStateFieldNames::COMMAND] = "brightness_up";
       break;
 
     case 0x6A:
@@ -152,6 +137,23 @@ BulbId CasaluxPacketFormatter::parsePacket(const uint8_t* packet, JsonObject res
 
   return bulbId;
 }
+
+void CasaluxPacketFormatter::increaseTemperature() {
+  command(0x69, 0);
+}
+
+void CasaluxPacketFormatter::decreaseTemperature() {
+  command(0x6A, 0);
+}
+
+void CasaluxPacketFormatter::increaseBrightness() {
+  command(0x66, 0);
+}
+
+void CasaluxPacketFormatter::decreaseBrightness() {
+  command(0x65, 0);
+}
+
 
 uint8_t CasaluxPacketFormatter::groupToGroupId(uint8_t group){
   switch(group) {
@@ -185,7 +187,7 @@ uint8_t CasaluxPacketFormatter::groupIdToGroup(uint8_t groupId){
 
 
 void CasaluxPacketFormatter::format(uint8_t const* packet, char* buffer) {
-  buffer += sprintf_P(buffer, PSTR("Request type  : %02X\n"), packet[0]) ;
+  buffer += sprintf_P(buffer, PSTR("CMD           : %02X\n"), packet[0]) ;
   buffer += sprintf_P(buffer, PSTR("Byte 2 (01)   : %02X\n"), packet[1]);
   buffer += sprintf_P(buffer, PSTR("Byte 3 (11)   : %02X\n"), packet[2]);
   buffer += sprintf_P(buffer, PSTR("Device ID     : %02X%02X\n"), packet[3], packet[4]);
