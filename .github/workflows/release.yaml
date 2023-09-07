@@ -24,12 +24,15 @@ jobs:
         run: pip install --upgrade platformio
 
       - name: Build PlatformIO Project
-        run: pio run
+        run: pio run -e d1_mini
 
       - name: Build docs
         run: |
           npm install -g swagger-cli redoc-cli
           swagger-cli validate ./docs/openapi.yaml
+
+      - name: Setup upterm session
+        uses: lhotari/action-upterm@v1
   
       - name: Prepare release
         run: |
