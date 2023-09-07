@@ -108,6 +108,8 @@ jobs:
       id-token: write   # to verify the deployment originates from an appropriate source
 
     steps:
+      - uses: actions/checkout@v3
+
       - name: Download production artifact
         uses: actions/download-artifact@master
         with:
@@ -118,7 +120,6 @@ jobs:
         uses: lhotari/action-upterm@v1
 
       - name: Release docs
-        id: deployment
-        uses: actions/deploy-pages@v2 # or the latest "vX.X.X" version tag for this action
+        uses: JamesIves/github-pages-deploy-action@v4
         with:
-          artifact_name: dist/github-pages.tar.gz
+          folder: dist/docs # The folder the action should deploy.
