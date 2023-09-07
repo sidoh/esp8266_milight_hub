@@ -22,3 +22,8 @@ jobs:
 
       - name: Build PlatformIO Project
         run: pio run
+
+      - name: Build docs
+        run: |
+          npm install -g swagger-cli redoc-cli
+          swagger-cli validate ./docs/openapi.yaml

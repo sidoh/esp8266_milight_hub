@@ -1,0 +1,53 @@
+name: Publish Release
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  build:
+    uses: sidoh/esp8266_milight_hub/.github/workflows/build.yml@master
+  
+  release:
+    needs: build
+
+    steps:
+      - name: Prepare release
+        run: |
+          ./.prepare_release
+          ./.prepare_docs
+
+      - name: Create Release
+        uses: actions/github-script@v2
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            console.log('environment', process.versions);
+            
+            const fs = require('fs').promises;
+            
+            const { repo: { owner, repo }, sha } = context;
+            console.log({ owner, repo, sha });
+
+            const release = await github.repos.createRelease({
+              owner, repo,
+              tag_name: process.env.GITHUB_REF,
+              draft: false,
+              target_commitish: sha
+            });
+
+            console.log('created release', { release });
+        
+            for (let file of await fs.readdir('dist')) {
+              if (file.endsWith('.bin')) {
+                console.log('uploading', file);
+
+                await github.repos.uploadReleaseAsset({
+                  owner, repo,
+                  release_id: release.data.id,
+                  name: file,
+                  data: await fs.readFile(`./${file}`)
+                });            
+              }
+            }
