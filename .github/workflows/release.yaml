@@ -115,9 +115,6 @@ jobs:
           name: dist
           path: dist
 
-      - name: Setup upterm session
-        uses: lhotari/action-upterm@v1
-
       - name: Release docs
         uses: JamesIves/github-pages-deploy-action@v4
         with:
