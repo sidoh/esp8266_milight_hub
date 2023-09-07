@@ -19,6 +19,7 @@ jobs:
           path: |
             ~/.cache/pip
             ~/.platformio/.cache
+            ~/.pio/build
           key: ${{ runner.os }}-pio
       - uses: actions/setup-python@v4
         with:
@@ -112,6 +113,9 @@ jobs:
         with:
           name: dist
           path: dist
+
+      - name: Setup upterm session
+        uses: lhotari/action-upterm@v1
 
       - name: Release docs
         id: deployment
