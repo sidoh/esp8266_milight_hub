@@ -114,6 +114,7 @@ jobs:
           path: dist
 
       - name: Release docs
-        uses: JamesIves/github-pages-deploy-action@v4
+        id: deployment
+        uses: actions/deploy-pages@v2 # or the latest "vX.X.X" version tag for this action
         with:
-          folder: dist/docs # The folder the action should deploy.
+          artifact_name: dist/github-pages.tar.gz

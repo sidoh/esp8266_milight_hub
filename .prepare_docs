@@ -30,6 +30,7 @@ DOCS_DIR="./docs"
 DIST_DIR="./dist/docs"
 BRANCHES_DIR="${DIST_DIR}/branches"
 API_SPEC_FILE="${DOCS_DIR}/openapi.yaml"
+ARTIFACT_PATH="./dist/github-pages.tar.gz"
 
 rm -rf "${DIST_DIR}"
 
@@ -70,3 +71,5 @@ ln -s "${git_ref_version}" "${BRANCHES_DIR}/latest"
 # Create a JSON file containing a list of all branches with docs (we'll
 # have an index page that renders the list).
 ls "${BRANCHES_DIR}" | jq -Rc '.' | jq -sc '.' > "${DIST_DIR}/branches.json"
+
+tar cf "${ARTIFACT_PATH}" "${DIST_DIR}"
