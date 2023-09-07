@@ -27,7 +27,7 @@ jobs:
         run: pip install --upgrade platformio
 
       - name: Build PlatformIO Project
-        run: pio run -e d1_mini
+        run: pio run
 
       - name: Build docs
         run: |
@@ -58,6 +58,7 @@ jobs:
               owner, repo,
               tag_name: process.env.GITHUB_REF,
               draft: true,
+              name: process.env.GITHUB_REF,
               target_commitish: sha
             });
 
