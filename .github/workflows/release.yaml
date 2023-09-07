@@ -29,15 +29,14 @@ jobs:
       - name: Build PlatformIO Project
         run: pio run
 
-      - name: Build docs
-        run: |
-          npm install -g swagger-cli redoc-cli
-          swagger-cli validate ./docs/openapi.yaml
-  
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
       - name: Prepare release
         run: |
           ./.prepare_release
-          ./.prepare_docs
 
       - name: Create Release
         uses: actions/github-script@v2
@@ -74,3 +73,31 @@ jobs:
                 });            
               }
             }
+
+  publish_docs:
+    needs: build
+    runs-on: ubuntu-latest
+
+    # Deploy to the github-pages environment
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    permissions:
+      pages: write      # to deploy to Pages
+      id-token: write   # to verify the deployment originates from an appropriate source
+
+    steps:
+      - name: Build docs
+        run: |
+          npm install -g swagger-cli redoc-cli
+          swagger-cli validate ./docs/openapi.yaml
+          ./.prepare_docs
+
+      - name: Release docs
+        id: deployment
+        uses: actions/deploy-pages@v2
+      - name: Release docs
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: dist/docs # The folder the action should deploy.
