@@ -31,10 +31,6 @@ jobs:
           npm install -g swagger-cli redoc-cli
           swagger-cli validate ./docs/openapi.yaml
   
-  release:
-    needs: build
-
-    steps:
       - name: Prepare release
         run: |
           ./.prepare_release
