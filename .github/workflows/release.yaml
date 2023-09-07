@@ -53,9 +53,10 @@ jobs:
 
             const release = await github.repos.createRelease({
               owner, repo,
+              name: process.env.GITHUB_REF_NAME,
+              body: await fs.readFile('./dist/release-notes.txt'),
               tag_name: process.env.GITHUB_REF,
               draft: true,
-              name: process.env.GITHUB_REF,
               target_commitish: sha
             });
 

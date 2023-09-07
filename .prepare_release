@@ -29,3 +29,5 @@ for file in $(ls ${firmware_prefix}/**/firmware.bin); do
 
   cp "$file" "dist/esp8266_milight_hub_${env}-${VERSION}.bin"
 done
+
+git show -s --format=%B > dist/release-notes.txt
