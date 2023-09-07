@@ -40,25 +40,31 @@ void HomeAssistantDiscoveryClient::addConfig(const char* alias, const BulbId& bu
   char uniqidBuffer[30];
   sprintf_P(uniqidBuffer, PSTR("%X-%s"), ESP.getChipId(), alias);
 
+  config[F("dev_cla")] = F("light");
   config[F("schema")] = F("json");
   config[F("name")] = alias;
-  config[F("command_topic")] = mqttClient->bindTopicString(settings.mqttTopicPattern, bulbId);
-  config[F("state_topic")] = mqttClient->bindTopicString(settings.mqttStateTopicPattern, bulbId);
+  // command topic
+  config[F("cmd_t")] = mqttClient->bindTopicString(settings.mqttTopicPattern, bulbId);
+  // state topic
+  config[F("stat_t")] = mqttClient->bindTopicString(settings.mqttStateTopicPattern, bulbId);
   config[F("uniq_id")] = mqttClient->bindTopicString(uniqidBuffer, bulbId);
-  JsonObject deviceMetadata = config.createNestedObject(F("device"));
+  JsonObject deviceMetadata = config.createNestedObject(F("dev"));
 
-  deviceMetadata[F("manufacturer")] = F("esp8266_milight_hub");
+  deviceMetadata[F("name")] = F("ESP8266 MiLight Hub");
+  deviceMetadata[F("sw")] = F("esp8266_milight_hub");
+  deviceMetadata[F("mf")] = F("espressif");
+  deviceMetadata[F("mdl")] = QUOTE(FIRMWARE_VARIANT);
   deviceMetadata[F("sw_version")] = QUOTE(MILIGHT_HUB_VERSION);
-
-  JsonArray identifiers = deviceMetadata.createNestedArray(F("identifiers"));
-  identifiers.add(ESP.getChipId());
-  bulbId.serialize(identifiers);
+  deviceMetadata[F("identifiers")] = String(ESP.getChipId());
 
   // HomeAssistant only supports simple client availability
   if (settings.mqttClientStatusTopic.length() > 0 && settings.simpleMqttClientStatus) {
-    config[F("availability_topic")] = settings.mqttClientStatusTopic;
-    config[F("payload_available")] = F("connected");
-    config[F("payload_not_available")] = F("disconnected");
+    // availability topic
+    config[F("avty_t")] = settings.mqttClientStatusTopic;
+    // payload_available
+    config[F("pl_avail")] = F("connected");
+    // payload_not_available
+    config[F("pl_not_avail")] = F("disconnected");
   }
 
   // Configure supported commands based on the bulb type
@@ -67,7 +73,8 @@ void HomeAssistantDiscoveryClient::addConfig(const char* alias, const BulbId& bu
   config[GroupStateFieldNames::BRIGHTNESS] = true;
   config[GroupStateFieldNames::EFFECT] = true;
 
-  JsonArray effects = config.createNestedArray(F("effect_list"));
+  // effect_list
+  JsonArray effects = config.createNestedArray(F("fx_list"));
   effects.add(MiLightCommandNames::NIGHT_MODE);
 
   // These bulbs support switching between rgb/white, and have a "white_mode" command
@@ -112,8 +119,8 @@ void HomeAssistantDiscoveryClient::addConfig(const char* alias, const BulbId& bu
     case REMOTE_TYPE_FUT091:
     case REMOTE_TYPE_RGB_CCT:
       config[GroupStateFieldNames::COLOR_TEMP] = true;
-      config[F("max_mireds")] = COLOR_TEMP_MAX_MIREDS;
-      config[F("min_mireds")] = COLOR_TEMP_MIN_MIREDS;
+      config[F("max_mirs")] = COLOR_TEMP_MAX_MIREDS;
+      config[F("min_mirs")] = COLOR_TEMP_MIN_MIREDS;
       break;
     default:
       break; //nothing
