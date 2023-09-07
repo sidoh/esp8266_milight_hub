@@ -10,9 +10,11 @@
  *
  */
 
-#include "PL1167_nRF24.h"
+
 #include <RadioUtils.h>
 #include <MiLightRadioConfig.h>
+#include <PL1167_nRF24.h>
+#include <PL1167_FEC23.h>
 
 static uint16_t calc_crc(uint8_t *data, size_t data_length);
 
@@ -37,6 +39,9 @@ int PL1167_nRF24::recalc_parameters() {
 
   // +2 for CRC
   size_t packet_length = _maxPacketLength + 2;
+
+  // resize packetlength for Hamming Code
+  if(_enableFEC23) packet_length = (packet_length) *1.5;
 
   // Read an extra byte if we don't include the trailer in the syncword
   if (_syncwordLength < 5) {
@@ -69,6 +74,10 @@ int PL1167_nRF24::setSyncword(const uint8_t syncword[], size_t syncwordLength) {
 int PL1167_nRF24::setMaxPacketLength(uint8_t maxPacketLength) {
   _maxPacketLength = maxPacketLength;
   return recalc_parameters();
+}
+
+void PL1167_nRF24::enableFEC23(bool enable){
+  _enableFEC23 = enable;
 }
 
 int PL1167_nRF24::receive(uint8_t channel) {
@@ -152,6 +161,19 @@ int PL1167_nRF24::transmit(uint8_t channel) {
     }
   }
 
+  if(_enableFEC23) {
+    #ifdef DEBUG_PRINTF
+      Serial.printf_P(PSTR("FEC23 enabled (%d bytes)\n"), outp);
+    #endif
+
+    // New packet length from encoder
+    outp = _FEC.encodeMessage(tmp, outp);
+
+    #ifdef DEBUG_PRINTF
+      Serial.printf_P(PSTR("Packet after encode (%d bytes): "), outp);
+    #endif
+  }
+
   yield();
 
   _radio.write(tmp, outp);
@@ -167,6 +189,18 @@ int PL1167_nRF24::transmit(uint8_t channel) {
  * Note that because the Trailer is 4 bits, the remaining data is not byte-aligned.
  *
  * Bit-order is reversed.
+ * 
+ * Note: If FEC23 enabled, Data(Length, Packet, CRC) is encoded by Hamming 15,10
+ * So the length increased by 50%
+ * 
+ * When Packetdata length is 7, Packet is 15 Bytes
+ * 1(len) +7(data) +2(CRC) =10 *1.5 = 15
+ * 
+ * 
+ * Data seems like:
+ * 1234567812PPPPP3456781234PPPPP5678123456PPPPP
+ * 
+ * This is done BEFORE changing bit-order
  *
  */
 int PL1167_nRF24::internal_receive() {
@@ -199,6 +233,21 @@ int PL1167_nRF24::internal_receive() {
 //     tmp[outp++] = reverseBits((buffer << 4) | (currentByte >> 4));
 //     buffer = (buffer << 8) | currentByte;
 //   }
+
+  if(_enableFEC23){
+    #ifdef DEBUG_PRINTF
+      Serial.printf_P(PSTR("FEC23 enabled (%d bytes): "), _receive_length);
+    #endif
+
+    _receive_length = _FEC.decodeMessage(tmp, _receive_length);  
+  #ifdef DEBUG_PRINTF
+    Serial.printf_P(PSTR("Packet after decode (%d bytes): "), _receive_length);
+    for (int i = 0; i < outp; i++) {
+      Serial.printf_P(PSTR("%02X "), tmp[i]);
+    }
+    Serial.print(F("\n"));
+  #endif
+  } 
 
   for (int inp = 0; inp < _receive_length; inp++) {
     tmp[outp++] = reverseBits(tmp[inp]);
@@ -236,7 +285,7 @@ int PL1167_nRF24::internal_receive() {
   _received = true;
 
 #ifdef DEBUG_PRINTF
-  Serial.printf_P(PSTR("Successfully parsed packet of length %d\n"), _packet_length);
+  Serial.printf_P(PSTR("Successfully parsed packet of length %d, chksum %04x\n"), _packet_length, recvCrc);
 #endif
 
   return outp;

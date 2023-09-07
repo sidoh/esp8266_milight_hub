@@ -6,6 +6,18 @@ RadioSwitchboard::RadioSwitchboard(
   Settings& settings
 ) {
   for (size_t i = 0; i < MiLightRadioConfig::NUM_CONFIGS; i++) {
+
+    // Use only active configs
+    if(settings.activeRadioConfigs.size() > 0) {
+      bool config_active = false;
+
+      for (uint8_t y : settings.activeRadioConfigs){
+        if(y == i) config_active = true;
+      }
+
+      if(!config_active) continue;
+    }
+
     std::shared_ptr<MiLightRadio> radio = radioFactory->create(MiLightRadioConfig::ALL_CONFIGS[i]);
     radio->begin();
     radios.push_back(radio);

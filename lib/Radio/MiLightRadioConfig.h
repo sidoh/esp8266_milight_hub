@@ -6,7 +6,7 @@
 #ifndef _MILIGHT_RADIO_CONFIG
 #define _MILIGHT_RADIO_CONFIG
 
-#define MILIGHT_MAX_PACKET_LENGTH 9
+#define MILIGHT_MAX_PACKET_LENGTH 15
 
 class MiLightRadioConfig {
 public:
@@ -28,6 +28,12 @@ public:
   //
   // In general, this should be set to 5 unless packets that should be showing up are
   // mysteriously not present.
+  // 
+  // FEC23 is FEC2/3 is Hamming (15,10)
+  // 10 databits followed by 5 bit syndrome
+  // length +50%
+  //
+
   static const uint8_t SYNCWORD_LENGTH = 5;
 
   MiLightRadioConfig(
@@ -38,10 +44,12 @@ public:
     const uint8_t channel1,
     const uint8_t channel2,
     const uint8_t preamble,
-    const uint8_t trailer
+    const uint8_t trailer,
+    const bool enable_fec23 = false
   ) : syncword0(syncword0)
     , syncword3(syncword3)
     , packetLength(packetLength)
+    , enable_fec23(enable_fec23)
   {
     channels[0] = channel0;
     channels[1] = channel1;
@@ -75,8 +83,9 @@ public:
   uint16_t syncword0, syncword3;
 
   const size_t packetLength;
+  const bool enable_fec23;
 
-  static const size_t NUM_CONFIGS = 5;
+  static const size_t NUM_CONFIGS = 7;
   static MiLightRadioConfig ALL_CONFIGS[NUM_CONFIGS];
 };
 

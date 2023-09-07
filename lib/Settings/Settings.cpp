@@ -45,6 +45,14 @@ void Settings::updateDeviceIds(JsonArray arr) {
   }
 }
 
+void Settings::updateActiveConfigs(JsonArray arr) {
+  this->activeRadioConfigs.clear();
+
+  for (size_t i = 0; i < arr.size(); ++i) {
+    this->activeRadioConfigs.push_back(arr[i]);
+  }
+}
+
 void Settings::updateGatewayConfigs(JsonArray arr) {
   gatewayConfigs.clear();
 
@@ -110,6 +118,15 @@ void Settings::patch(JsonObject parsedSettings) {
   if (parsedSettings.containsKey("rf24_channels")) {
     JsonArray arr = parsedSettings["rf24_channels"];
     rf24Channels = JsonHelpers::jsonArrToVector<RF24Channel, String>(arr, RF24ChannelHelpers::valueFromName);
+  }
+
+  if (parsedSettings.containsKey("active_radio_configs")) {
+    JsonArray arr = parsedSettings["active_radio_configs"];
+    updateActiveConfigs(arr);
+
+     for(uint8_t i = 0; i < this->activeRadioConfigs.size(); i++){
+      Serial.printf("load id: %d\n", this->activeRadioConfigs[i]);
+    }
   }
 
   if (parsedSettings.containsKey("rf24_listen_channel")) {
@@ -220,7 +237,21 @@ void Settings::load(Settings& settings) {
 
     if (! error) {
       JsonObject parsedSettings = json.as<JsonObject>();
+      
+      // Ensure that there are valid configs before patch  
+      if(!parsedSettings.containsKey("active_radio_configs")){
+          // First start use only sidoh's configs
+          Serial.printf("active_radio_configs not found, creating\n");
+          JsonArray configsArr = parsedSettings.createNestedArray("active_radio_configs");
+          configsArr.add(0);
+          configsArr.add(1);
+          configsArr.add(2);
+          configsArr.add(3);
+          configsArr.add(4);
+      }
+
       settings.patch(parsedSettings);
+  
     } else {
       Serial.print(F("Error parsing saved settings file: "));
       Serial.println(error.c_str());
@@ -297,6 +328,15 @@ void Settings::serialize(Print& stream, const bool prettyPrint) {
 
   JsonArray channelArr = root.createNestedArray("rf24_channels");
   JsonHelpers::vectorToJsonArr<RF24Channel, String>(channelArr, rf24Channels, RF24ChannelHelpers::nameFromValue);
+
+  JsonArray configsArr = root.createNestedArray("active_radio_configs");
+  JsonHelpers::copyFrom<uint8_t>(configsArr, this->activeRadioConfigs);
+
+  for(uint8_t i = 0; i < this->activeRadioConfigs.size(); i++){
+      Serial.printf("save id: %d\n", this->activeRadioConfigs[i]);
+  }
+
+  
 
   JsonArray deviceIdsArr = root.createNestedArray("device_ids");
   JsonHelpers::copyFrom<uint16_t>(deviceIdsArr, this->deviceIds);

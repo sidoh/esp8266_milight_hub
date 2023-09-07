@@ -23,14 +23,14 @@ void FUT020PacketFormatter::nextMode() {
 void FUT020PacketFormatter::updateBrightness(uint8_t value) {
   const GroupState* state = this->stateStore->get(deviceId, groupId, MiLightRemoteType::REMOTE_TYPE_FUT020);
   int8_t knownValue = (state != NULL && state->isSetBrightness())
-    ? state->getBrightness() / FUT02xPacketFormatter::NUM_BRIGHTNESS_INTERVALS
+    ? state->getBrightness()
     : -1;
 
   valueByStepFunction(
     &PacketFormatter::increaseBrightness,
     &PacketFormatter::decreaseBrightness,
     FUT02xPacketFormatter::NUM_BRIGHTNESS_INTERVALS,
-    value / FUT02xPacketFormatter::NUM_BRIGHTNESS_INTERVALS,
+    value,
     knownValue
   );
 }

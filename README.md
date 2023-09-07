@@ -31,6 +31,8 @@ Model #|Name|Compatible Bulbs
 |FUT092|RGB/CCT|<ol><li>FUT012</li><li>FUT013</li><li>FUT014</li><li>FUT015</li><li>FUT103</li><li>FUT104</li><li>FUT105</li><li>Many RGB/CCT LED Strip Controllers</li></ol>|
 |FUT091|CCT v2|Most newer dual white bulbs and controllers|
 |FUT089|8-zone RGB/CCT|Most newer rgb + dual white bulbs and controllers|
+|Casalux|CCT|sold by Aldi in Germany
+|NLG|CCT|Neuhaus Lightning Group, Paul Neuhaus
 
 Other remotes or bulbs, but have not been tested.
 

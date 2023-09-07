@@ -19,6 +19,8 @@ uint8_t* PacketStream::next() {
   return packet;
 }
 
+
+// For what is maxPackets ????
 PacketFormatter::PacketFormatter(const MiLightRemoteType deviceType, const size_t packetLength, const size_t maxPackets)
   : deviceType(deviceType),
     packetLength(packetLength),
@@ -109,6 +111,9 @@ void PacketFormatter::valueByStepFunction(StepFunction increase, StepFunction de
   StepFunction fn;
   size_t numCommands = 0;
 
+  // There was a false calculation: "value / steps" should be "value / (100 / steps)"
+  uint8_t stepSize = 100 / numSteps;
+
   // If current value is not known, drive down to minimum value.  Then we can assume that we
   // know the state (it'll be 0).
   if (knownValue == -1) {
@@ -118,12 +123,15 @@ void PacketFormatter::valueByStepFunction(StepFunction increase, StepFunction de
 
     fn = increase;
     numCommands = targetValue;
+
   } else if (targetValue < knownValue) {
     fn = decrease;
-    numCommands = (knownValue - targetValue);
+    numCommands = (knownValue - targetValue) / stepSize;
+
   } else if (targetValue > knownValue) {
     fn = increase;
-    numCommands = (targetValue - knownValue);
+    numCommands = (targetValue - knownValue) / stepSize;
+
   } else {
     return;
   }
