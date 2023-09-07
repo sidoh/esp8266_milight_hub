@@ -1,0 +1,121 @@
+name: Publish Release
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - run: git fetch --tags --force origin
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.platformio/.cache
+            .pio/build
+          key: ${{ runner.os }}-pio
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Validate docs
+        run: |
+          npm install -g redoc-cli
+          redoc-cli validate ./docs/openapi.yaml
+
+      - name: Install PlatformIO Core
+        run: pip install --upgrade platformio
+
+      - name: Build PlatformIO Project
+        run: pio run
+
+      - name: Prepare release
+        run: |
+          ./.prepare_release
+          ./.prepare_docs
+
+      - name: Upload production artifact
+        uses: actions/upload-artifact@master
+        with:
+          name: dist
+          path: dist
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download production artifact
+        uses: actions/download-artifact@master
+        with:
+          name: dist
+          path: dist
+
+      - name: Create Release
+        uses: actions/github-script@v2
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            console.log('environment', process.versions);
+            
+            const fs = require('fs').promises;
+            
+            const { repo: { owner, repo }, sha } = context;
+            console.log({ owner, repo, sha });
+
+            const release = await github.repos.createRelease({
+              owner, repo,
+              name: process.env.GITHUB_REF_NAME,
+              body: await fs.readFile('./dist/release-notes.txt', 'utf8'),
+              tag_name: process.env.GITHUB_REF,
+              draft: true,
+              target_commitish: sha
+            });
+
+            console.log('created release', { release });
+        
+            for (let file of await fs.readdir('dist')) {
+              if (file.endsWith('.bin')) {
+                console.log('uploading', file);
+
+                await github.repos.uploadReleaseAsset({
+                  owner, repo,
+                  release_id: release.data.id,
+                  name: file,
+                  data: await fs.readFile(`./dist/${file}`)
+                });            
+              }
+            }
+
+  publish_docs:
+    needs: build
+    runs-on: ubuntu-latest
+
+    # Deploy to the github-pages environment
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Download production artifact
+        uses: actions/download-artifact@master
+        with:
+          name: dist
+          path: dist
+
+      - name: Release docs
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: dist/docs # The folder the action should deploy.
