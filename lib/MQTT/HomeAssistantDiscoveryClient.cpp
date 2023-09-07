@@ -37,8 +37,13 @@ void HomeAssistantDiscoveryClient::addConfig(const char* alias, const BulbId& bu
   String topic = buildTopic(bulbId);
   DynamicJsonDocument config(1024);
 
+  // Unique ID for this device + alias combo
   char uniqidBuffer[30];
   sprintf_P(uniqidBuffer, PSTR("%X-%s"), ESP.getChipId(), alias);
+
+  // String to ID the firmware version
+  char fwVersion[30];
+  sprintf_P(fwVersion, PSTR("esp8266_milight_hub v%s"), QUOTE(MILIGHT_HUB_VERSION));
 
   config[F("dev_cla")] = F("light");
   config[F("schema")] = F("json");
@@ -50,11 +55,10 @@ void HomeAssistantDiscoveryClient::addConfig(const char* alias, const BulbId& bu
   config[F("uniq_id")] = mqttClient->bindTopicString(uniqidBuffer, bulbId);
   JsonObject deviceMetadata = config.createNestedObject(F("dev"));
 
-  deviceMetadata[F("name")] = F("ESP8266 MiLight Hub");
-  deviceMetadata[F("sw")] = F("esp8266_milight_hub");
+  deviceMetadata[F("name")] = settings.hostname;
+  deviceMetadata[F("sw")] = fwVersion;
   deviceMetadata[F("mf")] = F("espressif");
   deviceMetadata[F("mdl")] = QUOTE(FIRMWARE_VARIANT);
-  deviceMetadata[F("sw_version")] = QUOTE(MILIGHT_HUB_VERSION);
   deviceMetadata[F("identifiers")] = String(ESP.getChipId());
 
   // HomeAssistant only supports simple client availability
