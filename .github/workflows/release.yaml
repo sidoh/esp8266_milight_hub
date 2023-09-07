@@ -114,9 +114,6 @@ jobs:
           path: dist
 
       - name: Release docs
-        id: deployment
-        uses: actions/deploy-pages@v2
-      - name: Release docs
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           folder: dist/docs # The folder the action should deploy.
