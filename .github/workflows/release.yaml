@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    uses: sidoh/esp8266_milight_hub/.github/workflows/build.yml@master
+    uses: sidoh/esp8266_milight_hub/.github/workflows/build.yml@fix_ha_discovery
   
   release:
     needs: build
