@@ -23,20 +23,39 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: '3.9'
+
+      - name: Validate docs
+        run: |
+          npm install -g redoc-cli
+          redoc-cli validate ./docs/openapi.yaml
+
       - name: Install PlatformIO Core
         run: pip install --upgrade platformio
 
       - name: Build PlatformIO Project
         run: pio run
 
+      - name: Prepare release
+        run: |
+          ./.prepare_release
+          ./.prepare_docs
+
+      - name: Upload production artifact
+        uses: actions/upload-artifact@master
+        with:
+          name: dist
+          path: dist
+
   release:
     needs: build
     runs-on: ubuntu-latest
 
     steps:
-      - name: Prepare release
-        run: |
-          ./.prepare_release
+      - name: Download production artifact
+        uses: actions/download-artifact@master
+        with:
+          name: dist
+          path: dist
 
       - name: Create Release
         uses: actions/github-script@v2
@@ -88,11 +107,11 @@ jobs:
       id-token: write   # to verify the deployment originates from an appropriate source
 
     steps:
-      - name: Build docs
-        run: |
-          npm install -g swagger-cli redoc-cli
-          swagger-cli validate ./docs/openapi.yaml
-          ./.prepare_docs
+      - name: Download production artifact
+        uses: actions/download-artifact@master
+        with:
+          name: dist
+          path: dist
 
       - name: Release docs
         id: deployment
