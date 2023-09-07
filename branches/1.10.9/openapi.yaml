@@ -1,0 +1,1057 @@
+openapi: 3.0.1
+info:
+  title: ESP8266 MiLight Hub
+  description: Official documention for MiLight Hub's REST API.
+  contact:
+    email: chris@sidoh.org
+  license:
+    name: MIT
+  version: 1.0.0
+servers:
+  - url: http://milight-hub
+tags:
+  - name: System
+    description: >
+      Routes that return system information and allow you to control the device.
+  - name: Settings
+    description: Read and write settings
+  - name: Device Control
+    description: Control lighting devices
+  - name: Device Control by Alias
+    description: Control lighting devices using aliases rather than raw IDs
+  - name: Raw Packet Handling
+    description: Read and write raw Milight packets
+  - name: Transitions
+    description: Control transitions
+x-tagGroups:
+  - name: Admin
+    tags:
+      - System
+      - Settings
+  - name: Devices
+    tags:
+      - Device Control
+      - Device Control by Alias
+      - Raw Packet Handling
+  - name: Transitions
+    tags:
+      - Transitions
+
+paths:
+  /about:
+    get:
+      tags:
+      - System
+      summary: Get system information
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/About'
+  /remote_configs:
+    get:
+      tags:
+        - System
+      summary: List supported remote types
+      responses:
+        200:
+          description: success
+          content:
+            applicaiton/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                example:
+                  $ref: '#/components/schemas/RemoteType/enum'
+  /system:
+    post:
+      tags:
+      - System
+      summary: Send a system command
+      description: >
+        Send commands to the system.  Supported commands:
+
+        1. `restart`. Restart the ESP8266.
+
+        1. `clear_wifi_config`. Clears on-board wifi information. ESP8266 will reboot and enter wifi config mode.
+
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - command
+              properties:
+                command:
+                  type: string
+                  enum:
+                  - restart
+                  - clear_wifi_config
+      responses:
+        200:
+          description: command handled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BooleanResponse'
+        400:
+          description: error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BooleanResponse'
+  /settings:
+    get:
+      tags:
+      - Settings
+      summary: Get existing settings
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Settings'
+    put:
+      tags:
+      - Settings
+      summary: Patch existing settings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Settings'
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BooleanResponse'
+    post:
+      tags:
+      - Settings
+      summary: Overwrite existing settings with a file
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Settings'
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BooleanResponse'
+
+  /gateway_traffic/{remote-type}:
+    get:
+      tags:
+      - Raw Packet Handling
+      summary: Read a packet from a specific remote
+      description:
+        Read a packet from the given remote type.  Does not return a response until a packet is read.
+        If `remote-type` is unspecified, will read from all remote types simultaneously.
+      parameters:
+        - $ref: '#/components/parameters/RemoteType'
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadPacket'
+  /gateway_traffic:
+    get:
+      tags:
+      - Raw Packet Handling
+      summary: Read a packet from any remote
+      description:
+        Read a packet from any remote type.  Does not return a response until a packet is read.
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadPacket'
+
+  /gateways/{device-id}/{remote-type}/{group-id}:
+    parameters:
+      - $ref: '#/components/parameters/DeviceId'
+      - $ref: '#/components/parameters/RemoteType'
+      - $ref: '#/components/parameters/GroupId'
+    get:
+      tags:
+        - Device Control
+      summary:
+        Get device state
+      description:
+        If `blockOnQueue` is provided, a response will not be returned until any unprocessed
+        packets in the command queue are finished sending.
+      parameters:
+        - $ref: '#/components/parameters/BlockOnQueue'
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupState'
+    put:
+      tags:
+        - Device Control
+      summary:
+        Patch device state
+      description:
+        Update state of the bulbs with the provided parameters.  Existing parameters will be
+        unchanged.
+
+        if `blockOnQueue` is set to true, the response will not return until packets corresponding
+        to the commands sent are processed, and the updated `GroupState` will be returned.  If
+        `blockOnQueue` is false or not provided, a simple response indicating success will be
+        returned.
+      parameters:
+        - $ref: '#/components/parameters/BlockOnQueue'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/GroupState'
+                - $ref: '#/components/schemas/GroupStateCommands'
+      responses:
+        400:
+          description: error with request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BooleanResponse'
+        200:
+          description: >
+            Success.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/BooleanResponse'
+                  - $ref: '#/components/schemas/GroupState'
+    delete:
+      tags:
+        - Device Control
+      summary:
+        Delete kept state
+      description:
+        Usets all known values for state fields for the corresponding device.  If MQTT is
+        configured, the retained state message corresponding to this device will also be
+        deleted.
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BooleanResponse'
+  /gateways/{device-alias}:
+    parameters:
+      - $ref: '#/components/parameters/DeviceAlias'
+    get:
+      tags:
+        - Device Control by Alias
+      summary: Get device state by alias
+      responses:
+        404:
+          description: provided device alias does not exist
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupState'
+    put:
+      tags:
+        - Device Control by Alias
+      summary: Patch device state by alias
+      parameters:
+        - $ref: '#/components/parameters/BlockOnQueue'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/GroupState'
+                - $ref: '#/components/schemas/GroupStateCommands'
+      responses:
+        400:
+          description: error with request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BooleanResponse'
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupState'
+    delete:
+      tags:
+        - Device Control by Alias
+      summary: Delete kept state for alias
+      description:
+        Usets all known values for state fields for the corresponding device.  If MQTT is
+        configured, the retained state message corresponding to this device will also be
+        deleted.
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BooleanResponse'
+
+  /raw_commands/{remote-type}:
+    parameters:
+      - $ref: '#/components/parameters/RemoteType'
+    post:
+      tags:
+        - Raw Packet Handling
+      summary: Send a raw packet
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                packet:
+                  type: string
+                  pattern: "([A-Fa-f0-9]{2}[ ])+"
+                  description: Raw packet to send
+                  example: '01 02 03 04 05 06 07 08 09'
+                num_repeats:
+                  type: integer
+                  minimum: 1
+                  description: Number of repeated packets to send
+                  example: 50
+      responses:
+        200:
+            description: success
+            content:
+              applicaiton/json:
+                schema:
+                  $ref: '#/components/schemas/BooleanResponse'
+
+
+  /transitions:
+    get:
+      tags:
+        - Transitions
+      summary: List all active transitions
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TransitionData'
+    post:
+      tags:
+        - Transitions
+      summary: Create a new transition
+      requestBody:
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/TransitionData'
+                - $ref: '#/components/schemas/BulbId'
+      responses:
+        400:
+          description: error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BooleanResponse'
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BooleanResponse'
+  /transitions/{id}:
+    parameters:
+      - name: id
+        in: path
+        description: ID of transition.  This will be an auto-incrementing number reset after a restart.
+        schema:
+          type: integer
+        required: true
+    get:
+      tags:
+        - Transitions
+      summary: Get properties for a transition
+      responses:
+        404:
+          description: Provided transition ID not found
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransitionData'
+    delete:
+      tags:
+        - Transitions
+      summary: Delete a transition
+      responses:
+        404:
+          description: Provided transition ID not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BooleanResponse'
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BooleanResponse'
+  /firmware:
+    post:
+      tags:
+        - System
+      summary:
+        Update firmware
+      requestBody:
+        description: Firmware file
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                fileName:
+                  type: string
+                  format: binary
+      responses:
+        200:
+          description: success
+        500:
+          description: server error
+components:
+  parameters:
+    DeviceAlias:
+      name: device-alias
+      in: path
+      description: Device alias saved in settings
+      schema:
+        type: string
+      required: true
+    BlockOnQueue:
+      name: blockOnQueue
+      in: query
+      description: If true, response will block on update packets being sent before returning
+      schema:
+        type: boolean
+      required: false
+    GroupId:
+      name: group-id
+      in: path
+      description: >
+        Group ID.  Should be 0-8, depending on remote type.  Group 0 is a "wildcard" group.  All bulbs paired with the same device ID will respond to commands sent to Group 0.
+      schema:
+        type: integer
+        minimum: 0
+        maximum: 8
+      required: true
+    DeviceId:
+      name: device-id
+      in: path
+      description: 2-byte device ID.  Can be decimal or hexadecimal.
+      schema:
+        oneOf:
+          - type: integer
+            minimum: 0
+            maximum: 65535
+          - type: string
+            pattern: '0x[a-fA-F0-9]+'
+      example: '0x1234'
+      required: true
+    RemoteType:
+      name: remote-type
+      in: path
+      description: Type of remote to read a packet from.  If unspecified, will read packets from all remote types.
+      schema:
+        $ref: '#/components/schemas/RemoteType'
+      required: true
+  schemas:
+    State:
+      description: "On/Off state"
+      type: string
+      enum:
+        - On
+        - Off
+      example: On
+    GroupStateCommand:
+      type: string
+      enum:
+        - unpair
+        - pair
+        - set_white
+        - night_mode
+        - level_up
+        - level_down
+        - temperature_up
+        - temperature_down
+        - next_mode
+        - previous_mode
+        - mode_speed_down
+        - mode_speed_up
+        - toggle
+      example: pair
+      description: >
+        Commands that affect a given group.  Descriptiosn follow:
+
+        * `pair`. Emulates the pairing process. Send this command right as you connect an unpaired bulb and it will pair with the device ID being used.
+
+        * `unpair`. Emulates the unpairing process. Send as you connect a paired bulb to have it disassociate with the device ID being used.
+
+        * `set_white`. Turns off RGB and enters WW/CW mode.
+
+        * `night_mode`.  Most devices support a "night mode," which has LEDs turned to a very dim setting -- lower than brightness 0.
+
+        * `level_up`. Turns down the brightness. Not all dimmable bulbs support this command.
+
+        * `level_down`. Turns down the brightness. Not all dimmable bulbs support this command.
+
+        * `temperature_up`. Turns up the white temperature. Not all bulbs with adjustable white temperature support this command.
+
+        * `temperature_down`. Turns down the white temperature. Not all bulbs with adjustable white temperature support this command.
+
+        * `next_mode`. Cycles to the next "disco mode".
+
+        * `previous_mode`. Cycles to the previous disco mode.
+
+        * `mode_speed_up`. Turn transition speed for current mode up.
+
+        * `mode_speed_down`. Turn transition speed for current mode down.
+
+        * `toggle`. Toggle on/off state.
+
+    TransitionField:
+      type: string
+      enum:
+        - hue
+        - saturation
+        - brightness
+        - level
+        - kelvin
+        - color_temp
+        - color
+        - status
+      example: brightness
+      description: >
+        If transitioning `status`:
+
+        * If transitioning to `OFF`, will fade to 0 brightness and then turn off.
+
+        * If transitioning to `ON`, will turn on, set brightness to 0, and fade to brightness 100.
+    TransitionValue:
+      oneOf:
+        - type: integer
+        - type: string
+          pattern: '[0-9]{1,3},[0-9]{1,3},[0-9]{1,3}'
+      description: Either an int value or a color
+    TransitionArgs:
+      type: object
+      properties:
+        field:
+          $ref: '#/components/schemas/TransitionField'
+        start_value:
+          $ref: '#/components/schemas/TransitionValue'
+        end_value:
+          $ref: '#/components/schemas/TransitionValue'
+        duration:
+          type: number
+          format: float
+          description: Duration of transition, measured in seconds
+        period:
+          type: integer
+          description: Length of time between updates in a transition, measured in milliseconds
+    TransitionData:
+      allOf:
+        - $ref: '#/components/schemas/TransitionArgs'
+        - type: object
+          properties:
+            id:
+              readOnly: true
+              type: integer
+            last_sent:
+              readOnly: true
+              type: integer
+              description: Timestamp since last update was sent.
+            bulb:
+              readOnly: true
+              allOf:
+                - $ref: '#/components/schemas/BulbId'
+            type:
+              readOnly: true
+              description: >
+                Specifies whether this is a simple field transition, or a color transition.
+              type: string
+              enum:
+                - field
+                - color
+            current_value:
+              readOnly: true
+              allOf:
+                - $ref: '#/components/schemas/TransitionValue'
+            end_value:
+              readOnly: true
+              allOf:
+                - $ref: '#/components/schemas/TransitionValue'
+
+    BulbId:
+      type: object
+      properties:
+        device_id:
+          type: integer
+          minimum: 0
+          maximum: 65536
+          example: 1234
+        group_id:
+          type: integer
+          minimum: 0
+          maximum: 8
+          example: 1
+        device_type:
+          $ref: '#/components/schemas/RemoteType'
+    GroupStateCommands:
+      type: object
+      properties:
+        command:
+          oneOf:
+            - $ref: '#/components/schemas/GroupStateCommand'
+            - type: object
+              properties:
+                command:
+                  type: string
+                  enum:
+                    - transition
+                args:
+                  $ref: '#/components/schemas/TransitionArgs'
+        commands:
+          type: array
+          items:
+            $ref: '#/components/schemas/GroupStateCommand'
+          example:
+            - level_up
+            - temperature_up
+    GroupState:
+      type: object
+      description: Group state
+      properties:
+        state:
+          $ref: '#/components/schemas/State'
+        status:
+          $ref: '#/components/schemas/State'
+        hue:
+          type: integer
+          minimum: 0
+          maximum: 359
+          description: Color hue.  Will change bulb to color mode.
+        saturation:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Color saturation.  Will normally change bulb to color mode.
+        kelvin:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: White temperature.  0 is coolest, 100 is warmest.
+        temperature:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Alias for `kelvin`.
+        color_temp:
+          type: integer
+          minimum: 153
+          maximum: 370
+          description: White temperature measured in mireds.  Lower values are cooler.
+        mode:
+          type: integer
+          description: Party mode ID.  Actual effect depends on the bulb.
+        color:
+          oneOf:
+            - type: string
+              pattern: '[0-9]{1,3},[0-9]{1,3},[0-9]{1,3}'
+              example: '255,255,0'
+            - type: object
+              properties:
+                r:
+                  type: integer
+                g:
+                  type: integer
+                b:
+                  type: integer
+              example:
+                r: 255
+                g: 255
+                b: 0
+          example:
+            '255,0,255'
+        level:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Brightness on a 0-100 scale.
+          example: 50
+        brightness:
+          type: integer
+          minimum: 0
+          maximum: 255
+          description: Brightness on a 0-255 scale.
+          example: 170
+        effect:
+          type: string
+          enum:
+            - night_mode
+            - white_mode
+        transition:
+          type: number
+          description: >
+            Enables a transition from current state to the provided state.
+          example: 2.0
+
+    RemoteType:
+      type: string
+      enum:
+      - "rgbw"
+      - "cct"
+      - "rgb_cct"
+      - "rgb"
+      - "fut089"
+      - "fut091"
+      - "fut020"
+      example: rgb_cct
+    RF24Channel:
+      type: string
+      enum:
+      - LOW
+      - MID
+      - HIGH
+    LedMode:
+      type: string
+      enum:
+      - Off
+      - Slow toggle
+      - Fast toggle
+      - Slow blip
+      - Fast blip
+      - Flicker
+      - On
+    GroupStateField:
+      type: string
+      enum:
+      - state
+      - status
+      - brightness
+      - level
+      - hue
+      - saturation
+      - color
+      - mode
+      - kelvin
+      - color_temp
+      - bulb_mode
+      - computed_color
+      - effect
+      - device_id
+      - group_id
+      - device_type
+      - oh_color
+      - hex_color
+      description: >
+        Defines a field which is a part of state for a particular light device.  Most fields are self-explanatory, but documentation for each follows:
+
+        * `state` / `status` - same value with different keys (useful if your platform expects one or the other).
+
+        * `brightness` / `level` - [0, 255] and [0, 100] scales of the same value.
+
+        * `kelvin / color_temp` - [0, 100] and [153, 370] scales for the same value.  The later's unit is mireds.
+
+        * `bulb_mode` - what mode the bulb is in: white, rgb, etc.
+
+        * `color` / `computed_color` - behaves the same when bulb is in rgb mode.  `computed_color` will send RGB = 255,255,255 when in white mode.  This is useful for HomeAssistant where it always expects the color to be set.
+
+        * `oh_color` - same as `color` with a format compatible with [OpenHAB's colorRGB channel type](https://www.openhab.org/addons/bindings/mqtt.generic/#channel-type-colorrgb-colorhsb).
+
+        * `hex_color` - same as `color` except in hex color (e.g., `#FF0000` for red).
+
+        * `device_id` / `device_type` / `group_id` - this information is in the MQTT topic or REST route, but can be included in the payload in the case that processing the topic or route is more difficult.
+    DeviceId:
+      type: array
+      items: {}
+      example:
+        - 1234
+        - "rgb_cct"
+        - 1
+    Settings:
+      type: object
+      properties:
+        admin_username:
+          type: string
+          description: If spcified along with `admin_password`, HTTP basic auth will be enabled to access all REST endpoints.
+          default: ""
+        admin_password:
+          type: string
+          description: If spcified along with `admin_username`, HTTP basic auth will be enabled to access all REST endpoints.
+          default: ""
+        ce_pin:
+          type: integer
+          description: CE pin to use for SPI radio (nRF24, LT8900)
+          default: 4
+        csn_pin:
+          type: integer
+          description: CSN pin to use with nRF24
+          default: 15
+        reset_pin:
+          type: integer
+          description: Reset pin to use with LT8900
+          default: 0
+        led_pin:
+          type: integer
+          description: Pin to control for status LED.  Set to a negative value to invert on/off status.
+          default: -2
+        packet_repeats:
+          type: integer
+          description: Number of times to resend the same 2.4 GHz milight packet when a command is sent.
+          default: 50
+        http_repeat_factor:
+          type: integer
+          description: Packet repeats resulting from REST commands will be multiplied by this number.
+          default: 1
+        auto_restart_period:
+          type: integer
+          description: Automatically restart the device after the number of specified minutes.  Use 0 to disable.
+          default: 0
+        mqtt_server:
+          type: string
+          description: MQTT server to connect to.
+          format: hostname
+        mqtt_username:
+          type: string
+          description: If specified, use this username to authenticate with the MQTT server.
+        mqtt_password:
+          type: string
+          description: If specified, use this password to authenticate with the MQTT server.
+        mqtt_topic_pattern:
+          type: string
+          description: Topic pattern to listen on for commands.  More detail on the format in README.
+          example: milight/commands/:device_id/:device_type/:group_id
+        mqtt_update_topic_pattern:
+          type: string
+          description: Topic pattern individual intercepted commands will be sent to.  More detail on the format in README.
+          example: milight/updates/:device_id/:device_type/:group_id
+        mqtt_update_state_pattern:
+          type: string
+          description: Topic pattern device state will be sent to.  More detail on the format in README.
+          example: milight/state/:device_id/:device_type/:group_id
+        mqtt_client_status_topic:
+          type: string
+          description: Topic client status will be sent to.
+          example: milight/status
+        simple_mqtt_client_status:
+          type: boolean
+          description: If true, will use a simple enum flag (`connected` or `disconnected`) to indicate status.  If false, will send a rich JSON message including IP address, version, etc.
+          default: true
+        discovery_port:
+          type: integer
+          description: UDP discovery port
+          default: 48899
+        listen_repeats:
+          type: integer
+          description: Controls how many cycles are spent listening for packets.  Set to 0 to disable passive listening.
+          default: 3
+        state_flush_interval:
+          type: integer
+          description: Controls how many miliseconds must pass between states being flushed to persistent storage.  Set to 0 to disable throttling.
+          default: 10000
+        mqtt_state_rate_limit:
+          type: integer
+          description: Controls how many miliseconds must pass between MQTT state updates.  Set to 0 to disable throttling.
+          default: 500
+        mqtt_debounce_delay:
+          type: integer
+          description: Controls how much time has to pass after the last status update was queued.
+          default: 500
+        packet_repeat_throttle_threshold:
+          type: integer
+          description:
+            Controls how packet repeats are throttled.  Packets sent with less time (measured in milliseconds) between them than this value (in milliseconds) will cause packet repeats to be throttled down.  More than this value will unthrottle up.
+          default: 200
+        packet_repeat_throttle_sensitivity:
+          type: integer
+          description:
+            Controls how packet repeats are throttled. Higher values cause packets to be throttled up and down faster.  Set to 0 to disable throttling.
+          default: 0
+          minimum: 0
+          maximum: 1000
+        packet_repeat_minimum:
+          type: integer
+          description:
+            Controls how far throttling can decrease the number of repeated packets
+          default: 3
+        enable_automatic_mode_switching:
+          type: boolean
+          description:
+            When making updates to hue or white temperature in a different bulb mode, switch back to the original bulb mode after applying the setting change.
+          default: false
+        led_mode_wifi_config:
+          $ref: '#/components/schemas/LedMode'
+        led_mode_wifi_failed:
+          $ref: '#/components/schemas/LedMode'
+        led_mode_operating:
+          $ref: '#/components/schemas/LedMode'
+        led_mode_packet:
+          $ref: '#/components/schemas/LedMode'
+        led_mode_packet_count:
+          type: integer
+          description: Number of times the LED will flash when packets are changing
+          default: 3
+        hostname:
+          type: string
+          description: Hostname that will be advertized on a DHCP request
+          pattern: "[a-zA-Z0-9-]+"
+          default: milight-hub
+        rf24_power_level:
+          type: string
+          enum:
+            - MIN
+            - LOW
+            - HIGH
+            - MAX
+          description: Power level used when packets are sent.  See nRF24 documentation for further detail.
+          default: MAX
+        rf24_listen_channel:
+          $ref: '#/components/schemas/RF24Channel'
+        wifi_static_ip:
+          type: string
+          format: ipv4
+          description: If specified, the static IP address to use
+        wifi_static_ip_gateway:
+          type: string
+          format: ipv4
+          description: If specified along with static IP, the gateway address to use
+        wifi_static_ip_netmask:
+          type: string
+          format: ipv4
+          description: If specified along with static IP, the netmask to use
+        packet_repeats_per_loop:
+          type: integer
+          default: 10
+          description: Packets are sent asynchronously.  This number controls the number of repeats sent during each iteration.  Increase this number to improve packet throughput.  Decrease to improve system multi-tasking.
+        home_assistant_discovery_prefix:
+          type: string
+          description: If specified along with MQTT settings, will enable HomeAssistant MQTT discovery using the specified discovery prefix.  HomeAssistant's default is `homeassistant/`.
+        wifi_mode:
+          type: string
+          enum:
+            - B
+            - G
+            - N
+          description: Forces WiFi into the spcified mode.  Try using B or G mode if you are having stability issues.
+          default: N
+        rf24_channels:
+          type: array
+          items:
+            $ref: '#/components/schemas/RF24Channel'
+          description: Defines which channels we send on.  Each remote type has three channels.  We can send on any subset of these.
+        device_ids:
+          type: array
+          items:
+            $ref: '#/components/schemas/DeviceId'
+          description:
+            "List of saved device IDs, stored as 3-long arrays.  Elements are: 1) remote ID, 2) remote type, 3) group ID"
+          example:
+            - [1234, 'rgb_cct', 1]
+            - [5678, 'fut089', 5]
+        gateway_configs:
+          type: array
+          items:
+            type: integer
+          description: "List of UDP servers, stored as 3-long arrays.  Elements are 1) remote ID to bind to, 2) UDP port to listen on, 3) protocol version (5 or 6)"
+          example:
+            - [1234, 5555, 6]
+        group_state_fields:
+          type: array
+          items:
+            $ref: '#/components/schemas/GroupStateField'
+        group_id_aliases:
+          type: object
+          description: Keys are aliases, values are 3-long arrays with same schema as items in `device_ids`.
+          example:
+            alias1: [1234, 'rgb_cct', 1]
+            alias2: [1234, 'rgb_cct', 2]
+        default_transition_period:
+          type: integer
+          description: |
+            Default number of milliseconds between transition packets.  Set this value lower for more granular transitions, or higher if
+            you are having performance issues during transitions.
+
+    BooleanResponse:
+      type: object
+      required:
+      - success
+      properties:
+        success:
+          type: boolean
+        error:
+          type: string
+          description: If an error occurred, message specifying what went wrong
+    About:
+      type: object
+      properties:
+        firmware:
+          type: string
+          description: Always set to "milight-hub"
+        version:
+          type: string
+          description: Semver version string
+        ip_address:
+          type: string
+        reset_reason:
+          type: string
+          description: Reason the system was last rebooted
+        variant:
+          type: string
+          description: Firmware variant (e.g., d1_mini, nodemcuv2)
+        free_heap:
+          type: integer
+          format: int64
+          description: Amount of free heap remaining (measured in bytes)
+        arduino_version:
+          type: string
+          description: Version of Arduino SDK firmware was built with
+        queue_stats:
+          type: object
+          properties:
+            length:
+              type: integer
+              description: Number of enqueued packets to be sent
+            dropped_packets:
+              type: integer
+              description: Number of packets that have been dropped since last reboot
+    ReadPacket:
+      type: object
+      properties:
+        packet_info:
+          type: string
