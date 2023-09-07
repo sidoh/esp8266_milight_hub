@@ -57,7 +57,7 @@ jobs:
             const release = await github.repos.createRelease({
               owner, repo,
               tag_name: process.env.GITHUB_REF,
-              draft: false,
+              draft: true,
               target_commitish: sha
             });
 
@@ -71,7 +71,7 @@ jobs:
                   owner, repo,
                   release_id: release.data.id,
                   name: file,
-                  data: await fs.readFile(`./${file}`)
+                  data: await fs.readFile(`./dist/${file}`)
                 });            
               }
             }
