@@ -17,4 +17,6 @@ class MiLightRemoteTypeHelpers {
 public:
   static const MiLightRemoteType remoteTypeFromString(const String& type);
   static const String remoteTypeToString(const MiLightRemoteType type);
+  static const bool supportsRgb(const MiLightRemoteType type);
+  static const bool supportsColorTemp(const MiLightRemoteType type);
 };

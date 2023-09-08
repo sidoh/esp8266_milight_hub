@@ -241,6 +241,7 @@ bool GroupState::isSetField(GroupStateField field) const {
     case GroupStateField::COLOR_TEMP:
       return isSetKelvin();
     case GroupStateField::BULB_MODE:
+    case GroupStateField::COLOR_MODE:
       return isSetBulbMode();
     default:
       Serial.print(F("WARNING: tried to check if unknown field was set: "));
@@ -853,6 +854,29 @@ void GroupState::applyField(JsonObject partialState, const BulbId& bulbId, Group
 
       case GroupStateField::BULB_MODE:
         partialState[GroupStateFieldNames::BULB_MODE] = BULB_MODE_NAMES[getBulbMode()];
+        break;
+
+      // For HomeAssistant. Should report:
+      //   1. "brightness" if no color temp/rgb support
+      //   2. "rgb" if RGB or RGBW bulb and in color mode
+      //   3. "color_temp" if WW or RGBW and in color temp mode
+      //   4. "onoff" if in night mode
+      case GroupStateField::COLOR_MODE:
+        if (
+          MiLightRemoteTypeHelpers::supportsRgb(bulbId.deviceType) 
+          && getBulbMode() == BULB_MODE_COLOR
+        ) {
+          partialState[GroupStateFieldNames::COLOR_MODE] = F("rgb");
+        } else if (
+          MiLightRemoteTypeHelpers::supportsColorTemp(bulbId.deviceType) 
+          && getBulbMode() == BULB_MODE_WHITE
+        ) {
+          partialState[GroupStateFieldNames::COLOR_MODE] = F("color_temp");
+        } else if (getBulbMode() == BULB_MODE_NIGHT) {
+          partialState[GroupStateFieldNames::COLOR_MODE] = F("onoff");
+        } else {
+          partialState[GroupStateFieldNames::COLOR_MODE] = F("brightness");
+        }
         break;
 
       case GroupStateField::COLOR:
