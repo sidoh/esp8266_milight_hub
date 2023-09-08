@@ -312,7 +312,7 @@ void Settings::serialize(Print& stream, const bool prettyPrint) {
   JsonArray groupStateFieldArr = root.createNestedArray("group_state_fields");
   JsonHelpers::vectorToJsonArr<GroupStateField, const char*>(groupStateFieldArr, groupStateFields, GroupStateFieldHelpers::getFieldName);
 
-  dumpGroupIdAliases(root.as<JsonObject>());
+  // dumpGroupIdAliases(root.as<JsonObject>());
 
   if (prettyPrint) {
     serializeJsonPretty(root, stream);

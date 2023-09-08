@@ -21,6 +21,8 @@ using RequestContext = RichHttpConfig::RequestContextType;
 const char TEXT_PLAIN[] PROGMEM = "text/plain";
 const char APPLICATION_JSON[] = "application/json";
 
+static const uint8_t DEFAULT_PAGE_SIZE = 10;
+
 class MiLightHttpServer {
 public:
   MiLightHttpServer(
@@ -86,6 +88,11 @@ protected:
   void handleDeleteTransition(RequestContext& request);
   void handleCreateTransition(RequestContext& request);
   void handleListTransitions(RequestContext& request);
+
+  // CRUD methods for /aliases
+  void handleListAliases(RequestContext& request);
+  void handleCreateAlias(RequestContext& request);
+  void handleDeleteAlias(RequestContext& request);
 
   void handleRequest(const JsonObject& request);
   void handleWsEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length);

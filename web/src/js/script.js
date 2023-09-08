@@ -390,7 +390,8 @@ var GROUP_STATE_KEYS = [
   "group_id",
   "device_type",
   "oh_color",
-  "hex_color"
+  "hex_color",
+  "color_mode"
 ];
 
 var LED_MODES = [
@@ -681,6 +682,45 @@ var loadSettings = function() {
     }
 
     loadingSettings = false;
+  });
+
+  // Load aliases from the /aliases endpoint, which is paged
+  var loadAliases = function(page) {
+    page = page || 1;
+
+    return new Promise(function(resolve, reject) {
+      $.getJSON('/aliases?page=' + page, function(val) {
+        if (val.aliases) {
+          var result = [].concat(val.aliases);
+
+          if (val.num_pages > page) {
+            return loadAliases(page+1).then(function(aliases) {
+              return resolve(result.concat(aliases));
+            });
+          } else {
+            return resolve(result);
+          }
+        } else {
+          reject();
+        }
+      });
+    });
+  }
+
+  loadAliases().then(function(aliases) {
+    aliases.forEach(function(entry) {
+      aliasesSelectize.addOption({
+        text: entry.alias,
+        value: entry.alias,
+        savedGroupParams: {
+          deviceType: entry.device_type,
+          deviceId: entry.device_id,
+          groupId: entry.group_id,
+          index: entry.ix
+        }
+      });
+      aliasesSelectize.refreshOptions(false);
+    });
   });
 };
 

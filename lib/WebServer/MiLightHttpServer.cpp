@@ -76,6 +76,15 @@ void MiLightHttpServer::begin() {
     .on(HTTP_POST, std::bind(&MiLightHttpServer::handleSystemPost, this, _1));
 
   server
+    .buildHandler("/aliases")
+    .on(HTTP_GET, std::bind(&MiLightHttpServer::handleListAliases, this, _1))
+    .on(HTTP_POST, std::bind(&MiLightHttpServer::handleCreateAlias, this, _1));
+
+  server
+    .buildHandler("/aliases/:index")
+    .on(HTTP_DELETE, std::bind(&MiLightHttpServer::handleDeleteAlias, this, _1));
+
+  server
     .buildHandler("/firmware")
     .handleOTA();
 
@@ -675,4 +684,99 @@ void MiLightHttpServer::handleCreateTransition(RequestContext& request) {
   } else {
     request.response.setCode(400);
   }
+}
+
+void MiLightHttpServer::handleListAliases(RequestContext& request) {
+  uint8_t page = request.server.hasArg("page") ? request.server.arg("page").toInt() : 1;
+
+  // at least 1 per page
+  uint8_t perPage = request.server.hasArg("page_size") ? request.server.arg("page_size").toInt() : DEFAULT_PAGE_SIZE;
+  perPage = perPage > 0 ? perPage : 1;
+
+  uint8_t numPages = settings.groupIdAliases.size() == 0 ? 1 : (settings.groupIdAliases.size() / (float) perPage);
+
+  // check bounds
+  if (page < 1 || page > numPages) {
+    request.response.setCode(404);
+    request.response.json[F("error")] = F("Page out of bounds");
+    return;
+  } 
+
+  JsonArray aliases = request.response.json.to<JsonObject>().createNestedArray(F("aliases"));
+  request.response.json[F("page")] = page;
+  request.response.json[F("count")] = settings.groupIdAliases.size();
+  request.response.json[F("num_pages")] = numPages;
+
+  // Skip iterator to start of page
+  auto it = settings.groupIdAliases.begin();
+  std::advance(it, (page - 1) * perPage);
+
+  for (size_t i = 0; i < perPage && it != settings.groupIdAliases.end(); i++, it++) {
+    JsonObject alias = aliases.createNestedObject();
+    alias[F("alias")] = it->first;
+    alias[F("device_id")] = it->second.deviceId;
+    alias[F("group_id")] = it->second.groupId;
+    alias[F("device_type")] = MiLightRemoteTypeHelpers::remoteTypeToString(it->second.deviceType);
+    alias[F("ix")] = i + (page - 1) * perPage;
+  }
+}
+
+void MiLightHttpServer::handleCreateAlias(RequestContext& request) {
+  JsonObject body = request.getJsonBody().as<JsonObject>();
+
+  if (! body.containsKey(F("alias"))
+    || ! body.containsKey(GroupStateFieldNames::DEVICE_ID)
+    || ! body.containsKey(GroupStateFieldNames::GROUP_ID)
+    || ! body.containsKey(GroupStateFieldNames::DEVICE_TYPE)) {
+    char buffer[200];
+    sprintf_P(buffer, PSTR("Must specify required keys: alias, device_id, group_id, device_type"));
+
+    request.response.setCode(400);
+    request.response.json[F("error")] = buffer;
+    return;
+  }
+
+  const String alias = body[F("alias")];
+  const uint16_t deviceId = body[GroupStateFieldNames::DEVICE_ID];
+  const uint8_t groupId = body[GroupStateFieldNames::GROUP_ID];
+  const MiLightRemoteType deviceType = MiLightRemoteTypeHelpers::remoteTypeFromString(body[GroupStateFieldNames::DEVICE_TYPE].as<const char*>());
+
+  if (settings.groupIdAliases.find(alias) != settings.groupIdAliases.end()) {
+    char buffer[200];
+    sprintf_P(buffer, PSTR("Alias already exists: %s"), alias.c_str());
+
+    request.response.setCode(400);
+    request.response.json[F("error")] = buffer;
+    return;
+  }
+
+  settings.groupIdAliases[alias] = BulbId(deviceId, groupId, deviceType);
+  settings.save();
+
+  request.response.json[F("success")] = true;
+}
+
+void MiLightHttpServer::handleDeleteAlias(RequestContext& request) {
+  const uint8_t aliasIx = atoi(request.pathVariables.get("index"));
+
+  if (aliasIx >= settings.groupIdAliases.size()) {
+    request.response.setCode(404);
+    request.response.json[F("error")] = F("Index out of bounds");
+    return;
+  }
+
+  auto it = settings.groupIdAliases.begin();
+  std::advance(it, aliasIx);
+
+  if (it == settings.groupIdAliases.end()) {
+    request.response.setCode(404);
+    request.response.json[F("error")] = F("Alias not found");
+    return;
+  }
+  
+  const String alias = it->first;
+  settings.groupIdAliases.erase(alias);
+  settings.save();
+
+  request.response.json[F("success")] = true;
 }
