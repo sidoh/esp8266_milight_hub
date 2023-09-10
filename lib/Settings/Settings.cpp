@@ -4,6 +4,7 @@
 #include <IntParsing.h>
 #include <algorithm>
 #include <JsonHelpers.h>
+#include <GroupAlias.h>
 
 #define PORT_POSITION(s) ( s.indexOf(':') )
 
@@ -153,16 +154,18 @@ void Settings::patch(JsonObject parsedSettings) {
     groupStateFields = JsonHelpers::jsonArrToVector<GroupStateField, const char*>(arr, GroupStateFieldHelpers::getFieldByName);
   }
 
+  // this key will only be present in old settings files, but for backwards
+  // compatability, parse it if it's present.
   if (parsedSettings.containsKey("group_id_aliases")) {
     parseGroupIdAliases(parsedSettings);
   }
 }
 
-std::map<String, BulbId>::const_iterator Settings::findAlias(MiLightRemoteType deviceType, uint16_t deviceId, uint8_t groupId) {
+std::map<String, GroupAlias>::const_iterator Settings::findAlias(MiLightRemoteType deviceType, uint16_t deviceId, uint8_t groupId) {
   BulbId searchId{ deviceId, groupId, deviceType };
 
   for (auto it = groupIdAliases.begin(); it != groupIdAliases.end(); ++it) {
-    if (searchId == it->second) {
+    if (searchId == it->second.bulbId) {
       return it;
     }
   }
@@ -176,10 +179,11 @@ void Settings::parseGroupIdAliases(JsonObject json) {
   // Save group IDs that were deleted so that they can be processed by discovery
   // if necessary
   for (auto it = groupIdAliases.begin(); it != groupIdAliases.end(); ++it) {
-    deletedGroupIdAliases[it->second.getCompactId()] = it->second;
+    deletedGroupIdAliases[it->second.bulbId.getCompactId()] = it->second.bulbId;
   }
 
   groupIdAliases.clear();
+  size_t id = 1;
 
   for (JsonPair kv : aliases) {
     JsonArray bulbIdProps = kv.value();
@@ -188,7 +192,7 @@ void Settings::parseGroupIdAliases(JsonObject json) {
       bulbIdProps[2].as<uint8_t>(),
       MiLightRemoteTypeHelpers::remoteTypeFromString(bulbIdProps[0].as<String>())
     };
-    groupIdAliases[kv.key().c_str()] = bulbId;
+    groupIdAliases[kv.key().c_str()] = GroupAlias(id++, kv.key().c_str(), bulbId);
 
     // If added this round, do not mark as deleted.
     deletedGroupIdAliases.erase(bulbId.getCompactId());
@@ -198,9 +202,9 @@ void Settings::parseGroupIdAliases(JsonObject json) {
 void Settings::dumpGroupIdAliases(JsonObject json) {
   JsonObject aliases = json.createNestedObject("group_id_aliases");
 
-  for (std::map<String, BulbId>::iterator itr = groupIdAliases.begin(); itr != groupIdAliases.end(); ++itr) {
-    JsonArray bulbProps = aliases.createNestedArray(itr->first);
-    BulbId bulbId = itr->second;
+  for (auto & groupIdAlias : groupIdAliases) {
+    JsonArray bulbProps = aliases.createNestedArray(groupIdAlias.first);
+    BulbId bulbId = groupIdAlias.second.bulbId;
     bulbProps.add(MiLightRemoteTypeHelpers::remoteTypeToString(bulbId.deviceType));
     bulbProps.add(bulbId.deviceId);
     bulbProps.add(bulbId.groupId);
@@ -208,6 +212,8 @@ void Settings::dumpGroupIdAliases(JsonObject json) {
 }
 
 void Settings::load(Settings& settings) {
+  bool initialize = false;
+
   if (SPIFFS.exists(SETTINGS_FILE)) {
     // Clear in-memory settings
     settings = Settings();
@@ -224,8 +230,32 @@ void Settings::load(Settings& settings) {
     } else {
       Serial.print(F("Error parsing saved settings file: "));
       Serial.println(error.c_str());
+      Serial.println(F("contents:"));
+
+      f = SPIFFS.open(SETTINGS_FILE, "r");
+      Serial.println(f.readString());
     }
   } else {
+    initialize = true;
+  }
+
+  if (SPIFFS.exists(ALIASES_FILE)) {
+    File f = SPIFFS.open(ALIASES_FILE, "r");
+    GroupAlias::loadAliases(f, settings.groupIdAliases);
+
+    // find current max id
+    size_t maxId = 0;
+    for (auto & alias : settings.groupIdAliases) {
+      maxId = max(maxId, alias.second.id);
+    }
+    settings.groupIdAliasNextId = maxId + 1;
+
+    printf_P(PSTR("loaded %d aliases\n"), settings.groupIdAliases.size());
+  } else {
+    initialize = true;
+  }
+
+  if (initialize) {
     settings.save();
   }
 }
@@ -245,6 +275,15 @@ void Settings::save() {
   } else {
     serialize(f);
     f.close();
+  }
+
+  File aliases = SPIFFS.open(ALIASES_FILE, "w");
+
+  if (!aliases) {
+    Serial.println(F("Opening aliases file failed"));
+  } else {
+    GroupAlias::saveAliases(aliases, groupIdAliases);
+    aliases.close();
   }
 }
 
@@ -312,8 +351,6 @@ void Settings::serialize(Print& stream, const bool prettyPrint) {
   JsonArray groupStateFieldArr = root.createNestedArray("group_state_fields");
   JsonHelpers::vectorToJsonArr<GroupStateField, const char*>(groupStateFieldArr, groupStateFields, GroupStateFieldHelpers::getFieldName);
 
-  // dumpGroupIdAliases(root.as<JsonObject>());
-
   if (prettyPrint) {
     serializeJsonPretty(root, stream);
   } else {
@@ -380,4 +417,31 @@ String Settings::wifiModeToString(WifiMode mode) {
     default:
       return "n";
   }
+}
+
+void Settings::addAlias(const char *alias, const BulbId &bulbId) {
+  groupIdAliases[alias] = GroupAlias(groupIdAliasNextId++, alias, bulbId);
+}
+
+bool Settings::deleteAlias(size_t id) {
+  for (auto it = groupIdAliases.begin(); it != groupIdAliases.end(); ++it) {
+    if (it->second.id == id) {
+      groupIdAliases.erase(it);
+      deletedGroupIdAliases[it->second.bulbId.getCompactId()] = it->second.bulbId;
+
+      return true;
+    }
+  }
+
+  return false;
+}
+
+std::map<String, GroupAlias>::const_iterator Settings::findAliasById(size_t id) {
+  for (auto it = groupIdAliases.begin(); it != groupIdAliases.end(); ++it) {
+    if (it->second.id == id) {
+      return it;
+    }
+  }
+
+  return groupIdAliases.end();
 }

@@ -7,6 +7,7 @@
 #include <Size.h>
 #include <LEDStatus.h>
 #include <AuthProviders.h>
+#include <GroupAlias.h>
 
 #include <MiLightRemoteType.h>
 #include <BulbId.h>
@@ -47,6 +48,7 @@
 
 #define SETTINGS_FILE  "/config.json"
 #define SETTINGS_TERMINATOR '\0'
+#define ALIASES_FILE "/aliases.txt"
 
 #define WEB_INDEX_FILENAME "/web/index.html"
 
@@ -121,10 +123,11 @@ public:
     packetRepeatsPerLoop(10),
     wifiMode(WifiMode::N),
     defaultTransitionPeriod(500),
+    groupIdAliasNextId(0),
     _autoRestartPeriod(0)
   { }
 
-  ~Settings() { }
+  ~Settings() = default;
 
   bool isAuthenticationEnabled() const;
   const String& getUsername() const;
@@ -147,7 +150,10 @@ public:
   void patch(JsonObject obj);
   String mqttServer();
   uint16_t mqttPort();
-  std::map<String, BulbId>::const_iterator findAlias(MiLightRemoteType deviceType, uint16_t deviceId, uint8_t groupId);
+  std::map<String, GroupAlias>::const_iterator findAlias(MiLightRemoteType deviceType, uint16_t deviceId, uint8_t groupId);
+  std::map<String, GroupAlias>::const_iterator findAliasById(size_t id);
+  void addAlias(const char* alias, const BulbId& bulbId);
+  bool deleteAlias(size_t id);
 
   String adminUsername;
   String adminPassword;
@@ -192,11 +198,12 @@ public:
   String wifiStaticIPNetmask;
   String wifiStaticIPGateway;
   size_t packetRepeatsPerLoop;
-  std::map<String, BulbId> groupIdAliases;
+  std::map<String, GroupAlias> groupIdAliases;
   std::map<uint32_t, BulbId> deletedGroupIdAliases;
   String homeAssistantDiscoveryPrefix;
   WifiMode wifiMode;
   uint16_t defaultTransitionPeriod;
+  size_t groupIdAliasNextId;
 
 protected:
   size_t _autoRestartPeriod;

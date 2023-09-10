@@ -234,7 +234,7 @@ void MqttClient::publishCallback(char* topic, byte* payload, int length) {
       Serial.printf_P(PSTR("MqttClient - WARNING: could not find device alias: `%s'. Ignoring packet.\n"), alias.c_str());
       return;
     } else {
-      BulbId bulbId = itr->second;
+      BulbId bulbId = itr->second.bulbId;
 
       deviceId = bulbId.deviceId;
       config = MiLightRemoteConfig::fromType(bulbId.deviceType);

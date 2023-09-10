@@ -58,3 +58,19 @@ void BulbId::serialize(JsonArray json) const {
   json.add(MiLightRemoteTypeHelpers::remoteTypeToString(deviceType));
   json.add(groupId);
 }
+
+// reads a BulbId in the format of "deviceType,deviceId,groupId"
+void BulbId::load(Stream &stream) {
+  deviceType = MiLightRemoteTypeHelpers::remoteTypeFromString(stream.readStringUntil(','));
+  deviceId = stream.parseInt();
+  groupId = stream.parseInt();
+}
+
+// writes a BulbId in the format of "deviceType,deviceId,groupId"
+void BulbId::dump(Stream &stream) const {
+  stream.print(MiLightRemoteTypeHelpers::remoteTypeToString(deviceType));
+  stream.print(',');
+  stream.print(deviceId);
+  stream.print(',');
+  stream.print(groupId);
+}

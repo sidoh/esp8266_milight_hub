@@ -93,6 +93,7 @@ protected:
   void handleListAliases(RequestContext& request);
   void handleCreateAlias(RequestContext& request);
   void handleDeleteAlias(RequestContext& request);
+  void handleUpdateAlias(RequestContext& request);
 
   void handleRequest(const JsonObject& request);
   void handleWsEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length);

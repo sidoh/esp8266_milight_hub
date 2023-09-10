@@ -7,13 +7,13 @@ HomeAssistantDiscoveryClient::HomeAssistantDiscoveryClient(Settings& settings, M
   , mqttClient(mqttClient)
 { }
 
-void HomeAssistantDiscoveryClient::sendDiscoverableDevices(const std::map<String, BulbId>& aliases) {
+void HomeAssistantDiscoveryClient::sendDiscoverableDevices(const std::map<String, GroupAlias>& aliases) {
 #ifdef MQTT_DEBUG
   Serial.println(F("HomeAssistantDiscoveryClient: Sending discoverable devices..."));
 #endif
 
-  for (auto itr = aliases.begin(); itr != aliases.end(); ++itr) {
-    addConfig(itr->first.c_str(), itr->second);
+  for (const auto & alias : aliases) {
+    addConfig(alias.first.c_str(), alias.second.bulbId);
   }
 }
 

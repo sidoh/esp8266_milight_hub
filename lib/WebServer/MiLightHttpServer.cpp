@@ -7,6 +7,7 @@
 #include <string.h>
 #include <TokenIterator.h>
 #include <AboutHelper.h>
+#include <GroupAlias.h>
 #include <index.html.gz.h>
 
 using namespace std::placeholders;
@@ -81,7 +82,17 @@ void MiLightHttpServer::begin() {
     .on(HTTP_POST, std::bind(&MiLightHttpServer::handleCreateAlias, this, _1));
 
   server
-    .buildHandler("/aliases/:index")
+    .buildHandler("/aliases.txt")
+    .on(HTTP_GET, std::bind(&MiLightHttpServer::serveFile, this, ALIASES_FILE, TEXT_PLAIN))
+  .on(
+      HTTP_POST,
+      std::bind(&MiLightHttpServer::handleUpdateSettingsPost, this, _1),
+      std::bind(&MiLightHttpServer::handleUpdateFile, this, ALIASES_FILE)
+  );
+
+  server
+    .buildHandler("/aliases/:id")
+    .on(HTTP_PUT, std::bind(&MiLightHttpServer::handleUpdateAlias, this, _1))
     .on(HTTP_DELETE, std::bind(&MiLightHttpServer::handleDeleteAlias, this, _1));
 
   server
@@ -371,7 +382,7 @@ void MiLightHttpServer::_handleGetGroup(bool allowAsync, BulbId bulbId, RequestC
 void MiLightHttpServer::handleGetGroupAlias(RequestContext& request) {
   const String alias = request.pathVariables.get("device_alias");
 
-  std::map<String, BulbId>::iterator it = settings.groupIdAliases.find(alias);
+  auto it = settings.groupIdAliases.find(alias);
 
   if (it == settings.groupIdAliases.end()) {
     request.response.setCode(404);
@@ -379,7 +390,7 @@ void MiLightHttpServer::handleGetGroupAlias(RequestContext& request) {
     return;
   }
 
-  _handleGetGroup(true, it->second, request);
+  _handleGetGroup(true, it->second.bulbId, request);
 }
 
 void MiLightHttpServer::handleGetGroup(RequestContext& request) {
@@ -419,7 +430,7 @@ void MiLightHttpServer::handleDeleteGroup(RequestContext& request) {
 void MiLightHttpServer::handleDeleteGroupAlias(RequestContext& request) {
   const String alias = request.pathVariables.get("device_alias");
 
-  std::map<String, BulbId>::iterator it = settings.groupIdAliases.find(alias);
+  auto it = settings.groupIdAliases.find(alias);
 
   if (it == settings.groupIdAliases.end()) {
     request.response.setCode(404);
@@ -427,7 +438,7 @@ void MiLightHttpServer::handleDeleteGroupAlias(RequestContext& request) {
     return;
   }
 
-  _handleDeleteGroup(it->second, request);
+  _handleDeleteGroup(it->second.bulbId, request);
 }
 
 void MiLightHttpServer::_handleDeleteGroup(BulbId bulbId, RequestContext& request) {
@@ -443,7 +454,7 @@ void MiLightHttpServer::_handleDeleteGroup(BulbId bulbId, RequestContext& reques
 void MiLightHttpServer::handleUpdateGroupAlias(RequestContext& request) {
   const String alias = request.pathVariables.get("device_alias");
 
-  std::map<String, BulbId>::iterator it = settings.groupIdAliases.find(alias);
+  auto it = settings.groupIdAliases.find(alias);
 
   if (it == settings.groupIdAliases.end()) {
     request.response.setCode(404);
@@ -451,7 +462,7 @@ void MiLightHttpServer::handleUpdateGroupAlias(RequestContext& request) {
     return;
   }
 
-  BulbId& bulbId = it->second;
+  BulbId& bulbId = it->second.bulbId;
   const MiLightRemoteConfig* config = MiLightRemoteConfig::fromType(bulbId.deviceType);
 
   if (config == NULL) {
@@ -693,12 +704,14 @@ void MiLightHttpServer::handleListAliases(RequestContext& request) {
   uint8_t perPage = request.server.hasArg("page_size") ? request.server.arg("page_size").toInt() : DEFAULT_PAGE_SIZE;
   perPage = perPage > 0 ? perPage : 1;
 
-  uint8_t numPages = settings.groupIdAliases.size() == 0 ? 1 : (settings.groupIdAliases.size() / (float) perPage);
+  uint8_t numPages = settings.groupIdAliases.empty() ? 1 : ceil(settings.groupIdAliases.size() / (float) perPage);
 
   // check bounds
   if (page < 1 || page > numPages) {
     request.response.setCode(404);
     request.response.json[F("error")] = F("Page out of bounds");
+    request.response.json[F("page")] = page;
+    request.response.json[F("num_pages")] = numPages;
     return;
   } 
 
@@ -714,10 +727,13 @@ void MiLightHttpServer::handleListAliases(RequestContext& request) {
   for (size_t i = 0; i < perPage && it != settings.groupIdAliases.end(); i++, it++) {
     JsonObject alias = aliases.createNestedObject();
     alias[F("alias")] = it->first;
-    alias[F("device_id")] = it->second.deviceId;
-    alias[F("group_id")] = it->second.groupId;
-    alias[F("device_type")] = MiLightRemoteTypeHelpers::remoteTypeToString(it->second.deviceType);
-    alias[F("ix")] = i + (page - 1) * perPage;
+    alias[F("id")] = it->second.id;
+
+    const BulbId& bulbId = it->second.bulbId;
+    alias[F("device_id")] = bulbId.deviceId;
+    alias[F("group_id")] = bulbId.groupId;
+    alias[F("device_type")] = MiLightRemoteTypeHelpers::remoteTypeToString(bulbId.deviceType);
+
   }
 }
 
@@ -750,33 +766,61 @@ void MiLightHttpServer::handleCreateAlias(RequestContext& request) {
     return;
   }
 
-  settings.groupIdAliases[alias] = BulbId(deviceId, groupId, deviceType);
+  settings.addAlias(alias.c_str(), BulbId(deviceId, groupId, deviceType));
   settings.save();
 
   request.response.json[F("success")] = true;
+  request.response.json[F("id")] = settings.groupIdAliases[alias].id;
 }
 
 void MiLightHttpServer::handleDeleteAlias(RequestContext& request) {
-  const uint8_t aliasIx = atoi(request.pathVariables.get("index"));
+  const size_t id = atoi(request.pathVariables.get("id"));
 
-  if (aliasIx >= settings.groupIdAliases.size()) {
-    request.response.setCode(404);
-    request.response.json[F("error")] = F("Index out of bounds");
-    return;
-  }
-
-  auto it = settings.groupIdAliases.begin();
-  std::advance(it, aliasIx);
-
-  if (it == settings.groupIdAliases.end()) {
+  if (settings.deleteAlias(id)) {
+    settings.save();
+    request.response.json[F("success")] = true;
+  } else {
     request.response.setCode(404);
     request.response.json[F("error")] = F("Alias not found");
     return;
   }
-  
-  const String alias = it->first;
-  settings.groupIdAliases.erase(alias);
-  settings.save();
+}
 
-  request.response.json[F("success")] = true;
+void MiLightHttpServer::handleUpdateAlias(RequestContext& request) {
+  const size_t id = atoi(request.pathVariables.get("id"));
+  auto alias = settings.findAliasById(id);
+
+  if (alias == settings.groupIdAliases.end()) {
+    request.response.setCode(404);
+    request.response.json[F("error")] = F("Alias not found");
+    return;
+  } else {
+    JsonObject body = request.getJsonBody().as<JsonObject>();
+    GroupAlias updatedAlias(alias->second);
+
+    if (body.containsKey(F("alias"))) {
+      strncpy(updatedAlias.alias, body[F("alias")].as<const char*>(), MAX_ALIAS_LEN);
+    }
+
+    if (body.containsKey(GroupStateFieldNames::DEVICE_ID)) {
+      updatedAlias.bulbId.deviceId = body[GroupStateFieldNames::DEVICE_ID];
+    }
+
+    if (body.containsKey(GroupStateFieldNames::GROUP_ID)) {
+      updatedAlias.bulbId.groupId = body[GroupStateFieldNames::GROUP_ID];
+    }
+
+    if (body.containsKey(GroupStateFieldNames::DEVICE_TYPE)) {
+      updatedAlias.bulbId.deviceType = MiLightRemoteTypeHelpers::remoteTypeFromString(body[GroupStateFieldNames::DEVICE_TYPE].as<const char*>());
+    }
+
+    // If alias was updated, delete the old mapping
+    if (strcmp(alias->second.alias, updatedAlias.alias) != 0) {
+      settings.deleteAlias(id);
+    }
+
+    settings.groupIdAliases[updatedAlias.alias] = updatedAlias;
+    settings.save();
+    request.response.json[F("success")] = true;
+  }
 }

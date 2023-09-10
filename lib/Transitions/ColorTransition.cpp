@@ -73,6 +73,7 @@ ColorTransition::ColorTransition(
   , stepSizes(stepSizes)
   , lastHue(400)         // use impossible values to force a packet send
   , lastSaturation(200)
+  , sentFinalColor(false)
 {
   int16_t dr = endColor.r - startColor.r
         , dg = endColor.g - startColor.g
@@ -84,15 +85,14 @@ ColorTransition::ColorTransition(
 }
 
 size_t ColorTransition::calculateMaxDistance(const ParsedColor& start, const ParsedColor& end) {
-  int16_t dr = end.r - start.r
-        , dg = end.g - start.g
-        , db = end.b - start.b;
-
-  int16_t max = std::max(std::max(dr, dg), db);
-  int16_t min = std::min(std::min(dr, dg), db);
-  int16_t maxAbs = std::abs(min) > std::abs(max) ? min : max;
-
-  return maxAbs;
+  // return max distance between any of R/G/B
+  return std::max(
+    std::max(
+      std::abs(start.r - end.r),
+      std::abs(start.g - end.g)
+    ),
+    std::abs(start.b - end.b)
+  );
 }
 
 size_t ColorTransition::calculateColorPeriod(ColorTransition* t, const ParsedColor& start, const ParsedColor& end, size_t stepSize, size_t duration) {
@@ -117,20 +117,23 @@ void ColorTransition::step() {
     callback(bulbId, GroupStateField::HUE, parsedColor.hue);
     lastHue = parsedColor.hue;
   }
+
   if (parsedColor.saturation != lastSaturation) {
     callback(bulbId, GroupStateField::SATURATION, parsedColor.saturation);
     lastSaturation = parsedColor.saturation;
   }
-  
+
   if (!isFinished()) {
     Transition::stepValue(currentColor.r, endColor.r, stepSizes.r);
     Transition::stepValue(currentColor.g, endColor.g, stepSizes.g);
     Transition::stepValue(currentColor.b, endColor.b, stepSizes.b);
+  } else {
+    this->sentFinalColor = true;
   }
 }
 
 bool ColorTransition::isFinished() {
-  return currentColor == endColor; 
+  return this->sentFinalColor;
 }
 
 void ColorTransition::childSerialize(JsonObject& json) {
