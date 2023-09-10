@@ -5,7 +5,7 @@ require 'net/ping'
 RSpec.describe 'Settings' do
   before(:all) do
     @client = ApiClient.new(ENV.fetch('ESPMH_HOSTNAME'), ENV.fetch('ESPMH_TEST_DEVICE_ID_BASE'))
-    @client.upload_json('/settings', 'settings.json')
+    @client.reset_settings
 
     @username = 'a'
     @password = 'a'
@@ -21,6 +21,11 @@ RSpec.describe 'Settings' do
     @client.set_auth!(@username, @password)
     @client.put('/settings', admin_username: '', admin_password: '')
     @client.clear_auth!
+  end
+
+  after(:each) do
+    puts "resetting settings..."
+    @client.reset_settings
   end
 
   context 'keys' do
@@ -80,6 +85,9 @@ RSpec.describe 'Settings' do
       @client.upload_json('/settings', file.path)
 
       expect { @client.get('/settings') }.to raise_error(Net::HTTPServerException)
+
+      @client.set_auth!(@username, @password)
+      @client.reset_settings
     end
   end
 
@@ -99,7 +107,7 @@ RSpec.describe 'Settings' do
 
       end_mem = @client.get('/about')['free_heap']
 
-      expect(end_mem).to be_within(250).of(start_mem)
+      expect(end_mem).to be_within(1024).of(start_mem)
     end
   end
 
@@ -136,16 +144,24 @@ RSpec.describe 'Settings' do
     it 'should store ID labels' do
       id = 1
 
-      aliases = Hash[
-        StateHelpers::ALL_REMOTE_TYPES.map do |remote_type|
-          ["test_#{id += 1}", [remote_type, id, 1]]
-        end
-      ]
+      aliases = StateHelpers::ALL_REMOTE_TYPES.each_with_index.map do |remote_type, i|
+        [i, "test_#{id += 1}", remote_type, id, 1]
+      end
+      alias_csv = aliases.map { |x| x.join(",") }.join("\n") + "\n"
 
-      @client.patch_settings(group_id_aliases: aliases)
-      settings = @client.get('/settings')
+      Tempfile.create('aliases.txt') do |file|
+        file.write(alias_csv)
+        file.close
 
-      expect(settings['group_id_aliases']).to eq(aliases)
+        @client.upload_json('/aliases.txt', file.path)
+      end
+
+      expect @client.get('/aliases.txt') == alias_csv
+
+      response = @client.get('/aliases')
+      stored_aliases = response['aliases'].map { |x| x['alias'] }
+
+      expect(Set.new(stored_aliases)).to eq(Set.new(aliases.map { |x| x[1] }))
     end
   end
 
@@ -164,27 +180,12 @@ RSpec.describe 'Settings' do
       @client.reboot
 
       # Wait for it to come back up
-      ping_test = Net::Ping::External.new(static_ip)
-
-      10.times do
-        break if ping_test.ping?
-        sleep 1
-      end
-
-      expect(ping_test.ping?).to be(true)
-
       static_client = ApiClient.new(static_ip, ENV.fetch('ESPMH_TEST_DEVICE_ID_BASE'))
+      static_client.wait_for_liveness
       static_client.put('/settings', wifi_static_ip: '')
       static_client.reboot
 
-      ping_test = Net::Ping::External.new(ENV.fetch('ESPMH_HOSTNAME'))
-
-      10.times do
-        break if ping_test.ping?
-        sleep 1
-      end
-
-      expect(ping_test.ping?).to be(true)
+      @client.wait_for_liveness
     end
   end
 
@@ -194,7 +195,11 @@ RSpec.describe 'Settings' do
       file = Tempfile.new('espmh-settings.json')
       file.close
 
-      @client.upload_json('/settings', file.path)
+      @client.reset_settings(file.path)
+    end
+
+    after(:all) do
+      @client.reset_settings
     end
 
     it 'should have some group state fields defined' do

@@ -2,8 +2,11 @@ require 'json'
 require 'net/http'
 require 'net/http/post/multipart'
 require 'uri'
+require 'tempfile'
 
 class ApiClient
+  class LivenessError < StandardError; end
+
   def initialize(host, base_id)
     @host = host
     @current_id = Integer(base_id)
@@ -14,6 +17,44 @@ class ApiClient
       ENV.fetch('ESPMH_HOSTNAME'),
       ENV.fetch('ESPMH_TEST_DEVICE_ID_BASE')
     )
+  end
+
+  def reset_settings(settings_file = 'settings.json')
+    upload_json('/settings', settings_file)
+
+    # clear device aliases
+    clear_aliases
+  end
+
+  def clear_aliases
+    patch_settings({
+      group_id_aliases: {}
+    })
+  end
+
+  def live?(ping_count = 10, sleep_time = 1, inverted = false)
+    print "Checking for liveness of #{@host}..."
+
+    ping_test = Net::Ping::External.new(@host)
+    check = inverted ? -> { not ping_test.ping? } : -> { ping_test.ping? }
+
+    ping_count.times do
+      break if check.call
+      sleep sleep_time
+
+      print '.'
+    end
+
+    puts check.call ? 'OK' : 'FAIL'
+    check.call
+  end
+
+  def wait_for_liveness(ping_count = 10, sleep_time = 1)
+    raise LivenessError unless live?(ping_count, sleep_time)
+  end
+
+  def wait_for_unavailable(ping_count = 10, sleep_time = 1)
+    raise LivenessError if live?(100, 0.1, true)
   end
 
   def generate_id
@@ -34,6 +75,7 @@ class ApiClient
 
   def reboot
     post('/system', '{"command":"restart"}')
+    wait_for_unavailable
   end
 
   def request(type, path, req_body = nil)
@@ -42,10 +84,15 @@ class ApiClient
       req_type = Net::HTTP.const_get(type)
 
       req = req_type.new(uri)
+
       if req_body
-        req['Content-Type'] = 'application/json'
-        req_body = req_body.to_json if !req_body.is_a?(String)
-        req.body = req_body
+        if req_body.is_a?(File)
+          req.set_form [['file', req_body]], 'multipart/form-data'
+        else
+          req['Content-Type'] = 'application/json'
+          req_body = req_body.to_json if !req_body.is_a?(String)
+          req.body = req_body
+        end
       end
 
       if @username && @password
@@ -72,7 +119,19 @@ class ApiClient
   end
 
   def upload_json(path, file)
-    `curl -s "http://#{@host}#{path}" -X POST -F 'f=@#{file}'`
+    if file.is_a?(String)
+      upload_json(path, File.new(file))
+    else
+      request(:Post, path, file)
+    end
+  end
+
+  def upload_string_as_file(path, string)
+    Tempfile.create('tmp-upload-file') do |f|
+      f.write(string)
+      f.close
+      upload_json(path, File.new(f))
+    end
   end
 
   def patch_settings(settings)

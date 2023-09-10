@@ -3,7 +3,7 @@ require 'api_client'
 RSpec.describe 'REST Server' do
   before(:all) do
     @client = ApiClient.new(ENV.fetch('ESPMH_HOSTNAME'), ENV.fetch('ESPMH_TEST_DEVICE_ID_BASE'))
-    @client.upload_json('/settings', 'settings.json')
+    @client.reset_settings
 
     @username = 'a'
     @password = 'a'
@@ -188,6 +188,131 @@ RSpec.describe 'REST Server' do
       response = @client.get_state(@id_params.merge(blockOnQueue: false))
 
       expect(response['status']).to eq('ON')
+    end
+  end
+
+  context 'alias routes' do
+    before(:each) do
+      @client.clear_aliases
+      @test_alias = {
+        alias: 'test',
+        device_type: 'rgb_cct',
+        device_id: 1,
+        group_id: 2
+      }
+    end
+
+    it 'GET /aliases should work when there are no aliases' do
+      result = @client.get('/aliases')
+
+      expect(result).to be_a(Hash)
+      expect(result['aliases']).to be_a(Array)
+      expect(result['aliases'].length).to eq(0)
+      expect(result['page']).to eq(1)
+      expect(result['count']).to eq(0)
+    end
+
+    it 'POST /aliases should create an alias' do
+      result = @client.post('/aliases', @test_alias)
+
+      expect(result['success']).to be_truthy
+      expect(result['id']).to be_a(Numeric)
+
+      aliases = @client.get('/aliases')['aliases']
+
+      expect(aliases.length).to eq(1)
+      expect(aliases[0]['alias']).to eq(@test_alias[:alias])
+      expect(aliases[0]['device_type']).to eq(@test_alias[:device_type])
+      expect(aliases[0]['device_id']).to eq(@test_alias[:device_id])
+      expect(aliases[0]['group_id']).to eq(@test_alias[:group_id])
+    end
+
+    it 'DELETE /aliases/:alias should delete an alias' do
+      create_response = @client.post('/aliases', @test_alias)
+      delete_response = @client.delete("/aliases/#{create_response['id']}")
+
+      expect(delete_response['success']).to be_truthy
+
+      list_response = @client.get('/aliases')
+
+      expect(list_response['aliases'].length).to eq(0)
+    end
+
+    it 'GET /aliases.txt should return a CSV of aliases' do
+      create_response = @client.post('/aliases', @test_alias)
+      result = @client.get('/aliases.txt')
+
+      expect(result).to eq("#{create_response['id']},test,rgb_cct,1,2\n")
+    end
+
+    it 'POST /aliases.txt should upload a CSV of aliases' do
+      csv = "1,test,rgb_cct,1,2\n"
+      @client.upload_string_as_file('/aliases.txt', csv)
+
+      result = @client.get('/aliases')
+
+      expect(result['aliases'].length).to eq(1)
+      expect(result['aliases'][0]['alias']).to eq('test')
+      expect(result['aliases'][0]['device_type']).to eq('rgb_cct')
+      expect(result['aliases'][0]['device_id']).to eq(1)
+      expect(result['aliases'][0]['group_id']).to eq(2)
+    end
+
+    it 'PUT /aliases/:id should update an alias' do
+      create_response = @client.post('/aliases', @test_alias)
+
+      updated_alias = {**@test_alias, device_id: 3, alias: 'updated_alias'}
+      update_response = @client.put("/aliases/#{create_response['id']}", updated_alias)
+
+      expect(update_response['success']).to be_truthy
+
+      list_response = @client.get('/aliases')
+
+      expect(list_response['aliases'].length).to eq(1)
+      expect(list_response['aliases'][0]['alias']).to eq(updated_alias[:alias])
+      expect(list_response['aliases'][0]['device_type']).to eq(updated_alias[:device_type])
+      expect(list_response['aliases'][0]['device_id']).to eq(updated_alias[:device_id])
+      expect(list_response['aliases'][0]['group_id']).to eq(updated_alias[:group_id])
+    end
+
+    it 'should support uploading a large list of aliases' do
+      csv = (1..20).map do |i|
+        "#{i},test#{i},rgb_cct,#{i},1"
+      end.join("\n")
+      csv += "\n"
+
+      @client.upload_string_as_file('/aliases.txt', csv)
+      result = @client.get('/aliases')
+
+      expect(result['count']).to eq(20)
+    end
+
+    it 'should support paging' do
+      csv = (1..20).map do |i|
+        "#{i},test#{i},rgb_cct,#{i},1"
+      end.join("\n")
+      csv += "\n"
+
+      @client.upload_string_as_file('/aliases.txt', csv)
+      result = @client.get('/aliases?page_size=10')
+
+      expect(result['num_pages']).to eq(2)
+      expect(result['count']).to eq(20)
+      expect(result['page']).to eq(1)
+      expect(result['aliases'].length).to eq(10)
+
+      all_aliases = []
+      page = 1
+      num_pages = result['num_pages']
+
+      while true do
+        result = @client.get("/aliases?page=#{page}&page_size=10")
+        all_aliases += result['aliases']
+
+        break if (page += 1) > num_pages
+      end
+
+      expect(all_aliases.length).to eq(20)
     end
   end
 end

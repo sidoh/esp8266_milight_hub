@@ -3,7 +3,7 @@ require 'api_client'
 RSpec.describe 'MQTT Discovery' do
   before(:all) do
     @client = ApiClient.new(ENV.fetch('ESPMH_HOSTNAME'), ENV.fetch('ESPMH_TEST_DEVICE_ID_BASE'))
-    @client.upload_json('/settings', 'settings.json')
+    @client.reset_settings
 
     @test_id = 1
     @topic_prefix = mqtt_topic_prefix()
