@@ -583,13 +583,50 @@ var gatewayServerRow = function(deviceId, port, version) {
   return elmt;
 }
 
+// Load aliases from the /aliases endpoint, which is paged
+var loadAliases = function(page) {
+  page = page || 1;
+
+  return new Promise(function(resolve, reject) {
+    $.getJSON('/aliases?page=' + page, function(val) {
+      if (val.aliases) {
+        var result = [].concat(val.aliases);
+
+        if (val.num_pages > page) {
+          return loadAliases(page+1).then(function(aliases) {
+            return resolve(result.concat(aliases));
+          });
+        } else {
+          return resolve(result);
+        }
+      } else {
+        reject();
+      }
+    });
+  });
+}
+
+// convenience function to load /settings and paged /aliases
+var loadSettingsAndAliases = function() {
+    return new Promise(function(resolve, reject) {
+        $.getJSON('/settings', function(val) {
+        loadAliases().then(function(aliases) {
+            resolve({settings: val, aliases: aliases});
+        });
+        });
+    });
+}
+
 var loadSettings = function() {
   $('select.select-init').selectpicker();
   if (location.hostname == "") {
     // if deugging locally, don't try get settings
     return;
   }
-  $.getJSON('/settings', function(val) {
+
+  loadSettingsAndAliases().then(function(v) {
+    var val = v.settings;
+    var aliases = v.aliases;
     loadingSettings = true;
 
     Object.keys(val).forEach(function(k) {
@@ -619,27 +656,20 @@ var loadSettings = function() {
       $('.navbar-brand').html(title);
     }
 
-    if (val.group_id_aliases) {
-      aliasesSelectize.clearOptions();
-      Object.entries(val.group_id_aliases).forEach(function(entry) {
-        var label = entry[0]
-          , groupParams = entry[1]
-          , savedParams = {
-                deviceType: groupParams[0],
-                deviceId: groupParams[1],
-                groupId: groupParams[2]
-            }
-          ;
-
-        aliasesSelectize.addOption({
-          text: label,
-          value: label,
-          savedGroupParams: savedParams
-        });
-
-        aliasesSelectize.refreshOptions(false);
+    aliasesSelectize.clearOptions();
+    aliases.forEach(function(entry) {
+      aliasesSelectize.addOption({
+        text: entry.alias,
+        value: entry.alias,
+        index: entry.ix,
+        savedGroupParams: {
+          deviceType: entry.device_type,
+          deviceId: entry.device_id,
+          groupId: entry.group_id,
+        }
       });
-    }
+    });
+    aliasesSelectize.refreshOptions(false);
 
     if (val.device_ids) {
       selectize.clearOptions();
@@ -682,45 +712,6 @@ var loadSettings = function() {
     }
 
     loadingSettings = false;
-  });
-
-  // Load aliases from the /aliases endpoint, which is paged
-  var loadAliases = function(page) {
-    page = page || 1;
-
-    return new Promise(function(resolve, reject) {
-      $.getJSON('/aliases?page=' + page, function(val) {
-        if (val.aliases) {
-          var result = [].concat(val.aliases);
-
-          if (val.num_pages > page) {
-            return loadAliases(page+1).then(function(aliases) {
-              return resolve(result.concat(aliases));
-            });
-          } else {
-            return resolve(result);
-          }
-        } else {
-          reject();
-        }
-      });
-    });
-  }
-
-  loadAliases().then(function(aliases) {
-    aliases.forEach(function(entry) {
-      aliasesSelectize.addOption({
-        text: entry.alias,
-        value: entry.alias,
-        savedGroupParams: {
-          deviceType: entry.device_type,
-          deviceId: entry.device_id,
-          groupId: entry.group_id,
-          index: entry.ix
-        }
-      });
-      aliasesSelectize.refreshOptions(false);
-    });
   });
 };
 
@@ -828,9 +819,23 @@ var deleteDeviceId = function() {
 };
 
 var deleteDeviceAlias = function() {
-  aliasesSelectize.removeOption($(this).data('value'));
-  aliasesSelectize.refreshOptions();
-  saveDeviceAliases();
+  var alias = $(this).data('value');
+  var option = aliasesSelectize.options[alias];
+  option.disabled = true;
+
+  console.log(option);
+
+  // call DELETE /aliases/:ix
+  $.ajax('/aliases/' + option.index, {
+    method: 'delete',
+    success: function() {
+      aliasesSelectize.removeOption(alias);
+      aliasesSelectize.refreshOptions();
+    }
+  });
+  // aliasesSelectize.removeOption($(this).data('value'))
+  // aliasesSelectize.refreshOptions();
+  // saveDeviceAliases();
 };
 
 var deviceIdError = function(v) {
