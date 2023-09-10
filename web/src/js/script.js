@@ -583,38 +583,37 @@ var gatewayServerRow = function(deviceId, port, version) {
   return elmt;
 }
 
-// Load aliases from the /aliases endpoint, which is paged
-var loadAliases = function(page) {
-  page = page || 1;
-
+// Load aliases from the /aliases.txt which is in CSV format
+var loadAliases = function() {
   return new Promise(function(resolve, reject) {
-    $.getJSON('/aliases?page=' + page, function(val) {
-      if (val.aliases) {
-        var result = [].concat(val.aliases);
-
-        if (val.num_pages > page) {
-          return loadAliases(page+1).then(function(aliases) {
-            return resolve(result.concat(aliases));
-          });
+    $.get('/aliases.txt', function (data) {
+      resolve(data.split('\n').map(function(line, ix) {
+        var parts = line.split(',');
+        if (parts.length == 5) {
+          return {
+            id: parts[0],
+            alias: parts[1],
+            device_type: parts[2],
+            device_id: parts[3],
+            group_id: parts[4]
+          };
         } else {
-          return resolve(result);
+          return null;
         }
-      } else {
-        reject();
-      }
+      }).filter(function(x) { return x != null; }));
     });
   });
 }
 
 // convenience function to load /settings and paged /aliases
 var loadSettingsAndAliases = function() {
-    return new Promise(function(resolve, reject) {
-        $.getJSON('/settings', function(val) {
-        loadAliases().then(function(aliases) {
-            resolve({settings: val, aliases: aliases});
-        });
-        });
+  return new Promise(function(resolve, reject) {
+    $.getJSON('/settings', function(val) {
+      loadAliases().then(function(aliases) {
+          resolve({settings: val, aliases: aliases});
+      });
     });
+  });
 }
 
 var loadSettings = function() {
@@ -661,7 +660,7 @@ var loadSettings = function() {
       aliasesSelectize.addOption({
         text: entry.alias,
         value: entry.alias,
-        index: entry.ix,
+        id: entry.id,
         savedGroupParams: {
           deviceType: entry.device_type,
           deviceId: entry.device_id,
@@ -793,22 +792,44 @@ var saveDeviceIds = function() {
 
 var saveDeviceAliases = function() {
   if (!loadingSettings) {
-    var deviceAliases = Object.entries(aliasesSelectize.options).reduce(
-      function(aggregate, x) {
-        var params = x[1].savedGroupParams;
+    var deviceAliases = Object.values(aliasesSelectize.options).reduce(
+        function (aggregate, x, index) {
+          var params = x.savedGroupParams;
 
-        aggregate[x[0]] = [
-          params.deviceType,
-          params.deviceId,
-          params.groupId
-        ]
+          aggregate.push([
+            index + 1,
+            x.value,
+            params.deviceType,
+            params.deviceId,
+            params.groupId
+          ]);
 
-        return aggregate;
-      },
-      {}
+          return aggregate;
+        },
+        []
     );
 
-    patchSettings({group_id_aliases: deviceAliases});
+    var csv = deviceAliases.map(function (x) {
+      return x.join(',');
+    }).join('\n');
+    csv += '\n';
+
+    // post string as a file
+    var formData = new FormData();
+    formData.append(
+      'file',
+      new File([new Blob([csv], {type: 'text/plain'})], 'aliases.txt')
+    );
+
+    $.ajax(
+        '/aliases.txt',
+        {
+          method: 'post',
+          data: formData,
+          processData: false,
+          contentType: false
+        }
+    );
   }
 };
 
@@ -823,19 +844,14 @@ var deleteDeviceAlias = function() {
   var option = aliasesSelectize.options[alias];
   option.disabled = true;
 
-  console.log(option);
-
-  // call DELETE /aliases/:ix
-  $.ajax('/aliases/' + option.index, {
+  // call DELETE /aliases/:id
+  $.ajax('/aliases/' + option.id, {
     method: 'delete',
     success: function() {
       aliasesSelectize.removeOption(alias);
       aliasesSelectize.refreshOptions();
     }
   });
-  // aliasesSelectize.removeOption($(this).data('value'))
-  // aliasesSelectize.refreshOptions();
-  // saveDeviceAliases();
 };
 
 var deviceIdError = function(v) {
@@ -1173,13 +1189,11 @@ $(function() {
       }
     },
     onOptionAdd: function(v, item) {
-      if (!item.savedGroupParams) {
-        item.savedGroupParams = {
-          deviceId: getCurrentDeviceId(),
-          groupId: getCurrentGroupId(),
-          deviceType: getCurrentMode()
-        };
-      }
+      item.savedGroupParams = item.savedGroupParams || {
+        deviceId: getCurrentDeviceId(),
+        groupId: getCurrentGroupId(),
+        deviceType: getCurrentMode()
+      };
 
       saveDeviceAliases();
     }
