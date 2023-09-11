@@ -159,15 +159,16 @@ RSpec.describe 'MQTT Discovery' do
       # This should create the device
       @client.patch_settings(
         home_assistant_discovery_prefix: @test_discovery_prefix,
-        group_id_aliases: {
-          'test_group' => [@id_params[:type], @id_params[:id], @id_params[:group_id]]
-        }
       )
+      created_alias = @client.post('/aliases', {
+        alias: 'test_group',
+        device_type: @id_params[:type],
+        group_id: @id_params[:group_id],
+        device_id: @id_params[:id]
+      })
 
       # This should clear it
-      @client.patch_settings(
-        group_id_aliases: { }
-      )
+      @client.delete("/aliases/#{created_alias['id']}")
 
       @mqtt_client.wait_for_listeners
 

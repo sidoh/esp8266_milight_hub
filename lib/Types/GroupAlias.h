@@ -24,7 +24,7 @@ struct GroupAlias {
 
     ~GroupAlias() = default;
 
-    void load(Stream& stream);
+    bool load(Stream& stream);
     void dump(Stream& stream) const;
 
     static void loadAliases(Stream& stream, std::map<String, GroupAlias>& aliases);

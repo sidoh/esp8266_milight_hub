@@ -211,8 +211,28 @@ void Settings::dumpGroupIdAliases(JsonObject json) {
   }
 }
 
-void Settings::load(Settings& settings) {
-  bool initialize = false;
+bool Settings::loadAliases(Settings &settings) {
+  if (SPIFFS.exists(ALIASES_FILE)) {
+    File f = SPIFFS.open(ALIASES_FILE, "r");
+    GroupAlias::loadAliases(f, settings.groupIdAliases);
+
+    // find current max id
+    size_t maxId = 0;
+    for (auto & alias : settings.groupIdAliases) {
+      maxId = max(maxId, alias.second.id);
+    }
+    settings.groupIdAliasNextId = maxId + 1;
+
+    printf_P(PSTR("loaded %d aliases\n"), settings.groupIdAliases.size());
+
+    return true;
+  } else {
+    return false;
+  }
+}
+
+bool Settings::load(Settings& settings) {
+  bool shouldInit = false;
 
   if (SPIFFS.exists(SETTINGS_FILE)) {
     // Clear in-memory settings
@@ -234,30 +254,28 @@ void Settings::load(Settings& settings) {
 
       f = SPIFFS.open(SETTINGS_FILE, "r");
       Serial.println(f.readString());
+
+      return false;
     }
   } else {
-    initialize = true;
+    shouldInit = true;
   }
 
-  if (SPIFFS.exists(ALIASES_FILE)) {
-    File f = SPIFFS.open(ALIASES_FILE, "r");
-    GroupAlias::loadAliases(f, settings.groupIdAliases);
+  // If we loaded aliases from the settings file but not the aliases file,
+  // port them over to the aliases file.
+  const bool settingKeyAliasesEmpty = settings.groupIdAliases.empty();
+  const bool aliasesFileEmpty = loadAliases(settings);
 
-    // find current max id
-    size_t maxId = 0;
-    for (auto & alias : settings.groupIdAliases) {
-      maxId = max(maxId, alias.second.id);
-    }
-    settings.groupIdAliasNextId = maxId + 1;
-
-    printf_P(PSTR("loaded %d aliases\n"), settings.groupIdAliases.size());
-  } else {
-    initialize = true;
+  if (!settingKeyAliasesEmpty && aliasesFileEmpty) {
+    Serial.println(F("Porting aliases from settings file to aliases file"));
+    shouldInit = true;
   }
 
-  if (initialize) {
+  if (shouldInit) {
     settings.save();
   }
+
+  return true;
 }
 
 String Settings::toJson(const bool prettyPrint) {

@@ -136,7 +136,8 @@ public:
   bool isAutoRestartEnabled();
   size_t getAutoRestartPeriod();
 
-  static void load(Settings& settings);
+  static bool load(Settings& settings);
+  static bool loadAliases(Settings& settings);
 
   static RadioInterfaceType typeFromString(const String& s);
   static String typeToString(RadioInterfaceType type);

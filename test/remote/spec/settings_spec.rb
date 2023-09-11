@@ -163,6 +163,33 @@ RSpec.describe 'Settings' do
 
       expect(Set.new(stored_aliases)).to eq(Set.new(aliases.map { |x| x[1] }))
     end
+
+    it 'group aliases from deprecated settings key should be ported' do
+      @client.clear_aliases
+
+      Tempfile.create("updated-settings.json") do |file|
+        settings = JSON.parse(File.read('settings.json'))
+        settings.merge!({
+          group_id_aliases: {
+            test1: ['rgb_cct', 1, 1],
+            test2: ['rgb', 2, 2]
+          }
+        })
+
+        file.write(settings.to_json)
+        file.close
+
+        @client.upload_json('/settings', file.path)
+      end
+
+      # Add a new alias
+      @client.post('/aliases', {alias: 'test3', device_type: 'rgb_cct', group_id: 3, device_id: 3})
+
+      response = @client.get('/aliases')
+      stored_aliases = response['aliases'].map { |x| x['alias'] }
+
+      expect(Set.new(stored_aliases)).to eq(Set.new(['test1', 'test2', 'test3']))
+    end
   end
 
   context 'static ip' do

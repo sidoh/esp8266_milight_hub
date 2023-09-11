@@ -84,11 +84,12 @@ void MiLightHttpServer::begin() {
   server
     .buildHandler("/aliases.bin")
     .on(HTTP_GET, std::bind(&MiLightHttpServer::serveFile, this, ALIASES_FILE, "application/octet-stream"))
-  .on(
-      HTTP_POST,
-      std::bind(&MiLightHttpServer::handleUpdateSettingsPost, this, _1),
-      std::bind(&MiLightHttpServer::handleUpdateFile, this, ALIASES_FILE)
-  );
+    .on(HTTP_DELETE, std::bind(&MiLightHttpServer::handleDeleteAliases, this, _1))
+    .on(
+        HTTP_POST,
+        std::bind(&MiLightHttpServer::handleUpdateSettingsPost, this, _1),
+        std::bind(&MiLightHttpServer::handleUpdateFile, this, ALIASES_FILE)
+    );
 
   server
     .buildHandler("/aliases/:id")
@@ -823,4 +824,11 @@ void MiLightHttpServer::handleUpdateAlias(RequestContext& request) {
     settings.save();
     request.response.json[F("success")] = true;
   }
+}
+
+void MiLightHttpServer::handleDeleteAliases(RequestContext &request) {
+  SPIFFS.remove(ALIASES_FILE);
+  Settings::load(settings);
+
+  request.response.json[F("success")] = true;
 }
