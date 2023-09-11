@@ -94,19 +94,23 @@ RSpec.describe 'MQTT Discovery' do
       expected_keys = %w(
         schema
         name
-        command_topic
-        state_topic
+        cmd_t
+        stat_t
         brightness
         rgb
         color_temp
         effect
-        effect_list
-        device
+        fx_list
+        dev
+        dev_cla
+        uniq_id
+        max_mirs
+        min_mirs
       )
       expect(config.keys).to include(*expected_keys)
 
-      expect(config['effect_list']).to include(*%w(white_mode night_mode))
-      expect(config['effect_list']).to include(*(0..8).map(&:to_s))
+      expect(config['fx_list']).to include(*%w(white_mode night_mode))
+      expect(config['fx_list']).to include(*(0..8).map(&:to_s))
     end
 
     it 'should list identifiers for ESP and bulb' do
@@ -115,7 +119,7 @@ RSpec.describe 'MQTT Discovery' do
 
       @mqtt_client.on_message("#{@test_discovery_prefix}light/+/#{@discovery_suffix}") do |topic, message|
         config = JSON.parse(message)
-        saw_message = config['device'] && config['device']['identifiers'] && config['device']['identifiers'][1] == @id_params[:id]
+        saw_message = config['dev'] && config['dev']['identifiers']
       end
 
       @client.patch_settings(
@@ -127,18 +131,18 @@ RSpec.describe 'MQTT Discovery' do
 
       @mqtt_client.wait_for_listeners
 
-      expect(config.keys).to include('device')
+      expect(config.keys).to include('dev')
 
-      device_data = config['device']
+      device_data = config['dev']
 
-      expect(device_data.keys).to include(*%w(manufacturer sw_version identifiers))
-      expect(device_data['manufacturer']).to eq('esp8266_milight_hub')
+      expect(device_data.keys).to include(*%w(mf sw identifiers))
+      expect(device_data['mf']).to eq('espressif')
+      # sw will be of the form "esp8266_milight_hub <version>"
+      expect(device_data['sw']).to match(/^esp8266_milight_hub v.*$/)
 
+      # will be the espressif chip id
       ids = device_data['identifiers']
-      expect(ids.length).to eq(4)
-      expect(ids[1]).to eq(@id_params[:id])
-      expect(ids[2]).to eq(@id_params[:type])
-      expect(ids[3]).to eq(@id_params[:group_id])
+      expect(ids).to be_a(String)
     end
 
     it 'should remove discoverable devices when alias is removed' do
@@ -173,9 +177,9 @@ RSpec.describe 'MQTT Discovery' do
 
     it 'should configure devices with an availability topic if client status is configured' do
       expected_keys = %w(
-        availability_topic
-        payload_available
-        payload_not_available
+        avty_t
+        pl_avail
+        pl_not_avail
       )
       config = nil
 
