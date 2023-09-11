@@ -71,6 +71,17 @@ class MqttClient
     end
   end
 
+  def on_json_message(topic, timeout = DEFAULT_TIMEOUT, raise_error = true, &block)
+    on_message(topic, timeout, raise_error) do |topic, message|
+      begin
+        message = JSON.parse(message)
+        yield(topic, message)
+      rescue JSON::ParserError => e
+        false
+      end
+    end
+  end
+
   def on_message(topic, timeout = DEFAULT_TIMEOUT, raise_error = true, &block)
     @listen_threads << Thread.new do
       begin

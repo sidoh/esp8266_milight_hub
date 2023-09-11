@@ -9,7 +9,7 @@ HomeAssistantDiscoveryClient::HomeAssistantDiscoveryClient(Settings& settings, M
 
 void HomeAssistantDiscoveryClient::sendDiscoverableDevices(const std::map<String, GroupAlias>& aliases) {
 #ifdef MQTT_DEBUG
-  Serial.println(F("HomeAssistantDiscoveryClient: Sending discoverable devices..."));
+  Serial.printf_P(PSTR("HomeAssistantDiscoveryClient: Sending %d discoverable devices...\n"), aliases.size());
 #endif
 
   for (const auto & alias : aliases) {
@@ -19,7 +19,7 @@ void HomeAssistantDiscoveryClient::sendDiscoverableDevices(const std::map<String
 
 void HomeAssistantDiscoveryClient::removeOldDevices(const std::map<uint32_t, BulbId>& aliases) {
 #ifdef MQTT_DEBUG
-  Serial.println(F("HomeAssistantDiscoveryClient: Removing discoverable devices..."));
+  Serial.printf_P(PSTR("HomeAssistantDiscoveryClient: Removing %d discoverable devices...\n"), aliases.size());
 #endif
 
   for (auto itr = aliases.begin(); itr != aliases.end(); ++itr) {

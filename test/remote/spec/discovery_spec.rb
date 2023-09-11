@@ -13,6 +13,8 @@ RSpec.describe 'MQTT Discovery' do
   end
 
   after(:all) do
+    @client.clear_aliases
+
     # Clean up any leftover cruft
     @mqtt_client.on_message("#{@discovery_prefix}#", 1, false) do |topic, message|
       if message.length > 0
@@ -26,6 +28,7 @@ RSpec.describe 'MQTT Discovery' do
   before(:each) do
     mqtt_params = mqtt_parameters()
 
+    @client.clear_aliases
     @client.put(
       '/settings',
       mqtt_params
@@ -56,7 +59,7 @@ RSpec.describe 'MQTT Discovery' do
     it 'should send discovery messages' do
       saw_message = false
 
-      @mqtt_client.on_message("#{@test_discovery_prefix}light/+/#{@discovery_suffix}") do |topic, message|
+      @mqtt_client.on_json_message("#{@test_discovery_prefix}light/+/#{@discovery_suffix}") do |topic, message|
         saw_message = true
       end
 
@@ -76,8 +79,8 @@ RSpec.describe 'MQTT Discovery' do
       saw_message = false
       config = nil
 
-      @mqtt_client.on_message("#{@test_discovery_prefix}light/+/#{@discovery_suffix}") do |topic, message|
-        config = JSON.parse(message)
+      @mqtt_client.on_json_message("#{@test_discovery_prefix}light/+/#{@discovery_suffix}") do |topic, message|
+        config = message
         saw_message = true
       end
 
@@ -117,8 +120,8 @@ RSpec.describe 'MQTT Discovery' do
       saw_message = false
       config = nil
 
-      @mqtt_client.on_message("#{@test_discovery_prefix}light/+/#{@discovery_suffix}") do |topic, message|
-        config = JSON.parse(message)
+      @mqtt_client.on_json_message("#{@test_discovery_prefix}light/+/#{@discovery_suffix}") do |topic, message|
+        config = message
         saw_message = config['dev'] && config['dev']['identifiers']
       end
 
@@ -176,6 +179,42 @@ RSpec.describe 'MQTT Discovery' do
       expect(seen_blank_message).to be(true), "should see deletion message"
     end
 
+    it 'should remove discoverable devices when backup of aliases is restored' do
+      seen_config = false
+      seen_blank_message = false
+
+      @mqtt_client.on_message("#{@test_discovery_prefix}light/+/#{@discovery_suffix}") do |topic, message|
+        seen_config = seen_config || message.length > 0
+        seen_blank_message = seen_blank_message || message.length == 0
+
+        seen_config && seen_blank_message
+      end
+
+      # This should create the device
+      @client.patch_settings(
+        home_assistant_discovery_prefix: @test_discovery_prefix,
+      )
+      @client.post('/aliases', {
+        alias: 'test_group',
+        device_type: @id_params[:type],
+        group_id: @id_params[:group_id],
+        device_id: @id_params[:id]
+      })
+
+      # Generate a backup without this alias and restore it
+      backup = [
+        [1, "test_1", "rgb_cct", 1, 1],
+        [2, "test_2", "rgb_cct", 2, 2],
+        [3, "test_3", "rgb_cct", 3, 3],
+      ].flatten.join("\0")
+      @client.upload_string_as_file('/aliases.bin', backup)
+
+      @mqtt_client.wait_for_listeners
+
+      expect(seen_config).to be(true)
+      expect(seen_blank_message).to be(true), "should see deletion message"
+    end
+
     it 'should configure devices with an availability topic if client status is configured' do
       expected_keys = %w(
         avty_t
@@ -184,8 +223,8 @@ RSpec.describe 'MQTT Discovery' do
       )
       config = nil
 
-      @mqtt_client.on_message("#{@test_discovery_prefix}light/+/#{@discovery_suffix}") do |topic, message|
-        config = JSON.parse(message)
+      @mqtt_client.on_json_message("#{@test_discovery_prefix}light/+/#{@discovery_suffix}") do |topic, message|
+        config = message
         (expected_keys - config.keys).empty?
       end
 

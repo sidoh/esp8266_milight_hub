@@ -83,11 +83,11 @@ void MiLightHttpServer::begin() {
 
   server
     .buildHandler("/aliases.bin")
-    .on(HTTP_GET, std::bind(&MiLightHttpServer::serveFile, this, ALIASES_FILE, "application/octet-stream"))
+    .on(HTTP_GET, std::bind(&MiLightHttpServer::serveFile, this, ALIASES_FILE, APPLICATION_OCTET_STREAM))
     .on(HTTP_DELETE, std::bind(&MiLightHttpServer::handleDeleteAliases, this, _1))
     .on(
         HTTP_POST,
-        std::bind(&MiLightHttpServer::handleUpdateSettingsPost, this, _1),
+        std::bind(&MiLightHttpServer::handleUpdateAliases, this, _1),
         std::bind(&MiLightHttpServer::handleUpdateFile, this, ALIASES_FILE)
     );
 
@@ -224,11 +224,7 @@ void MiLightHttpServer::handleUpdateSettings(RequestContext& request) {
 
   if (! parsedSettings.isNull()) {
     settings.patch(parsedSettings);
-    settings.save();
-
-    if (this->settingsSavedHandler) {
-      this->settingsSavedHandler();
-    }
+    saveSettings();
 
     request.response.json["success"] = true;
     Serial.println(F("Settings successfully updated"));
@@ -768,7 +764,7 @@ void MiLightHttpServer::handleCreateAlias(RequestContext& request) {
   }
 
   settings.addAlias(alias.c_str(), BulbId(deviceId, groupId, deviceType));
-  settings.save();
+  saveSettings();
 
   request.response.json[F("success")] = true;
   request.response.json[F("id")] = settings.groupIdAliases[alias].id;
@@ -778,7 +774,7 @@ void MiLightHttpServer::handleDeleteAlias(RequestContext& request) {
   const size_t id = atoi(request.pathVariables.get("id"));
 
   if (settings.deleteAlias(id)) {
-    settings.save();
+    saveSettings();
     request.response.json[F("success")] = true;
   } else {
     request.response.setCode(404);
@@ -821,14 +817,59 @@ void MiLightHttpServer::handleUpdateAlias(RequestContext& request) {
     }
 
     settings.groupIdAliases[updatedAlias.alias] = updatedAlias;
-    settings.save();
+    saveSettings();
+
     request.response.json[F("success")] = true;
   }
 }
 
 void MiLightHttpServer::handleDeleteAliases(RequestContext &request) {
+  // buffer current aliases so we can mark them all as deleted
+  std::vector<GroupAlias> aliases;
+  for (auto & alias : settings.groupIdAliases) {
+    aliases.push_back(alias.second);
+  }
+
   SPIFFS.remove(ALIASES_FILE);
   Settings::load(settings);
 
+  // mark all aliases as deleted
+  for (auto & alias : aliases) {
+    settings.deletedGroupIdAliases[alias.bulbId.getCompactId()] = alias.bulbId;
+  }
+
+  if (this->settingsSavedHandler) {
+    this->settingsSavedHandler();
+  }
+
   request.response.json[F("success")] = true;
+}
+
+void MiLightHttpServer::handleUpdateAliases(RequestContext& request) {
+  // buffer current aliases so we can mark any that were removed as deleted
+  std::vector<GroupAlias> aliases;
+  for (auto & alias : settings.groupIdAliases) {
+    aliases.push_back(alias.second);
+  }
+
+  Settings::load(settings);
+
+  // mark any aliases that were removed as deleted
+  for (auto & alias : aliases) {
+    if (settings.groupIdAliases.find(alias.alias) == settings.groupIdAliases.end()) {
+      settings.deletedGroupIdAliases[alias.bulbId.getCompactId()] = alias.bulbId;
+    }
+  }
+
+  saveSettings();
+
+  request.response.json[F("success")] = true;
+}
+
+void MiLightHttpServer::saveSettings() {
+  settings.save();
+
+  if (this->settingsSavedHandler) {
+    this->settingsSavedHandler();
+  }
 }
