@@ -1,4 +1,6 @@
 require 'dotenv'
+require 'rspec/retry'
+
 require './helpers/state_helpers'
 require './helpers/mqtt_helpers'
 require './helpers/transition_helpers'
@@ -24,6 +26,10 @@ RSpec.configure do |config|
   config.include StateHelpers
   config.include MqttHelpers
   config.include TransitionHelpers
+
+  config.verbose_retry = true
+  config.display_try_failure_messages = true
+  config.default_retry_count = 3
 
   # rspec-expectations config goes here. You can use an alternate
   # assertion/expectation library such as wrong or the stdlib/minitest
