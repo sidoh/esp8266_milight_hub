@@ -126,19 +126,19 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BooleanResponse'
-  /aliases.txt:
+  /aliases.bin:
     get:
       tags:
         - Aliases
-      summary: Download a backup of all aliases in CSV format
+      summary: Download a backup of all aliases in a binary format
       responses:
         '200':
           description: Successful operation
           content:
-            text/csv:
+            application/octet-stream:
               schema:
                 type: string
-                example: "1,alias_here,rgb_cct,4493,1"
+                format: binary
     post:
       tags:
         - Aliases

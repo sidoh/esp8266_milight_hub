@@ -147,16 +147,16 @@ RSpec.describe 'Settings' do
       aliases = StateHelpers::ALL_REMOTE_TYPES.each_with_index.map do |remote_type, i|
         [i, "test_#{id += 1}", remote_type, id, 1]
       end
-      alias_csv = aliases.map { |x| x.join(",") }.join("\n") + "\n"
+      alias_csv = aliases.map { |x| x.join("\0") }.join("\0")
 
-      Tempfile.create('aliases.txt') do |file|
+      Tempfile.create('aliases.bin') do |file|
         file.write(alias_csv)
         file.close
 
-        @client.upload_json('/aliases.txt', file.path)
+        @client.upload_json('/aliases.bin', file.path)
       end
 
-      expect @client.get('/aliases.txt') == alias_csv
+      expect @client.get('/aliases.bin') == alias_csv
 
       response = @client.get('/aliases')
       stored_aliases = response['aliases'].map { |x| x['alias'] }

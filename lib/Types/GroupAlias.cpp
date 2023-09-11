@@ -1,33 +1,32 @@
 #include <GroupAlias.h>
 
 // reads a GroupAlias from a stream in the format:
-// <alias>,<deviceId>,<deviceType>,<groupId>
+// <alias>\0<deviceId>\0<deviceType>\0<groupId>
 void GroupAlias::load(Stream &stream) {
   // read id
   id = stream.parseInt();
 
-  // expect comma
-  if (stream.read() != ',') {
-    Serial.println(F("ERROR: alias file invalid. expected comma after id"));
+  // expect null terminator
+  char c = stream.read();
+  if (c != 0) {
+    Serial.printf_P(PSTR("ERROR: alias file invalid. expected null after id but got %c\n"), c);
     return;
   }
 
   // read alias
-  size_t length = stream.readBytesUntil(',', alias, MAX_ALIAS_LEN);
-  alias[length] = 0;
+  size_t len = stream.readBytesUntil('\0', alias, MAX_ALIAS_LEN);
+  alias[len] = 0;
 
   // load bulbId
   bulbId.load(stream);
 }
 
 void GroupAlias::dump(Stream &stream) const {
-  // write id
+  // write id and alias
   stream.print(id);
-  stream.write(',');
-
-  // write alias
-  stream.write(alias, strlen(alias));
-  stream.write(',');
+  stream.print(static_cast<char>(0));
+  stream.print(alias);
+  stream.print(static_cast<char>(0));
 
   // write bulbId
   bulbId.dump(stream);
@@ -39,14 +38,6 @@ void GroupAlias::loadAliases(Stream &stream, std::map<String, GroupAlias> &alias
     GroupAlias alias;
     alias.load(stream);
 
-    // expect newline after each alias
-    uint8_t c = stream.read();
-
-    if (c != '\n') {
-      Serial.println("ERROR: alias file invalid. expected newline but got: " + String(c));
-      return;
-    }
-
     aliases[String(alias.alias)] = alias;
   }
 }
@@ -54,6 +45,5 @@ void GroupAlias::loadAliases(Stream &stream, std::map<String, GroupAlias> &alias
 void GroupAlias::saveAliases(Stream &stream, std::map<String, GroupAlias> &aliases) {
   for (auto & alias : aliases) {
     alias.second.dump(stream);
-    stream.write('\n');
   }
 }

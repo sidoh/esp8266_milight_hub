@@ -82,8 +82,8 @@ void MiLightHttpServer::begin() {
     .on(HTTP_POST, std::bind(&MiLightHttpServer::handleCreateAlias, this, _1));
 
   server
-    .buildHandler("/aliases.txt")
-    .on(HTTP_GET, std::bind(&MiLightHttpServer::serveFile, this, ALIASES_FILE, TEXT_PLAIN))
+    .buildHandler("/aliases.bin")
+    .on(HTTP_GET, std::bind(&MiLightHttpServer::serveFile, this, ALIASES_FILE, "application/octet-stream"))
   .on(
       HTTP_POST,
       std::bind(&MiLightHttpServer::handleUpdateSettingsPost, this, _1),

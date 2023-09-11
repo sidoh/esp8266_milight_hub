@@ -583,24 +583,22 @@ var gatewayServerRow = function(deviceId, port, version) {
   return elmt;
 }
 
-// Load aliases from the /aliases.txt which is in CSV format
+// Load aliases from the /aliases.bin which is in null-terminated format
 var loadAliases = function() {
   return new Promise(function(resolve, reject) {
-    $.get('/aliases.txt', function (data) {
-      resolve(data.split('\n').map(function(line, ix) {
-        var parts = line.split(',');
-        if (parts.length == 5) {
-          return {
-            id: parts[0],
-            alias: parts[1],
-            device_type: parts[2],
-            device_id: parts[3],
-            group_id: parts[4]
-          };
-        } else {
-          return null;
-        }
-      }).filter(function(x) { return x != null; }));
+    $.get('/aliases.bin', function (data) {
+      var parts = data.split('\0');
+      var aliases = [];
+      for (var i = 0; (i + 4) < parts.length; i += 5) {
+          aliases.push({
+              id: parts[i],
+              alias: parts[i + 1],
+              device_type: parts[i + 2],
+              device_id: parts[i + 3],
+              group_id: parts[i + 4]
+          });
+      }
+      return resolve(aliases);
     });
   });
 }
@@ -627,6 +625,8 @@ var loadSettings = function() {
     var val = v.settings;
     var aliases = v.aliases;
     loadingSettings = true;
+
+    console.log(val, aliases);
 
     Object.keys(val).forEach(function(k) {
       var field = $('#settings input[name="' + k + '"]');
@@ -810,19 +810,18 @@ var saveDeviceAliases = function() {
     );
 
     var csv = deviceAliases.map(function (x) {
-      return x.join(',');
-    }).join('\n');
-    csv += '\n';
+      return x.join('\0');
+    }).join('\0');
 
     // post string as a file
     var formData = new FormData();
     formData.append(
       'file',
-      new File([new Blob([csv], {type: 'text/plain'})], 'aliases.txt')
+      new File([new Blob([csv], {type: 'application/octet-stream'})], 'aliases.bin')
     );
 
     $.ajax(
-        '/aliases.txt',
+        '/aliases.bin',
         {
           method: 'post',
           data: formData,

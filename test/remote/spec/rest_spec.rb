@@ -238,16 +238,18 @@ RSpec.describe 'REST Server' do
       expect(list_response['aliases'].length).to eq(0)
     end
 
-    it 'GET /aliases.txt should return a CSV of aliases' do
+    it 'GET /aliases.bin should return a null-separted binary of aliases' do
       create_response = @client.post('/aliases', @test_alias)
-      result = @client.get('/aliases.txt')
+      result = @client.get('/aliases.bin')
 
-      expect(result).to eq("#{create_response['id']},test,rgb_cct,1,2\n")
+      # just for clarity. the empty string at the end is to force a null byte
+      expected_result = [create_response['id'], 'test', 'rgb_cct', '1', '2', ''].join("\0")
+      expect(result).to eq(expected_result)
     end
 
-    it 'POST /aliases.txt should upload a CSV of aliases' do
-      csv = "1,test,rgb_cct,1,2\n"
-      @client.upload_string_as_file('/aliases.txt', csv)
+    it 'POST /aliases.bin should upload a null-terminated file of aliases' do
+      # empty string at end forces null byte
+      @client.upload_string_as_file('/aliases.bin', ['1', 'test', 'rgb_cct', '1', '2'].join("\0"))
 
       result = @client.get('/aliases')
 
@@ -277,11 +279,13 @@ RSpec.describe 'REST Server' do
 
     it 'should support uploading a large list of aliases' do
       csv = (1..20).map do |i|
-        "#{i},test#{i},rgb_cct,#{i},1"
-      end.join("\n")
-      csv += "\n"
+        [i, "test#{i}", 'rgb_cct', i, 1]
+      end.flatten.join("\0")
 
-      @client.upload_string_as_file('/aliases.txt', csv)
+      puts csv.gsub('\0', '.')
+      File.open('/tmp/aliases.bin', 'w') { |f| f.write(csv) }
+
+      @client.upload_string_as_file('/aliases.bin', csv)
       result = @client.get('/aliases')
 
       expect(result['count']).to eq(20)
@@ -289,11 +293,10 @@ RSpec.describe 'REST Server' do
 
     it 'should support paging' do
       csv = (1..20).map do |i|
-        "#{i},test#{i},rgb_cct,#{i},1"
-      end.join("\n")
-      csv += "\n"
+        [i, "test#{i}", 'rgb_cct', i, 1]
+      end.flatten.join("\0")
 
-      @client.upload_string_as_file('/aliases.txt', csv)
+      @client.upload_string_as_file('/aliases.bin', csv)
       result = @client.get('/aliases?page_size=10')
 
       expect(result['num_pages']).to eq(2)
