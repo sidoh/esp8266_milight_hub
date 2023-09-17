@@ -364,8 +364,6 @@ void setup() {
   Serial.begin(9600);
   String ssid = "ESP" + String(ESP.getChipId());
 
-  WiFi.setPhyMode(WIFI_PHY_MODE_11G);
-
   // load up our persistent settings from the file system
   ProjectFS.begin();
   Settings::load(settings);
