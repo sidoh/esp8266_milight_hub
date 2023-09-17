@@ -45,7 +45,7 @@ RSpec.describe 'MQTT' do
 
   context 'retained messages' do
     it 'should publish retained state messages when enabled' do
-      @client.put('/settings', mqtt_retain: 'true')
+      @client.put('/settings', mqtt_retain: true)
       @client.patch_state({status: 'ON'}, @id_params)
 
       # Sleep to make sure we're getting a retained message
@@ -56,7 +56,7 @@ RSpec.describe 'MQTT' do
     end
 
     it 'should not publish retained state messages when not enabled' do
-      @client.put('/settings', mqtt_retain: 'false')
+      @client.put('/settings', mqtt_retain: false)
       @client.patch_state({status: 'ON'}, @id_params)
 
       # Sleep to make sure we're getting a retained message

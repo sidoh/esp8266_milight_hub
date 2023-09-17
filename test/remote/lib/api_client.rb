@@ -87,13 +87,18 @@ class ApiClient
 
       if req_body
         if req_body.is_a?(File)
+          req['Content-Length'] = req_body.size.to_s
           req.set_form [['file', req_body]], 'multipart/form-data'
         else
-          req['Content-Type'] = 'application/json'
           req_body = req_body.to_json if !req_body.is_a?(String)
+
+          req['Content-Type'] = 'application/json'
+          req['Content-Length'] = req_body.size.to_s
           req.body = req_body
         end
       end
+
+      http.read_timeout = 3
 
       if @username && @password
         req.basic_auth(@username, @password)
@@ -111,7 +116,12 @@ class ApiClient
       body = res.body
 
       if res['content-type'].downcase == 'application/json'
-        body = JSON.parse(body)
+        begin
+          body = JSON.parse(body)
+        rescue JSON::ParserError => e
+          puts "JSON Parse Error: #{e}\nBody:\n#{res.body}"
+          raise e
+        end
       end
 
       body
