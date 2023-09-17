@@ -412,10 +412,6 @@ void MiLightHttpServer::handleGetGroup(RequestContext& request) {
 }
 
 void MiLightHttpServer::handleDeleteGroup(RequestContext& request) {
-//  Serial.println("here");
-//  Serial.println(_deviceId);
-//Serial.println("has binding device_id " + String(request.pathVariables.hasBinding("device_id")));
-
   const char* _deviceId = request.pathVariables.get("device_id");
   uint8_t _groupId = atoi(request.pathVariables.get(GroupStateFieldNames::GROUP_ID));
   const MiLightRemoteConfig* _remoteType = MiLightRemoteConfig::fromType(request.pathVariables.get("type"));
