@@ -1,5 +1,4 @@
 #include <Arduino.h>
-#include <StringStream.h>
 #include <ArduinoJson.h>
 #include <GroupStateField.h>
 #include <RF24PowerLevel.h>
@@ -121,7 +120,7 @@ public:
     groupStateFields(DEFAULT_GROUP_STATE_FIELDS),
     rf24ListenChannel(RF24Channel::RF24_LOW),
     packetRepeatsPerLoop(10),
-    wifiMode(WifiMode::N),
+    wifiMode(WifiMode::G),
     defaultTransitionPeriod(500),
     groupIdAliasNextId(0),
     _autoRestartPeriod(0)
@@ -144,7 +143,6 @@ public:
   static std::vector<RF24Channel> defaultListenChannels();
 
   void save();
-  String toJson(const bool prettyPrint = true);
   void serialize(Print& stream, const bool prettyPrint = false);
   void updateDeviceIds(JsonArray arr);
   void updateGatewayConfigs(JsonArray arr);
@@ -206,14 +204,14 @@ public:
   uint16_t defaultTransitionPeriod;
   size_t groupIdAliasNextId;
 
+  static WifiMode wifiModeFromString(const String& mode);
+  static String wifiModeToString(WifiMode mode);
+
 protected:
   size_t _autoRestartPeriod;
 
   void parseGroupIdAliases(JsonObject json);
   void dumpGroupIdAliases(JsonObject json);
-
-  static WifiMode wifiModeFromString(const String& mode);
-  static String wifiModeToString(WifiMode mode);
 
   template <typename T>
   void setIfPresent(JsonObject obj, const char* key, T& var) {

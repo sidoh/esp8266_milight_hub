@@ -8,6 +8,9 @@
 #include <TokenIterator.h>
 #include <AboutHelper.h>
 #include <GroupAlias.h>
+#include <ProjectFS.h>
+#include <StreamUtils.h>
+
 #include <index.html.gz.h>
 
 using namespace std::placeholders;
@@ -195,8 +198,9 @@ void MiLightHttpServer::handleGetRadioConfigs(RequestContext& request) {
 }
 
 bool MiLightHttpServer::serveFile(const char* file, const char* contentType) {
-  if (SPIFFS.exists(file)) {
-    File f = SPIFFS.open(file, "r");
+  if (ProjectFS.exists(file)) {
+    File f = ProjectFS.open(file, "r");
+    ReadBufferingStream bufferedStream(f, 64);
     server.streamFile(f, contentType);
     f.close();
     return true;
@@ -209,7 +213,7 @@ void MiLightHttpServer::handleUpdateFile(const char* filename) {
   HTTPUpload& upload = server.upload();
 
   if (upload.status == UPLOAD_FILE_START) {
-    updateFile = SPIFFS.open(filename, "w");
+    updateFile = ProjectFS.open(filename, "w");
   } else if(upload.status == UPLOAD_FILE_WRITE){
     if (updateFile.write(upload.buf, upload.currentSize) != upload.currentSize) {
       Serial.println(F("Error updating web file"));
@@ -408,7 +412,11 @@ void MiLightHttpServer::handleGetGroup(RequestContext& request) {
 }
 
 void MiLightHttpServer::handleDeleteGroup(RequestContext& request) {
-  const String _deviceId = request.pathVariables.get(GroupStateFieldNames::DEVICE_ID);
+//  Serial.println("here");
+//  Serial.println(_deviceId);
+//Serial.println("has binding device_id " + String(request.pathVariables.hasBinding("device_id")));
+
+  const char* _deviceId = request.pathVariables.get("device_id");
   uint8_t _groupId = atoi(request.pathVariables.get(GroupStateFieldNames::GROUP_ID));
   const MiLightRemoteConfig* _remoteType = MiLightRemoteConfig::fromType(request.pathVariables.get("type"));
 
@@ -830,7 +838,7 @@ void MiLightHttpServer::handleDeleteAliases(RequestContext &request) {
     aliases.push_back(alias.second);
   }
 
-  SPIFFS.remove(ALIASES_FILE);
+  ProjectFS.remove(ALIASES_FILE);
   Settings::load(settings);
 
   // mark all aliases as deleted

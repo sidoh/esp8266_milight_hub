@@ -2,6 +2,13 @@
 #include <Arduino.h>
 #include <cmath>
 
+// transition commands are in seconds, convert to ms.
+const uint16_t Transition::DURATION_UNIT_MULTIPLIER = 1000;
+
+// If period goes lower than this, throttle other parameters up to adjust.
+const size_t Transition::MIN_PERIOD = 150;
+const size_t Transition::DEFAULT_DURATION = 10000;
+
 Transition::Builder::Builder(size_t id, uint16_t defaultPeriod, const BulbId& bulbId, TransitionFn callback, size_t maxSteps)
   : id(id)
   , defaultPeriod(defaultPeriod)

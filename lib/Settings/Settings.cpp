@@ -1,10 +1,11 @@
 #include <Settings.h>
 #include <ArduinoJson.h>
-#include <FS.h>
 #include <IntParsing.h>
 #include <algorithm>
 #include <JsonHelpers.h>
 #include <GroupAlias.h>
+#include <ProjectFS.h>
+#include <StreamUtils.h>
 
 #define PORT_POSITION(s) ( s.indexOf(':') )
 
@@ -212,8 +213,9 @@ void Settings::dumpGroupIdAliases(JsonObject json) {
 }
 
 bool Settings::loadAliases(Settings &settings) {
-  if (SPIFFS.exists(ALIASES_FILE)) {
-    File f = SPIFFS.open(ALIASES_FILE, "r");
+  if (ProjectFS.exists(ALIASES_FILE)) {
+    File f = ProjectFS.open(ALIASES_FILE, "r");
+    ReadBufferingStream bufferedReader{f, 64};
     GroupAlias::loadAliases(f, settings.groupIdAliases);
 
     // find current max id
@@ -234,11 +236,11 @@ bool Settings::loadAliases(Settings &settings) {
 bool Settings::load(Settings& settings) {
   bool shouldInit = false;
 
-  if (SPIFFS.exists(SETTINGS_FILE)) {
+  if (ProjectFS.exists(SETTINGS_FILE)) {
     // Clear in-memory settings
     settings = Settings();
 
-    File f = SPIFFS.open(SETTINGS_FILE, "r");
+    File f = ProjectFS.open(SETTINGS_FILE, "r");
 
     DynamicJsonDocument json(MILIGHT_HUB_SETTINGS_BUFFER_SIZE);
     auto error = deserializeJson(json, f);
@@ -252,7 +254,7 @@ bool Settings::load(Settings& settings) {
       Serial.println(error.c_str());
       Serial.println(F("contents:"));
 
-      f = SPIFFS.open(SETTINGS_FILE, "r");
+      f = ProjectFS.open(SETTINGS_FILE, "r");
       Serial.println(f.readString());
 
       return false;
@@ -278,79 +280,77 @@ bool Settings::load(Settings& settings) {
   return true;
 }
 
-String Settings::toJson(const bool prettyPrint) {
-  String buffer = "";
-  StringStream s(buffer);
-  serialize(s, prettyPrint);
-  return buffer;
-}
-
 void Settings::save() {
-  File f = SPIFFS.open(SETTINGS_FILE, "w");
+  File f = ProjectFS.open(SETTINGS_FILE, "w");
 
   if (!f) {
     Serial.println(F("Opening settings file failed"));
+    return;
   } else {
+    WriteBufferingStream writer{f, 64};
     serialize(f);
+    writer.flush();
     f.close();
   }
 
-  File aliases = SPIFFS.open(ALIASES_FILE, "w");
+  File aliasesFile = ProjectFS.open(ALIASES_FILE, "w");
 
-  if (!aliases) {
+  if (!aliasesFile) {
     Serial.println(F("Opening aliases file failed"));
   } else {
+    WriteBufferingStream aliases{aliasesFile, 64};
     GroupAlias::saveAliases(aliases, groupIdAliases);
-    aliases.close();
+    aliases.flush();
+    aliasesFile.close();
   }
 }
 
 void Settings::serialize(Print& stream, const bool prettyPrint) {
   DynamicJsonDocument root(MILIGHT_HUB_SETTINGS_BUFFER_SIZE);
 
-  root["admin_username"] = this->adminUsername;
-  root["admin_password"] = this->adminPassword;
-  root["ce_pin"] = this->cePin;
-  root["csn_pin"] = this->csnPin;
-  root["reset_pin"] = this->resetPin;
-  root["led_pin"] = this->ledPin;
-  root["radio_interface_type"] = typeToString(this->radioInterfaceType);
-  root["packet_repeats"] = this->packetRepeats;
-  root["http_repeat_factor"] = this->httpRepeatFactor;
-  root["auto_restart_period"] = this->_autoRestartPeriod;
-  root["mqtt_server"] = this->_mqttServer;
-  root["mqtt_username"] = this->mqttUsername;
-  root["mqtt_password"] = this->mqttPassword;
-  root["mqtt_topic_pattern"] = this->mqttTopicPattern;
-  root["mqtt_update_topic_pattern"] = this->mqttUpdateTopicPattern;
-  root["mqtt_state_topic_pattern"] = this->mqttStateTopicPattern;
-  root["mqtt_client_status_topic"] = this->mqttClientStatusTopic;
-  root["simple_mqtt_client_status"] = this->simpleMqttClientStatus;
-  root["discovery_port"] = this->discoveryPort;
-  root["listen_repeats"] = this->listenRepeats;
-  root["state_flush_interval"] = this->stateFlushInterval;
-  root["mqtt_state_rate_limit"] = this->mqttStateRateLimit;
-  root["mqtt_debounce_delay"] = this->mqttDebounceDelay;
-  root["mqtt_retain"] = this->mqttRetain;
-  root["packet_repeat_throttle_sensitivity"] = this->packetRepeatThrottleSensitivity;
-  root["packet_repeat_throttle_threshold"] = this->packetRepeatThrottleThreshold;
-  root["packet_repeat_minimum"] = this->packetRepeatMinimum;
-  root["enable_automatic_mode_switching"] = this->enableAutomaticModeSwitching;
-  root["led_mode_wifi_config"] = LEDStatus::LEDModeToString(this->ledModeWifiConfig);
-  root["led_mode_wifi_failed"] = LEDStatus::LEDModeToString(this->ledModeWifiFailed);
-  root["led_mode_operating"] = LEDStatus::LEDModeToString(this->ledModeOperating);
-  root["led_mode_packet"] = LEDStatus::LEDModeToString(this->ledModePacket);
-  root["led_mode_packet_count"] = this->ledModePacketCount;
-  root["hostname"] = this->hostname;
-  root["rf24_power_level"] = RF24PowerLevelHelpers::nameFromValue(this->rf24PowerLevel);
-  root["rf24_listen_channel"] = RF24ChannelHelpers::nameFromValue(rf24ListenChannel);
-  root["wifi_static_ip"] = this->wifiStaticIP;
-  root["wifi_static_ip_gateway"] = this->wifiStaticIPGateway;
-  root["wifi_static_ip_netmask"] = this->wifiStaticIPNetmask;
-  root["packet_repeats_per_loop"] = this->packetRepeatsPerLoop;
-  root["home_assistant_discovery_prefix"] = this->homeAssistantDiscoveryPrefix;
-  root["wifi_mode"] = wifiModeToString(this->wifiMode);
-  root["default_transition_period"] = this->defaultTransitionPeriod;
+  root[FPSTR("admin_username")] = this->adminUsername;
+  root[FPSTR("admin_password")] = this->adminPassword;
+  root[FPSTR("ce_pin")] = this->cePin;
+  root[FPSTR("csn_pin")] = this->csnPin;
+  root[FPSTR("reset_pin")] = this->resetPin;
+  root[FPSTR("led_pin")] = this->ledPin;
+  root[FPSTR("radio_interface_type")] = typeToString(this->radioInterfaceType);
+  root[FPSTR("packet_repeats")] = this->packetRepeats;
+  root[FPSTR("http_repeat_factor")] = this->httpRepeatFactor;
+  root[FPSTR("auto_restart_period")] = this->_autoRestartPeriod;
+  root[FPSTR("mqtt_server")] = this->_mqttServer;
+  root[FPSTR("mqtt_username")] = this->mqttUsername;
+  root[FPSTR("mqtt_password")] = this->mqttPassword;
+  root[FPSTR("mqtt_topic_pattern")] = this->mqttTopicPattern;
+  root[FPSTR("mqtt_update_topic_pattern")] = this->mqttUpdateTopicPattern;
+  root[FPSTR("mqtt_state_topic_pattern")] = this->mqttStateTopicPattern;
+  root[FPSTR("mqtt_client_status_topic")] = this->mqttClientStatusTopic;
+  root[FPSTR("simple_mqtt_client_status")] = this->simpleMqttClientStatus;
+  root[FPSTR("discovery_port")] = this->discoveryPort;
+  root[FPSTR("listen_repeats")] = this->listenRepeats;
+  root[FPSTR("state_flush_interval")] = this->stateFlushInterval;
+  root[FPSTR("mqtt_state_rate_limit")] = this->mqttStateRateLimit;
+  root[FPSTR("mqtt_debounce_delay")] = this->mqttDebounceDelay;
+  root[FPSTR("mqtt_retain")] = this->mqttRetain;
+  root[FPSTR("packet_repeat_throttle_sensitivity")] = this->packetRepeatThrottleSensitivity;
+  root[FPSTR("packet_repeat_throttle_threshold")] = this->packetRepeatThrottleThreshold;
+  root[FPSTR("packet_repeat_minimum")] = this->packetRepeatMinimum;
+  root[FPSTR("enable_automatic_mode_switching")] = this->enableAutomaticModeSwitching;
+  root[FPSTR("led_mode_wifi_config")] = LEDStatus::LEDModeToString(this->ledModeWifiConfig);
+  root[FPSTR("led_mode_wifi_failed")] = LEDStatus::LEDModeToString(this->ledModeWifiFailed);
+  root[FPSTR("led_mode_operating")] = LEDStatus::LEDModeToString(this->ledModeOperating);
+  root[FPSTR("led_mode_packet")] = LEDStatus::LEDModeToString(this->ledModePacket);
+  root[FPSTR("led_mode_packet_count")] = this->ledModePacketCount;
+  root[FPSTR("hostname")] = this->hostname;
+  root[FPSTR("rf24_power_level")] = RF24PowerLevelHelpers::nameFromValue(this->rf24PowerLevel);
+  root[FPSTR("rf24_listen_channel")] = RF24ChannelHelpers::nameFromValue(rf24ListenChannel);
+  root[FPSTR("wifi_static_ip")] = this->wifiStaticIP;
+  root[FPSTR("wifi_static_ip_gateway")] = this->wifiStaticIPGateway;
+  root[FPSTR("wifi_static_ip_netmask")] = this->wifiStaticIPNetmask;
+  root[FPSTR("packet_repeats_per_loop")] = this->packetRepeatsPerLoop;
+  root[FPSTR("home_assistant_discovery_prefix")] = this->homeAssistantDiscoveryPrefix;
+  root[FPSTR("wifi_mode")] = wifiModeToString(this->wifiMode);
+  root[FPSTR("default_transition_period")] = this->defaultTransitionPeriod;
 
   JsonArray channelArr = root.createNestedArray("rf24_channels");
   JsonHelpers::vectorToJsonArr<RF24Channel, String>(channelArr, rf24Channels, RF24ChannelHelpers::nameFromValue);
