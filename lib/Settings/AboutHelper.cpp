@@ -2,6 +2,7 @@
 #include <ArduinoJson.h>
 #include <Settings.h>
 #include <ESP8266WiFi.h>
+#include <ProjectFS.h>
 
 extern "C" {
 #include <cont.h>
@@ -30,5 +31,11 @@ void AboutHelper::generateAboutObject(JsonDocument& obj, bool abbreviated) {
     obj[FPSTR("free_heap")] = ESP.getFreeHeap();
     obj[FPSTR("arduino_version")] = ESP.getCoreVersion();
     obj[FPSTR("free_stack")] = cont_get_free_stack(g_pcont);
+
+    FSInfo fsInfo;
+    ProjectFS.info(fsInfo);
+    obj[FPSTR("flash_used")] = fsInfo.usedBytes;
+    obj[FPSTR("flash_total")] = fsInfo.totalBytes;
+    obj[FPSTR("flash_pct_free")] = fsInfo.totalBytes == 0 ? 0 : (fsInfo.totalBytes - fsInfo.usedBytes) * 100 / fsInfo.totalBytes;
   }
 }
