@@ -305,7 +305,7 @@ void Settings::save() {
   }
 }
 
-void Settings::serialize(Print& stream, const bool prettyPrint) {
+void Settings::serialize(Print& stream, const bool prettyPrint) const {
   DynamicJsonDocument root(MILIGHT_HUB_SETTINGS_BUFFER_SIZE);
 
   root[FPSTR("admin_username")] = this->adminUsername;

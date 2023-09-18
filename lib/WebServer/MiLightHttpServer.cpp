@@ -12,6 +12,7 @@
 #include <StreamUtils.h>
 
 #include <index.html.gz.h>
+#include <BackupManager.h>
 
 using namespace std::placeholders;
 
@@ -31,6 +32,14 @@ void MiLightHttpServer::begin() {
       std::bind(&MiLightHttpServer::handleUpdateSettingsPost, this, _1),
       std::bind(&MiLightHttpServer::handleUpdateFile, this, SETTINGS_FILE)
     );
+
+  server
+    .buildHandler("/backup")
+    .on(HTTP_GET, std::bind(&MiLightHttpServer::handleCreateBackup, this, _1))
+    .on(
+        HTTP_POST,
+        std::bind(&MiLightHttpServer::handleRestoreBackup, this, _1),
+        std::bind(&MiLightHttpServer::handleUpdateFile, this, BACKUP_FILE));
 
   server
     .buildHandler("/remote_configs")
@@ -200,7 +209,6 @@ void MiLightHttpServer::handleGetRadioConfigs(RequestContext& request) {
 bool MiLightHttpServer::serveFile(const char* file, const char* contentType) {
   if (ProjectFS.exists(file)) {
     File f = ProjectFS.open(file, "r");
-    ReadBufferingStream bufferedStream(f, 64);
     server.streamFile(f, contentType);
     f.close();
     return true;
@@ -876,4 +884,38 @@ void MiLightHttpServer::saveSettings() {
   if (this->settingsSavedHandler) {
     this->settingsSavedHandler();
   }
+}
+
+void MiLightHttpServer::handleRestoreBackup(RequestContext &request) {
+  File backupFile = ProjectFS.open(BACKUP_FILE, "r");
+  auto status = BackupManager::restoreBackup(settings, backupFile);
+
+  if (status == BackupManager::RestoreStatus::OK) {
+    request.response.json[F("success")] = true;
+    request.response.json[F("message")] = F("Backup restored successfully");
+  } else {
+    request.response.setCode(400);
+    request.response.json[F("error")] = static_cast<uint8_t>(status);
+  }
+}
+
+void MiLightHttpServer::handleCreateBackup(RequestContext &request) {
+  File backupFile = ProjectFS.open(BACKUP_FILE, "w");
+
+  if (!backupFile) {
+    Serial.println(F("Failed to open backup file"));
+    request.response.setCode(500);
+    request.response.json[F("error")] = F("Failed to open backup file");
+  }
+
+  WriteBufferingStream bufferedStream(backupFile, 64);
+  BackupManager::createBackup(settings, bufferedStream);
+  bufferedStream.flush();
+  backupFile.close();
+
+  backupFile = ProjectFS.open(BACKUP_FILE, "r");
+  Serial.printf_P(PSTR("Sending backup file of size %d\n"), backupFile.size());
+  server.streamFile(backupFile, APPLICATION_OCTET_STREAM);
+
+  ProjectFS.remove(BACKUP_FILE);
 }

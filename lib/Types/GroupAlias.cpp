@@ -34,9 +34,8 @@ void GroupAlias::dump(Stream &stream) const {
   bulbId.dump(stream);
 }
 
-void GroupAlias::loadAliases(Stream &stream, std::map<String, GroupAlias> &aliases) {
-  // file ends in DLE (0x10)
-  while (stream.available() && stream.peek() != 0x10) {
+void GroupAlias::loadAliases(Stream &stream, std::map<String, GroupAlias> &aliases, size_t numAliases) {
+  while (stream.available() && (numAliases == 0 || aliases.size() < numAliases)) {
     GroupAlias alias;
     if (alias.load(stream)) {
       aliases[String(alias.alias)] = alias;
@@ -44,7 +43,7 @@ void GroupAlias::loadAliases(Stream &stream, std::map<String, GroupAlias> &alias
   }
 }
 
-void GroupAlias::saveAliases(Stream &stream, std::map<String, GroupAlias> &aliases) {
+void GroupAlias::saveAliases(Stream &stream, const std::map<String, GroupAlias> &aliases) {
   for (auto & alias : aliases) {
     alias.second.dump(stream);
   }

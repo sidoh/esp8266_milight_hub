@@ -27,8 +27,8 @@ struct GroupAlias {
     bool load(Stream& stream);
     void dump(Stream& stream) const;
 
-    static void loadAliases(Stream& stream, std::map<String, GroupAlias>& aliases);
-    static void saveAliases(Stream& stream, std::map<String, GroupAlias>& aliases);
+    static void loadAliases(Stream& stream, std::map<String, GroupAlias>& aliases, size_t numAliases = 0);
+    static void saveAliases(Stream& stream, const std::map<String, GroupAlias>& aliases);
 };
 
 #endif //ESP8266_MILIGHT_HUB_GROUPALIAS_H

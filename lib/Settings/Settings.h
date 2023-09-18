@@ -47,7 +47,8 @@
 
 #define SETTINGS_FILE  "/config.json"
 #define SETTINGS_TERMINATOR '\0'
-#define ALIASES_FILE "/aliases.txt"
+#define ALIASES_FILE "/aliases.bin"
+#define BACKUP_FILE "_backup.bin"
 
 #define WEB_INDEX_FILENAME "/web/index.html"
 
@@ -143,7 +144,7 @@ public:
   static std::vector<RF24Channel> defaultListenChannels();
 
   void save();
-  void serialize(Print& stream, const bool prettyPrint = false);
+  void serialize(Print& stream, const bool prettyPrint = false) const;
   void updateDeviceIds(JsonArray arr);
   void updateGatewayConfigs(JsonArray arr);
   void patch(JsonObject obj);

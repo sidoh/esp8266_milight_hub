@@ -98,6 +98,9 @@ protected:
   void handleDeleteAliases(RequestContext& request);
   void handleUpdateAliases(RequestContext& request);
 
+  void handleCreateBackup(RequestContext& request);
+  void handleRestoreBackup(RequestContext& request);
+
   void handleRequest(const JsonObject& request);
   void handleWsEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length);
 
