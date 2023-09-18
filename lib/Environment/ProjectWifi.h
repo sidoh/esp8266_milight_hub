@@ -11,6 +11,7 @@
 
 #if defined(ESPMH_WIFI_SSID) && defined(ESPMH_WIFI_PASSWORD)
 #define ESPMH_SETUP_WIFI(settings) { \
+  Serial.println(F(">>> ESPMH_WIFI_SETUP() <<<"));\
   if (settings.wifiStaticIP.length() > 0) { \
     Serial.printf_P(PSTR("Configuring static IP...%s\n"), settings.wifiStaticIP.c_str()); \
     IPAddress _ip, _subnet, _gw;\
