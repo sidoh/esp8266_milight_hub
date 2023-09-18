@@ -401,5 +401,9 @@ RSpec.describe 'REST Server' do
       settings = @client.get('/settings')
       expect(settings['mqtt_username']).to eq('abc')
     end
+
+    it 'should reject invalid backups' do
+      expect { @client.upload_string_as_file('/backup', 'invalid') }.to raise_error(Net::HTTPServerException)
+    end
   end
 end
