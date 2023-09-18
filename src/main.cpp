@@ -23,6 +23,7 @@
 #include <PacketSender.h>
 #include <HomeAssistantDiscoveryClient.h>
 #include <TransitionController.h>
+#include <ProjectWifi.h>
 
 #include <vector>
 #include <memory>
@@ -364,6 +365,8 @@ void setup() {
   Serial.begin(9600);
   String ssid = "ESP" + String(ESP.getChipId());
 
+  ESPMH_SETUP_WIFI();
+
   // load up our persistent settings from the file system
   ProjectFS.begin();
   Settings::load(settings);
@@ -465,7 +468,7 @@ void loop() {
     wifiManager->process();
   }
 
-  if (WiFi.getMode() == WIFI_STA && (WiFi.status() == WL_IDLE_STATUS || WiFi.status() == WL_CONNECTED)) {
+  if (WiFi.getMode() == WIFI_STA && WiFi.isConnected()) {
     postConnectSetup();
 
     httpServer->handleClient();
