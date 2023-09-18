@@ -29,7 +29,7 @@
   Serial.println(WiFi.localIP());                  \
 }
 #else
-#define ESPMH_SETUP_WIFI() { }
+#define ESPMH_SETUP_WIFI(settings) { }
 #endif
 
 #endif //ESP8266_MILIGHT_HUB_PROJECTWIFI_H
