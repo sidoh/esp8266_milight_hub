@@ -505,17 +505,17 @@
         <div class="modal-body">
           <div>
             <h3 class="section-title">Backup Settings</h3>
-            <a href="/settings" download="settings.json" class="btn btn-primary">Backup Settings</a>
+            <a href="/backup" download="espmh-backup.bin" class="btn btn-primary">Backup Settings</a>
           </div>
 
           <div>
             <h3 class="section-title">Restore Settings</h3>
-            <form action="/settings" method="post" enctype="multipart/form-data">
+            <form action="/backup" method="post" enctype="multipart/form-data">
               <div class="input-group">
                 <label class="input-group-btn">
                   <span class="btn btn-primary">
                     Browse
-                    <input type="file" name="file" accept=".json" style="display: none;">
+                    <input type="file" name="file" accept=".bin" style="display: none;">
                   </span>
                 </label>
 
