@@ -38,12 +38,12 @@ void HomeAssistantDiscoveryClient::addConfig(const char* alias, const BulbId& bu
   DynamicJsonDocument config(1024);
 
   // Unique ID for this device + alias combo
-  char uniqidBuffer[30];
-  sprintf_P(uniqidBuffer, PSTR("%X-%s"), ESP.getChipId(), alias);
+  char uniqueIdBuffer[30];
+  snprintf_P(uniqueIdBuffer, sizeof(uniqueIdBuffer), PSTR("%X-%s"), ESP.getChipId(), alias);
 
   // String to ID the firmware version
-  char fwVersion[30];
-  sprintf_P(fwVersion, PSTR("esp8266_milight_hub v%s"), QUOTE(MILIGHT_HUB_VERSION));
+  char fwVersion[100];
+  snprintf_P(fwVersion, sizeof(fwVersion), PSTR("esp8266_milight_hub v%s"), QUOTE(MILIGHT_HUB_VERSION));
 
   config[F("dev_cla")] = F("light");
   config[F("schema")] = F("json");
@@ -52,9 +52,9 @@ void HomeAssistantDiscoveryClient::addConfig(const char* alias, const BulbId& bu
   config[F("cmd_t")] = mqttClient->bindTopicString(settings.mqttTopicPattern, bulbId);
   // state topic
   config[F("stat_t")] = mqttClient->bindTopicString(settings.mqttStateTopicPattern, bulbId);
-  config[F("uniq_id")] = mqttClient->bindTopicString(uniqidBuffer, bulbId);
-  JsonObject deviceMetadata = config.createNestedObject(F("dev"));
+  config[F("uniq_id")] = uniqueIdBuffer;
 
+  JsonObject deviceMetadata = config.createNestedObject(F("dev"));
   deviceMetadata[F("name")] = settings.hostname;
   deviceMetadata[F("sw")] = fwVersion;
   deviceMetadata[F("mf")] = F("espressif");
