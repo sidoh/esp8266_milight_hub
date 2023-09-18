@@ -27,9 +27,7 @@ class ApiClient
   end
 
   def clear_aliases
-    patch_settings({
-      group_id_aliases: {}
-    })
+    delete('/aliases.bin')
   end
 
   def live?(ping_count = 10, sleep_time = 1, inverted = false)

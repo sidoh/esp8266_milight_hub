@@ -238,6 +238,16 @@ RSpec.describe 'REST Server' do
       expect(list_response['aliases'].length).to eq(0)
     end
 
+    it 'DELETE /aliases.bin should clear all aliases' do
+      @client.post('/aliases', @test_alias)
+      response = @client.delete('/aliases.bin')
+      expect(response['success']).to be_truthy
+
+      list_response = @client.get('/aliases')
+
+      expect(list_response['aliases'].length).to eq(0)
+    end
+
     it 'GET /aliases.bin should return a null-separted binary of aliases' do
       create_response = @client.post('/aliases', @test_alias)
       result = @client.get('/aliases.bin')
@@ -315,6 +325,81 @@ RSpec.describe 'REST Server' do
       end
 
       expect(all_aliases.length).to eq(20)
+    end
+  end
+
+  context 'backup routes' do
+    before(:each) do
+      @client.reset_settings
+    end
+
+    it 'should preserve settings when creating a backup' do
+      @client.patch_settings({
+        mqtt_server: 'abc',
+        mqtt_topic_pattern: "123",
+      })
+
+      # Create a few aliases
+      aliases = (1..10).map do |i|
+        {
+          alias: "test#{i}",
+          device_type: 'rgb_cct',
+          device_id: @client.generate_id,
+          group_id: 1
+        }
+      end
+      aliases.each do |a|
+        @client.post('/aliases', a)
+      end
+
+      backup = @client.get('/backup')
+
+      # Reset settings
+      @client.reset_settings
+
+      # Ensure settings were reset
+      expect(@client.get('/settings')['mqtt_server']).to eq('')
+      expect(@client.get('/aliases')['aliases'].length).to eq(0)
+
+      # Upload backup
+      @client.upload_string_as_file('/backup', backup)
+
+      # Check settings
+      result = @client.get('/settings')
+
+      expect(result['mqtt_server']).to eq('abc')
+      expect(result['mqtt_topic_pattern']).to eq("123")
+
+      # Check aliases
+      result = @client.get('/aliases')
+
+      expected_aliases = Set.new(aliases.map { |a| a[:alias] })
+      actual_aliases = Set.new(result['aliases'].map { |a| a['alias'] })
+
+      expect(actual_aliases).to eq(expected_aliases)
+    end
+
+    it 'should override existing settings when restoring a backup' do
+      @client.patch_settings({
+        mqtt_username: 'abc',
+      })
+      @client.post('/aliases', {
+          alias: "test_alias",
+          device_type: 'rgb_cct',
+          device_id: @client.generate_id,
+          group_id: 1
+      })
+
+      result = @client.get('/backup')
+
+      @client.patch_settings({
+        mqtt_server: 'def',
+      })
+
+      @client.upload_string_as_file('/backup', result)
+
+      settings = @client.get('/settings')
+      expect(settings['mqtt_username']).to eq('abc')
     end
   end
 end
