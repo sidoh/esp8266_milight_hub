@@ -365,12 +365,12 @@ void setup() {
   Serial.begin(9600);
   String ssid = "ESP" + String(ESP.getChipId());
 
-  ESPMH_SETUP_WIFI();
-
   // load up our persistent settings from the file system
   ProjectFS.begin();
   Settings::load(settings);
   applySettings();
+
+  ESPMH_SETUP_WIFI(settings);
 
   // set up the LED status for wifi configuration
   ledStatus = new LEDStatus(settings.ledPin);
