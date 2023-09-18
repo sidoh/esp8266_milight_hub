@@ -172,6 +172,45 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/About'
+  /backup:
+    post:
+        tags:
+        - System
+        summary: Restore a backup
+        requestBody:
+          content:
+            multipart/form-data:
+              schema:
+                type: object
+                properties:
+                  file:
+                  type: string
+                  format: binary
+        responses:
+          400:
+            description: error
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/BooleanResponse'
+          201:
+            description: Backup uploaded and settings restored successfully
+            content:
+              application/json:
+                schema:
+                    $ref: '#/components/schemas/BooleanResponse'
+    get:
+      tags:
+      - System
+      summary: Download a backup of all settings
+      responses:
+        200:
+          description: success
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
   /remote_configs:
     get:
       tags:
