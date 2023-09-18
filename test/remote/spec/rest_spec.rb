@@ -282,7 +282,6 @@ RSpec.describe 'REST Server' do
         [i, "test#{i}", 'rgb_cct', i, 1]
       end.flatten.join("\0")
 
-      puts csv.gsub('\0', '.')
       File.open('/tmp/aliases.bin', 'w') { |f| f.write(csv) }
 
       @client.upload_string_as_file('/aliases.bin', csv)
