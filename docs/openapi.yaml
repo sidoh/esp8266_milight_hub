@@ -184,8 +184,8 @@ paths:
                 type: object
                 properties:
                   file:
-                  type: string
-                  format: binary
+                    type: string
+                    format: binary
         responses:
           400:
             description: error
