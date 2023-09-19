@@ -69,95 +69,95 @@ void Settings::patch(JsonObject parsedSettings) {
     return;
   }
 
-  this->setIfPresent(parsedSettings, "admin_username", adminUsername);
-  this->setIfPresent(parsedSettings, "admin_password", adminPassword);
-  this->setIfPresent(parsedSettings, "ce_pin", cePin);
-  this->setIfPresent(parsedSettings, "csn_pin", csnPin);
-  this->setIfPresent(parsedSettings, "reset_pin", resetPin);
-  this->setIfPresent(parsedSettings, "led_pin", ledPin);
-  this->setIfPresent(parsedSettings, "packet_repeats", packetRepeats);
-  this->setIfPresent(parsedSettings, "http_repeat_factor", httpRepeatFactor);
-  this->setIfPresent(parsedSettings, "auto_restart_period", _autoRestartPeriod);
-  this->setIfPresent(parsedSettings, "mqtt_server", _mqttServer);
-  this->setIfPresent(parsedSettings, "mqtt_username", mqttUsername);
-  this->setIfPresent(parsedSettings, "mqtt_password", mqttPassword);
-  this->setIfPresent(parsedSettings, "mqtt_topic_pattern", mqttTopicPattern);
-  this->setIfPresent(parsedSettings, "mqtt_update_topic_pattern", mqttUpdateTopicPattern);
-  this->setIfPresent(parsedSettings, "mqtt_state_topic_pattern", mqttStateTopicPattern);
-  this->setIfPresent(parsedSettings, "mqtt_client_status_topic", mqttClientStatusTopic);
-  this->setIfPresent(parsedSettings, "simple_mqtt_client_status", simpleMqttClientStatus);
-  this->setIfPresent(parsedSettings, "discovery_port", discoveryPort);
-  this->setIfPresent(parsedSettings, "listen_repeats", listenRepeats);
-  this->setIfPresent(parsedSettings, "state_flush_interval", stateFlushInterval);
-  this->setIfPresent(parsedSettings, "mqtt_state_rate_limit", mqttStateRateLimit);
-  this->setIfPresent(parsedSettings, "mqtt_debounce_delay", mqttDebounceDelay);
-  this->setIfPresent(parsedSettings, "mqtt_retain", mqttRetain);
-  this->setIfPresent(parsedSettings, "packet_repeat_throttle_threshold", packetRepeatThrottleThreshold);
-  this->setIfPresent(parsedSettings, "packet_repeat_throttle_sensitivity", packetRepeatThrottleSensitivity);
-  this->setIfPresent(parsedSettings, "packet_repeat_minimum", packetRepeatMinimum);
-  this->setIfPresent(parsedSettings, "enable_automatic_mode_switching", enableAutomaticModeSwitching);
-  this->setIfPresent(parsedSettings, "led_mode_packet_count", ledModePacketCount);
-  this->setIfPresent(parsedSettings, "hostname", hostname);
-  this->setIfPresent(parsedSettings, "wifi_static_ip", wifiStaticIP);
-  this->setIfPresent(parsedSettings, "wifi_static_ip_gateway", wifiStaticIPGateway);
-  this->setIfPresent(parsedSettings, "wifi_static_ip_netmask", wifiStaticIPNetmask);
-  this->setIfPresent(parsedSettings, "packet_repeats_per_loop", packetRepeatsPerLoop);
-  this->setIfPresent(parsedSettings, "home_assistant_discovery_prefix", homeAssistantDiscoveryPrefix);
-  this->setIfPresent(parsedSettings, "default_transition_period", defaultTransitionPeriod);
+  this->setIfPresent(parsedSettings, FPSTR(SettingsKeys::ADMIN_USERNAME), adminUsername);
+  this->setIfPresent(parsedSettings, FPSTR(SettingsKeys::ADMIN_PASSWORD), adminPassword);
+  this->setIfPresent(parsedSettings, FPSTR(SettingsKeys::CE_PIN), cePin);
+  this->setIfPresent(parsedSettings, FPSTR(SettingsKeys::CSN_PIN), csnPin);
+  this->setIfPresent(parsedSettings, FPSTR(SettingsKeys::RESET_PIN), resetPin);
+  this->setIfPresent(parsedSettings, FPSTR(SettingsKeys::LED_PIN), ledPin);
+  this->setIfPresent(parsedSettings, FPSTR(SettingsKeys::PACKET_REPEATS), packetRepeats);
+  this->setIfPresent(parsedSettings, FPSTR(SettingsKeys::HTTP_REPEAT_FACTOR), httpRepeatFactor);
+  this->setIfPresent(parsedSettings, FPSTR(SettingsKeys::AUTO_RESTART_PERIOD), _autoRestartPeriod);
+  this->setIfPresent(parsedSettings, FPSTR(SettingsKeys::MQTT_SERVER), _mqttServer);
+  this->setIfPresent(parsedSettings, FPSTR(SettingsKeys::MQTT_USERNAME), mqttUsername);
+  this->setIfPresent(parsedSettings, FPSTR(SettingsKeys::MQTT_PASSWORD), mqttPassword);
+  this->setIfPresent(parsedSettings, FPSTR(SettingsKeys::MQTT_TOPIC_PATTERN), mqttTopicPattern);
+  this->setIfPresent(parsedSettings, FPSTR(SettingsKeys::MQTT_UPDATE_TOPIC_PATTERN), mqttUpdateTopicPattern);
+  this->setIfPresent(parsedSettings, FPSTR(SettingsKeys::MQTT_STATE_TOPIC_PATTERN), mqttStateTopicPattern);
+  this->setIfPresent(parsedSettings, FPSTR(SettingsKeys::MQTT_CLIENT_STATUS_TOPIC), mqttClientStatusTopic);
+  this->setIfPresent(parsedSettings, FPSTR(SettingsKeys::SIMPLE_MQTT_CLIENT_STATUS), simpleMqttClientStatus);
+  this->setIfPresent(parsedSettings, FPSTR(SettingsKeys::DISCOVERY_PORT), discoveryPort);
+  this->setIfPresent(parsedSettings, FPSTR(SettingsKeys::LISTEN_REPEATS), listenRepeats);
+  this->setIfPresent(parsedSettings, FPSTR(SettingsKeys::STATE_FLUSH_INTERVAL), stateFlushInterval);
+  this->setIfPresent(parsedSettings, FPSTR(SettingsKeys::MQTT_STATE_RATE_LIMIT), mqttStateRateLimit);
+  this->setIfPresent(parsedSettings, FPSTR(SettingsKeys::MQTT_DEBOUNCE_DELAY), mqttDebounceDelay);
+  this->setIfPresent(parsedSettings, FPSTR(SettingsKeys::MQTT_RETAIN), mqttRetain);
+  this->setIfPresent(parsedSettings, FPSTR(SettingsKeys::PACKET_REPEAT_THROTTLE_THRESHOLD), packetRepeatThrottleThreshold);
+  this->setIfPresent(parsedSettings, FPSTR(SettingsKeys::PACKET_REPEAT_THROTTLE_SENSITIVITY), packetRepeatThrottleSensitivity);
+  this->setIfPresent(parsedSettings, FPSTR(SettingsKeys::PACKET_REPEAT_MINIMUM), packetRepeatMinimum);
+  this->setIfPresent(parsedSettings, FPSTR(SettingsKeys::ENABLE_AUTOMATIC_MODE_SWITCHING), enableAutomaticModeSwitching);
+  this->setIfPresent(parsedSettings, FPSTR(SettingsKeys::LED_MODE_PACKET_COUNT), ledModePacketCount);
+  this->setIfPresent(parsedSettings, FPSTR(SettingsKeys::HOSTNAME), hostname);
+  this->setIfPresent(parsedSettings, FPSTR(SettingsKeys::WIFI_STATIC_IP), wifiStaticIP);
+  this->setIfPresent(parsedSettings, FPSTR(SettingsKeys::WIFI_STATIC_IP_GATEWAY), wifiStaticIPGateway);
+  this->setIfPresent(parsedSettings, FPSTR(SettingsKeys::WIFI_STATIC_IP_NETMASK), wifiStaticIPNetmask);
+  this->setIfPresent(parsedSettings, FPSTR(SettingsKeys::PACKET_REPEATS_PER_LOOP), packetRepeatsPerLoop);
+  this->setIfPresent(parsedSettings, FPSTR(SettingsKeys::HOME_ASSISTANT_DISCOVERY_PREFIX), homeAssistantDiscoveryPrefix);
+  this->setIfPresent(parsedSettings, FPSTR(SettingsKeys::DEFAULT_TRANSITION_PERIOD), defaultTransitionPeriod);
 
-  if (parsedSettings.containsKey("wifi_mode")) {
-    this->wifiMode = wifiModeFromString(parsedSettings["wifi_mode"]);
+  if (parsedSettings.containsKey(FPSTR(SettingsKeys::WIFI_MODE))) {
+    this->wifiMode = wifiModeFromString(parsedSettings[FPSTR(SettingsKeys::WIFI_MODE)]);
   }
 
-  if (parsedSettings.containsKey("rf24_channels")) {
-    JsonArray arr = parsedSettings["rf24_channels"];
+  if (parsedSettings.containsKey(FPSTR(SettingsKeys::RF24_CHANNELS))) {
+    JsonArray arr = parsedSettings[FPSTR(SettingsKeys::RF24_CHANNELS)];
     rf24Channels = JsonHelpers::jsonArrToVector<RF24Channel, String>(arr, RF24ChannelHelpers::valueFromName);
   }
 
-  if (parsedSettings.containsKey("rf24_listen_channel")) {
-    this->rf24ListenChannel = RF24ChannelHelpers::valueFromName(parsedSettings["rf24_listen_channel"]);
+  if (parsedSettings.containsKey(FPSTR(SettingsKeys::RF24_LISTEN_CHANNEL))) {
+    this->rf24ListenChannel = RF24ChannelHelpers::valueFromName(parsedSettings[FPSTR(SettingsKeys::RF24_LISTEN_CHANNEL)]);
   }
 
-  if (parsedSettings.containsKey("rf24_power_level")) {
-    this->rf24PowerLevel = RF24PowerLevelHelpers::valueFromName(parsedSettings["rf24_power_level"]);
+  if (parsedSettings.containsKey(FPSTR(SettingsKeys::RF24_POWER_LEVEL))) {
+    this->rf24PowerLevel = RF24PowerLevelHelpers::valueFromName(parsedSettings[FPSTR(SettingsKeys::RF24_POWER_LEVEL)]);
   }
 
-  if (parsedSettings.containsKey("led_mode_wifi_config")) {
-    this->ledModeWifiConfig = LEDStatus::stringToLEDMode(parsedSettings["led_mode_wifi_config"]);
+  if (parsedSettings.containsKey(FPSTR(SettingsKeys::LED_MODE_WIFI_CONFIG))) {
+    this->ledModeWifiConfig = LEDStatus::stringToLEDMode(parsedSettings[FPSTR(SettingsKeys::LED_MODE_WIFI_CONFIG)]);
   }
 
-  if (parsedSettings.containsKey("led_mode_wifi_failed")) {
-    this->ledModeWifiFailed = LEDStatus::stringToLEDMode(parsedSettings["led_mode_wifi_failed"]);
+  if (parsedSettings.containsKey(FPSTR(SettingsKeys::LED_MODE_WIFI_FAILED))) {
+    this->ledModeWifiFailed = LEDStatus::stringToLEDMode(parsedSettings[FPSTR(SettingsKeys::LED_MODE_WIFI_FAILED)]);
   }
 
-  if (parsedSettings.containsKey("led_mode_operating")) {
-    this->ledModeOperating = LEDStatus::stringToLEDMode(parsedSettings["led_mode_operating"]);
+  if (parsedSettings.containsKey(FPSTR(SettingsKeys::LED_MODE_OPERATING))) {
+    this->ledModeOperating = LEDStatus::stringToLEDMode(parsedSettings[FPSTR(SettingsKeys::LED_MODE_OPERATING)]);
   }
 
-  if (parsedSettings.containsKey("led_mode_packet")) {
-    this->ledModePacket = LEDStatus::stringToLEDMode(parsedSettings["led_mode_packet"]);
+  if (parsedSettings.containsKey(FPSTR(SettingsKeys::LED_MODE_PACKET))) {
+    this->ledModePacket = LEDStatus::stringToLEDMode(parsedSettings[FPSTR(SettingsKeys::LED_MODE_PACKET)]);
   }
 
-  if (parsedSettings.containsKey("radio_interface_type")) {
-    this->radioInterfaceType = Settings::typeFromString(parsedSettings["radio_interface_type"]);
+  if (parsedSettings.containsKey(FPSTR(SettingsKeys::RADIO_INTERFACE_TYPE))) {
+    this->radioInterfaceType = Settings::typeFromString(parsedSettings[FPSTR(SettingsKeys::RADIO_INTERFACE_TYPE)]);
   }
 
-  if (parsedSettings.containsKey("device_ids")) {
-    JsonArray arr = parsedSettings["device_ids"];
+  if (parsedSettings.containsKey(FPSTR(SettingsKeys::DEVICE_IDS))) {
+    JsonArray arr = parsedSettings[FPSTR(SettingsKeys::DEVICE_IDS)];
     updateDeviceIds(arr);
   }
-  if (parsedSettings.containsKey("gateway_configs")) {
-    JsonArray arr = parsedSettings["gateway_configs"];
+  if (parsedSettings.containsKey(FPSTR(SettingsKeys::GATEWAY_CONFIGS))) {
+    JsonArray arr = parsedSettings[FPSTR(SettingsKeys::GATEWAY_CONFIGS)];
     updateGatewayConfigs(arr);
   }
-  if (parsedSettings.containsKey("group_state_fields")) {
-    JsonArray arr = parsedSettings["group_state_fields"];
+  if (parsedSettings.containsKey(FPSTR(SettingsKeys::GROUP_STATE_FIELDS))) {
+    JsonArray arr = parsedSettings[FPSTR(SettingsKeys::GROUP_STATE_FIELDS)];
     groupStateFields = JsonHelpers::jsonArrToVector<GroupStateField, const char*>(arr, GroupStateFieldHelpers::getFieldByName);
   }
 
   // this key will only be present in old settings files, but for backwards
   // compatability, parse it if it's present.
-  if (parsedSettings.containsKey("group_id_aliases")) {
+  if (parsedSettings.containsKey(FPSTR(SettingsKeys::GROUP_ID_ALIASES))) {
     parseGroupIdAliases(parsedSettings);
   }
 }
@@ -175,7 +175,7 @@ std::map<String, GroupAlias>::const_iterator Settings::findAlias(MiLightRemoteTy
 }
 
 void Settings::parseGroupIdAliases(JsonObject json) {
-  JsonObject aliases = json["group_id_aliases"];
+  JsonObject aliases = json[FPSTR(SettingsKeys::GROUP_ID_ALIASES)].as<JsonObject>();
 
   // Save group IDs that were deleted so that they can be processed by discovery
   // if necessary
@@ -201,7 +201,7 @@ void Settings::parseGroupIdAliases(JsonObject json) {
 }
 
 void Settings::dumpGroupIdAliases(JsonObject json) {
-  JsonObject aliases = json.createNestedObject("group_id_aliases");
+  JsonObject aliases = json.createNestedObject(FPSTR(SettingsKeys::GROUP_ID_ALIASES));
 
   for (auto & groupIdAlias : groupIdAliases) {
     JsonArray bulbProps = aliases.createNestedArray(groupIdAlias.first);
@@ -308,57 +308,57 @@ void Settings::save() {
 void Settings::serialize(Print& stream, const bool prettyPrint) const {
   DynamicJsonDocument root(MILIGHT_HUB_SETTINGS_BUFFER_SIZE);
 
-  root[FPSTR("admin_username")] = this->adminUsername;
-  root[FPSTR("admin_password")] = this->adminPassword;
-  root[FPSTR("ce_pin")] = this->cePin;
-  root[FPSTR("csn_pin")] = this->csnPin;
-  root[FPSTR("reset_pin")] = this->resetPin;
-  root[FPSTR("led_pin")] = this->ledPin;
-  root[FPSTR("radio_interface_type")] = typeToString(this->radioInterfaceType);
-  root[FPSTR("packet_repeats")] = this->packetRepeats;
-  root[FPSTR("http_repeat_factor")] = this->httpRepeatFactor;
-  root[FPSTR("auto_restart_period")] = this->_autoRestartPeriod;
-  root[FPSTR("mqtt_server")] = this->_mqttServer;
-  root[FPSTR("mqtt_username")] = this->mqttUsername;
-  root[FPSTR("mqtt_password")] = this->mqttPassword;
-  root[FPSTR("mqtt_topic_pattern")] = this->mqttTopicPattern;
-  root[FPSTR("mqtt_update_topic_pattern")] = this->mqttUpdateTopicPattern;
-  root[FPSTR("mqtt_state_topic_pattern")] = this->mqttStateTopicPattern;
-  root[FPSTR("mqtt_client_status_topic")] = this->mqttClientStatusTopic;
-  root[FPSTR("simple_mqtt_client_status")] = this->simpleMqttClientStatus;
-  root[FPSTR("discovery_port")] = this->discoveryPort;
-  root[FPSTR("listen_repeats")] = this->listenRepeats;
-  root[FPSTR("state_flush_interval")] = this->stateFlushInterval;
-  root[FPSTR("mqtt_state_rate_limit")] = this->mqttStateRateLimit;
-  root[FPSTR("mqtt_debounce_delay")] = this->mqttDebounceDelay;
-  root[FPSTR("mqtt_retain")] = this->mqttRetain;
-  root[FPSTR("packet_repeat_throttle_sensitivity")] = this->packetRepeatThrottleSensitivity;
-  root[FPSTR("packet_repeat_throttle_threshold")] = this->packetRepeatThrottleThreshold;
-  root[FPSTR("packet_repeat_minimum")] = this->packetRepeatMinimum;
-  root[FPSTR("enable_automatic_mode_switching")] = this->enableAutomaticModeSwitching;
-  root[FPSTR("led_mode_wifi_config")] = LEDStatus::LEDModeToString(this->ledModeWifiConfig);
-  root[FPSTR("led_mode_wifi_failed")] = LEDStatus::LEDModeToString(this->ledModeWifiFailed);
-  root[FPSTR("led_mode_operating")] = LEDStatus::LEDModeToString(this->ledModeOperating);
-  root[FPSTR("led_mode_packet")] = LEDStatus::LEDModeToString(this->ledModePacket);
-  root[FPSTR("led_mode_packet_count")] = this->ledModePacketCount;
-  root[FPSTR("hostname")] = this->hostname;
-  root[FPSTR("rf24_power_level")] = RF24PowerLevelHelpers::nameFromValue(this->rf24PowerLevel);
-  root[FPSTR("rf24_listen_channel")] = RF24ChannelHelpers::nameFromValue(rf24ListenChannel);
-  root[FPSTR("wifi_static_ip")] = this->wifiStaticIP;
-  root[FPSTR("wifi_static_ip_gateway")] = this->wifiStaticIPGateway;
-  root[FPSTR("wifi_static_ip_netmask")] = this->wifiStaticIPNetmask;
-  root[FPSTR("packet_repeats_per_loop")] = this->packetRepeatsPerLoop;
-  root[FPSTR("home_assistant_discovery_prefix")] = this->homeAssistantDiscoveryPrefix;
-  root[FPSTR("wifi_mode")] = wifiModeToString(this->wifiMode);
-  root[FPSTR("default_transition_period")] = this->defaultTransitionPeriod;
+  root[FPSTR(SettingsKeys::ADMIN_USERNAME)] = this->adminUsername;
+  root[FPSTR(SettingsKeys::ADMIN_PASSWORD)] = this->adminPassword;
+  root[FPSTR(SettingsKeys::CE_PIN)] = this->cePin;
+  root[FPSTR(SettingsKeys::CSN_PIN)] = this->csnPin;
+  root[FPSTR(SettingsKeys::RESET_PIN)] = this->resetPin;
+  root[FPSTR(SettingsKeys::LED_PIN)] = this->ledPin;
+  root[FPSTR(SettingsKeys::RADIO_INTERFACE_TYPE)] = typeToString(this->radioInterfaceType);
+  root[FPSTR(SettingsKeys::PACKET_REPEATS)] = this->packetRepeats;
+  root[FPSTR(SettingsKeys::HTTP_REPEAT_FACTOR)] = this->httpRepeatFactor;
+  root[FPSTR(SettingsKeys::AUTO_RESTART_PERIOD)] = this->_autoRestartPeriod;
+  root[FPSTR(SettingsKeys::MQTT_SERVER)] = this->_mqttServer;
+  root[FPSTR(SettingsKeys::MQTT_USERNAME)] = this->mqttUsername;
+  root[FPSTR(SettingsKeys::MQTT_PASSWORD)] = this->mqttPassword;
+  root[FPSTR(SettingsKeys::MQTT_TOPIC_PATTERN)] = this->mqttTopicPattern;
+  root[FPSTR(SettingsKeys::MQTT_UPDATE_TOPIC_PATTERN)] = this->mqttUpdateTopicPattern;
+  root[FPSTR(SettingsKeys::MQTT_STATE_TOPIC_PATTERN)] = this->mqttStateTopicPattern;
+  root[FPSTR(SettingsKeys::MQTT_CLIENT_STATUS_TOPIC)] = this->mqttClientStatusTopic;
+  root[FPSTR(SettingsKeys::SIMPLE_MQTT_CLIENT_STATUS)] = this->simpleMqttClientStatus;
+  root[FPSTR(SettingsKeys::DISCOVERY_PORT)] = this->discoveryPort;
+  root[FPSTR(SettingsKeys::LISTEN_REPEATS)] = this->listenRepeats;
+  root[FPSTR(SettingsKeys::STATE_FLUSH_INTERVAL)] = this->stateFlushInterval;
+  root[FPSTR(SettingsKeys::MQTT_STATE_RATE_LIMIT)] = this->mqttStateRateLimit;
+  root[FPSTR(SettingsKeys::MQTT_DEBOUNCE_DELAY)] = this->mqttDebounceDelay;
+  root[FPSTR(SettingsKeys::MQTT_RETAIN)] = this->mqttRetain;
+  root[FPSTR(SettingsKeys::PACKET_REPEAT_THROTTLE_SENSITIVITY)] = this->packetRepeatThrottleSensitivity;
+  root[FPSTR(SettingsKeys::PACKET_REPEAT_THROTTLE_THRESHOLD)] = this->packetRepeatThrottleThreshold;
+  root[FPSTR(SettingsKeys::PACKET_REPEAT_MINIMUM)] = this->packetRepeatMinimum;
+  root[FPSTR(SettingsKeys::ENABLE_AUTOMATIC_MODE_SWITCHING)] = this->enableAutomaticModeSwitching;
+  root[FPSTR(SettingsKeys::LED_MODE_WIFI_CONFIG)] = LEDStatus::LEDModeToString(this->ledModeWifiConfig);
+  root[FPSTR(SettingsKeys::LED_MODE_WIFI_FAILED)] = LEDStatus::LEDModeToString(this->ledModeWifiFailed);
+  root[FPSTR(SettingsKeys::LED_MODE_OPERATING)] = LEDStatus::LEDModeToString(this->ledModeOperating);
+  root[FPSTR(SettingsKeys::LED_MODE_PACKET)] = LEDStatus::LEDModeToString(this->ledModePacket);
+  root[FPSTR(SettingsKeys::LED_MODE_PACKET_COUNT)] = this->ledModePacketCount;
+  root[FPSTR(SettingsKeys::HOSTNAME)] = this->hostname;
+  root[FPSTR(SettingsKeys::RF24_POWER_LEVEL)] = RF24PowerLevelHelpers::nameFromValue(this->rf24PowerLevel);
+  root[FPSTR(SettingsKeys::RF24_LISTEN_CHANNEL)] = RF24ChannelHelpers::nameFromValue(rf24ListenChannel);
+  root[FPSTR(SettingsKeys::WIFI_STATIC_IP)] = this->wifiStaticIP;
+  root[FPSTR(SettingsKeys::WIFI_STATIC_IP_GATEWAY)] = this->wifiStaticIPGateway;
+  root[FPSTR(SettingsKeys::WIFI_STATIC_IP_NETMASK)] = this->wifiStaticIPNetmask;
+  root[FPSTR(SettingsKeys::PACKET_REPEATS_PER_LOOP)] = this->packetRepeatsPerLoop;
+  root[FPSTR(SettingsKeys::HOME_ASSISTANT_DISCOVERY_PREFIX)] = this->homeAssistantDiscoveryPrefix;
+  root[FPSTR(SettingsKeys::WIFI_MODE)] = wifiModeToString(this->wifiMode);
+  root[FPSTR(SettingsKeys::DEFAULT_TRANSITION_PERIOD)] = this->defaultTransitionPeriod;
 
-  JsonArray channelArr = root.createNestedArray("rf24_channels");
+  JsonArray channelArr = root.createNestedArray(FPSTR(SettingsKeys::RF24_CHANNELS));
   JsonHelpers::vectorToJsonArr<RF24Channel, String>(channelArr, rf24Channels, RF24ChannelHelpers::nameFromValue);
 
-  JsonArray deviceIdsArr = root.createNestedArray("device_ids");
+  JsonArray deviceIdsArr = root.createNestedArray(FPSTR(SettingsKeys::DEVICE_IDS));
   JsonHelpers::copyFrom<uint16_t>(deviceIdsArr, this->deviceIds);
 
-  JsonArray gatewayConfigsArr = root.createNestedArray("gateway_configs");
+  JsonArray gatewayConfigsArr = root.createNestedArray(FPSTR(SettingsKeys::GATEWAY_CONFIGS));
   for (size_t i = 0; i < this->gatewayConfigs.size(); i++) {
     JsonArray elmt = gatewayConfigsArr.createNestedArray();
     elmt.add(this->gatewayConfigs[i]->deviceId);
@@ -366,7 +366,7 @@ void Settings::serialize(Print& stream, const bool prettyPrint) const {
     elmt.add(this->gatewayConfigs[i]->protocolVersion);
   }
 
-  JsonArray groupStateFieldArr = root.createNestedArray("group_state_fields");
+  JsonArray groupStateFieldArr = root.createNestedArray(FPSTR(SettingsKeys::GROUP_STATE_FIELDS));
   JsonHelpers::vectorToJsonArr<GroupStateField, const char*>(groupStateFieldArr, groupStateFields, GroupStateFieldHelpers::getFieldName);
 
   if (prettyPrint) {
