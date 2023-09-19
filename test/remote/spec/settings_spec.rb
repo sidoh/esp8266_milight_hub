@@ -34,7 +34,6 @@ RSpec.describe 'Settings' do
         'mqtt_retain' => [true, false],
         'packet_repeats_per_loop' => [10],
         'home_assistant_discovery_prefix' => ['', 'abc', 'a/b/c'],
-        'wifi_mode' => %w(n b g),
         'default_transition_period' => [200, 500]
       }.each do |key, values|
         values.each do |v|
