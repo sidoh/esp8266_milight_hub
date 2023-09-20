@@ -54,30 +54,31 @@ RSpec.describe 'Settings' do
 
   context 'POST settings file' do
     it 'should clobber patched settings' do
-      file = Tempfile.new('espmh-settings.json')
-      file.write({
-        mqtt_server: 'test123'
-      }.to_json)
-      file.close
+      Tempfile.new('espmh-settings.json') do |file|
+        file.write({
+          mqtt_server: 'test123'
+        }.to_json)
+        file.close
 
-      @client.upload_json('/settings', file.path)
+        @client.upload_json('/settings', file.path)
 
-      settings = @client.get('/settings')
-      expect(settings['mqtt_server']).to eq('test123')
+        settings = @client.get('/settings')
+        expect(settings['mqtt_server']).to eq('test123')
 
-      @client.put('/settings', {mqtt_server: 'abc123', mqtt_username: 'foo'})
+        @client.put('/settings', {mqtt_server: 'abc123', mqtt_username: 'foo'})
 
-      settings = @client.get('/settings')
-      expect(settings['mqtt_server']).to eq('abc123')
-      expect(settings['mqtt_username']).to eq('foo')
+        settings = @client.get('/settings')
+        expect(settings['mqtt_server']).to eq('abc123')
+        expect(settings['mqtt_username']).to eq('foo')
 
-      @client.upload_json('/settings', file.path)
-      settings = @client.get('/settings')
+        @client.upload_json('/settings', file.path)
+        settings = @client.get('/settings')
 
-      expect(settings['mqtt_server']).to eq('test123')
-      expect(settings['mqtt_username']).to eq('')
+        expect(settings['mqtt_server']).to eq('test123')
+        expect(settings['mqtt_username']).to eq('')
 
-      File.delete(file.path)
+        File.delete(file.path)
+      end
     end
 
     it 'should apply POSTed settings' do
@@ -215,6 +216,7 @@ RSpec.describe 'Settings' do
       # Wait for it to come back up
       static_client = ApiClient.new(static_ip, ENV.fetch('ESPMH_TEST_DEVICE_ID_BASE'))
       static_client.wait_for_liveness
+
       static_client.put('/settings', wifi_static_ip: '')
       static_client.reboot
 
