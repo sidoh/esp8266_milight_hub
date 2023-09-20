@@ -271,7 +271,21 @@ protected:
   void setIfPresent(JsonObject obj, const __FlashStringHelper* key, T& var) {
     if (obj.containsKey(key)) {
       JsonVariant val = obj[key];
-      var = val.as<T>();
+
+      // For booleans, parse string/int
+      if constexpr (std::is_same_v<bool, T>) {
+        if (val.is<bool>()) {
+          var = val.as<bool>();
+        } else if (val.is<const char*>()) {
+          var = strcmp(val.as<const char*>(), "true") == 0;
+        } else if (val.is<int>()) {
+          var = val.as<int>() == 1;
+        } else {
+          var = false;
+        }
+      } else {
+        var = val.as<T>();
+      }
     }
   }
 };

@@ -30,29 +30,40 @@ class ApiClient
     delete('/aliases.bin')
   end
 
-  def live?(ping_count = 10, sleep_time = 1, inverted = false)
-    print "Checking for liveness of #{@host}..."
+  def live?(ping_count = 10, timeout = 1, inverted = false)
+    print "Waiting for #{@host} to be #{inverted ? 'un' : ''}available..."
 
-    ping_test = Net::Ping::External.new(@host)
+    ping_test = Net::Ping::External.new(@host, timeout: timeout)
     check = inverted ? -> { not ping_test.ping? } : -> { ping_test.ping? }
+    result = nil
+    last_call = Time.now
 
     ping_count.times do
-      break if check.call
-      sleep sleep_time
+      result = check.call
+      break if result
+
+      this_call = Time.now
+      time_since_last_call = this_call - last_call
+
+      if time_since_last_call < timeout then
+        sleep (timeout - time_since_last_call)
+      end
+
+      last_call = this_call
 
       print '.'
     end
 
-    puts check.call ? 'OK' : 'FAIL'
-    check.call
+    puts result ? 'OK' : 'FAIL'
+    result
   end
 
-  def wait_for_liveness(ping_count = 10, sleep_time = 1)
-    raise LivenessError unless live?(ping_count, sleep_time)
+  def wait_for_liveness(ping_count = 10, timeout = 5)
+    raise LivenessError unless live?(ping_count, timeout)
   end
 
-  def wait_for_unavailable(ping_count = 10, sleep_time = 1)
-    raise LivenessError if live?(100, 0.1, true)
+  def wait_for_unavailable(ping_count = 500, timeout = 0.1)
+    raise LivenessError unless live?(ping_count, timeout, true)
   end
 
   def generate_id

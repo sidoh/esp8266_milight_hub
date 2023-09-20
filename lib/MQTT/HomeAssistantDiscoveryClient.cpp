@@ -1,6 +1,7 @@
 #include <HomeAssistantDiscoveryClient.h>
 #include <MiLightCommands.h>
 #include <Units.h>
+#include <ESP8266WiFi.h>
 
 HomeAssistantDiscoveryClient::HomeAssistantDiscoveryClient(Settings& settings, MqttClient* mqttClient)
   : settings(settings)
@@ -45,6 +46,10 @@ void HomeAssistantDiscoveryClient::addConfig(const char* alias, const BulbId& bu
   char fwVersion[100];
   snprintf_P(fwVersion, sizeof(fwVersion), PSTR("esp8266_milight_hub v%s"), QUOTE(MILIGHT_HUB_VERSION));
 
+  // URL to the device
+  char deviceUrl[23];
+  snprintf_P(deviceUrl, sizeof(deviceUrl), PSTR("http://%s"), WiFi.localIP().toString().c_str());
+
   config[F("dev_cla")] = F("light");
   config[F("schema")] = F("json");
   config[F("name")] = alias;
@@ -54,12 +59,16 @@ void HomeAssistantDiscoveryClient::addConfig(const char* alias, const BulbId& bu
   config[F("stat_t")] = mqttClient->bindTopicString(settings.mqttStateTopicPattern, bulbId);
   config[F("uniq_id")] = uniqueIdBuffer;
 
+  JsonObject originMetadata = config.createNestedObject(F("o"));
+  originMetadata[F("url")] = deviceUrl;
+
   JsonObject deviceMetadata = config.createNestedObject(F("dev"));
   deviceMetadata[F("name")] = settings.hostname;
   deviceMetadata[F("sw")] = fwVersion;
   deviceMetadata[F("mf")] = F("espressif");
   deviceMetadata[F("mdl")] = QUOTE(FIRMWARE_VARIANT);
   deviceMetadata[F("identifiers")] = String(ESP.getChipId());
+  deviceMetadata[F("cu")] = deviceUrl;
 
   // HomeAssistant only supports simple client availability
   if (settings.mqttClientStatusTopic.length() > 0 && settings.simpleMqttClientStatus) {

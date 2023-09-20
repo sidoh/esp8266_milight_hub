@@ -28,6 +28,14 @@ RSpec.describe 'Settings' do
   end
 
   context 'keys' do
+    it 'should parse boolean values' do
+      @client.patch_settings({simple_mqtt_client_status: 'true'})
+      expect(@client.get('/settings')['simple_mqtt_client_status']).to eq(true)
+
+      @client.patch_settings({simple_mqtt_client_status: 'false'})
+      expect(@client.get('/settings')['simple_mqtt_client_status']).to eq(false)
+    end
+
     it 'should persist known settings keys' do
       {
         'simple_mqtt_client_status' => [true, false],
