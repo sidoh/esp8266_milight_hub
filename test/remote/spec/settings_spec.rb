@@ -154,9 +154,12 @@ RSpec.describe 'Settings' do
       aliases = StateHelpers::ALL_REMOTE_TYPES.each_with_index.map do |remote_type, i|
         [i, "test_#{id += 1}", remote_type, id, 1]
       end
-      alias_csv = aliases.map { |x| x.join("\0") }.join("\0")
+      alias_csv = aliases.flatten.join("\0")
 
       Tempfile.create('aliases.bin') do |file|
+        file.write(aliases.size)
+        file.write("\0")
+
         file.write(alias_csv)
         file.close
 

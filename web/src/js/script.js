@@ -589,7 +589,9 @@ var loadAliases = function() {
     $.get('/aliases.bin', function (data) {
       var parts = data.split('\0');
       var aliases = [];
-      for (var i = 0; (i + 4) < parts.length; i += 5) {
+
+      // Skip over first token, which will just be the number of aliases
+      for (var i = 1; (i + 4) < parts.length; i += 5) {
           aliases.push({
               id: parts[i],
               alias: parts[i + 1],
@@ -812,6 +814,7 @@ var saveDeviceAliases = function() {
     var csv = deviceAliases.map(function (x) {
       return x.join('\0');
     }).join('\0');
+    csv = deviceAliases.length + '\0' + csv;
 
     // post string as a file
     var formData = new FormData();

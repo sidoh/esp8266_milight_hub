@@ -248,26 +248,18 @@ RSpec.describe 'REST Server' do
       expect(list_response['aliases'].length).to eq(0)
     end
 
-    it 'GET /aliases.bin should return a null-separted binary of aliases' do
+    it 'GET /aliases.bin should return a backup file of aliases which POST /aliases.bin restores' do
       create_response = @client.post('/aliases', @test_alias)
       result = @client.get('/aliases.bin')
 
-      # just for clarity. the empty string at the end is to force a null byte
-      expected_result = [create_response['id'], 'test', 'rgb_cct', '1', '2', ''].join("\0")
-      expect(result).to eq(expected_result)
-    end
+      @client.clear_aliases
+      expect(@client.get('/aliases')['aliases'].length).to eq(0)
 
-    it 'POST /aliases.bin should upload a null-terminated file of aliases' do
-      # empty string at end forces null byte
-      @client.upload_string_as_file('/aliases.bin', ['1', 'test', 'rgb_cct', '1', '2'].join("\0"))
+      @client.upload_string_as_file('/aliases.bin', result)
+      response = @client.get('/aliases')
 
-      result = @client.get('/aliases')
-
-      expect(result['aliases'].length).to eq(1)
-      expect(result['aliases'][0]['alias']).to eq('test')
-      expect(result['aliases'][0]['device_type']).to eq('rgb_cct')
-      expect(result['aliases'][0]['device_id']).to eq(1)
-      expect(result['aliases'][0]['group_id']).to eq(2)
+      expect(response['aliases'].length).to eq(1)
+      expect(response['aliases'].first['alias']).to eq(@test_alias[:alias])
     end
 
     it 'PUT /aliases/:id should update an alias' do
@@ -288,22 +280,31 @@ RSpec.describe 'REST Server' do
     end
 
     it 'should support uploading a large list of aliases' do
-      csv = (1..20).map do |i|
+      num_aliases = 20
+      csv = (1..num_aliases).map do |i|
         [i, "test#{i}", 'rgb_cct', i, 1]
       end.flatten.join("\0")
 
-      File.open('/tmp/aliases.bin', 'w') { |f| f.write(csv) }
+      Tempfile.create('aliases.bin') do |file|
+        file.write(num_aliases)
+        file.write("\0")
+        file.write(csv)
+        file.close
 
-      @client.upload_string_as_file('/aliases.bin', csv)
+        @client.upload_json('/aliases.bin', file.path)
+      end
+
       result = @client.get('/aliases')
 
-      expect(result['count']).to eq(20)
+      expect(result['count']).to eq(num_aliases)
     end
 
     it 'should support paging' do
       csv = (1..20).map do |i|
         [i, "test#{i}", 'rgb_cct', i, 1]
       end.flatten.join("\0")
+      # Write length
+      csv = [20, csv].join("\0")
 
       @client.upload_string_as_file('/aliases.bin', csv)
       result = @client.get('/aliases?page_size=10')

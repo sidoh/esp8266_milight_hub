@@ -216,7 +216,7 @@ bool Settings::loadAliases(Settings &settings) {
   if (ProjectFS.exists(ALIASES_FILE)) {
     File f = ProjectFS.open(ALIASES_FILE, "r");
     ReadBufferingStream bufferedReader{f, 64};
-    GroupAlias::loadAliases(f, settings.groupIdAliases);
+    GroupAlias::loadAliases(bufferedReader, settings.groupIdAliases);
 
     // find current max id
     size_t maxId = 0;

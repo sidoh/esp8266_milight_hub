@@ -34,8 +34,15 @@ void GroupAlias::dump(Stream &stream) const {
   bulbId.dump(stream);
 }
 
-void GroupAlias::loadAliases(Stream &stream, std::map<String, GroupAlias> &aliases, size_t numAliases) {
-  while (stream.available() && (numAliases == 0 || aliases.size() < numAliases)) {
+void GroupAlias::loadAliases(Stream &stream, std::map<String, GroupAlias> &aliases) {
+  // Read number of aliases
+  const uint16_t numAliases = stream.parseInt();
+  // expect null terminator
+  stream.read();
+
+  Serial.printf_P(PSTR("Reading %d aliases\n"), numAliases);
+
+  while (stream.available() && aliases.size() < numAliases) {
     GroupAlias alias;
     if (alias.load(stream)) {
       aliases[String(alias.alias)] = alias;
@@ -44,6 +51,12 @@ void GroupAlias::loadAliases(Stream &stream, std::map<String, GroupAlias> &alias
 }
 
 void GroupAlias::saveAliases(Stream &stream, const std::map<String, GroupAlias> &aliases) {
+  // Write number of aliases
+  stream.print(aliases.size());
+  stream.write(0);
+
+  Serial.printf_P(PSTR("Saving %d aliases\n"), aliases.size());
+
   for (auto & alias : aliases) {
     alias.second.dump(stream);
   }

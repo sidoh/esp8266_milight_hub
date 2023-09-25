@@ -27,7 +27,7 @@ struct GroupAlias {
     bool load(Stream& stream);
     void dump(Stream& stream) const;
 
-    static void loadAliases(Stream& stream, std::map<String, GroupAlias>& aliases, size_t numAliases = 0);
+    static void loadAliases(Stream& stream, std::map<String, GroupAlias>& aliases);
     static void saveAliases(Stream& stream, const std::map<String, GroupAlias>& aliases);
 };
 

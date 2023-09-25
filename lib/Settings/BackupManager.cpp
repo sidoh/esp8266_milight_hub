@@ -12,12 +12,7 @@ const uint32_t BackupManager::SETTINGS_MAGIC_HEADER = 0x92A7C300 | SETTINGS_BACK
 void BackupManager::createBackup(const Settings& settings, Stream& stream) {
   stream.write(reinterpret_cast<const char*>(&SETTINGS_MAGIC_HEADER), sizeof(SETTINGS_MAGIC_HEADER));
 
-  const size_t numAliases = settings.groupIdAliases.size();
-  stream.print(numAliases);
-  stream.write(static_cast<const uint8_t>(0));
-
   GroupAlias::saveAliases(stream, settings.groupIdAliases);
-
   settings.serialize(stream);
 }
 
@@ -41,13 +36,8 @@ BackupManager::RestoreStatus BackupManager::restoreBackup(Settings& settings, St
   // reset settings to default
   settings = Settings();
 
-  Serial.println(F("Restoring backup..."));
-  size_t numAliases = stream.parseInt();
-  // read null terminator
-  stream.read();
-
-  Serial.printf_P(PSTR("Restoring %d backups with %d bytes available\n"), numAliases, stream.available());
-  GroupAlias::loadAliases(stream, settings.groupIdAliases, numAliases);
+  Serial.printf_P(PSTR("Restoring %d byte backup\n"), stream.available());
+  GroupAlias::loadAliases(stream, settings.groupIdAliases);
 
   // read null terminator
   stream.read();
