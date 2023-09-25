@@ -28,6 +28,9 @@ x-tagGroups:
     tags:
       - System
       - Settings
+  - name: Aliases
+    tags:
+      - Aliases
   - name: Devices
     tags:
       - Device Control
@@ -38,6 +41,125 @@ x-tagGroups:
       - Transitions
 
 paths:
+  /aliases:
+    post:
+      tags:
+        - Aliases
+      summary: Create a new alias
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Alias'
+      responses:
+        '201':
+          description: Alias created successfully
+          content:
+            application/json:
+              # will only respond with the created ID
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+    get:
+      tags:
+        - Aliases
+      summary: Get all aliases
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  aliases:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Alias'
+                  page:
+                    type: integer
+                  count:
+                    type: integer
+                  num_pages:
+                    type: integer
+  /aliases/{id}:
+    put:
+      tags:
+        - Aliases
+      summary: Update an alias by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Alias'
+      responses:
+        '200':
+          description: Alias updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BooleanResponse'
+    delete:
+      tags:
+        - Aliases
+      summary: Delete an alias by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Alias deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BooleanResponse'
+  /aliases.bin:
+    get:
+      tags:
+        - Aliases
+      summary: Download a backup of all aliases in a binary format
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+    post:
+      tags:
+        - Aliases
+      summary: Upload a backup of all aliases in CSV format
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Backup uploaded and aliases restored successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BooleanResponse'
   /about:
     get:
       tags:
@@ -50,6 +172,45 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/About'
+  /backup:
+    post:
+        tags:
+        - System
+        summary: Restore a backup
+        requestBody:
+          content:
+            multipart/form-data:
+              schema:
+                type: object
+                properties:
+                  file:
+                    type: string
+                    format: binary
+        responses:
+          400:
+            description: error
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/BooleanResponse'
+          201:
+            description: Backup uploaded and settings restored successfully
+            content:
+              application/json:
+                schema:
+                    $ref: '#/components/schemas/BooleanResponse'
+    get:
+      tags:
+      - System
+      summary: Download a backup of all settings
+      responses:
+        200:
+          description: success
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
   /remote_configs:
     get:
       tags:
@@ -491,6 +652,19 @@ components:
         $ref: '#/components/schemas/RemoteType'
       required: true
   schemas:
+    Alias:
+      type: object
+      properties:
+        alias:
+          type: string
+        id:
+          type: integer
+        device_id:
+          type: integer
+        group_id:
+          type: integer
+        device_type:
+          type: string
     State:
       description: "On/Off state"
       type: string
@@ -997,7 +1171,11 @@ components:
             $ref: '#/components/schemas/GroupStateField'
         group_id_aliases:
           type: object
-          description: Keys are aliases, values are 3-long arrays with same schema as items in `device_ids`.
+          description: |
+            DEPRECATED (use /aliases routes instead)
+            
+            Keys are aliases, values are 3-long arrays with same schema as items in `device_ids`.
+          deprecated: true
           example:
             alias1: [1234, 'rgb_cct', 1]
             alias2: [1234, 'rgb_cct', 2]
