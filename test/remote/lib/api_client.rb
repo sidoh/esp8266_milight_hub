@@ -2,8 +2,11 @@ require 'json'
 require 'net/http'
 require 'net/http/post/multipart'
 require 'uri'
+require 'tempfile'
 
 class ApiClient
+  class LivenessError < StandardError; end
+
   def initialize(host, base_id)
     @host = host
     @current_id = Integer(base_id)
@@ -14,6 +17,53 @@ class ApiClient
       ENV.fetch('ESPMH_HOSTNAME'),
       ENV.fetch('ESPMH_TEST_DEVICE_ID_BASE')
     )
+  end
+
+  def reset_settings(settings_file = 'settings.json')
+    upload_json('/settings', settings_file)
+
+    # clear device aliases
+    clear_aliases
+  end
+
+  def clear_aliases
+    delete('/aliases.bin')
+  end
+
+  def live?(ping_count = 10, timeout = 1, inverted = false)
+    print "Waiting for #{@host} to be #{inverted ? 'un' : ''}available..."
+
+    ping_test = Net::Ping::External.new(@host, timeout: timeout)
+    check = inverted ? -> { not ping_test.ping? } : -> { ping_test.ping? }
+    result = nil
+    last_call = Time.now
+
+    ping_count.times do
+      result = check.call
+      break if result
+
+      this_call = Time.now
+      time_since_last_call = this_call - last_call
+
+      if time_since_last_call < timeout then
+        sleep (timeout - time_since_last_call)
+      end
+
+      last_call = this_call
+
+      print '.'
+    end
+
+    puts result ? 'OK' : 'FAIL'
+    result
+  end
+
+  def wait_for_liveness(ping_count = 10, timeout = 5)
+    raise LivenessError unless live?(ping_count, timeout)
+  end
+
+  def wait_for_unavailable(ping_count = 500, timeout = 0.1)
+    raise LivenessError unless live?(ping_count, timeout, true)
   end
 
   def generate_id
@@ -34,6 +84,7 @@ class ApiClient
 
   def reboot
     post('/system', '{"command":"restart"}')
+    wait_for_unavailable
   end
 
   def request(type, path, req_body = nil)
@@ -42,11 +93,21 @@ class ApiClient
       req_type = Net::HTTP.const_get(type)
 
       req = req_type.new(uri)
+
       if req_body
-        req['Content-Type'] = 'application/json'
-        req_body = req_body.to_json if !req_body.is_a?(String)
-        req.body = req_body
+        if req_body.is_a?(File)
+          req['Content-Length'] = req_body.size.to_s
+          req.set_form [['file', req_body]], 'multipart/form-data'
+        else
+          req_body = req_body.to_json if !req_body.is_a?(String)
+
+          req['Content-Type'] = 'application/json'
+          req['Content-Length'] = req_body.size.to_s
+          req.body = req_body
+        end
       end
+
+      http.read_timeout = 3
 
       if @username && @password
         req.basic_auth(@username, @password)
@@ -64,7 +125,12 @@ class ApiClient
       body = res.body
 
       if res['content-type'].downcase == 'application/json'
-        body = JSON.parse(body)
+        begin
+          body = JSON.parse(body)
+        rescue JSON::ParserError => e
+          puts "JSON Parse Error: #{e}\nBody:\n#{res.body}"
+          raise e
+        end
       end
 
       body
@@ -72,7 +138,19 @@ class ApiClient
   end
 
   def upload_json(path, file)
-    `curl -s "http://#{@host}#{path}" -X POST -F 'f=@#{file}'`
+    if file.is_a?(String)
+      upload_json(path, File.new(file))
+    else
+      request(:Post, path, file)
+    end
+  end
+
+  def upload_string_as_file(path, string)
+    Tempfile.create('tmp-upload-file') do |f|
+      f.write(string)
+      f.close
+      upload_json(path, File.new(f))
+    end
   end
 
   def patch_settings(settings)

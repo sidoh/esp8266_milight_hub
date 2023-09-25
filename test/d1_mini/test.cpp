@@ -1,6 +1,6 @@
 // #if defined(ARDUINO) && defined(UNIT_TEST)
 
-#include <FS.h>
+#include <ProjectFS.h>
 #include <Arduino.h>
 
 #include <GroupState.h>
@@ -343,7 +343,7 @@ void test_group_0() {
 // setup connects serial, runs test cases (upcoming)
 void setup() {
   delay(2000);
-  SPIFFS.begin();
+  ProjectFS.begin();
   Serial.begin(9600);
 
   UNITY_BEGIN();

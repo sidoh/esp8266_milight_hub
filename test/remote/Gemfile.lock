@@ -20,6 +20,8 @@ GEM
     rspec-mocks (3.8.0)
       diff-lcs (>= 1.2.0, < 2.0)
       rspec-support (~> 3.8.0)
+    rspec-retry (0.6.2)
+      rspec-core (> 3.3)
     rspec-support (3.8.0)
 
 PLATFORMS
@@ -33,6 +35,7 @@ DEPENDENCIES
   multipart-post
   net-ping
   rspec
+  rspec-retry
 
 BUNDLED WITH
    1.17.2

@@ -125,13 +125,12 @@ You can configure aliases or labels for a given _(Device Type, Device ID, Group 
 
 ## REST API
 
-The REST API is specified using the [OpenAPI v3](https://swagger.io/docs/specification/about/) specification.
+Generated API documentation is available here:
 
-[openapi.yaml](docs/openapi.yaml) contains the raw spec.
+* [latest version](https://sidoh.github.io/esp8266_milight_hub/branches/latest)
+* [all versions](https://sidoh.github.io/esp8266_milight_hub)
 
-[You can view generated documentation for the master branch here.](https://sidoh.github.io/esp8266_milight_hub/branches/latest)
-
-[Docs for other branches can be found here](https://sidoh.github.io/esp8266_milight_hub)
+API documentation is generated from the [OpenAPI spec](docs/openapi.yaml) using redoc.
 
 ## MQTT
 

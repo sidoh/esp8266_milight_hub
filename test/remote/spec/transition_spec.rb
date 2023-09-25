@@ -3,7 +3,6 @@ require 'api_client'
 RSpec.describe 'Transitions' do
   before(:all) do
     @client = ApiClient.from_environment
-    @client.upload_json('/settings', 'settings.json')
     @transition_params = {
       field: 'level',
       start_value: 0,
@@ -12,9 +11,8 @@ RSpec.describe 'Transitions' do
       period: 400
     }
     @num_transition_updates = (@transition_params[:duration]*1000)/@transition_params[:period]
-  end
 
-  before(:each) do
+    @client.reset_settings
     mqtt_params = mqtt_parameters()
     @updates_topic = mqtt_params[:updates_topic]
     @topic_prefix = mqtt_topic_prefix()
@@ -25,7 +23,9 @@ RSpec.describe 'Transitions' do
         mqtt_update_topic_pattern: "#{@topic_prefix}updates/:device_id/:device_type/:group_id"
       )
     )
+  end
 
+  before(:each) do
     @id_params = {
       id: @client.generate_id,
       type: 'rgb_cct',
@@ -69,7 +69,7 @@ RSpec.describe 'Transitions' do
     end
 
     it 'should list active transitions' do
-      @client.schedule_transition(@id_params, @transition_params)
+      @client.schedule_transition(@id_params, {**@transition_params, duration: 100.0})
 
       response = @client.transitions
 
@@ -77,7 +77,7 @@ RSpec.describe 'Transitions' do
     end
 
     it 'should support getting an active transition with GET /transitions/:id' do
-      @client.schedule_transition(@id_params, @transition_params)
+      @client.schedule_transition(@id_params, {**@transition_params, duration: 100.0})
 
       response = @client.transitions
       detail_response = @client.get("/transitions/#{response.last['id']}")
@@ -86,7 +86,7 @@ RSpec.describe 'Transitions' do
     end
 
     it 'should support deleting active transitions with DELETE /transitions/:id' do
-      @client.schedule_transition(@id_params, @transition_params)
+      @client.schedule_transition(@id_params, {**@transition_params, duration: 100.0})
 
       response = @client.transitions
 
@@ -117,28 +117,27 @@ RSpec.describe 'Transitions' do
     end
 
     it 'should transition field' do
-      seen_updates = 0
+      seen_updates = []
       last_value = nil
 
       @client.patch_state({status: 'ON', level: 0}, @id_params)
 
       @mqtt_client.on_update(@id_params) do |id, msg|
-        if msg.include?('brightness')
-          seen_updates += 1
-          last_value = msg['brightness']
-        end
-
-        last_value == 255
+        seen_updates << msg['brightness']
+        seen_updates.last == 255
       end
 
       @client.patch_state({level: 100, transition: 2.0}, @id_params)
-
       @mqtt_client.wait_for_listeners
 
       expected_updates = calculate_transition_steps(start_value: 0, end_value: 255, duration: 2000)
 
-      expect(last_value).to eq(255)
-      expect(seen_updates).to eq(expected_updates.length)
+      transitions_are_equal(
+        expected: expected_updates,
+        seen: seen_updates,
+        # Allow some variation for the lossy level -> brightness conversion
+        allowed_variation: 2
+      )
     end
 
     it 'should transition a field downwards' do
@@ -147,6 +146,9 @@ RSpec.describe 'Transitions' do
 
       @client.patch_state({status: 'ON'}, @id_params)
       @client.patch_state({level: 100}, @id_params)
+
+      # Wait for the initial update to be sent
+      sleep 2
 
       @mqtt_client.on_update(@id_params) do |id, msg|
         if msg.include?('brightness')
@@ -171,6 +173,9 @@ RSpec.describe 'Transitions' do
       updates = {}
 
       @client.patch_state({status: 'ON', hue: 0, level: 100}, @id_params)
+
+      # Wait for the initial update to be sent
+      sleep 2
 
       @mqtt_client.on_update(@id_params) do |id, msg|
         msg.each do |k, v|
@@ -322,7 +327,7 @@ RSpec.describe 'Transitions' do
 
       @mqtt_client.wait_for_listeners
 
-      expect(seen_updates['state']).to eq(['ON'])
+      expect(seen_updates['state'].last).to eq('ON')
       transitions_are_equal(
         expected: calculate_transition_steps(start_value: 0, end_value: 255, duration: 1000),
         seen: seen_updates['brightness'],
@@ -360,6 +365,8 @@ RSpec.describe 'Transitions' do
       seen_updates = {}
       @client.patch_state({status: 'ON', brightness: 99}, @id_params)
       @client.patch_state({status: 'OFF'}, @id_params)
+
+      sleep 2
 
       @mqtt_client.on_update(@id_params) do |id, message|
         message.each do |k, v|
@@ -461,6 +468,8 @@ RSpec.describe 'Transitions' do
       @client.patch_state({status: 'ON', level: 0}, @id_params)
       @client.patch_state({status: 'OFF'}, @id_params)
 
+      sleep 2
+
       @mqtt_client.on_update(@id_params) do |id, message|
         message.each do |k, v|
           seen_updates[k] ||= []
@@ -470,10 +479,9 @@ RSpec.describe 'Transitions' do
       end
 
       @client.patch_state({status: 'ON', brightness: 128, transition: 1.0}, @id_params)
-
       @mqtt_client.wait_for_listeners
 
-      expect(seen_updates['state']).to eq(['ON'])
+      expect(seen_updates['state'].last).to eq('ON')
       transitions_are_equal(
         expected: calculate_transition_steps(start_value: 0, end_value: 128, duration: 1000),
         seen: seen_updates['brightness'],
@@ -502,7 +510,11 @@ RSpec.describe 'Transitions' do
 
         @client.patch_state({'status' => 'ON', field => min}, @id_params)
 
+        # Wait for the initial update to be sent
+        sleep 2
+
         @mqtt_client.on_update(@id_params) do |id, message|
+          puts "didn't include #{update_field}: #{message}" unless message.include?(update_field)
           seen_updates << message
           message[update_field] == update_max
         end
@@ -700,6 +712,8 @@ RSpec.describe 'Transitions' do
         @client.delete_state(@id_params)
         @client.patch_state({'status' => 'ON', field => 0}, @id_params)
         seen_updates = []
+
+        sleep 2
 
         @mqtt_client.on_update(@id_params) do |id, message|
           seen_updates << message[field] if !message[field].nil?

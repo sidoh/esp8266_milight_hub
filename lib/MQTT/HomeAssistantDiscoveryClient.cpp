@@ -1,25 +1,26 @@
 #include <HomeAssistantDiscoveryClient.h>
 #include <MiLightCommands.h>
 #include <Units.h>
+#include <ESP8266WiFi.h>
 
 HomeAssistantDiscoveryClient::HomeAssistantDiscoveryClient(Settings& settings, MqttClient* mqttClient)
   : settings(settings)
   , mqttClient(mqttClient)
 { }
 
-void HomeAssistantDiscoveryClient::sendDiscoverableDevices(const std::map<String, BulbId>& aliases) {
+void HomeAssistantDiscoveryClient::sendDiscoverableDevices(const std::map<String, GroupAlias>& aliases) {
 #ifdef MQTT_DEBUG
-  Serial.println(F("HomeAssistantDiscoveryClient: Sending discoverable devices..."));
+  Serial.printf_P(PSTR("HomeAssistantDiscoveryClient: Sending %d discoverable devices...\n"), aliases.size());
 #endif
 
-  for (auto itr = aliases.begin(); itr != aliases.end(); ++itr) {
-    addConfig(itr->first.c_str(), itr->second);
+  for (const auto & alias : aliases) {
+    addConfig(alias.first.c_str(), alias.second.bulbId);
   }
 }
 
 void HomeAssistantDiscoveryClient::removeOldDevices(const std::map<uint32_t, BulbId>& aliases) {
 #ifdef MQTT_DEBUG
-  Serial.println(F("HomeAssistantDiscoveryClient: Removing discoverable devices..."));
+  Serial.printf_P(PSTR("HomeAssistantDiscoveryClient: Removing %d discoverable devices...\n"), aliases.size());
 #endif
 
   for (auto itr = aliases.begin(); itr != aliases.end(); ++itr) {
@@ -38,12 +39,16 @@ void HomeAssistantDiscoveryClient::addConfig(const char* alias, const BulbId& bu
   DynamicJsonDocument config(1024);
 
   // Unique ID for this device + alias combo
-  char uniqidBuffer[30];
-  sprintf_P(uniqidBuffer, PSTR("%X-%s"), ESP.getChipId(), alias);
+  char uniqueIdBuffer[30];
+  snprintf_P(uniqueIdBuffer, sizeof(uniqueIdBuffer), PSTR("%X-%s"), ESP.getChipId(), alias);
 
   // String to ID the firmware version
-  char fwVersion[30];
-  sprintf_P(fwVersion, PSTR("esp8266_milight_hub v%s"), QUOTE(MILIGHT_HUB_VERSION));
+  char fwVersion[100];
+  snprintf_P(fwVersion, sizeof(fwVersion), PSTR("esp8266_milight_hub v%s"), QUOTE(MILIGHT_HUB_VERSION));
+
+  // URL to the device
+  char deviceUrl[23];
+  snprintf_P(deviceUrl, sizeof(deviceUrl), PSTR("http://%s"), WiFi.localIP().toString().c_str());
 
   config[F("dev_cla")] = F("light");
   config[F("schema")] = F("json");
@@ -52,14 +57,18 @@ void HomeAssistantDiscoveryClient::addConfig(const char* alias, const BulbId& bu
   config[F("cmd_t")] = mqttClient->bindTopicString(settings.mqttTopicPattern, bulbId);
   // state topic
   config[F("stat_t")] = mqttClient->bindTopicString(settings.mqttStateTopicPattern, bulbId);
-  config[F("uniq_id")] = mqttClient->bindTopicString(uniqidBuffer, bulbId);
-  JsonObject deviceMetadata = config.createNestedObject(F("dev"));
+  config[F("uniq_id")] = uniqueIdBuffer;
 
+  JsonObject originMetadata = config.createNestedObject(F("o"));
+  originMetadata[F("url")] = deviceUrl;
+
+  JsonObject deviceMetadata = config.createNestedObject(F("dev"));
   deviceMetadata[F("name")] = settings.hostname;
   deviceMetadata[F("sw")] = fwVersion;
   deviceMetadata[F("mf")] = F("espressif");
   deviceMetadata[F("mdl")] = QUOTE(FIRMWARE_VARIANT);
   deviceMetadata[F("identifiers")] = String(ESP.getChipId());
+  deviceMetadata[F("cu")] = deviceUrl;
 
   // HomeAssistant only supports simple client availability
   if (settings.mqttClientStatusTopic.length() > 0 && settings.simpleMqttClientStatus) {

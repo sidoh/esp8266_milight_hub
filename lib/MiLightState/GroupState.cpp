@@ -820,7 +820,7 @@ void GroupState::applyOhColor(JsonObject state) const {
   ParsedColor color = getColor();
 
   char ohColorStr[13];
-  sprintf(ohColorStr, "%d,%d,%d", color.r, color.g, color.b);
+  snprintf_P(ohColorStr, sizeof(ohColorStr), PSTR("%d,%d,%d"), color.r, color.g, color.b);
 
   state[GroupStateFieldNames::COLOR] = ohColorStr;
 }
@@ -829,7 +829,7 @@ void GroupState::applyHexColor(JsonObject state) const {
   ParsedColor color = getColor();
 
   char hexColor[8];
-  sprintf(hexColor, "#%02X%02X%02X", color.r, color.g, color.b);
+  snprintf_P(hexColor, sizeof(hexColor), PSTR("#%02X%02X%02X"), color.r, color.g, color.b);
 
   state[GroupStateFieldNames::COLOR] = hexColor;
 }

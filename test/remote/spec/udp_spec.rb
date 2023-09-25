@@ -5,7 +5,7 @@ RSpec.describe 'UDP servers' do
   before(:all) do
     @host = ENV.fetch('ESPMH_HOSTNAME')
     @client = ApiClient.new(@host, ENV.fetch('ESPMH_TEST_DEVICE_ID_BASE'))
-    @client.upload_json('/settings', 'settings.json')
+    @client.reset_settings
 
     @client.patch_settings( mqtt_parameters() )
     @client.patch_settings( mqtt_update_topic_pattern: '' )
@@ -123,9 +123,6 @@ RSpec.describe 'UDP servers' do
 
     it 'should respond to v5 discovery' do
       @discovery_socket.send('Link_Wi-Fi', 0, @discovery_host, @discovery_port)
-
-      # wait for response
-      sleep 1
 
       response, _ = @discovery_socket.recvfrom_nonblock(1024)
       response = response.split(',')

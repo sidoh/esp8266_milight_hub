@@ -322,7 +322,7 @@ void MiLightClient::update(JsonObject request) {
 
   JsonVariant brightness = request[GroupStateFieldNames::BRIGHTNESS];
   JsonVariant level = request[GroupStateFieldNames::LEVEL];
-  const bool isBrightnessDefined = !brightness.isUndefined() || !level.isUndefined();
+  const bool isBrightnessDefined = !brightness.isNull() || !level.isNull();
 
   // Always turn on first
   if (parsedStatus == ON) {
@@ -346,9 +346,9 @@ void MiLightClient::update(JsonObject request) {
       } else {
         this->updateStatus(ON);
 
-        if (! brightness.isUndefined()) {
+        if (! brightness.isNull()) {
           handleTransition(GroupStateField::BRIGHTNESS, brightness, transition, 0);
-        } else if (! level.isUndefined()) {
+        } else if (! level.isNull()) {
           handleTransition(GroupStateField::LEVEL, level, transition, 0);
         }
       }
@@ -515,16 +515,16 @@ void MiLightClient::handleTransition(GroupStateField field, JsonVariant value, f
 }
 
 bool MiLightClient::handleTransition(JsonObject args, JsonDocument& responseObj) {
-  if (! args.containsKey(FS(TransitionParams::FIELD))
-    || ! args.containsKey(FS(TransitionParams::END_VALUE))) {
+  if (! args.containsKey(FPSTR(TransitionParams::FIELD))
+    || ! args.containsKey(FPSTR(TransitionParams::END_VALUE))) {
     responseObj[F("error")] = F("Ignoring transition missing required arguments");
     return false;
   }
 
   const BulbId& bulbId = currentRemote->packetFormatter->currentBulbId();
-  const char* fieldName = args[FS(TransitionParams::FIELD)];
-  JsonVariant startValue = args[FS(TransitionParams::START_VALUE)];
-  JsonVariant endValue = args[FS(TransitionParams::END_VALUE)];
+  const char* fieldName = args[FPSTR(TransitionParams::FIELD)];
+  JsonVariant startValue = args[FPSTR(TransitionParams::START_VALUE)];
+  JsonVariant endValue = args[FPSTR(TransitionParams::END_VALUE)];
   GroupStateField field = GroupStateFieldHelpers::getFieldByName(fieldName);
   std::shared_ptr<Transition::Builder> transitionBuilder = nullptr;
 
@@ -547,7 +547,7 @@ bool MiLightClient::handleTransition(JsonObject args, JsonDocument& responseObj)
       transitionBuilder = transitions.buildFieldTransition(
         bulbId,
         field,
-        startValue.isUndefined()
+        startValue.isNull()
           ? currentState->getParsedFieldValue(field)
           : startValue.as<uint16_t>(),
         endValue
@@ -560,7 +560,7 @@ bool MiLightClient::handleTransition(JsonObject args, JsonDocument& responseObj)
 
   // Color can be decomposed into hue/saturation and these can be transitioned separately
   if (field == GroupStateField::COLOR) {
-    ParsedColor _startValue = startValue.isUndefined()
+    ParsedColor _startValue = startValue.isNull()
       ? currentState->getColor()
       : ParsedColor::fromJson(startValue);
     ParsedColor endColor = ParsedColor::fromJson(endValue);
@@ -603,11 +603,11 @@ bool MiLightClient::handleTransition(JsonObject args, JsonDocument& responseObj)
     return false;
   }
 
-  if (args.containsKey(FS(TransitionParams::DURATION))) {
-    transitionBuilder->setDuration(args[FS(TransitionParams::DURATION)]);
+  if (args.containsKey(FPSTR(TransitionParams::DURATION))) {
+    transitionBuilder->setDuration(args[FPSTR(TransitionParams::DURATION)]);
   }
-  if (args.containsKey(FS(TransitionParams::PERIOD))) {
-    transitionBuilder->setPeriod(args[FS(TransitionParams::PERIOD)]);
+  if (args.containsKey(FPSTR(TransitionParams::PERIOD))) {
+    transitionBuilder->setPeriod(args[FPSTR(TransitionParams::PERIOD)]);
   }
 
   transitions.addTransition(transitionBuilder->build());
@@ -627,15 +627,15 @@ void MiLightClient::handleEffect(const String& effect) {
 JsonVariant MiLightClient::extractStatus(JsonObject object) {
   JsonVariant status;
 
-  if (object.containsKey(FS(GroupStateFieldNames::STATUS))) {
-    return object[FS(GroupStateFieldNames::STATUS)];
+  if (object.containsKey(FPSTR(GroupStateFieldNames::STATUS))) {
+    return object[FPSTR(GroupStateFieldNames::STATUS)];
   } else {
-    return object[FS(GroupStateFieldNames::STATE)];
+    return object[FPSTR(GroupStateFieldNames::STATE)];
   }
 }
 
 uint8_t MiLightClient::parseStatus(JsonVariant val) {
-  if (val.isUndefined()) {
+  if (val.isNull()) {
     return STATUS_UNDEFINED;
   }
 

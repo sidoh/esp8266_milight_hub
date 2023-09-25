@@ -3,7 +3,7 @@ require 'api_client'
 RSpec.describe 'MQTT' do
   before(:all) do
     @client = ApiClient.new(ENV.fetch('ESPMH_HOSTNAME'), ENV.fetch('ESPMH_TEST_DEVICE_ID_BASE'))
-    @client.upload_json('/settings', 'settings.json')
+    @client.reset_settings
   end
 
   before(:each) do
@@ -45,7 +45,7 @@ RSpec.describe 'MQTT' do
 
   context 'retained messages' do
     it 'should publish retained state messages when enabled' do
-      @client.put('/settings', mqtt_retain: 'true')
+      @client.put('/settings', mqtt_retain: true)
       @client.patch_state({status: 'ON'}, @id_params)
 
       # Sleep to make sure we're getting a retained message
@@ -56,7 +56,7 @@ RSpec.describe 'MQTT' do
     end
 
     it 'should not publish retained state messages when not enabled' do
-      @client.put('/settings', mqtt_retain: 'false')
+      @client.put('/settings', mqtt_retain: false)
       @client.patch_state({status: 'ON'}, @id_params)
 
       # Sleep to make sure we're getting a retained message
@@ -194,7 +194,7 @@ RSpec.describe 'MQTT' do
       update_timestamp_gaps = []
       num_updates = 50
 
-      @mqtt_client.on_state(@id_params) do |id, message|
+      @mqtt_client.on_state(@id_params, 20) do |id, message|
         next_time = Time.now
         if last_seen != 0
           update_timestamp_gaps << next_time - last_seen
@@ -206,7 +206,6 @@ RSpec.describe 'MQTT' do
 
       (1..num_updates).each do |i|
         @mqtt_client.patch_state(@id_params, level: i)
-        sleep 0.1
       end
 
       @mqtt_client.wait_for_listeners
@@ -247,13 +246,13 @@ RSpec.describe 'MQTT' do
       )
 
       # Set initial state
-      @client.patch_state({status: 'ON', level: 0}, @id_params)
+      @client.patch_state({status: 'ON', level: 0}, { **@id_params, blockOnQueue: true })
 
       num_updates = 10
       seen_updates = 0
       last_level_value = 0
 
-      @mqtt_client.on_state(@id_params) do |id, message|
+      @mqtt_client.on_state(@id_params, 20) do |id, message|
         seen_updates += 1
         last_level_value = message['level']
         last_level_value == num_updates
@@ -261,7 +260,6 @@ RSpec.describe 'MQTT' do
 
       (1..num_updates).each do |i|
         @mqtt_client.patch_state(@id_params, level: i)
-        sleep 0.5
       end
 
       @mqtt_client.wait_for_listeners

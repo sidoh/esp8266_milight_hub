@@ -26,7 +26,7 @@ module TransitionHelpers
     end
   end
 
-  def transitions_are_equal(expected:, seen:, allowed_variation: 0, label: nil)
+  def transitions_are_equal(expected:, seen:, allowed_variation: 0, label: nil, trim_start: true)
     generate_msg = ->(a, b, i) do
       s = "Transition step value"
 
@@ -45,6 +45,25 @@ module TransitionHelpers
       s << "  Steps:\n"
       s << "  Expected : #{highlight_value(expected, i)},\n"
       s << "  Seen     : #{highlight_value(seen, i)}"
+    end
+
+    # If enabled, trim any values at the start of "seen" that don't match the first element
+    # of "expected," along with any repeats of the first value.
+    #
+    # Example: expected = [1, 2, 3, 4, 5]
+    #          seen     = [nil, nil, 1, 1, 2, 3, 4, 5]
+    #          trim_start = true
+    #          result   = [1, 2, 3, 4, 5]
+    #
+    # This sometimes happens when receiving a packet from setting the initial state before
+    # scheduling the transition.
+    if trim_start
+      seen = seen.each_with_index.map.drop_while do |x, i|
+        # only drop if seen length > expected length
+        (seen.length - i) > expected.length && (
+          x != expected.first || (i < seen.length - 1 && seen[i+1] == x)
+        )
+      end.map { |x| x[0] }
     end
 
     expect(expected.length).to eq(seen.length),
