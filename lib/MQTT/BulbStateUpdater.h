@@ -7,6 +7,10 @@
 #include <CircularBuffer.h>
 #include <Settings.h>
 
+#ifndef MILIGHT_MQTT_JSON_BUFFER_SIZE
+#define MILIGHT_MQTT_JSON_BUFFER_SIZE 1024
+#endif
+
 #ifndef BULB_STATE_UPDATER
 #define BULB_STATE_UPDATER
 
