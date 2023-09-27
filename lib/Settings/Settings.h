@@ -75,7 +75,7 @@ static const std::vector<GroupStateField> DEFAULT_GROUP_STATE_FIELDS({
   GroupStateField::COMPUTED_COLOR,
   GroupStateField::MODE,
   GroupStateField::COLOR_TEMP,
-  GroupStateField::BULB_MODE
+  GroupStateField::COLOR_MODE
 });
 
 struct GatewayConfig {

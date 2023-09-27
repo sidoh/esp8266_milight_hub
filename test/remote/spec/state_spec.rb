@@ -563,4 +563,38 @@ RSpec.describe 'State' do
       expect(state['status']).to eq('ON')
     end
   end
+
+  context 'color_mode field' do
+    before(:all) do
+      @client.patch_settings({
+        group_state_fields: [
+          "status",
+          "level",
+          "kelvin",
+          "hue",
+          "saturation",
+          "color_mode",
+          "hex_color"
+        ]
+      })
+    end
+
+    context 'for rgb+ww lights' do
+      it 'when in color mode, field should be "rgb" and color fields should be present' do
+        state = @client.patch_state({status: 'ON', color: '#ff0000'}, @id_params)
+
+        expect(state['color_mode']).to eq('rgb')
+        expect(state['hue']).to eq(0)
+        expect(state['saturation']).to eq(100)
+        expect(state['color']).to eq('#FF0000')
+      end
+
+      it 'when in white mode, field should be "color_temp" and color fields should not be present' do
+        state = @client.patch_state({status: 'ON', kelvin: 100, level: 100}, @id_params)
+
+        expect(state['color_mode']).to eq('color_temp')
+        expect(state['kelvin']).to eq(100)
+      end
+    end
+  end
 end

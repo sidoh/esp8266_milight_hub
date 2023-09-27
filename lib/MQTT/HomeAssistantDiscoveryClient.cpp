@@ -113,30 +113,16 @@ void HomeAssistantDiscoveryClient::addConfig(const char* alias, const BulbId& bu
       break;
   }
 
-  // These bulbs support RGB color
-  switch (bulbId.deviceType) {
-    case REMOTE_TYPE_FUT089:
-    case REMOTE_TYPE_RGB:
-    case REMOTE_TYPE_RGB_CCT:
-    case REMOTE_TYPE_RGBW:
-      config[F("rgb")] = true;
-      break;
-    default:
-      break; //nothing
+  // Flag RGB support
+  if (MiLightRemoteTypeHelpers::supportsRgb(bulbId.deviceType)) {
+    config[F("rgb")] = true;
   }
 
-  // These bulbs support adjustable white values
-  switch (bulbId.deviceType) {
-    case REMOTE_TYPE_CCT:
-    case REMOTE_TYPE_FUT089:
-    case REMOTE_TYPE_FUT091:
-    case REMOTE_TYPE_RGB_CCT:
-      config[GroupStateFieldNames::COLOR_TEMP] = true;
-      config[F("max_mirs")] = COLOR_TEMP_MAX_MIREDS;
-      config[F("min_mirs")] = COLOR_TEMP_MIN_MIREDS;
-      break;
-    default:
-      break; //nothing
+  // Flag adjustable color temp support
+  if (MiLightRemoteTypeHelpers::supportsColorTemp(bulbId.deviceType)) {
+    config[GroupStateFieldNames::COLOR_TEMP] = true;
+    config[F("max_mirs")] = COLOR_TEMP_MAX_MIREDS;
+    config[F("min_mirs")] = COLOR_TEMP_MIN_MIREDS;
   }
 
   String message;

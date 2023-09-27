@@ -66,3 +66,27 @@ const String MiLightRemoteTypeHelpers::remoteTypeToString(const MiLightRemoteTyp
       return "unknown";
   }
 }
+
+const bool MiLightRemoteTypeHelpers::supportsRgb(const MiLightRemoteType type) {
+  switch (type) {
+    case REMOTE_TYPE_FUT089:
+    case REMOTE_TYPE_RGB:
+    case REMOTE_TYPE_RGB_CCT:
+    case REMOTE_TYPE_RGBW:
+      return true;
+    default:
+      return false;
+  }
+}
+
+const bool MiLightRemoteTypeHelpers::supportsColorTemp(const MiLightRemoteType type) {
+  switch (type) {
+    case REMOTE_TYPE_CCT:
+    case REMOTE_TYPE_FUT089:
+    case REMOTE_TYPE_FUT091:
+    case REMOTE_TYPE_RGB_CCT:
+      return true;
+    default:
+      return false;
+  }
+}
