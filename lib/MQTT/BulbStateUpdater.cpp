@@ -41,7 +41,7 @@ inline void BulbStateUpdater::flushGroup(BulbId bulbId, GroupState& state) {
   JsonObject message = json.to<JsonObject>();
   state.applyState(message, bulbId, settings.groupStateFields);
 
-  if (json.overflowed()) {
+  if (json.memoryUsage() >= json.capacity()) {
     Serial.println(F("ERROR: State is too large for MQTT buffer, continuing anyway. Consider increasing MILIGHT_MQTT_JSON_BUFFER_SIZE."));
   }
 
