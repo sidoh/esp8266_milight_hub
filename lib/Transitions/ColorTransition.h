@@ -21,25 +21,23 @@ public:
     virtual std::shared_ptr<Transition> _build() const override;
 
   private:
-    const ParsedColor& start;
-    const ParsedColor& end;
-    RgbColor stepSizes;
+    RgbColor start;
+    RgbColor end;
   };
 
   ColorTransition(
     size_t id,
     const BulbId& bulbId,
-    const ParsedColor& startColor,
-    const ParsedColor& endColor,
-    RgbColor stepSizes,
+    const RgbColor& startColor,
+    const RgbColor& endColor,
     size_t duration,
     size_t period,
     size_t numPeriods,
     TransitionFn callback
   );
 
-  static size_t calculateColorPeriod(ColorTransition* t, const ParsedColor& start, const ParsedColor& end, size_t stepSize, size_t duration);
-  inline static size_t calculateMaxDistance(const ParsedColor& start, const ParsedColor& end);
+  static size_t calculateColorPeriod(ColorTransition* t, const RgbColor& start, const RgbColor& end, size_t stepSize, size_t duration);
+  inline static size_t calculateMaxDistance(const RgbColor& start, const RgbColor& end);
   inline static int16_t calculateStepSizePart(int16_t distance, size_t duration, size_t period);
   virtual bool isFinished() override;
 
@@ -51,6 +49,7 @@ protected:
   // Store these to avoid wasted packets
   uint16_t lastHue;
   uint16_t lastSaturation;
+  bool sentFinalColor;
 
   virtual void step() override;
   virtual void childSerialize(JsonObject& json) override;

@@ -12,22 +12,11 @@ std::shared_ptr<Transition> ColorTransition::Builder::_build() const {
   size_t numPeriods = getOrComputeNumPeriods();
   size_t period = getOrComputePeriod();
 
-  int16_t dr = end.r - start.r
-        , dg = end.g - start.g
-        , db = end.b - start.b;
-
-  RgbColor stepSizes(
-    calculateStepSizePart(dr, duration, period),
-    calculateStepSizePart(dg, duration, period),
-    calculateStepSizePart(db, duration, period)
-  );
-
   return std::make_shared<ColorTransition>(
     id,
     bulbId,
     start,
     end,
-    stepSizes,
     duration,
     period,
     numPeriods,
@@ -60,42 +49,36 @@ bool ColorTransition::RgbColor::operator==(const RgbColor& other) {
 ColorTransition::ColorTransition(
   size_t id,
   const BulbId& bulbId,
-  const ParsedColor& startColor,
-  const ParsedColor& endColor,
-  RgbColor stepSizes,
+  const RgbColor& startColor,
+  const RgbColor& endColor,
   size_t duration,
   size_t period,
   size_t numPeriods,
   TransitionFn callback
-) : Transition(id, bulbId, period, callback)
+) : Transition(id, bulbId, period, std::move(callback))
   , endColor(endColor)
   , currentColor(startColor)
-  , stepSizes(stepSizes)
-  , lastHue(400)         // use impossible values to force a packet send
+  , stepSizes(
+      calculateStepSizePart(endColor.r - startColor.r, duration, period),
+      calculateStepSizePart(endColor.g - startColor.g, duration, period),
+      calculateStepSizePart(endColor.b - startColor.b, duration, period))
+  , lastHue(400) // use impossible values to force a packet send
   , lastSaturation(200)
-{
-  int16_t dr = endColor.r - startColor.r
-        , dg = endColor.g - startColor.g
-        , db = endColor.b - startColor.b;
-  // Calculate step sizes in terms of the period
-  stepSizes.r = calculateStepSizePart(dr, duration, period);
-  stepSizes.g = calculateStepSizePart(dg, duration, period);
-  stepSizes.b = calculateStepSizePart(db, duration, period);
+  , sentFinalColor(false)
+{ }
+
+size_t ColorTransition::calculateMaxDistance(const RgbColor& start, const RgbColor& end) {
+  // return max distance between any of R/G/B
+  return std::max(
+    std::max(
+      std::abs(start.r - end.r),
+      std::abs(start.g - end.g)
+    ),
+    std::abs(start.b - end.b)
+  );
 }
 
-size_t ColorTransition::calculateMaxDistance(const ParsedColor& start, const ParsedColor& end) {
-  int16_t dr = end.r - start.r
-        , dg = end.g - start.g
-        , db = end.b - start.b;
-
-  int16_t max = std::max(std::max(dr, dg), db);
-  int16_t min = std::min(std::min(dr, dg), db);
-  int16_t maxAbs = std::abs(min) > std::abs(max) ? min : max;
-
-  return maxAbs;
-}
-
-size_t ColorTransition::calculateColorPeriod(ColorTransition* t, const ParsedColor& start, const ParsedColor& end, size_t stepSize, size_t duration) {
+size_t ColorTransition::calculateColorPeriod(ColorTransition* t, const RgbColor& start, const RgbColor& end, size_t stepSize, size_t duration) {
   return Transition::calculatePeriod(calculateMaxDistance(start, end), stepSize, duration);
 }
 
@@ -104,7 +87,7 @@ int16_t ColorTransition::calculateStepSizePart(int16_t distance, size_t duration
   int16_t rounded = std::ceil(std::abs(stepSize));
 
   if (distance < 0) {
-    rounded = -rounded;
+    rounded *= -1;
   }
 
   return rounded;
@@ -117,20 +100,23 @@ void ColorTransition::step() {
     callback(bulbId, GroupStateField::HUE, parsedColor.hue);
     lastHue = parsedColor.hue;
   }
+
   if (parsedColor.saturation != lastSaturation) {
     callback(bulbId, GroupStateField::SATURATION, parsedColor.saturation);
     lastSaturation = parsedColor.saturation;
   }
-  
+
   if (!isFinished()) {
     Transition::stepValue(currentColor.r, endColor.r, stepSizes.r);
     Transition::stepValue(currentColor.g, endColor.g, stepSizes.g);
     Transition::stepValue(currentColor.b, endColor.b, stepSizes.b);
+  } else {
+    this->sentFinalColor = true;
   }
 }
 
 bool ColorTransition::isFinished() {
-  return currentColor == endColor; 
+  return this->sentFinalColor;
 }
 
 void ColorTransition::childSerialize(JsonObject& json) {

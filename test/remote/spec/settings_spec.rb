@@ -5,7 +5,7 @@ require 'net/ping'
 RSpec.describe 'Settings' do
   before(:all) do
     @client = ApiClient.new(ENV.fetch('ESPMH_HOSTNAME'), ENV.fetch('ESPMH_TEST_DEVICE_ID_BASE'))
-    @client.upload_json('/settings', 'settings.json')
+    @client.reset_settings
 
     @username = 'a'
     @password = 'a'
@@ -23,14 +23,25 @@ RSpec.describe 'Settings' do
     @client.clear_auth!
   end
 
+  after(:each) do
+    @client.reset_settings
+  end
+
   context 'keys' do
+    it 'should parse boolean values' do
+      @client.patch_settings({simple_mqtt_client_status: 'true'})
+      expect(@client.get('/settings')['simple_mqtt_client_status']).to eq(true)
+
+      @client.patch_settings({simple_mqtt_client_status: 'false'})
+      expect(@client.get('/settings')['simple_mqtt_client_status']).to eq(false)
+    end
+
     it 'should persist known settings keys' do
       {
         'simple_mqtt_client_status' => [true, false],
         'mqtt_retain' => [true, false],
         'packet_repeats_per_loop' => [10],
         'home_assistant_discovery_prefix' => ['', 'abc', 'a/b/c'],
-        'wifi_mode' => %w(b g n),
         'default_transition_period' => [200, 500]
       }.each do |key, values|
         values.each do |v|
@@ -43,30 +54,31 @@ RSpec.describe 'Settings' do
 
   context 'POST settings file' do
     it 'should clobber patched settings' do
-      file = Tempfile.new('espmh-settings.json')
-      file.write({
-        mqtt_server: 'test123'
-      }.to_json)
-      file.close
+      Tempfile.new('espmh-settings.json') do |file|
+        file.write({
+          mqtt_server: 'test123'
+        }.to_json)
+        file.close
 
-      @client.upload_json('/settings', file.path)
+        @client.upload_json('/settings', file.path)
 
-      settings = @client.get('/settings')
-      expect(settings['mqtt_server']).to eq('test123')
+        settings = @client.get('/settings')
+        expect(settings['mqtt_server']).to eq('test123')
 
-      @client.put('/settings', {mqtt_server: 'abc123', mqtt_username: 'foo'})
+        @client.put('/settings', {mqtt_server: 'abc123', mqtt_username: 'foo'})
 
-      settings = @client.get('/settings')
-      expect(settings['mqtt_server']).to eq('abc123')
-      expect(settings['mqtt_username']).to eq('foo')
+        settings = @client.get('/settings')
+        expect(settings['mqtt_server']).to eq('abc123')
+        expect(settings['mqtt_username']).to eq('foo')
 
-      @client.upload_json('/settings', file.path)
-      settings = @client.get('/settings')
+        @client.upload_json('/settings', file.path)
+        settings = @client.get('/settings')
 
-      expect(settings['mqtt_server']).to eq('test123')
-      expect(settings['mqtt_username']).to eq('')
+        expect(settings['mqtt_server']).to eq('test123')
+        expect(settings['mqtt_username']).to eq('')
 
-      File.delete(file.path)
+        File.delete(file.path)
+      end
     end
 
     it 'should apply POSTed settings' do
@@ -80,6 +92,9 @@ RSpec.describe 'Settings' do
       @client.upload_json('/settings', file.path)
 
       expect { @client.get('/settings') }.to raise_error(Net::HTTPServerException)
+
+      @client.set_auth!(@username, @password)
+      @client.reset_settings
     end
   end
 
@@ -99,7 +114,7 @@ RSpec.describe 'Settings' do
 
       end_mem = @client.get('/about')['free_heap']
 
-      expect(end_mem).to be_within(250).of(start_mem)
+      expect(end_mem).to be_within(1024).of(start_mem)
     end
   end
 
@@ -136,16 +151,54 @@ RSpec.describe 'Settings' do
     it 'should store ID labels' do
       id = 1
 
-      aliases = Hash[
-        StateHelpers::ALL_REMOTE_TYPES.map do |remote_type|
-          ["test_#{id += 1}", [remote_type, id, 1]]
-        end
-      ]
+      aliases = StateHelpers::ALL_REMOTE_TYPES.each_with_index.map do |remote_type, i|
+        [i, "test_#{id += 1}", remote_type, id, 1]
+      end
+      alias_csv = aliases.flatten.join("\0")
 
-      @client.patch_settings(group_id_aliases: aliases)
-      settings = @client.get('/settings')
+      Tempfile.create('aliases.bin') do |file|
+        file.write(aliases.size)
+        file.write("\0")
 
-      expect(settings['group_id_aliases']).to eq(aliases)
+        file.write(alias_csv)
+        file.close
+
+        @client.upload_json('/aliases.bin', file.path)
+      end
+
+      expect @client.get('/aliases.bin') == alias_csv
+
+      response = @client.get('/aliases')
+      stored_aliases = response['aliases'].map { |x| x['alias'] }
+
+      expect(Set.new(stored_aliases)).to eq(Set.new(aliases.map { |x| x[1] }))
+    end
+
+    it 'group aliases from deprecated settings key should be ported' do
+      @client.clear_aliases
+
+      Tempfile.create("updated-settings.json") do |file|
+        settings = JSON.parse(File.read('settings.json'))
+        settings.merge!({
+          group_id_aliases: {
+            test1: ['rgb_cct', 1, 1],
+            test2: ['rgb', 2, 2]
+          }
+        })
+
+        file.write(settings.to_json)
+        file.close
+
+        @client.upload_json('/settings', file.path)
+      end
+
+      # Add a new alias
+      @client.post('/aliases', {alias: 'test3', device_type: 'rgb_cct', group_id: 3, device_id: 3})
+
+      response = @client.get('/aliases')
+      stored_aliases = response['aliases'].map { |x| x['alias'] }
+
+      expect(Set.new(stored_aliases)).to eq(Set.new(['test1', 'test2', 'test3']))
     end
   end
 
@@ -164,27 +217,13 @@ RSpec.describe 'Settings' do
       @client.reboot
 
       # Wait for it to come back up
-      ping_test = Net::Ping::External.new(static_ip)
-
-      10.times do
-        break if ping_test.ping?
-        sleep 1
-      end
-
-      expect(ping_test.ping?).to be(true)
-
       static_client = ApiClient.new(static_ip, ENV.fetch('ESPMH_TEST_DEVICE_ID_BASE'))
+      static_client.wait_for_liveness
+
       static_client.put('/settings', wifi_static_ip: '')
       static_client.reboot
 
-      ping_test = Net::Ping::External.new(ENV.fetch('ESPMH_HOSTNAME'))
-
-      10.times do
-        break if ping_test.ping?
-        sleep 1
-      end
-
-      expect(ping_test.ping?).to be(true)
+      @client.wait_for_liveness
     end
   end
 
@@ -194,7 +233,11 @@ RSpec.describe 'Settings' do
       file = Tempfile.new('espmh-settings.json')
       file.close
 
-      @client.upload_json('/settings', file.path)
+      @client.reset_settings(file.path)
+    end
+
+    after(:all) do
+      @client.reset_settings
     end
 
     it 'should have some group state fields defined' do

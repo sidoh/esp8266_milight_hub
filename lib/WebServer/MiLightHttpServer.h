@@ -18,8 +18,11 @@ typedef std::function<void(const BulbId& id)> GroupDeletedHandler;
 using RichHttpConfig = RichHttp::Generics::Configs::EspressifBuiltin;
 using RequestContext = RichHttpConfig::RequestContextType;
 
+const char APPLICATION_OCTET_STREAM[] PROGMEM = "application/octet-stream";
 const char TEXT_PLAIN[] PROGMEM = "text/plain";
 const char APPLICATION_JSON[] = "application/json";
+
+static const uint8_t DEFAULT_PAGE_SIZE = 10;
 
 class MiLightHttpServer {
 public:
@@ -87,8 +90,21 @@ protected:
   void handleCreateTransition(RequestContext& request);
   void handleListTransitions(RequestContext& request);
 
+  // CRUD methods for /aliases
+  void handleListAliases(RequestContext& request);
+  void handleCreateAlias(RequestContext& request);
+  void handleDeleteAlias(RequestContext& request);
+  void handleUpdateAlias(RequestContext& request);
+  void handleDeleteAliases(RequestContext& request);
+  void handleUpdateAliases(RequestContext& request);
+
+  void handleCreateBackup(RequestContext& request);
+  void handleRestoreBackup(RequestContext& request);
+
   void handleRequest(const JsonObject& request);
   void handleWsEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length);
+
+  void saveSettings();
 
   File updateFile;
 

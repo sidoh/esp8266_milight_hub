@@ -37,12 +37,17 @@ void BulbStateUpdater::loop() {
 }
 
 inline void BulbStateUpdater::flushGroup(BulbId bulbId, GroupState& state) {
-  char buffer[200];
-  StaticJsonDocument<200> json;
+  StaticJsonDocument<MILIGHT_MQTT_JSON_BUFFER_SIZE> json;
   JsonObject message = json.to<JsonObject>();
-
   state.applyState(message, bulbId, settings.groupStateFields);
-  serializeJson(json, buffer);
+
+  if (json.overflowed()) {
+    Serial.println(F("ERROR: State is too large for MQTT buffer, continuing anyway. Consider increasing MILIGHT_MQTT_JSON_BUFFER_SIZE."));
+  }
+
+  size_t documentSize = measureJson(message);
+  char buffer[documentSize + 1];
+  serializeJson(json, buffer, sizeof(buffer));
 
   mqttClient.sendState(
     *MiLightRemoteConfig::fromType(bulbId.deviceType),

@@ -45,7 +45,7 @@ public:
     Unlink and link the LinkedList correcly;
     Increment _size
   */
-  virtual bool add(int index, T);
+  virtual bool add(size_t index, T);
   /*
     Adds a T object in the end of the LinkedList;
     Increment _size;
@@ -60,13 +60,13 @@ public:
     Set the object at index, with T;
     Increment _size;
   */
-  virtual bool set(int index, T);
+  virtual bool set(size_t index, T);
   /*
     Remove object at index;
     If index is not reachable, returns false;
     else, decrement _size
   */
-  virtual T remove(int index);
+  virtual T remove(size_t index);
   virtual void remove(ListNode<T>* node);
   /*
     Remove last object;
@@ -81,14 +81,14 @@ public:
     Return Element if accessible,
     else, return false;
   */
-  virtual T get(int index);
+  virtual T get(size_t index);
 
   /*
     Clear the entire array
   */
   virtual void clear();
 
-  ListNode<T>* getNode(int index);
+  ListNode<T>* getNode(size_t index);
   virtual void spliceToFront(ListNode<T>* node);
   ListNode<T>* getHead() { return root; }
   T getLast() const { return last == NULL ? T() : last->data; }
@@ -145,9 +145,9 @@ LinkedList<T>::~LinkedList()
 */
 
 template<typename T>
-ListNode<T>* LinkedList<T>::getNode(int index){
+ListNode<T>* LinkedList<T>::getNode(size_t index){
 
-  int _pos = 0;
+  size_t _pos = 0;
   ListNode<T>* current = root;
 
   while(_pos < index && current){
@@ -164,7 +164,7 @@ size_t LinkedList<T>::size() const{
 }
 
 template<typename T>
-bool LinkedList<T>::add(int index, T _t){
+bool LinkedList<T>::add(size_t index, T _t){
 
   if(index >= _size)
     return add(_t);
@@ -226,7 +226,7 @@ bool LinkedList<T>::unshift(T _t){
 }
 
 template<typename T>
-bool LinkedList<T>::set(int index, T _t){
+bool LinkedList<T>::set(size_t index, T _t){
   // Check if index position is in bounds
   if(index < 0 || index >= _size)
     return false;
@@ -299,7 +299,7 @@ void LinkedList<T>::remove(ListNode<T>* node){
 }
 
 template<typename T>
-T LinkedList<T>::remove(int index){
+T LinkedList<T>::remove(size_t index){
   if (index < 0 || index >= _size)
   {
     return T();
@@ -325,7 +325,7 @@ T LinkedList<T>::remove(int index){
 
 
 template<typename T>
-T LinkedList<T>::get(int index){
+T LinkedList<T>::get(size_t index){
   ListNode<T> *tmp = getNode(index);
 
   return (tmp ? tmp->data : T());

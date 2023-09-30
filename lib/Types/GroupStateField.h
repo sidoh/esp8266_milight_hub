@@ -24,6 +24,9 @@ namespace GroupStateFieldNames {
   static const char HEX_COLOR[] = "hex_color";
   static const char COMMAND[] = "command";
   static const char COMMANDS[] = "commands";
+
+  // For use with HomeAssistant
+  static const char COLOR_MODE[] = "color_mode";
 };
 
 enum class GroupStateField {
@@ -45,7 +48,8 @@ enum class GroupStateField {
   GROUP_ID,
   DEVICE_TYPE,
   OH_COLOR,
-  HEX_COLOR
+  HEX_COLOR,
+  COLOR_MODE,
 };
 
 class GroupStateFieldHelpers {

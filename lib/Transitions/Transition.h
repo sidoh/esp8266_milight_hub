@@ -13,8 +13,11 @@ public:
   using TransitionFn = std::function<void(const BulbId& bulbId, GroupStateField field, uint16_t value)>;
 
   // transition commands are in seconds, convert to ms.
-  static const uint16_t DURATION_UNIT_MULTIPLIER = 1000;
+  static const uint16_t DURATION_UNIT_MULTIPLIER;
 
+  // If period goes lower than this, throttle other parameters up to adjust.
+  static const size_t MIN_PERIOD;
+  static const size_t DEFAULT_DURATION;
 
   class Builder {
   public:
@@ -67,10 +70,6 @@ public:
     virtual std::shared_ptr<Transition> _build() const = 0;
     size_t numSetParams() const;
   };
-
-  // If period goes lower than this, throttle other parameters up to adjust.
-  static const size_t MIN_PERIOD = 150;
-  static const size_t DEFAULT_DURATION = 10000;
 
   const size_t id;
   const BulbId bulbId;

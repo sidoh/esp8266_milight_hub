@@ -19,4 +19,6 @@ struct BulbId {
   String getHexDeviceId() const;
   void serialize(JsonObject json) const;
   void serialize(JsonArray json) const;
+  void load(Stream& stream);
+  void dump(Stream& stream) const;
 };

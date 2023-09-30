@@ -8,7 +8,7 @@ const T strToHex(const char* s, size_t length) {
   T value = 0;
   T base = 1;
 
-  for (int i = length-1; i >= 0; i--) {
+  for (size_t i = length-1; i >= 0; i--) {
     const char c = s[i];
 
     if (c >= '0' && c <= '9') {
@@ -43,9 +43,9 @@ const T parseInt(const String& s) {
 
 template <typename T>
 void hexStrToBytes(const char* s, const size_t sLen, T* buffer, size_t maxLen) {
-  int idx = 0;
+  size_t idx = 0;
 
-  for (int i = 0; i < sLen && idx < maxLen; ) {
+  for (size_t i = 0; i < sLen && idx < maxLen; ) {
     buffer[idx++] = strToHex<T>(s+i, 2);
     i+= 2;
 

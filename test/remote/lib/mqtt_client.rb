@@ -4,6 +4,7 @@ require 'json'
 
 class MqttClient
   BreakListenLoopError = Class.new(StandardError)
+  DEFAULT_TIMEOUT = 20
 
   def initialize(server, username, password, topic_prefix)
     @client = MQTT::Client.connect("mqtt://#{username}:#{password}@#{server}")
@@ -20,7 +21,7 @@ class MqttClient
     @client.connect
   end
 
-  def wait_for_message(topic, timeout = 10)
+  def wait_for_message(topic, timeout = DEFAULT_TIMEOUT)
     on_message(topic, timeout) { |topic, message| }
     wait_for_listeners
   end
@@ -39,11 +40,11 @@ class MqttClient
     end
   end
 
-  def on_update(id_params = nil, timeout = 10, &block)
+  def on_update(id_params = nil, timeout = DEFAULT_TIMEOUT, &block)
     on_id_message('updates', id_params, timeout, &block)
   end
 
-  def on_state(id_params = nil, timeout = 10, &block)
+  def on_state(id_params = nil, timeout = DEFAULT_TIMEOUT, &block)
     on_id_message('state', id_params, timeout, &block)
   end
 
@@ -70,9 +71,21 @@ class MqttClient
     end
   end
 
-  def on_message(topic, timeout = 10, raise_error = true, &block)
+  def on_json_message(topic, timeout = DEFAULT_TIMEOUT, raise_error = true, &block)
+    on_message(topic, timeout, raise_error) do |topic, message|
+      begin
+        message = JSON.parse(message)
+        yield(topic, message)
+      rescue JSON::ParserError => e
+        false
+      end
+    end
+  end
+
+  def on_message(topic, timeout = DEFAULT_TIMEOUT, raise_error = true, &block)
     @listen_threads << Thread.new do
       begin
+        start_time = Time.now
         Timeout.timeout(timeout) do
           @client.get(topic) do |topic, message|
             ret_val = yield(topic, message)
@@ -80,7 +93,6 @@ class MqttClient
           end
         end
       rescue Timeout::Error => e
-        puts "Timed out listening for message on: #{topic}"
         raise e if raise_error
       rescue BreakListenLoopError
       end
