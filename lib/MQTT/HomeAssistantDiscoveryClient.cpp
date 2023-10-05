@@ -59,9 +59,6 @@ void HomeAssistantDiscoveryClient::addConfig(const char* alias, const BulbId& bu
   config[F("stat_t")] = mqttClient->bindTopicString(settings.mqttStateTopicPattern, bulbId);
   config[F("uniq_id")] = uniqueIdBuffer;
 
-  JsonObject originMetadata = config.createNestedObject(F("o"));
-  originMetadata[F("url")] = deviceUrl;
-
   JsonObject deviceMetadata = config.createNestedObject(F("dev"));
   deviceMetadata[F("name")] = settings.hostname;
   deviceMetadata[F("sw")] = fwVersion;
