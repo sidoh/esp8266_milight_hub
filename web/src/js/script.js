@@ -797,9 +797,10 @@ var saveDeviceAliases = function() {
     var deviceAliases = Object.values(aliasesSelectize.options).reduce(
         function (aggregate, x, index) {
           var params = x.savedGroupParams;
+          x.id = index + 1;
 
           aggregate.push([
-            index + 1,
+            x.id,
             x.value,
             params.deviceType,
             params.deviceId,
@@ -1172,6 +1173,22 @@ $(function() {
       option: function(data, escape) {
         // Mousedown selects an option -- prevent event from bubbling up to select option
         // when delete button is clicked.
+        var editBtn = $('<span class="selectize-delete"><a href="#"><i class="glyphicon glyphicon-edit"></i></a></span>')
+            .mousedown(function(e) {
+              e.preventDefault();
+              return false;
+            })
+            .click(function(e) {
+              // clear value
+              aliasesSelectize.clear();
+              aliasesSelectize.close();
+              deleteDeviceAlias.call($(this).closest('.c-selectize-item'));
+              e.preventDefault();
+              return false;
+            });
+
+        // Mousedown selects an option -- prevent event from bubbling up to select option
+        // when delete button is clicked.
         var deleteBtn = $('<span class="selectize-delete"><a href="#"><i class="glyphicon glyphicon-trash"></i></a></span>')
           .mousedown(function(e) {
             e.preventDefault();
@@ -1187,6 +1204,11 @@ $(function() {
         elmt.append('<span>' + data.text + '</span>');
         elmt.append(deleteBtn);
 
+        // only add edit button if item is selected
+        if (aliasesSelectize.getValue() === data.value) {
+          elmt.append(editBtn);
+        }
+
         return elmt;
       }
     },
@@ -1198,6 +1220,7 @@ $(function() {
       };
 
       saveDeviceAliases();
+      aliasesSelectize.clearCache();
     }
   })[0].selectize;
 
@@ -1417,6 +1440,8 @@ $(function() {
     if (selectizeItem && !updatingAlias) {
       updateGroupId(selectizeItem.savedGroupParams);
     }
+
+    aliasesSelectize.clearCache();
   });
 
   $(document).ready( function() {
