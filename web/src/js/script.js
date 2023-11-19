@@ -1179,9 +1179,13 @@ $(function() {
               return false;
             })
             .click(function(e) {
-              // clear value
-              aliasesSelectize.clear();
               aliasesSelectize.close();
+              aliasesSelectize.clear();
+
+              // set value in textbox to current alias
+              var alias = aliasesSelectize.options[data.value];
+              $('.selectize-input input#deviceAliases-selectized').val(alias.text).focus();
+
               deleteDeviceAlias.call($(this).closest('.c-selectize-item'));
               e.preventDefault();
               return false;
