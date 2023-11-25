@@ -307,6 +307,10 @@ void wifiExtraSettingsChange() {
   settings.wifiStaticIPGateway = wifiStaticIPGateway->getValue();
   settings.wifiMode = Settings::wifiModeFromString(wifiMode->getValue());
   settings.save();
+
+  // Restart the device
+  delay(1000);
+  ESP.restart();
 }
 
 // Called when a group is deleted via the REST API.  Will publish an empty message to
@@ -383,7 +387,12 @@ void setup() {
 
   // Allows us to have static IP config in the captive portal. Yucky pointers to pointers, just to have the settings carry through
   wifiManager = new WiFiManager();
+
+  // Setting breakAfterConfig to true causes wifiExtraSettingsChange to be called whenever config params are changed
+  // (even when connection fails or user is just changing settings and not network)
+  wifiManager->setBreakAfterConfig(true);
   wifiManager->setSaveConfigCallback(wifiExtraSettingsChange);
+
   wifiManager->setConfigPortalBlocking(false);
   wifiManager->setConnectTimeout(20);
   wifiManager->setConnectRetries(5);
