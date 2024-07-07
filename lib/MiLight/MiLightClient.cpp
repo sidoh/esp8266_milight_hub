@@ -7,6 +7,7 @@
 #include <ParsedColor.h>
 #include <MiLightCommands.h>
 #include <functional>
+#include <global.h>
 
 using namespace std::placeholders;
 

@@ -1,8 +1,15 @@
 #include <GroupStatePersistence.h>
 #include <FS.h>
+#ifdef ESP32
+  #include <SPIFFS.h>
+#endif
 #include "ProjectFS.h"
 
-static const char FILE_PREFIX[] = "group_states/";
+#ifdef ESP8266
+    static const char FILE_PREFIX[] = "group_states/";
+#elif ESP32
+    static const char FILE_PREFIX[] = "/group_states/";
+#endif
 
 void GroupStatePersistence::get(const BulbId &id, GroupState& state) {
   char path[30];

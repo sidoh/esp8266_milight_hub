@@ -13,8 +13,6 @@
 #include <MiLightHttpServer.h>
 #include <Settings.h>
 #include <MiLightUdpServer.h>
-#include <ESP8266mDNS.h>
-#include <ESP8266SSDP.h>
 #include <MqttClient.h>
 #include <MiLightDiscoveryServer.h>
 #include <MiLightClient.h>
@@ -24,6 +22,19 @@
 #include <HomeAssistantDiscoveryClient.h>
 #include <TransitionController.h>
 #include <ProjectWifi.h>
+#include <global.h>
+
+#include <ESPId.h>
+
+#ifdef ESP8266
+  #include <ESP8266mDNS.h>
+  #include <ESP8266SSDP.h>
+#elif ESP32
+  #include "ESP32SSDP.h"
+  #include <esp_wifi.h>
+  #include <SPIFFS.h>
+  #include <ESPmDNS.h>
+#endif
 
 #include <vector>
 #include <memory>
@@ -261,7 +272,7 @@ void applySettings() {
     delete discoveryServer;
     discoveryServer = NULL;
   }
-  if (settings.discoveryPort != 0) {
+  if (settings.discoveryPort != 0 && WiFi.isConnected()) {
     discoveryServer = new MiLightDiscoveryServer(settings);
     discoveryServer->begin();
   }
@@ -273,21 +284,36 @@ void applySettings() {
   }
 
   WiFi.hostname(settings.hostname);
-
-  WiFiPhyMode_t wifiMode;
+#ifdef ESP8266
+  WiFiPhyMode_t wifiPhyMode;
+switch (settings.wifiPhyMode) {
+  case WifiMode::B:
+    wifiPhyMode = WIFI_PHY_MODE_11B;
+    break;
+  case WifiMode::G:
+    wifiPhyMode = WIFI_PHY_MODE_11G;
+    break;
+  default:
+  case WifiMode::N:
+    wifiPhyMode = WIFI_PHY_MODE_11N;
+    break;
+}
+  WiFi.setPhyMode(wifiPhyMode);
+#elif ESP32
   switch (settings.wifiMode) {
     case WifiMode::B:
-      wifiMode = WIFI_PHY_MODE_11B;
+      esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_11B);
       break;
     case WifiMode::G:
-      wifiMode = WIFI_PHY_MODE_11G;
+      esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_11G);
       break;
     default:
     case WifiMode::N:
-      wifiMode = WIFI_PHY_MODE_11N;
+      esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_11N);
       break;
   }
-  WiFi.setPhyMode(wifiMode);
+  esp_wifi_set_bandwidth(WIFI_IF_STA, WIFI_BW_HT20);
+#endif
 }
 
 /**
@@ -339,7 +365,7 @@ void postConnectSetup() {
   SSDP.setSchemaURL("description.xml");
   SSDP.setHTTPPort(80);
   SSDP.setName("ESP8266 MiLight Gateway");
-  SSDP.setSerialNumber(ESP.getChipId());
+  SSDP.setSerialNumber(getESPId());
   SSDP.setURL("/");
   SSDP.setDeviceType("upnp:rootdevice");
   SSDP.begin();
@@ -367,7 +393,8 @@ void postConnectSetup() {
 
 void setup() {
   Serial.begin(9600);
-  String ssid = "ESP" + String(ESP.getChipId());
+  delay(1000);
+  String ssid = "ESP" + String(getESPId());
 
   // load up our persistent settings from the file system
   ProjectFS.begin();

@@ -7,6 +7,7 @@
 #include <WiFiClient.h>
 #include <MiLightRadioConfig.h>
 #include <AboutHelper.h>
+#include <global.h>
 
 static const char* STATUS_CONNECTED = "connected";
 static const char* STATUS_DISCONNECTED = "disconnected_clean";
@@ -56,7 +57,7 @@ void MqttClient::begin() {
 
 bool MqttClient::connect() {
   char nameBuffer[30];
-  sprintf_P(nameBuffer, PSTR("milight-hub-%u"), ESP.getChipId());
+  sprintf_P(nameBuffer, PSTR("milight-hub-%u"), getESPId());
 
 #ifdef MQTT_DEBUG
     Serial.println(F("MqttClient - connecting using name"));

@@ -1,6 +1,10 @@
 #include <MiLightDiscoveryServer.h>
 #include <Size.h>
-#include <ESP8266WiFi.h>
+#ifdef ESP8266
+  #include <ESP8266WiFi.h>
+#elif ESP32
+  #include <WiFi.h>
+#endif
 
 const char V3_SEARCH_STRING[] = "Link_Wi-Fi";
 const char V6_SEARCH_STRING[] = "HF-A11ASSISTHREAD";
@@ -85,6 +89,10 @@ void MiLightDiscoveryServer::sendResponse(char* buffer) {
 #endif
 
   socket.beginPacket(socket.remoteIP(), socket.remotePort());
-  socket.write(buffer);
+#ifdef ESP8266
+    socket.write(buffer);
+#elif ESP32
+    socket.write(*buffer);
+#endif
   socket.endPacket();
 }

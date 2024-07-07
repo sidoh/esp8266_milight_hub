@@ -1,5 +1,6 @@
 #include <RF24PowerLevel.h>
 #include <Size.h>
+#include <global.h>
 
 static const char* RF24_POWER_LEVEL_NAMES[] = {
   "MIN",

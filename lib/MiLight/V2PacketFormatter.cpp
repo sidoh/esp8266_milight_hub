@@ -1,5 +1,6 @@
 #include <V2PacketFormatter.h>
 #include <V2RFEncoding.h>
+#include <global.h>
 
 #define GROUP_COMMAND_ARG(status, groupId, numGroups) ( groupId + (status == OFF ? (numGroups + 1) : 0) )
 
