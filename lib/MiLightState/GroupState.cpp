@@ -4,6 +4,7 @@
 #include <RGBConverter.h>
 #include <BulbId.h>
 #include <MiLightCommands.h>
+#include <global.h>
 
 static const char* BULB_MODE_NAMES[] = {
   "white",
