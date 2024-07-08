@@ -13,7 +13,7 @@
 
 #include <index.html.gz.h>
 #include <BackupManager.h>
-#include <global.h>
+
 
 #ifdef ESP32
   #include <SPIFFS.h>

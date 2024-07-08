@@ -22,7 +22,6 @@
 #include <HomeAssistantDiscoveryClient.h>
 #include <TransitionController.h>
 #include <ProjectWifi.h>
-#include <global.h>
 
 #include <ESPId.h>
 
@@ -286,7 +285,7 @@ void applySettings() {
   WiFi.hostname(settings.hostname);
 #ifdef ESP8266
   WiFiPhyMode_t wifiPhyMode;
-switch (settings.wifiPhyMode) {
+switch (settings.wifiMode) {
   case WifiMode::B:
     wifiPhyMode = WIFI_PHY_MODE_11B;
     break;
@@ -393,7 +392,6 @@ void postConnectSetup() {
 
 void setup() {
   Serial.begin(9600);
-  delay(1000);
   String ssid = "ESP" + String(getESPId());
 
   // load up our persistent settings from the file system
