@@ -54,7 +54,7 @@
 #define SETTINGS_FILE  "/config.json"
 #define SETTINGS_TERMINATOR '\0'
 #define ALIASES_FILE "/aliases.bin"
-#define BACKUP_FILE "_backup.bin"
+#define BACKUP_FILE "/backup.bin"
 
 #define WEB_INDEX_FILENAME "/web/index.html"
 
