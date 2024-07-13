@@ -1,7 +1,11 @@
 #include <HomeAssistantDiscoveryClient.h>
 #include <MiLightCommands.h>
 #include <Units.h>
-#include <ESP8266WiFi.h>
+#ifdef ESP8266
+  #include <ESP8266WiFi.h>
+#elif ESP32
+  #include <WiFi.h>
+#endif
 
 HomeAssistantDiscoveryClient::HomeAssistantDiscoveryClient(Settings& settings, MqttClient* mqttClient)
   : settings(settings)
@@ -40,7 +44,7 @@ void HomeAssistantDiscoveryClient::addConfig(const char* alias, const BulbId& bu
 
   // Unique ID for this device + alias combo
   char uniqueIdBuffer[30];
-  snprintf_P(uniqueIdBuffer, sizeof(uniqueIdBuffer), PSTR("%X-%s"), ESP.getChipId(), alias);
+  snprintf_P(uniqueIdBuffer, sizeof(uniqueIdBuffer), PSTR("%X-%s"), getESPId(), alias);
 
   // String to ID the firmware version
   char fwVersion[100];
@@ -64,7 +68,7 @@ void HomeAssistantDiscoveryClient::addConfig(const char* alias, const BulbId& bu
   deviceMetadata[F("sw")] = fwVersion;
   deviceMetadata[F("mf")] = F("espressif");
   deviceMetadata[F("mdl")] = QUOTE(FIRMWARE_VARIANT);
-  deviceMetadata[F("identifiers")] = String(ESP.getChipId());
+  deviceMetadata[F("identifiers")] = String(getESPId());
   deviceMetadata[F("cu")] = deviceUrl;
 
   // HomeAssistant only supports simple client availability
@@ -148,7 +152,7 @@ String HomeAssistantDiscoveryClient::buildTopic(const BulbId& bulbId) {
 
   topic += "light/";
   // Use a static ID that doesn't depend on configuration.
-  topic += "milight_hub_" + String(ESP.getChipId());
+  topic += "milight_hub_" + String(getESPId());
 
   // make the object ID based on the actual parameters rather than the alias.
   topic += "/";
