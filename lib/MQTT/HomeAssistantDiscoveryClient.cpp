@@ -82,9 +82,6 @@ void HomeAssistantDiscoveryClient::addConfig(const char* alias, const BulbId& bu
   }
 
   // Configure supported commands based on the bulb type
-
-  // All supported bulbs support brightness and night mode
-  config[GroupStateFieldNames::BRIGHTNESS] = true;
   config[GroupStateFieldNames::EFFECT] = true;
 
   // effect_list
@@ -114,16 +111,26 @@ void HomeAssistantDiscoveryClient::addConfig(const char* alias, const BulbId& bu
       break;
   }
 
+  // supported_color_modes
+  JsonArray colorModes = config.createNestedArray(F("sup_clrm"));
+
   // Flag RGB support
   if (MiLightRemoteTypeHelpers::supportsRgb(bulbId.deviceType)) {
-    config[F("rgb")] = true;
+    colorModes.add(F("rgb"));
   }
 
   // Flag adjustable color temp support
   if (MiLightRemoteTypeHelpers::supportsColorTemp(bulbId.deviceType)) {
-    config[GroupStateFieldNames::COLOR_TEMP] = true;
+    colorModes.add(GroupStateFieldNames::COLOR_TEMP);
+
     config[F("max_mirs")] = COLOR_TEMP_MAX_MIREDS;
     config[F("min_mirs")] = COLOR_TEMP_MIN_MIREDS;
+  }
+
+  // should only have brightness in this list if there are no other color modes
+  // https://www.home-assistant.io/integrations/light.mqtt/#supported_color_modes
+  if (colorModes.size() == 0) {
+    colorModes.add(F("brightness"));
   }
 
   String message;
