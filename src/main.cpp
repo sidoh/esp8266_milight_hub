@@ -400,9 +400,8 @@ void setup() {
   }
 
   Settings::load(settings);
-  applySettings();
-
   ESPMH_SETUP_WIFI(settings);
+  applySettings();
 
   // set up the LED status for wifi configuration
   ledStatus = new LEDStatus(settings.ledPin);
