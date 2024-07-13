@@ -7,7 +7,7 @@
 #include <WiFiClient.h>
 #include <MiLightRadioConfig.h>
 #include <AboutHelper.h>
-#include <global.h>
+
 
 static const char* STATUS_CONNECTED = "connected";
 static const char* STATUS_DISCONNECTED = "disconnected_clean";

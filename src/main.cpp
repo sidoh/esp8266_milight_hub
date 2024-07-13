@@ -22,7 +22,6 @@
 #include <HomeAssistantDiscoveryClient.h>
 #include <TransitionController.h>
 #include <ProjectWifi.h>
-#include <global.h>
 
 #include <ESPId.h>
 
@@ -393,7 +392,6 @@ void postConnectSetup() {
 
 void setup() {
   Serial.begin(9600);
-  delay(1000);
   String ssid = "ESP" + String(getESPId());
 
   // load up our persistent settings from the file system
