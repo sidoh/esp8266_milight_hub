@@ -395,7 +395,7 @@ void setup() {
   String ssid = "ESP" + String(getESPId());
 
   // load up our persistent settings from the file system
-  if (! ProjectFS.begin(true)) {
+  if (! ProjectFS.begin()) {
     Serial.println(F("Failed to mount file system"));
   }
 
