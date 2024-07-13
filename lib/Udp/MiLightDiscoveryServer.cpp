@@ -85,7 +85,10 @@ void MiLightDiscoveryServer::handleDiscovery(uint8_t version) {
 
 void MiLightDiscoveryServer::sendResponse(char* buffer) {
 #ifdef MILIGHT_UDP_DEBUG
-  printf_P(PSTR("Sending response: %s\n"), buffer);
+  printf_P(PSTR("Sending response: %s, remote:"), buffer);
+  Serial.print(socket.remoteIP());
+  Serial.print(":");
+  Serial.println(socket.remotePort());
 #endif
 
   socket.beginPacket(socket.remoteIP(), socket.remotePort());
