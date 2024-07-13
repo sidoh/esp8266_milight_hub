@@ -286,7 +286,7 @@ void applySettings() {
   WiFi.hostname(settings.hostname);
 #ifdef ESP8266
   WiFiPhyMode_t wifiPhyMode;
-switch (settings.wifiPhyMode) {
+switch (settings.wifiMode) {
   case WifiMode::B:
     wifiPhyMode = WIFI_PHY_MODE_11B;
     break;
