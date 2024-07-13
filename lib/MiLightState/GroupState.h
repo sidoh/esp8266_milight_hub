@@ -7,6 +7,7 @@
 #include <ArduinoJson.h>
 #include <BulbId.h>
 #include <ParsedColor.h>
+#include <vector>
 
 #ifndef _GROUP_STATE_H
 #define _GROUP_STATE_H

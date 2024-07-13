@@ -1,7 +1,11 @@
 #include <HomeAssistantDiscoveryClient.h>
 #include <MiLightCommands.h>
 #include <Units.h>
-#include <ESP8266WiFi.h>
+#ifdef ESP8266
+  #include <ESP8266WiFi.h>
+#elif ESP32
+  #include <WiFi.h>
+#endif
 
 HomeAssistantDiscoveryClient::HomeAssistantDiscoveryClient(Settings& settings, MqttClient* mqttClient)
   : settings(settings)
@@ -40,7 +44,7 @@ void HomeAssistantDiscoveryClient::addConfig(const char* alias, const BulbId& bu
 
   // Unique ID for this device + alias combo
   char uniqueIdBuffer[30];
-  snprintf_P(uniqueIdBuffer, sizeof(uniqueIdBuffer), PSTR("%X-%s"), ESP.getChipId(), alias);
+  snprintf_P(uniqueIdBuffer, sizeof(uniqueIdBuffer), PSTR("%X-%s"), getESPId(), alias);
 
   // String to ID the firmware version
   char fwVersion[100];
@@ -64,7 +68,7 @@ void HomeAssistantDiscoveryClient::addConfig(const char* alias, const BulbId& bu
   deviceMetadata[F("sw")] = fwVersion;
   deviceMetadata[F("mf")] = F("espressif");
   deviceMetadata[F("mdl")] = QUOTE(FIRMWARE_VARIANT);
-  deviceMetadata[F("identifiers")] = String(ESP.getChipId());
+  deviceMetadata[F("identifiers")] = String(getESPId());
   deviceMetadata[F("cu")] = deviceUrl;
 
   // HomeAssistant only supports simple client availability
@@ -78,9 +82,6 @@ void HomeAssistantDiscoveryClient::addConfig(const char* alias, const BulbId& bu
   }
 
   // Configure supported commands based on the bulb type
-
-  // All supported bulbs support brightness and night mode
-  config[GroupStateFieldNames::BRIGHTNESS] = true;
   config[GroupStateFieldNames::EFFECT] = true;
 
   // effect_list
@@ -110,16 +111,26 @@ void HomeAssistantDiscoveryClient::addConfig(const char* alias, const BulbId& bu
       break;
   }
 
+  // supported_color_modes
+  JsonArray colorModes = config.createNestedArray(F("sup_clrm"));
+
   // Flag RGB support
   if (MiLightRemoteTypeHelpers::supportsRgb(bulbId.deviceType)) {
-    config[F("rgb")] = true;
+    colorModes.add(F("rgb"));
   }
 
   // Flag adjustable color temp support
   if (MiLightRemoteTypeHelpers::supportsColorTemp(bulbId.deviceType)) {
-    config[GroupStateFieldNames::COLOR_TEMP] = true;
+    colorModes.add(GroupStateFieldNames::COLOR_TEMP);
+
     config[F("max_mirs")] = COLOR_TEMP_MAX_MIREDS;
     config[F("min_mirs")] = COLOR_TEMP_MIN_MIREDS;
+  }
+
+  // should only have brightness in this list if there are no other color modes
+  // https://www.home-assistant.io/integrations/light.mqtt/#supported_color_modes
+  if (colorModes.size() == 0) {
+    colorModes.add(F("brightness"));
   }
 
   String message;
@@ -148,7 +159,7 @@ String HomeAssistantDiscoveryClient::buildTopic(const BulbId& bulbId) {
 
   topic += "light/";
   // Use a static ID that doesn't depend on configuration.
-  topic += "milight_hub_" + String(ESP.getChipId());
+  topic += "milight_hub_" + String(getESPId());
 
   // make the object ID based on the actual parameters rather than the alias.
   topic += "/";

@@ -206,6 +206,8 @@ RSpec.describe 'Settings' do
     it 'should boot with static IP when applied' do
       static_ip = ENV.fetch('ESPMH_STATIC_IP')
 
+      raise 'ESPMH_STATIC_IP must be set to run this test' if not static_ip or static_ip.empty?
+
       @client.put(
         '/settings',
         wifi_static_ip: static_ip,

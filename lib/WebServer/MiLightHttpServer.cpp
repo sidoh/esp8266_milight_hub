@@ -14,6 +14,12 @@
 #include <index.html.gz.h>
 #include <BackupManager.h>
 
+
+#ifdef ESP32
+  #include <SPIFFS.h>
+  #include <Update.h>
+#endif
+
 using namespace std::placeholders;
 
 void MiLightHttpServer::begin() {
@@ -134,7 +140,7 @@ WiFiClient MiLightHttpServer::client() {
   return server.client();
 }
 
-void MiLightHttpServer::on(const char* path, HTTPMethod method, ESP8266WebServer::THandlerFunction handler) {
+void MiLightHttpServer::on(const char *path, HTTPMethod method, THandlerFunction handler) {
   server.on(path, method, handler);
 }
 
@@ -154,16 +160,22 @@ void MiLightHttpServer::handleSystemPost(RequestContext& request) {
 
       handled = true;
     } else if (requestBody[GroupStateFieldNames::COMMAND] == "clear_wifi_config") {
-        Serial.println(F("Resetting Wifi and then Restarting..."));
-        server.send_P(200, TEXT_PLAIN, PSTR("true"));
+      Serial.println(F("Resetting Wifi and then Restarting..."));
+      server.send_P(200, TEXT_PLAIN, PSTR("true"));
 
-        delay(100);
-        ESP.eraseConfig();
-        delay(100);
-        ESP.restart();
+      delay(100);
+#ifdef ESP8266
+      ESP.eraseConfig();
+#elif ESP32
+      Serial.println(F("Wifi reset..."));
+      WiFi.disconnect(true, true);
+      delay(1000);
+#endif
+      delay(100);
+      ESP.restart();
 
-        handled = true;
-      }
+      handled = true;
+    }
   }
 
   if (handled) {
@@ -277,6 +289,7 @@ void MiLightHttpServer::handleFirmwarePost() {
 }
 
 void MiLightHttpServer::handleFirmwareUpload() {
+#ifdef ESP8266
   HTTPUpload& upload = server.upload();
   if(upload.status == UPLOAD_FILE_START){
     WiFiUDP::stopAll();
@@ -295,6 +308,30 @@ void MiLightHttpServer::handleFirmwareUpload() {
     }
   }
   yield();
+#elif ESP32
+  HTTPUpload &upload = server.upload();
+  if (upload.status == UPLOAD_FILE_START) {
+    Serial.printf("Update: %s\n", upload.filename.c_str());
+    if (!Update.begin(UPDATE_SIZE_UNKNOWN)) { // start with max available size
+      Update.printError(Serial);
+    }
+  } else if (upload.status == UPLOAD_FILE_WRITE) {
+    if (Update.write(upload.buf, upload.currentSize) != upload.currentSize) {
+      Update.printError(Serial);
+    }
+  } else if (upload.status == UPLOAD_FILE_END) {
+    if (Update.end(true)) { // true to set the size to the current progress
+      Serial.println("Update Success: Rebooting...");
+      ESP.restart();
+    } else {
+      Update.printError(Serial);
+    }
+  } else if (upload.status == UPLOAD_FILE_ABORTED) {
+    Update.end();
+    Serial.println("Update was aborted");
+  }
+  delay(0);
+#endif
 }
 
 
