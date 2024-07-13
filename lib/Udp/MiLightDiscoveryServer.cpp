@@ -92,7 +92,7 @@ void MiLightDiscoveryServer::sendResponse(char* buffer) {
 #ifdef ESP8266
     socket.write(buffer);
 #elif ESP32
-    socket.write(*buffer);
+    socket.write(reinterpret_cast<uint8_t*>(buffer), strnlen(buffer, 40));
 #endif
   socket.endPacket();
 }
