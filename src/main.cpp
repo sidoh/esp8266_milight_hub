@@ -70,6 +70,10 @@ std::vector<std::shared_ptr<MiLightUdpServer>> udpServers;
  * Set up UDP servers (both v5 and v6).  Clean up old ones if necessary.
  */
 void initMilightUdpServers() {
+  if (! WiFi.isConnected()) {
+    return;
+  }
+
   udpServers.clear();
 
   for (size_t i = 0; i < settings.gatewayConfigs.size(); ++i) {
@@ -89,6 +93,15 @@ void initMilightUdpServers() {
       udpServers.push_back(std::move(server));
       udpServers[i]->begin();
     }
+  }
+
+  if (discoveryServer) {
+    delete discoveryServer;
+    discoveryServer = NULL;
+  }
+  if (settings.discoveryPort != 0) {
+    discoveryServer = new MiLightDiscoveryServer(settings);
+    discoveryServer->begin();
   }
 }
 
@@ -267,15 +280,6 @@ void applySettings() {
 
   initMilightUdpServers();
 
-  if (discoveryServer) {
-    delete discoveryServer;
-    discoveryServer = NULL;
-  }
-  if (settings.discoveryPort != 0 && WiFi.isConnected()) {
-    discoveryServer = new MiLightDiscoveryServer(settings);
-    discoveryServer->begin();
-  }
-
   // update LED pin and operating mode
   if (ledStatus) {
     ledStatus->changePin(settings.ledPin);
@@ -386,6 +390,8 @@ void postConnectSetup() {
           milightClient->update(buffer.as<JsonObject>());
       }
   );
+
+  initMilightUdpServers();
 
   Serial.printf_P(PSTR("Setup complete (version %s)\n"), QUOTE(MILIGHT_HUB_VERSION));
 }
