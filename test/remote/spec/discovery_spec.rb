@@ -99,9 +99,6 @@ RSpec.describe 'MQTT Discovery' do
         name
         cmd_t
         stat_t
-        brightness
-        rgb
-        color_temp
         effect
         fx_list
         dev
@@ -109,11 +106,13 @@ RSpec.describe 'MQTT Discovery' do
         uniq_id
         max_mirs
         min_mirs
+        sup_clrm
       )
       expect(config.keys).to include(*expected_keys)
 
       expect(config['fx_list']).to include(*%w(white_mode night_mode))
       expect(config['fx_list']).to include(*(0..8).map(&:to_s))
+      expect(config['sup_clrm']).to include(*%w(rgb color_temp))
     end
 
     it 'should list identifiers for ESP and bulb' do
