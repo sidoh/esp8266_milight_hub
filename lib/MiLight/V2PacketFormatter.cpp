@@ -1,6 +1,7 @@
 #include <V2PacketFormatter.h>
 #include <V2RFEncoding.h>
 
+
 #define GROUP_COMMAND_ARG(status, groupId, numGroups) ( groupId + (status == OFF ? (numGroups + 1) : 0) )
 
 V2PacketFormatter::V2PacketFormatter(const MiLightRemoteType deviceType, uint8_t protocolId, uint8_t numGroups)

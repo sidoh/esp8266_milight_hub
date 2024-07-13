@@ -122,7 +122,10 @@ RSpec.describe 'UDP servers' do
     end
 
     it 'should respond to v5 discovery' do
-      @discovery_socket.send('Link_Wi-Fi', 0, @discovery_host, @discovery_port)
+      @discovery_socket.send('Link_Wi-Fi', 0, @host, @discovery_port)
+
+      # wait for response
+      sleep 1
 
       response, _ = @discovery_socket.recvfrom_nonblock(1024)
       response = response.split(',')
