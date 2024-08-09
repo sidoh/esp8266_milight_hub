@@ -9,13 +9,13 @@ class HomeAssistantDiscoveryClient {
 public:
   HomeAssistantDiscoveryClient(Settings& settings, MqttClient* mqttClient);
 
-  void addConfig(const char* alias, const BulbId& bulbId);
-  void removeConfig(const BulbId& bulbId);
+  virtual void addConfig(const char* alias, const BulbId& bulbId);
+  virtual void removeConfig(const BulbId& bulbId);
 
-  void sendDiscoverableDevices(const std::map<String, GroupAlias>& aliases);
-  void removeOldDevices(const std::map<uint32_t, BulbId>& aliases);
+  virtual void sendDiscoverableDevices(const std::map<String, GroupAlias>& aliases);
+  virtual void removeOldDevices(const std::map<uint32_t, BulbId>& aliases);
 
-private:
+protected:
   Settings& settings;
   MqttClient* mqttClient;
 

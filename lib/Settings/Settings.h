@@ -180,6 +180,7 @@ public:
     groupStateFields(DEFAULT_GROUP_STATE_FIELDS),
     rf24ListenChannel(RF24Channel::RF24_LOW),
     packetRepeatsPerLoop(10),
+    homeAssistantSeparateDevices(true),
     wifiMode(WifiMode::G),
     defaultTransitionPeriod(500),
     groupIdAliasNextId(0),
@@ -260,6 +261,7 @@ public:
   std::map<String, GroupAlias> groupIdAliases;
   std::map<uint32_t, BulbId> deletedGroupIdAliases;
   String homeAssistantDiscoveryPrefix;
+  bool homeAssistantSeparateDevices;
   WifiMode wifiMode;
   uint16_t defaultTransitionPeriod;
   size_t groupIdAliasNextId;
