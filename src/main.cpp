@@ -20,6 +20,7 @@
 #include <RadioSwitchboard.h>
 #include <PacketSender.h>
 #include <HomeAssistantDiscoveryClient.h>
+#include <HomeAssistantDiscoveryClientV2.h>
 #include <TransitionController.h>
 #include <ProjectWifi.h>
 
@@ -267,9 +268,17 @@ void applySettings() {
     mqttClient->begin();
     mqttClient->onConnect([]() {
       if (settings.homeAssistantDiscoveryPrefix.length() > 0) {
-        HomeAssistantDiscoveryClient discoveryClient(settings, mqttClient);
-        discoveryClient.sendDiscoverableDevices(settings.groupIdAliases);
-        discoveryClient.removeOldDevices(settings.deletedGroupIdAliases);
+        if(settings.homeAssistantSeparateDevices){
+          HomeAssistantDiscoveryClientV2 discoveryClient(settings, mqttClient);
+          discoveryClient.sendDiscoverableDevices(settings.groupIdAliases);
+          discoveryClient.removeOldDevices(settings.deletedGroupIdAliases);
+        }
+        else{
+          HomeAssistantDiscoveryClient discoveryClient(settings, mqttClient);
+          discoveryClient.sendDiscoverableDevices(settings.groupIdAliases);
+          discoveryClient.removeOldDevices(settings.deletedGroupIdAliases);
+        }
+        
 
         settings.deletedGroupIdAliases.clear();
       }
