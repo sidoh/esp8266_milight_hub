@@ -170,6 +170,31 @@ export interface AliasesGet200Response {
 /**
  * 
  * @export
+ * @interface AliasesIdPutRequest
+ */
+export interface AliasesIdPutRequest {
+    /**
+     * 
+     * @type {string}
+     * @memberof AliasesIdPutRequest
+     */
+    'alias'?: string;
+    /**
+     * 
+     * @type {number}
+     * @memberof AliasesIdPutRequest
+     */
+    'device_id'?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof AliasesIdPutRequest
+     */
+    'group_id'?: number;
+}
+/**
+ * 
+ * @export
  * @interface AliasesPost201Response
  */
 export interface AliasesPost201Response {
@@ -1528,15 +1553,15 @@ export const AliasesApiAxiosParamCreator = function (configuration?: Configurati
          * 
          * @summary Update an alias by ID
          * @param {number} id 
-         * @param {Alias} alias 
+         * @param {AliasesIdPutRequest} aliasesIdPutRequest 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        aliasesIdPut: async (id: number, alias: Alias, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        aliasesIdPut: async (id: number, aliasesIdPutRequest: AliasesIdPutRequest, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'id' is not null or undefined
             assertParamExists('aliasesIdPut', 'id', id)
-            // verify required parameter 'alias' is not null or undefined
-            assertParamExists('aliasesIdPut', 'alias', alias)
+            // verify required parameter 'aliasesIdPutRequest' is not null or undefined
+            assertParamExists('aliasesIdPut', 'aliasesIdPutRequest', aliasesIdPutRequest)
             const localVarPath = `/aliases/{id}`
                 .replace(`{${"id"}}`, encodeURIComponent(String(id)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
@@ -1557,7 +1582,7 @@ export const AliasesApiAxiosParamCreator = function (configuration?: Configurati
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(alias, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(aliasesIdPutRequest, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -1664,12 +1689,12 @@ export const AliasesApiFp = function(configuration?: Configuration) {
          * 
          * @summary Update an alias by ID
          * @param {number} id 
-         * @param {Alias} alias 
+         * @param {AliasesIdPutRequest} aliasesIdPutRequest 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async aliasesIdPut(id: number, alias: Alias, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<BooleanResponse>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.aliasesIdPut(id, alias, options);
+        async aliasesIdPut(id: number, aliasesIdPutRequest: AliasesIdPutRequest, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<BooleanResponse>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.aliasesIdPut(id, aliasesIdPutRequest, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['AliasesApi.aliasesIdPut']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -1739,12 +1764,12 @@ export const AliasesApiFactory = function (configuration?: Configuration, basePa
          * 
          * @summary Update an alias by ID
          * @param {number} id 
-         * @param {Alias} alias 
+         * @param {AliasesIdPutRequest} aliasesIdPutRequest 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        aliasesIdPut(id: number, alias: Alias, options?: RawAxiosRequestConfig): AxiosPromise<BooleanResponse> {
-            return localVarFp.aliasesIdPut(id, alias, options).then((request) => request(axios, basePath));
+        aliasesIdPut(id: number, aliasesIdPutRequest: AliasesIdPutRequest, options?: RawAxiosRequestConfig): AxiosPromise<BooleanResponse> {
+            return localVarFp.aliasesIdPut(id, aliasesIdPutRequest, options).then((request) => request(axios, basePath));
         },
         /**
          * 
@@ -1816,13 +1841,13 @@ export class AliasesApi extends BaseAPI {
      * 
      * @summary Update an alias by ID
      * @param {number} id 
-     * @param {Alias} alias 
+     * @param {AliasesIdPutRequest} aliasesIdPutRequest 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof AliasesApi
      */
-    public aliasesIdPut(id: number, alias: Alias, options?: RawAxiosRequestConfig) {
-        return AliasesApiFp(this.configuration).aliasesIdPut(id, alias, options).then((request) => request(this.axios, this.basePath));
+    public aliasesIdPut(id: number, aliasesIdPutRequest: AliasesIdPutRequest, options?: RawAxiosRequestConfig) {
+        return AliasesApiFp(this.configuration).aliasesIdPut(id, aliasesIdPutRequest, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**

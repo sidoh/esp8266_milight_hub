@@ -12,6 +12,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@tailwindcss/forms": "^0.5.9",
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.0",
     "autoprefixer": "^10.4.20",
@@ -52,6 +53,7 @@
     "react-router-dom": "^6.26.2",
     "tailwind-merge": "^2.5.3",
     "tailwindcss-animate": "^1.0.7",
+    "tailwindcss-radix": "^3.0.5",
     "zod": "^3.23.8"
   }
 }

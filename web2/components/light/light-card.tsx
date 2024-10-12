@@ -1,10 +1,10 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import Wheel from "@uiw/react-color-wheel";
 import { hsvaToRgba, rgbaToHsva } from "@uiw/color-convert";
-import { Sun, Moon, Palette, X } from "lucide-react";
+import { Sun, Moon, Palette, X, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { api } from "@/lib/api";
@@ -18,37 +18,27 @@ import {
 } from "@/api";
 import { useRateLimitMerge } from "@/hooks/use-rate-limit-merge";
 import { LightStatusIcon } from "./light-status-icon";
-
-const modeIcons = {
-  normal: Sun,
-  night: Moon,
-  color: Palette,
-};
-
-export interface LightCapabilities {
-  brightness: boolean;
-  color: boolean;
-  colorTemp: boolean;
-}
+import { LightCapabilities, RemoteTypeCapabilities } from "./remote-data";
+import { Input } from "@/components/ui/input";
 
 export type NormalizedLightMode = "white" | "color" | "scene" | "night";
 
 export interface LightCardProps {
   name: string;
-  capabilities: LightCapabilities;
   state: NormalizedGroupState;
   id: BulbId;
   updateState: (payload: Partial<NormalizedGroupState>) => void;
   onClose?: () => void;
+  onNameChange: (newName: string) => void;
 }
 
 export function LightCard({
   name,
-  capabilities,
   state,
   id,
   updateState: _updateState,
   onClose,
+  onNameChange,
 }: LightCardProps) {
   const [rateLimitedState, setRateLimitedState, clearRateLimitedState] = useRateLimitMerge<GatewaysDeviceIdRemoteTypeGroupIdPutRequest>({}, 500);
   const lastUpdateTimeRef = useRef<number>(0);
@@ -68,7 +58,6 @@ export function LightCard({
   };
 
   const updateState = (newState: Partial<NormalizedGroupState>) => {
-    console.log("UPDATING STATE.", newState);
     _updateState(newState);
     const now = Date.now();
     if (now - lastUpdateTimeRef.current >= 500) {
@@ -140,7 +129,19 @@ export function LightCard({
     }
   };
 
-  console.log("render", state.color_mode);
+  const capabilities = RemoteTypeCapabilities[id.device_type];
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedName, setEditedName] = useState(name);
+
+  const handleNameEdit = () => {
+    setIsEditing(true);
+  };
+
+  const handleNameSave = () => {
+    setIsEditing(false);
+    onNameChange(editedName);
+  };
 
   return (
     <Card className="w-96 min-h-96 flex flex-col">
@@ -155,7 +156,24 @@ export function LightCard({
               <X size={20} />
             </button>
           )}
-          <CardTitle className="text-lg font-medium">{name}</CardTitle>
+          {isEditing ? (
+            <Input
+              value={editedName}
+              onChange={(e) => setEditedName(e.target.value)}
+              onBlur={handleNameSave}
+              onKeyPress={(e) => e.key === 'Enter' && handleNameSave()}
+              className="text-lg font-medium w-40"
+            />
+          ) : (
+            <CardTitle className="text-lg font-medium">{name}</CardTitle>
+          )}
+          <button
+            onClick={isEditing ? handleNameSave : handleNameEdit}
+            className="p-1 hover:bg-muted rounded-full"
+            aria-label={isEditing ? "Save name" : "Edit name"}
+          >
+            <Pencil size={16} />
+          </button>
           <div
             className="w-6 h-6 rounded-full bg-muted flex items-center justify-center"
             title={`Mode: ${state.color_mode}`}
@@ -223,14 +241,18 @@ export function LightCard({
                 aria-label="Select light mode"
                 className="justify-normal"
               >
-                <ToggleGroupItem value={ColorMode.ColorTemp}>
-                  <Sun size={16} className="mr-2" />
-                  White
-                </ToggleGroupItem>
-                <ToggleGroupItem value={ColorMode.Rgb}>
-                  <Palette size={16} className="mr-2" />
-                  Color
-                </ToggleGroupItem>
+                {capabilities.colorTemp && (
+                  <ToggleGroupItem value={ColorMode.ColorTemp}>
+                    <Sun size={16} className="mr-2" />
+                    White
+                  </ToggleGroupItem>
+                )}
+                {capabilities.color && (
+                  <ToggleGroupItem value={ColorMode.Rgb}>
+                    <Palette size={16} className="mr-2" />
+                    Color
+                  </ToggleGroupItem>
+                )}
                 <ToggleGroupItem value={ColorMode.Onoff}>
                   <Moon size={16} className="mr-2" />
                   Night
@@ -239,7 +261,7 @@ export function LightCard({
             </div>
           </div>
         ) : (
-          <div className="flex items-center justify-center h-full">
+          <div className="flex flex-col items-center justify-center flex-grow">
             <p className="text-muted-foreground">Light is off</p>
           </div>
         )}

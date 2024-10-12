@@ -101,7 +101,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Alias'
+              type: object
+              properties:
+                alias:
+                  type: string
+                device_id:
+                  type: integer
+                group_id:
+                  type: integer
       responses:
         '200':
           description: Alias updated successfully

@@ -9,6 +9,7 @@ import {
 
 export interface LightIndexState {
   lights: GatewayListItem[];
+  isLoading: boolean;
 }
 
 type Action =
@@ -28,6 +29,11 @@ type Action =
   | {
       type: "ADD_LIGHT";
       device: Alias;
+    }
+  | {
+      type: "UPDATE_LIGHT_NAME";
+      device: GatewayListItemDevice;
+      name: string;
     };
 
 function devicesAreEqual(a: GatewayListItemDevice, b: GatewayListItemDevice) {
@@ -57,6 +63,7 @@ export function reducer(
       return {
         ...state,
         lights: action.lights,
+        isLoading: false,
       };
     case "DELETE_LIGHT":
       return {
@@ -77,6 +84,15 @@ export function reducer(
       return {
         ...state,
         lights: [...state.lights, { device, state: { state: "OFF" } }],
+      };
+    case "UPDATE_LIGHT_NAME":
+      return {
+        ...state,
+        lights: state.lights.map((light) =>
+          devicesAreEqual(light.device, action.device)
+            ? { ...light, device: { ...light.device, alias: action.name } }
+            : light
+        ),
       };
     default:
       return state;

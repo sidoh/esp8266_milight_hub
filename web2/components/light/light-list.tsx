@@ -2,15 +2,13 @@ import React, { useReducer, useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/lib/api";
+import { GatewayListItem, NormalizedGroupState } from "@/api";
 import {
-    GatewayListItem, NormalizedGroupState
-} from "@/api";
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { reducer } from "./state"; // Import the reducer
 import { LightStatusIcon } from "./light-status-icon";
@@ -19,12 +17,16 @@ import ConfirmationDialog from "@/components/confirmation-dialog"; // Import the
 import NewLightForm, { NewAlias } from "./new-light-form";
 import { LightCard } from "./light-card"; // Import the LightCard component
 import { cn } from "@/lib/utils"; // Make sure to import the cn utility if not already present
+import { Skeleton } from "../ui/skeleton";
 
 interface LightListProps {
   lights: GatewayListItem[];
 }
 export function LightList() {
-  const [lightStates, dispatch] = useReducer(reducer, { lights: [] });
+  const [lightStates, dispatch] = useReducer(reducer, {
+    lights: [],
+    isLoading: true,
+  });
   const [isDeleteMode, setIsDeleteMode] = useState(false); // State to track delete mode
   const [showConfirmation, setShowConfirmation] = useState(false); // State to manage dialog visibility
   const [lightToDelete, setLightToDelete] = useState<GatewayListItem | null>(
@@ -54,16 +56,18 @@ export function LightList() {
       state: checked ? "ON" : ("OFF" as "ON" | "OFF"),
     };
     updateGroup(light, update);
-    api.deviceControl.gatewaysDeviceIdRemoteTypeGroupIdPut(
-      light.device.device_id,
-      light.device.device_type,
-      light.device.group_id,
-      false,
-      "normalized",
-      update
-    ).then((response) => {
-      console.log(response);
-    });
+    api.deviceControl
+      .gatewaysDeviceIdRemoteTypeGroupIdPut(
+        light.device.device_id,
+        light.device.device_type,
+        light.device.group_id,
+        false,
+        "normalized",
+        update
+      )
+      .then((response) => {
+        console.log(response);
+      });
   };
 
   const handleAddLight = async (data: NewAlias) => {
@@ -105,6 +109,15 @@ export function LightList() {
     console.log(light);
   };
 
+  const onNameChange = (light: GatewayListItem, newName: string) => {
+    api.aliases.aliasesIdPut(light.device.id, { alias: newName });
+      dispatch({
+      type: "UPDATE_LIGHT_NAME",
+      device: light.device,
+      name: newName,
+    });
+  };
+
   return (
     <div className="flex items-center justify-center mt-10">
       <Card className="w-96">
@@ -112,46 +125,56 @@ export function LightList() {
           <CardTitle className="text-lg font-medium">Lights</CardTitle>
         </CardHeader>
         <CardContent>
-          {lightStates.lights.map((light, index) => (
-            <div
-              key={index}
-              className="flex items-center justify-between py-2 cursor-pointer"
-              onClick={() => handleLightClick(light)}
-            >
-              <div className="flex items-center">
-                {isDeleteMode && (
-                  <button
-                    className={cn(
-                      "text-red-500 hover:text-red-700 mr-2",
-                      "transition-transform duration-300 ease-in-out",
-                      "transform scale-100"
-                    )}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteButtonClick(light);
-                    }}
-                    aria-label={`Delete ${light.device.alias}`}
-                  >
-                    <Trash size={16} />
-                  </button>
-                )}
-                <div className="mr-2">
-                  <LightStatusIcon state={light.state} />
-                </div>
-                <span>{light.device.alias}</span>
+          {lightStates.isLoading ? (
+            <div className="flex justify-center items-center h-24">
+              <div className="space-y-4">
+                <Skeleton className="h-4 w-[250px]" />
+                <Skeleton className="ml-2 h-4 w-[250px]" />
+                <Skeleton className="h-4 w-[250px]" />
               </div>
-              <Switch
-                checked={light.state.state === "ON"}
-                onClick={(e) => {
-                  e.stopPropagation();
-                }}
-                onCheckedChange={(checked) => {
-                  handleSwitchChange(light, checked);
-                }}
-                aria-label={`Toggle ${light.device.alias}`}
-              />
             </div>
-          ))}
+          ) : (
+            lightStates.lights.map((light, index) => (
+              <div
+                key={index}
+                className="flex items-center justify-between py-2 cursor-pointer"
+                onClick={() => handleLightClick(light)}
+              >
+                <div className="flex items-center">
+                  {isDeleteMode && (
+                    <button
+                      className={cn(
+                        "text-red-500 hover:text-red-700 mr-2",
+                        "transition-transform duration-300 ease-in-out",
+                        "transform scale-100"
+                      )}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteButtonClick(light);
+                      }}
+                      aria-label={`Delete ${light.device.alias}`}
+                    >
+                      <Trash size={16} />
+                    </button>
+                  )}
+                  <div className="mr-2">
+                    <LightStatusIcon state={light.state} />
+                  </div>
+                  <span>{light.device.alias}</span>
+                </div>
+                <Switch
+                  checked={light.state.state === "ON"}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                  }}
+                  onCheckedChange={(checked) => {
+                    handleSwitchChange(light, checked);
+                  }}
+                  aria-label={`Toggle ${light.device.alias}`}
+                />
+              </div>
+            ))
+          )}
           <div className="flex justify-end mt-4">
             <button
               className={cn(
@@ -211,17 +234,15 @@ export function LightList() {
                 selectedLight && (
                   <LightCard
                     name={selectedLight.device.alias}
-                    capabilities={{
-                      brightness: true,
-                      color: true,
-                      colorTemp: true,
-                    }}
                     state={selectedLight.state}
                     id={selectedLight.device}
                     updateState={(payload) => {
                       updateGroup(selectedLight, payload);
                     }}
                     onClose={() => setSelectedLightId(null)}
+                    onNameChange={(newName) => {
+                      onNameChange(selectedLight, newName);
+                    }}
                   />
                 )
               );
