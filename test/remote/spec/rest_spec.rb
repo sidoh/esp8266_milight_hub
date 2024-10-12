@@ -407,4 +407,68 @@ RSpec.describe 'REST Server' do
       expect { @client.upload_string_as_file('/backup', 'invalid') }.to raise_error(Net::HTTPServerException)
     end
   end
+
+  context 'list gateways' do
+    before(:all) do
+      @id1 = {
+        id: @client.generate_id,
+        type: 'rgb_cct',
+        group_id: 1
+      }
+      @id2 = {
+        id: @client.generate_id,
+        type: 'rgb_cct',
+        group_id: 1
+      }
+      @alias1 = {
+          alias: "test_alias",
+          device_type: @id1[:type],
+          device_id: @id1[:id],
+          group_id: @id1[:group_id]
+      }
+      @alias2 = {
+          alias: "test_alias2",
+          device_type: @id2[:type],
+          device_id: @id2[:id],
+          group_id: @id2[:group_id]
+      }
+
+      @client.delete('/aliases.bin')
+      @client.post('/aliases', @alias1)
+      @client.post('/aliases', @alias2)
+
+      # set baseline states
+      @alias1_state = {status: "ON", level: 100, color_mode: "rgb", color: {r: 255, g: 0, b: 0}}
+      @alias2_state = {status: "ON", level: 100, color_mode: "color_temp", kelvin: 100}
+
+      @client.delete_state(@id1)
+      @client.delete_state(@id2)
+
+      @client.patch_state(@alias1_state, @id1)
+      @client.patch_state(@alias2_state, @id2)
+    end
+
+    it 'should list all gateways' do
+      result = @client.get('/gateways')
+      expect(result).to be_a(Array)
+      expect(result.length).to eq(2)
+
+      aliases = result.map { |r| r['device']['alias'] }
+      expect(aliases).to include(@alias1[:alias])
+      expect(aliases).to include(@alias2[:alias])
+
+      alias1_state_response = result.find { |r| r['device']['alias'] == @alias1[:alias] }['state']
+      alias2_state_response = result.find { |r| r['device']['alias'] == @alias2[:alias] }['state']
+
+      expect(alias1_state_response['state']).to eq(@alias1_state[:status])
+      expect(alias1_state_response['level']).to eq(@alias1_state[:level])
+      expect(alias1_state_response['color_mode']).to eq(@alias1_state[:color_mode])
+      expect(alias1_state_response['color']).to eq(@alias1_state[:color].transform_keys(&:to_s))
+
+      expect(alias2_state_response['state']).to eq(@alias2_state[:status])
+      expect(alias2_state_response['level']).to eq(@alias2_state[:level])
+      expect(alias2_state_response['color_mode']).to eq(@alias2_state[:color_mode])
+      expect(alias2_state_response['kelvin']).to eq(@alias2_state[:kelvin])
+    end
+  end
 end

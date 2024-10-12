@@ -126,6 +126,21 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BooleanResponse'
+  /gateways:
+    get:
+      tags:
+        - Device Control
+      summary: Download a dump of all aliases and their current states
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GatewayListItem'
+
   /aliases.bin:
     get:
       tags:
@@ -377,8 +392,11 @@ paths:
         to the commands sent are processed, and the updated `GroupState` will be returned.  If
         `blockOnQueue` is false or not provided, a simple response indicating success will be
         returned.
+
+        if `fmt` is set to `normalized`, the response will be in normalized format.
       parameters:
         - $ref: '#/components/parameters/BlockOnQueue'
+        - $ref: '#/components/parameters/StateResponseFormat'
       requestBody:
         content:
           application/json:
@@ -402,6 +420,7 @@ paths:
                 oneOf:
                   - $ref: '#/components/schemas/BooleanResponse'
                   - $ref: '#/components/schemas/GroupState'
+                  - $ref: '#/components/schemas/NormalizedGroupState'
     delete:
       tags:
         - Device Control
@@ -440,6 +459,7 @@ paths:
       summary: Patch device state by alias
       parameters:
         - $ref: '#/components/parameters/BlockOnQueue'
+        - $ref: '#/components/parameters/StateResponseFormat'
       requestBody:
         content:
           application/json:
@@ -459,7 +479,10 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GroupState'
+                oneOf:
+                  - $ref: '#/components/schemas/BooleanResponse'
+                  - $ref: '#/components/schemas/GroupState'
+                  - $ref: '#/components/schemas/NormalizedGroupState'
     delete:
       tags:
         - Device Control by Alias
@@ -614,6 +637,15 @@ components:
       schema:
         type: string
       required: true
+    StateResponseFormat:
+      name: fmt
+      in: query
+      description: If set to `normalized`, the response will be in normalized format.
+      schema:
+        type: string
+        enum:
+          - normalized
+      required: false
     BlockOnQueue:
       name: blockOnQueue
       in: query
@@ -664,14 +696,19 @@ components:
         group_id:
           type: integer
         device_type:
-          type: string
+          $ref: '#/components/schemas/RemoteType'
+      required:
+      - alias
+      - device_id
+      - group_id
+      - device_type
     State:
       description: "On/Off state"
       type: string
       enum:
-        - On
-        - Off
-      example: On
+        - "ON"
+        - "OFF"
+      example: "ON"
     GroupStateCommand:
       type: string
       enum:
@@ -806,6 +843,10 @@ components:
           example: 1
         device_type:
           $ref: '#/components/schemas/RemoteType'
+      required:
+      - device_id
+      - group_id
+      - device_type
     GroupStateCommands:
       type: object
       properties:
@@ -827,6 +868,72 @@ components:
           example:
             - level_up
             - temperature_up
+    GatewayListItem:
+      type: object
+      properties:
+        state:
+          $ref: '#/components/schemas/NormalizedGroupState'
+        device:
+          type: object
+          properties:
+            id:
+              type: number
+            device_id:
+              type: number
+            device_type:
+              $ref: '#/components/schemas/RemoteType'
+            group_id:
+              type: number
+            alias:
+              type: string
+          required:
+          - id
+          - device_id
+          - device_type
+          - group_id
+          - alias
+      required:
+      - state
+      - device
+    NormalizedGroupState:
+      type: object
+      description: Group state with a static set of fields
+      properties:
+        alias:
+          type: string
+        state:
+          $ref: '#/components/schemas/State'
+        color:
+          type: object
+          properties:
+            r:
+              type: integer
+            g:
+              type: integer
+            b:
+              type: integer
+          required: [r, g, b]
+        level:
+          type: integer
+          minimum: 0
+          maximum: 100
+        kelvin:
+          type: integer
+          minimum: 0
+          maximum: 100
+        color_mode:
+          $ref: '#/components/schemas/ColorMode'
+
+    ColorMode:
+      type: string
+      description: >
+        Describes the current color mode of the bulb.  Useful for HomeAssistant.
+      enum:
+        - brightness
+        - rgb
+        - color_temp
+        - onoff
+          
     GroupState:
       type: object
       description: Group state
@@ -904,7 +1011,8 @@ components:
           description: >
             Enables a transition from current state to the provided state.
           example: 2.0
-
+        color_mode:
+          $ref: '#/components/schemas/ColorMode'
     RemoteType:
       type: string
       enum:

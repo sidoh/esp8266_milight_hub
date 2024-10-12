@@ -67,6 +67,17 @@ const String MiLightRemoteTypeHelpers::remoteTypeToString(const MiLightRemoteTyp
   }
 }
 
+const bool MiLightRemoteTypeHelpers::supportsRgbw(const MiLightRemoteType type) {
+  switch (type) {
+    case REMOTE_TYPE_FUT089:
+    case REMOTE_TYPE_RGB_CCT:
+    case REMOTE_TYPE_RGBW:
+      return true;
+    default:
+      return false;
+  }
+}
+
 const bool MiLightRemoteTypeHelpers::supportsRgb(const MiLightRemoteType type) {
   switch (type) {
     case REMOTE_TYPE_FUT089:

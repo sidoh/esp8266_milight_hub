@@ -14,7 +14,6 @@
 #include <index.html.gz.h>
 #include <BackupManager.h>
 
-
 #ifdef ESP32
   #include <SPIFFS.h>
   #include <Update.h>
@@ -71,6 +70,10 @@ void MiLightHttpServer::begin() {
     .on(HTTP_POST, std::bind(&MiLightHttpServer::handleUpdateGroupAlias, this, _1))
     .on(HTTP_DELETE, std::bind(&MiLightHttpServer::handleDeleteGroupAlias, this, _1))
     .on(HTTP_GET, std::bind(&MiLightHttpServer::handleGetGroupAlias, this, _1));
+
+  server
+    .buildHandler("/gateways")
+    .onSimple(HTTP_GET, std::bind(&MiLightHttpServer::handleListGroups, this));
 
   server
     .buildHandler("/transitions/:id")
@@ -399,6 +402,7 @@ void MiLightHttpServer::handleListenGateway(RequestContext& request) {
 
 void MiLightHttpServer::sendGroupState(bool allowAsync, BulbId& bulbId, RichHttp::Response& response) {
   bool blockOnQueue = server.arg("blockOnQueue").equalsIgnoreCase("true");
+  bool normalizedFormat = server.arg("fmt").equalsIgnoreCase("normalized");
 
   // Wait for packet queue to flush out.  State will not have been updated before that.
   // Bit hacky to call loop outside of main loop, but should be fine.
@@ -414,7 +418,7 @@ void MiLightHttpServer::sendGroupState(bool allowAsync, BulbId& bulbId, RichHttp
       obj[F("error")] = F("not found");
       response.setCode(404);
     } else {
-      state->applyState(obj, bulbId, settings.groupStateFields);
+      state->applyState(obj, bulbId, normalizedFormat ? NORMALIZED_GROUP_STATE_FIELDS : settings.groupStateFields);
     }
   } else {
     obj[F("success")] = true;
@@ -955,4 +959,56 @@ void MiLightHttpServer::handleCreateBackup(RequestContext &request) {
   server.streamFile(backupFile, APPLICATION_OCTET_STREAM);
 
   ProjectFS.remove(BACKUP_FILE);
+}
+
+
+void MiLightHttpServer::handleListGroups() {
+  this->stateStore->flush();
+
+  server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+  server.send(200, "application/json");
+
+  StaticJsonDocument<1024> stateBuffer;
+  WiFiClient client = server.client();
+
+  // open array
+  server.sendContent("[");
+
+  bool firstGroup = true;
+  for (auto & group : settings.groupIdAliases) {
+    stateBuffer.clear();
+
+    JsonObject device = stateBuffer.createNestedObject(F("device"));
+
+    device[F("alias")] = group.first;
+    device[F("id")] = group.second.id;
+    device[F("device_id")] = group.second.bulbId.deviceId;
+    device[F("group_id")] = group.second.bulbId.groupId;
+    device[F("device_type")] = MiLightRemoteTypeHelpers::remoteTypeToString(group.second.bulbId.deviceType);
+    
+    GroupState* state = this->stateStore->get(group.second.bulbId);
+    JsonObject outputState = stateBuffer.createNestedObject(F("state"));
+
+    if (state != nullptr) {
+      state->applyState(outputState, group.second.bulbId, NORMALIZED_GROUP_STATE_FIELDS);
+    }
+
+    client.printf("%zx\r\n", measureJson(stateBuffer)+(firstGroup ? 0 : 1));
+
+    if (!firstGroup) {
+      client.print(',');
+    }
+    serializeJson(stateBuffer, client);
+    client.printf_P(PSTR("\r\n"));
+
+    firstGroup = false;
+    yield();
+  }
+
+  // close array
+  server.sendContent("]");
+
+  // stop chunked streaming
+  server.sendContent("");
+  server.client().stop();
 }

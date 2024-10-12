@@ -22,6 +22,13 @@ using RequestContext = RichHttpConfig::RequestContextType;
 const char APPLICATION_OCTET_STREAM[] PROGMEM = "application/octet-stream";
 const char TEXT_PLAIN[] PROGMEM = "text/plain";
 const char APPLICATION_JSON[] = "application/json";
+const std::vector<GroupStateField> NORMALIZED_GROUP_STATE_FIELDS = {
+    GroupStateField::STATE,
+    GroupStateField::COLOR_MODE,
+    GroupStateField::LEVEL,
+    GroupStateField::COLOR,
+    GroupStateField::KELVIN,
+};
 
 static const uint8_t DEFAULT_PAGE_SIZE = 10;
 
@@ -78,6 +85,7 @@ protected:
   void handleUpdateGroup(RequestContext& request);
   void handleUpdateGroupAlias(RequestContext& request);
 
+  void handleListGroups();
   void handleGetGroup(RequestContext& request);
   void handleGetGroupAlias(RequestContext& request);
   void _handleGetGroup(bool allowAsync, BulbId bulbId, RequestContext& request);
