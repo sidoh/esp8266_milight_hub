@@ -43,6 +43,7 @@
     "@shadcn/ui": "^0.0.4",
     "@uiw/color-convert": "^2.3.2",
     "@uiw/react-color-wheel": "^2.3.2",
+    "@zodios/core": "^10.9.6",
     "axios": "^1.7.7",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",

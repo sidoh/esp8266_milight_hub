@@ -1,6 +1,9 @@
 import React from "react";
 import { Lightbulb } from "lucide-react";
-import { NormalizedGroupState } from "@/api";
+import { schemas } from "@/api";
+import { z } from "zod";
+
+type NormalizedGroupState = z.infer<typeof schemas.NormalizedGroupState>;
 
 interface LightStatusIconProps {
   state: NormalizedGroupState;

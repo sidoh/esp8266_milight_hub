@@ -1,42 +1,41 @@
 "use strict";
 
-import {
-  Alias,
-  GatewayListItem,
-  GatewayListItemDevice,
-  NormalizedGroupState,
-} from "@/api";
+import { schemas } from "@/api/api-zod";
+import { z } from "zod";
 
 export interface LightIndexState {
-  lights: GatewayListItem[];
+  lights: z.infer<typeof schemas.GatewayListItem>[];
   isLoading: boolean;
 }
 
 type Action =
   | {
       type: "UPDATE_STATE";
-      device: GatewayListItemDevice;
-      payload: Partial<NormalizedGroupState>;
+      device: z.infer<typeof schemas.GatewayListItem>["device"];
+      payload: Partial<z.infer<typeof schemas.NormalizedGroupState>>;
     }
   | {
       type: "SET_LIGHTS";
-      lights: GatewayListItem[];
+      lights: z.infer<typeof schemas.GatewayListItem>[];
     }
   | {
       type: "DELETE_LIGHT";
-      device: GatewayListItemDevice;
+      device: z.infer<typeof schemas.GatewayListItem>["device"];
     }
   | {
       type: "ADD_LIGHT";
-      device: Alias;
+      device: z.infer<typeof schemas.Alias>;
     }
   | {
       type: "UPDATE_LIGHT_NAME";
-      device: GatewayListItemDevice;
+      device: z.infer<typeof schemas.GatewayListItem>["device"];
       name: string;
     };
 
-function devicesAreEqual(a: GatewayListItemDevice, b: GatewayListItemDevice) {
+function devicesAreEqual(
+  a: z.infer<typeof schemas.GatewayListItem>["device"],
+  b: z.infer<typeof schemas.GatewayListItem>["device"]
+) {
   return (
     a.device_id === b.device_id &&
     a.device_type === b.device_type &&

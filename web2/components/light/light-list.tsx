@@ -1,8 +1,7 @@
 import React, { useReducer, useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { api } from "@/lib/api";
-import { GatewayListItem, NormalizedGroupState } from "@/api";
+import { schemas } from "@/api/api-zod";
 import {
   Dialog,
   DialogContent,
@@ -14,14 +13,13 @@ import { reducer } from "./state"; // Import the reducer
 import { LightStatusIcon } from "./light-status-icon";
 import { Plus, Pencil, Trash } from "lucide-react"; // Import the Plus, Pencil, Trash, and X icons
 import ConfirmationDialog from "@/components/confirmation-dialog"; // Import the ConfirmationDialog
-import NewLightForm, { NewAlias } from "./new-light-form";
+import NewLightForm from "./new-light-form";
 import { LightCard } from "./light-card"; // Import the LightCard component
 import { cn } from "@/lib/utils"; // Make sure to import the cn utility if not already present
 import { Skeleton } from "../ui/skeleton";
+import { api } from "@/lib/api";
+import { z } from "zod";
 
-interface LightListProps {
-  lights: GatewayListItem[];
-}
 export function LightList() {
   const [lightStates, dispatch] = useReducer(reducer, {
     lights: [],
@@ -29,20 +27,23 @@ export function LightList() {
   });
   const [isDeleteMode, setIsDeleteMode] = useState(false); // State to track delete mode
   const [showConfirmation, setShowConfirmation] = useState(false); // State to manage dialog visibility
-  const [lightToDelete, setLightToDelete] = useState<GatewayListItem | null>(
-    null
-  ); // State to track which light to delete
+  const [lightToDelete, setLightToDelete] = useState<z.infer<
+    typeof schemas.GatewayListItem
+  > | null>(null); // State to track which light to delete
   const [selectedLightId, setSelectedLightId] = useState<number | null>(null); // State for selected light
 
   useEffect(() => {
     const loadInitialState = async () => {
-      const response = await api.deviceControl.gatewaysGet();
-      dispatch({ type: "SET_LIGHTS", lights: response.data });
+      const response = await api.getGateways();
+      dispatch({ type: "SET_LIGHTS", lights: response });
     };
     loadInitialState();
   }, []);
 
-  const updateGroup = (light: GatewayListItem, state: NormalizedGroupState) => {
+  const updateGroup = (
+    light: z.infer<typeof schemas.GatewayListItem>,
+    state: z.infer<typeof schemas.NormalizedGroupState>
+  ) => {
     console.log("updateGroup", state);
     dispatch({
       type: "UPDATE_STATE",
@@ -51,31 +52,31 @@ export function LightList() {
     });
   };
 
-  const handleSwitchChange = (light: GatewayListItem, checked: boolean) => {
-    const update: NormalizedGroupState = {
+  const handleSwitchChange = (
+    light: z.infer<typeof schemas.GatewayListItem>,
+    checked: boolean
+  ) => {
+    const update: z.infer<typeof schemas.NormalizedGroupState> = {
       state: checked ? "ON" : ("OFF" as "ON" | "OFF"),
     };
     updateGroup(light, update);
-    api.deviceControl
-      .gatewaysDeviceIdRemoteTypeGroupIdPut(
-        light.device.device_id,
-        light.device.device_type,
-        light.device.group_id,
-        false,
-        "normalized",
-        update
-      )
-      .then((response) => {
-        console.log(response);
-      });
+    api.putGatewaysDeviceIdRemoteTypeGroupId(update, {
+      params: {
+        remoteType: light.device.device_type,
+        deviceId: light.device.device_id,
+        groupId: light.device.group_id,
+      },
+      queries: {
+        fmt: "normalized",
+      },
+    });
   };
 
-  const handleAddLight = async (data: NewAlias) => {
-    console.log(data);
-    api.aliases.aliasesPost(data).then((response) => {
+  const handleAddLight = async (data: z.infer<typeof schemas.Alias>) => {
+    api.postAliases(data).then((response) => {
       dispatch({
         type: "ADD_LIGHT",
-        device: { ...data, id: response.data.id! },
+        device: { ...data, id: response.id! },
       });
     });
   };
@@ -85,14 +86,18 @@ export function LightList() {
     console.log("Add button clicked");
   };
 
-  const handleDeleteButtonClick = (light: GatewayListItem) => {
+  const handleDeleteButtonClick = (
+    light: z.infer<typeof schemas.GatewayListItem>
+  ) => {
     setLightToDelete(light);
     setShowConfirmation(true);
   };
 
   const confirmDelete = async () => {
     if (lightToDelete) {
-      await api.aliases.aliasesIdDelete(lightToDelete.device.id);
+      await api.deleteAliasesId(undefined, {
+        params: { id: lightToDelete.device.id },
+      });
       dispatch({ type: "DELETE_LIGHT", device: lightToDelete.device });
       setLightToDelete(null);
     }
@@ -104,14 +109,22 @@ export function LightList() {
     setShowConfirmation(false);
   };
 
-  const handleLightClick = (light: GatewayListItem) => {
+  const handleLightClick = (light: z.infer<typeof schemas.GatewayListItem>) => {
     setSelectedLightId(light.device.id);
     console.log(light);
   };
 
-  const onNameChange = (light: GatewayListItem, newName: string) => {
-    api.aliases.aliasesIdPut(light.device.id, { alias: newName });
-      dispatch({
+  const onNameChange = (
+    light: z.infer<typeof schemas.GatewayListItem>,
+    newName: string
+  ) => {
+    api.putAliasesId(
+      { alias: newName },
+      {
+        params: { id: light.device.id },
+      }
+    );
+    dispatch({
       type: "UPDATE_LIGHT_NAME",
       device: light.device,
       name: newName,

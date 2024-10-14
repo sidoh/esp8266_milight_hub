@@ -1,4 +1,7 @@
-import { RemoteType } from '@/api';
+import { z } from "zod";
+import { schemas } from "@/api";
+
+type RemoteType = z.infer<typeof schemas.RemoteType>;
 
 export interface LightCapabilities {
   brightness: boolean;

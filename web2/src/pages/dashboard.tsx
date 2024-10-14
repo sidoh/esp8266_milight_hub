@@ -1,7 +1,4 @@
-import React, { useEffect, useState } from "react";
-import { LightCard } from "@/components/light/light-card";
-import { GatewayListItem } from "@/api";
-import { api } from "@/lib/api";
+import React from "react";
 import { LightList } from "@/components/light/light-list";
 
 export function Dashboard() {

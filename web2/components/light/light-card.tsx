@@ -8,26 +8,22 @@ import { Sun, Moon, Palette, X, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { api } from "@/lib/api";
-import {
-  BulbId,
-  ColorMode,
-  GatewaysDeviceIdRemoteTypeGroupIdPutRequest,
-  GroupStateCommand,
-  GroupStateCommandsCommand,
-  NormalizedGroupState,
-} from "@/api";
 import { useRateLimitMerge } from "@/hooks/use-rate-limit-merge";
 import { LightStatusIcon } from "./light-status-icon";
-import { LightCapabilities, RemoteTypeCapabilities } from "./remote-data";
+import { RemoteTypeCapabilities } from "./remote-data";
 import { Input } from "@/components/ui/input";
+import { z } from "zod";
+import { schemas } from "@/api/api-zod";
 
 export type NormalizedLightMode = "white" | "color" | "scene" | "night";
 
 export interface LightCardProps {
   name: string;
-  state: NormalizedGroupState;
-  id: BulbId;
-  updateState: (payload: Partial<NormalizedGroupState>) => void;
+  state: z.infer<typeof schemas.NormalizedGroupState>;
+  id: z.infer<typeof schemas.BulbId>;
+  updateState: (
+    payload: Partial<z.infer<typeof schemas.NormalizedGroupState>>
+  ) => void;
   onClose?: () => void;
   onNameChange: (newName: string) => void;
 }
@@ -40,24 +36,36 @@ export function LightCard({
   onClose,
   onNameChange,
 }: LightCardProps) {
-  const [rateLimitedState, setRateLimitedState, clearRateLimitedState] = useRateLimitMerge<GatewaysDeviceIdRemoteTypeGroupIdPutRequest>({}, 500);
+  const [rateLimitedState, setRateLimitedState, clearRateLimitedState] =
+    useRateLimitMerge<
+      z.infer<typeof schemas.putGatewaysDeviceIdRemoteTypeGroupId_Body>
+    >({}, 500);
   const lastUpdateTimeRef = useRef<number>(0);
 
-  const sendUpdate = async (state: GatewaysDeviceIdRemoteTypeGroupIdPutRequest) => {
-    const response = await api.deviceControl.gatewaysDeviceIdRemoteTypeGroupIdPut(
-      id.device_id,
-      id.device_type,
-      id.group_id,
-      true,
-      "normalized",
-      state
-    );
+  const sendUpdate = async (
+    state: z.infer<typeof schemas.putGatewaysDeviceIdRemoteTypeGroupId_Body>
+  ) => {
+    const response = await api.putGatewaysDeviceIdRemoteTypeGroupId(state, {
+      params: {
+        remoteType: id.device_type,
+        deviceId: id.device_id,
+        groupId: id.group_id,
+      },
+      queries: {
+        fmt: "normalized",
+        blockOnQueue: true,
+      },
+    });
     if (response && response.data) {
-      _updateState(response.data as Partial<NormalizedGroupState>);
+      _updateState(
+        response.data as Partial<z.infer<typeof schemas.NormalizedGroupState>>
+      );
     }
   };
 
-  const updateState = (newState: Partial<NormalizedGroupState>) => {
+  const updateState = (
+    newState: Partial<z.infer<typeof schemas.NormalizedGroupState>>
+  ) => {
     _updateState(newState);
     const now = Date.now();
     if (now - lastUpdateTimeRef.current >= 500) {
@@ -67,11 +75,13 @@ export function LightCard({
       clearRateLimitedState();
     } else {
       // Otherwise, buffer the update
-      setRateLimitedState(prevState => ({ ...prevState, ...newState }));
+      setRateLimitedState((prevState) => ({ ...prevState, ...newState }));
     }
   };
 
-  const sendCommand = async (command: GroupStateCommandsCommand) => {
+  const sendCommand = async (
+    command: z.infer<typeof schemas.GroupStateCommand>
+  ) => {
     return await sendUpdate({ command: command });
   };
 
@@ -97,26 +107,28 @@ export function LightCard({
 
   const handleColorTempChange = (value: number[]) => {
     updateState({ kelvin: value[0] });
-    _updateState({ color_mode: ColorMode.ColorTemp });
+    _updateState({ color_mode: schemas.ColorMode.Values.color_temp });
   };
 
   const handleColorChange = (color: {
     hsva: { h: number; s: number; v: number; a: number };
   }) => {
     const rgba = hsvaToRgba(color.hsva);
-    updateState({ color: rgba });
-    _updateState({ color_mode: ColorMode.Rgb });
+    updateState({
+      color: { r: rgba.r, g: rgba.g, b: rgba.b },
+    });
+    _updateState({ color_mode: schemas.ColorMode.Values.rgb });
   };
 
   const convertedColor = rgbaToHsva(
     state.color ? { ...state.color, a: 1 } : { r: 255, g: 255, b: 255, a: 1 }
   );
 
-  const handleModeChange = (value: ColorMode) => {
+  const handleModeChange = (value: z.infer<typeof schemas.ColorMode>) => {
     _updateState({ color_mode: value });
-    if (value === ColorMode.ColorTemp) {
-      sendCommand(GroupStateCommand.SetWhite);
-    } else if (value === ColorMode.Rgb) {
+    if (value === schemas.ColorMode.Values.color_temp) {
+      sendCommand(schemas.GroupStateCommand.Values.set_white);
+    } else if (value === schemas.ColorMode.Values.rgb) {
       updateState({
         color: {
           r: state.color?.r || 255,
@@ -124,8 +136,8 @@ export function LightCard({
           b: state.color?.b || 255,
         },
       });
-    } else if (value === ColorMode.Onoff) {
-      sendCommand(GroupStateCommand.NightMode);
+    } else if (value === schemas.ColorMode.Values.onoff) {
+      sendCommand(schemas.GroupStateCommand.Values.night_mode);
     }
   };
 
@@ -161,7 +173,7 @@ export function LightCard({
               value={editedName}
               onChange={(e) => setEditedName(e.target.value)}
               onBlur={handleNameSave}
-              onKeyPress={(e) => e.key === 'Enter' && handleNameSave()}
+              onKeyPress={(e) => e.key === "Enter" && handleNameSave()}
               className="text-lg font-medium w-40"
             />
           ) : (
@@ -242,18 +254,18 @@ export function LightCard({
                 className="justify-normal"
               >
                 {capabilities.colorTemp && (
-                  <ToggleGroupItem value={ColorMode.ColorTemp}>
+                  <ToggleGroupItem value={schemas.ColorMode.Values.color_temp}>
                     <Sun size={16} className="mr-2" />
                     White
                   </ToggleGroupItem>
                 )}
                 {capabilities.color && (
-                  <ToggleGroupItem value={ColorMode.Rgb}>
+                  <ToggleGroupItem value={schemas.ColorMode.Values.rgb}>
                     <Palette size={16} className="mr-2" />
                     Color
                   </ToggleGroupItem>
                 )}
-                <ToggleGroupItem value={ColorMode.Onoff}>
+                <ToggleGroupItem value={schemas.ColorMode.Values.onoff}>
                   <Moon size={16} className="mr-2" />
                   Night
                 </ToggleGroupItem>
@@ -267,13 +279,16 @@ export function LightCard({
         )}
         <div className="flex-grow"></div>
         <div className="flex justify-end space-x-4 mt-4">
-          <Button size="sm" onClick={() => sendCommand(GroupStateCommand.Pair)}>
+          <Button
+            size="sm"
+            onClick={() => sendCommand(schemas.GroupStateCommand.Values.pair)}
+          >
             Pair
           </Button>
           <Button
             variant="destructive"
             size="sm"
-            onClick={() => sendCommand(GroupStateCommand.Unpair)}
+            onClick={() => sendCommand(schemas.GroupStateCommand.Values.unpair)}
           >
             Unpair
           </Button>

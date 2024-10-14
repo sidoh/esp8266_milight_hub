@@ -20,34 +20,32 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"; // Assuming you have a Select component
-import { Alias, RemoteType } from "@/api";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { RemoteTypeDescriptions } from "@/components/light/remote-data";
+import { schemas } from "@/api";
 
 const schema = z.object({
   name: z.string().min(1, { message: "Name is required." }),
-  device_type: z.nativeEnum(RemoteType),
-  device_id: z
-    .string()
-    .regex(/^(0x[0-9A-Fa-f]+|[0-9]+)$/, {
-      message:
-        "Invalid device ID format. It should be a hexadecimal number starting with 0x or a decimal number.",
-    }),
+  device_type: z.nativeEnum(schemas.RemoteType.Values),
+  device_id: z.string().regex(/^(0x[0-9A-Fa-f]+|[0-9]+)$/, {
+    message:
+      "Invalid device ID format. It should be a hexadecimal number starting with 0x or a decimal number.",
+  }),
   group_id: z.number().int().min(0).max(8),
 });
 
-export interface NewAlias extends Omit<Alias, 'id'> {}
-
 interface NewLightFormProps {
-  onSubmit: (data: NewAlias) => void;
+  onSubmit: (data: z.infer<typeof schemas.Alias>) => void;
 }
 
-const getGroupCountForRemoteType = (remoteType: RemoteType): number => {
+const getGroupCountForRemoteType = (
+  remoteType: z.infer<typeof schemas.RemoteType>
+): number => {
   // Stub function - replace with actual logic
   switch (remoteType) {
-    case RemoteType.Fut089:
+    case schemas.RemoteType.Values.fut089:
       return 8;
-    case RemoteType.Rgb:
+    case schemas.RemoteType.Values.rgb:
       return 1;
     default:
       return 4;
@@ -109,7 +107,7 @@ export function NewLightForm({ onSubmit }: NewLightFormProps) {
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent className="max-w-96">
-                  {Object.values(RemoteType).map((type) => (
+                  {Object.values(schemas.RemoteType.Values).map((type) => (
                     <SelectItem key={type} value={type} className="group">
                       <div className="flex flex-col items-start max-w-72">
                         <div className="font-medium">{type}</div>
