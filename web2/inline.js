@@ -1,9 +1,10 @@
 const fs = require('fs');
 const zlib = require('zlib');
 
+const isProduction = process.env.NODE_ENV === 'PRODUCTION';
+
 const html = `
 <!DOCTYPE html>
-<html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -13,7 +14,10 @@ const html = `
 </head>
 <body>
 </body>
-<script>${fs.readFileSync('dist/bundle.js', 'utf8')}</script>
+${isProduction 
+  ? '<script src="bundle.js"></script>'
+  : `<script>${fs.readFileSync('dist/bundle.js', 'utf8')}</script>`
+}
 </html>
 `;
 

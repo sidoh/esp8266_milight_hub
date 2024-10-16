@@ -16,6 +16,7 @@ import { HardwareSettings } from "./section-hardware";
 import { NetworkSettings } from "./section-network";
 import { SystemSettings } from "./section-system";
 import { RadioSettings } from "./section-radio";
+import { StateSettings } from "./section-state";
 
 type Settings = z.infer<typeof schemas.Settings>;
 
@@ -24,6 +25,7 @@ const settingsNavItems: NavItem[] = [
   { title: "Hardware", id: "hardware" },
   { title: "MQTT", id: "mqtt" },
   { title: "Radio", id: "radio" },
+  { title: "State", id: "state" },
   { title: "System", id: "system" },
 ];
 
@@ -114,6 +116,7 @@ export default function SettingsPage() {
           <HardwareSettings navId="hardware" />
           <MQTTSettings navId="mqtt" />
           <RadioSettings navId="radio" />
+          <StateSettings navId="state" />
           <SystemSettings navId="system" />
         </SidebarPillNav>
       </form>

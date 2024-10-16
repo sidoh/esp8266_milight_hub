@@ -8,6 +8,8 @@ await esbuild.build({
   outfile: 'dist/bundle.js',
   minify: true,
   sourcemap: false,
+  // sourceRoot: 'src',
+  // sourcesContent: true,
   define: { 'process.env.NODE_ENV': '"production"' },
   loader: {
     '.tsx': 'tsx',

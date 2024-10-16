@@ -190,7 +190,7 @@ export const DynamicFormControl: React.FC<{
 export const StandardFormField: React.FC<{
   field: SettingsKey;
   nameOverride?: string;
-  children: React.ReactNode;
+  children?: React.ReactNode | React.ReactNode[];
   className?: string;
 }> = ({ field, nameOverride, children, className }) => {
   const form = useFormContext<Settings>();

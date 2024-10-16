@@ -5,6 +5,7 @@ import './index.css';
 import { Dashboard } from './pages/dashboard';
 import { NotFound } from './pages/not-found';
 import SettingsPage from './pages/settings/settings-index';
+import { Toaster } from '@/components/ui/toaster';
 
 const PAGES = {
     "/dashboard": Dashboard,
@@ -41,6 +42,7 @@ export default function App() {
                 <main className="flex flex-col pt-10">
                     {PageComponent && <PageComponent />}
                 </main>
+                <Toaster />
             </div>
         </div>
     );

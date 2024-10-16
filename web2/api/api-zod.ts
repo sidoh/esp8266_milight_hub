@@ -101,6 +101,9 @@ const About = z
   })
   .partial()
   .passthrough();
+const BooleanResponseWithMessage = z
+  .object({ success: z.boolean(), message: z.string() })
+  .passthrough();
 const postSystem_Body = z
   .object({ command: z.enum(["restart", "clear_wifi_config"]) })
   .passthrough();
@@ -571,6 +574,7 @@ export const schemas = {
   NormalizedGroupState,
   GatewayListItem,
   About,
+  BooleanResponseWithMessage,
   postSystem_Body,
   LedMode,
   RF24Channel,
@@ -700,12 +704,12 @@ const endpoints = makeApi([
           .passthrough(),
       },
     ],
-    response: BooleanResponse,
+    response: BooleanResponseWithMessage,
     errors: [
       {
         status: 400,
         description: `error`,
-        schema: BooleanResponse,
+        schema: BooleanResponseWithMessage,
       },
     ],
   },
