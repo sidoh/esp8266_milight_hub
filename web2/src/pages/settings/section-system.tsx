@@ -2,9 +2,28 @@ import * as React from "react";
 import { NavChildProps } from "@/components/ui/sidebar-pill-nav";
 import { FieldSection, FieldSections } from "./form-components";
 import { Button } from "@/components/ui/button";
-import { api } from "@/api";
+import { api, schemas } from "@/api";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertTriangle } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
+
+type SystemInfo = Awaited<ReturnType<typeof api.getAbout>>;
+
+function compareVersions(v1: string, v2: string): number {
+  const v1Parts = v1.split(".").map(Number);
+  const v2Parts = v2.split(".").map(Number);
+
+  for (let i = 0; i < Math.max(v1Parts.length, v2Parts.length); i++) {
+    const v1Part = v1Parts[i] || 0;
+    const v2Part = v2Parts[i] || 0;
+    if (v1Part > v2Part) return 1;
+    if (v1Part < v2Part) return -1;
+  }
+  return 0;
+}
 
 const ActionSection: React.FC = () => {
   const { toast } = useToast();
@@ -117,7 +136,7 @@ const BackupsSection: React.FC = () => {
         </Button>
       </div>
       <div className="space-y-2">
-        <h3 className="text-lg font-medium">Restore Backup</h3>
+        <h3 className="text-lg font-medium mt-10">Restore Backup</h3>
         <form onSubmit={handleUploadBackup}>
           <div className="flex items-center space-x-2">
             <Input
@@ -132,6 +151,7 @@ const BackupsSection: React.FC = () => {
               type="submit"
               disabled={!backupFile}
               onClick={handleUploadBackup}
+              variant="secondary"
             >
               Upload Backup
             </Button>
@@ -142,13 +162,275 @@ const BackupsSection: React.FC = () => {
   );
 };
 
-export const SystemSettings: React.FC<NavChildProps<"system">> = () => (
-  <FieldSections>
-    <FieldSection title="Backups" fields={[]}>
-      <BackupsSection />
-    </FieldSection>
-    <FieldSection title="Reboot" fields={["auto_restart_period"]}>
-      <ActionSection />
-    </FieldSection>
-  </FieldSections>
-);
+const FirmwareSection: React.FC<{ currentVersion: string | null, variant: string | null }> = ({
+  currentVersion,
+  variant,
+}) => {
+  const { toast } = useToast();
+  const [firmwareFile, setFirmwareFile] = React.useState<File | null>(null);
+  const [isChecking, setIsChecking] = React.useState(false);
+  const [latestVersionInfo, setLatestVersionInfo] = React.useState<{
+    version: string;
+    url: string;
+    body: string;
+    download_links: {
+      name: string;
+      url: string;
+    }[],
+    release_date: string;
+  } | null>(null);
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    setFirmwareFile(file || null);
+  };
+
+  const handleUploadFirmware = async () => {
+    // TODO: Implement firmware upload logic
+    toast({
+      title: "Update started",
+      description: "Do not turn off the device until the update is complete.",
+      variant: "default",
+    });
+
+    api
+      .postFirmware({ file: firmwareFile })
+      .then(() => {
+        toast({
+          title: "Success",
+          description: "The update is complete. The device will restart.",
+          variant: "default",
+        });
+      })
+      .catch((error) => {
+        toast({
+          title: "Error uploading firmware",
+          description: error.message,
+          variant: "destructive",
+        });
+      });
+  };
+
+  const checkLatestVersion = async () => {
+    setIsChecking(true);
+    try {
+      const response = await fetch(
+        "https://api.github.com/repos/sidoh/esp8266_milight_hub/releases/latest"
+      );
+      const data = await response.json();
+      setLatestVersionInfo({
+        version: data.tag_name,
+        url: data.html_url,
+        body: data.body,
+        download_links: data.assets.map((asset: any) => ({
+          name: asset.name,
+          url: asset.browser_download_url,
+        })),
+        release_date: data.published_at,
+      });
+    } catch (error) {
+      toast({
+        title: "Error checking latest version",
+        description: "Failed to fetch the latest version from GitHub.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsChecking(false);
+    }
+  };
+
+  const isNewVersionAvailable = React.useMemo(() => {
+    if (!currentVersion || !latestVersionInfo) return false;
+    return compareVersions(latestVersionInfo.version, currentVersion) > 0;
+  }, [currentVersion, latestVersionInfo]);
+
+  const getDownloadLink = React.useMemo(() => {
+    if (!latestVersionInfo || !variant) return null;
+    return latestVersionInfo.download_links.find(link => link.name.toLowerCase().includes(variant.toLowerCase()));
+  }, [latestVersionInfo, variant]);
+
+  console.log(variant, latestVersionInfo)
+
+  return (
+    <div className="space-y-4">
+      <Alert variant="destructive" className="bg-muted">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertTitle>Warning</AlertTitle>
+        <AlertDescription>
+          Always create a backup before updating firmware!
+        </AlertDescription>
+      </Alert>
+
+      <div className="space-y-2">
+        <h3 className="text-lg font-medium">Upload Firmware</h3>
+        <form onSubmit={handleUploadFirmware}>
+          <div className="flex items-center space-x-2">
+            <Input
+              type="file"
+              id="firmwareFile"
+              onChange={handleFileChange}
+              value={firmwareFile ? undefined : ""}
+              accept=".bin"
+              className="flex-grow"
+            />
+            <Button
+              type="submit"
+              disabled={!firmwareFile}
+              onClick={handleUploadFirmware}
+              variant="secondary"
+            >
+              Upload Firmware
+            </Button>
+          </div>
+        </form>
+      </div>
+
+      {!latestVersionInfo && (
+        <div className="space-y-2">
+          <h3 className="text-lg font-medium">Check for Updates</h3>
+          <div className="flex items-center space-x-2">
+            <Button onClick={checkLatestVersion} disabled={isChecking} variant="secondary">
+              {isChecking ? "Checking..." : "Check Latest Version"}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {latestVersionInfo && (
+        <div className="space-y-2 border p-4 rounded-md">
+          <h3 className="text-lg font-medium">Latest Version Information</h3>
+          <hr className="my-4" />
+          {isNewVersionAvailable && (
+            <p className="text-green-600 font-semibold">
+              A new version is available!
+            </p>
+          )}
+          <p>
+            <strong>Version:</strong> {latestVersionInfo.version}
+          </p>
+          <p>
+            <strong>Release Date:</strong>{" "}
+            {new Date(latestVersionInfo.release_date).toLocaleString()}
+          </p>
+          <p>
+            <strong>Release Notes:</strong>
+          </p>
+          <pre className="whitespace-pre-wrap text-sm bg-muted p-2 rounded-md">
+            {latestVersionInfo.body}
+          </pre>
+          <div className="space-x-2">
+            <Button asChild variant="outline">
+              <a
+                href={latestVersionInfo.url}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                View on GitHub
+              </a>
+            </Button>
+            {getDownloadLink && (
+              <Button asChild variant="secondary">
+                <a
+                  href={getDownloadLink.url}
+                  download
+                >
+                  Download Firmware
+                </a>
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const SystemInfoSection: React.FC<{
+  systemInfo: SystemInfo | null;
+  isLoading: boolean;
+}> = ({ systemInfo, isLoading }) => {
+  if (isLoading) {
+    return (
+      <div className="space-y-2">
+        <Skeleton className="h-4 w-[200px]" />
+        <Skeleton className="h-4 w-[150px]" />
+        <Skeleton className="h-4 w-[180px]" />
+        <Skeleton className="h-4 w-[160px]" />
+      </div>
+    );
+  }
+
+  return systemInfo ? (
+    <div className="space-y-2">
+      <div className="flex">
+        <strong className="w-40">Firmware:</strong> {systemInfo?.firmware}
+      </div>
+      <div className="flex">
+        <strong className="w-40">Version:</strong> {systemInfo?.version}
+      </div>
+      <div className="flex">
+        <strong className="w-40">IP Address:</strong> {systemInfo?.ip_address}
+      </div>
+      <div className="flex">
+        <strong className="w-40">Variant:</strong> {systemInfo?.variant}
+      </div>
+      <div className="flex">
+        <strong className="w-40">Free Heap:</strong> {systemInfo?.free_heap} bytes
+      </div>
+      <div className="flex">
+        <strong className="w-40">Arduino Version:</strong> {systemInfo?.arduino_version}
+      </div>
+      <div className="flex">
+        <strong className="w-40">Last Reset Reason:</strong> {systemInfo?.reset_reason}
+      </div>
+      <div className="flex">
+        <strong className="w-40">Dropped Packets:</strong> {systemInfo?.queue_stats?.dropped_packets}
+      </div>
+    </div>
+  ) : (
+    <> </>
+  );
+};
+
+export const SystemSettings: React.FC<NavChildProps<"system">> = () => {
+  const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchSystemInfo = async () => {
+      try {
+        const response = await api.getAbout();
+        setSystemInfo(response);
+      } catch (error) {
+        console.error("Failed to fetch system info:", error);
+        toast({
+          title: "Error fetching system info",
+          description: "Failed to load system information.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchSystemInfo();
+  }, []);
+
+  return (
+    <FieldSections>
+      <FieldSection title="System Information" fields={[]}>
+        <SystemInfoSection systemInfo={systemInfo} isLoading={isLoading} />
+      </FieldSection>
+      <FieldSection title="Firmware" fields={[]}>
+        <FirmwareSection currentVersion={systemInfo?.version || null} variant={systemInfo?.variant || null} />
+      </FieldSection>
+      <FieldSection title="Backups" fields={[]}>
+        <BackupsSection />
+      </FieldSection>
+      <FieldSection title="Reboot" fields={["auto_restart_period"]}>
+        <ActionSection />
+      </FieldSection>
+    </FieldSections>
+  );
+};

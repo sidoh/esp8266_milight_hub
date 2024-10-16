@@ -2,24 +2,20 @@ import * as React from "react";
 import { useState, useEffect } from "react";
 import { NavChildProps } from "@/components/ui/sidebar-pill-nav";
 import {
-  DynamicFormControl,
-  FieldSection,
-  FieldSections,
-  StandardFormField,
+    FieldSection,
+    FieldSections
 } from "./form-components";
-import SelectBox from "@/components/ui/select-box";
 import Settings from ".";
 import { z } from "zod";
 import { schemas } from "@/api";
 import { useFormContext } from "react-hook-form";
 import {
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
+    FormControl,
+    FormDescription,
+    FormField,
+    FormItem,
+    FormLabel,
 } from "@/components/ui/form";
-import Select from "react-select";
 import SimpleSelect from "@/components/ui/select-box";
 
 type Settings = z.infer<typeof schemas.Settings>;
