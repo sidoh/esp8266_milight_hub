@@ -56,9 +56,9 @@ export function LightCard({
         blockOnQueue: true,
       },
     });
-    if (response && response.data) {
+    if (response) {
       _updateState(
-        response.data as Partial<z.infer<typeof schemas.NormalizedGroupState>>
+        response as Partial<z.infer<typeof schemas.NormalizedGroupState>>
       );
     }
   };
