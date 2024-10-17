@@ -9,28 +9,31 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { reducer } from "./state"; // Import the reducer
+import { reducer } from "./state"; 
 import { LightStatusIcon } from "./light-status-icon";
-import { Plus, Pencil, Trash } from "lucide-react"; // Import the Plus, Pencil, Trash, and X icons
-import ConfirmationDialog from "@/components/confirmation-dialog"; // Import the ConfirmationDialog
+import { Plus, Pencil, Trash } from "lucide-react"; 
+import ConfirmationDialog from "@/components/confirmation-dialog"; 
 import NewLightForm from "./new-light-form";
-import { LightCard } from "./light-card"; // Import the LightCard component
-import { cn } from "@/lib/utils"; // Make sure to import the cn utility if not already present
+import { LightCard } from "./light-card"; 
+import { cn } from "@/lib/utils"; 
 import { Skeleton } from "../ui/skeleton";
 import { api } from "@/lib/api";
 import { z } from "zod";
+import { useToast } from "@/hooks/use-toast";
 
 export function LightList() {
   const [lightStates, dispatch] = useReducer(reducer, {
     lights: [],
     isLoading: true,
   });
-  const [isDeleteMode, setIsDeleteMode] = useState(false); // State to track delete mode
-  const [showConfirmation, setShowConfirmation] = useState(false); // State to manage dialog visibility
+  const [isDeleteMode, setIsDeleteMode] = useState(false); 
+  const [showConfirmation, setShowConfirmation] = useState(false); 
   const [lightToDelete, setLightToDelete] = useState<z.infer<
     typeof schemas.GatewayListItem
-  > | null>(null); // State to track which light to delete
-  const [selectedLightId, setSelectedLightId] = useState<number | null>(null); // State for selected light
+  > | null>(null); 
+  const [selectedLightId, setSelectedLightId] = useState<number | null>(null); 
+  const [isAddLightDialogOpen, setIsAddLightDialogOpen] = useState(false);
+  const toast = useToast();
 
   useEffect(() => {
     const loadInitialState = async () => {
@@ -44,7 +47,6 @@ export function LightList() {
     light: z.infer<typeof schemas.GatewayListItem>,
     state: z.infer<typeof schemas.NormalizedGroupState>
   ) => {
-    console.log("updateGroup", state);
     dispatch({
       type: "UPDATE_STATE",
       device: light.device,
@@ -73,17 +75,20 @@ export function LightList() {
   };
 
   const handleAddLight = async (data: z.infer<typeof schemas.Alias>) => {
-    api.postAliases(data).then((response) => {
+    try {
+      const response = await api.postAliases(data);
       dispatch({
         type: "ADD_LIGHT",
         device: { ...data, id: response.id! },
       });
-    });
-  };
-
-  const handleAddButtonClick = () => {
-    // Stub for add button click event
-    console.log("Add button clicked");
+      setIsAddLightDialogOpen(false); 
+    } catch (error) {
+      toast.toast({
+        title: "Error adding light",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleDeleteButtonClick = (
@@ -111,7 +116,6 @@ export function LightList() {
 
   const handleLightClick = (light: z.infer<typeof schemas.GatewayListItem>) => {
     setSelectedLightId(light.device.id);
-    console.log(light);
   };
 
   const onNameChange = (
@@ -200,12 +204,12 @@ export function LightList() {
             >
               <Pencil size={16} />
             </button>
-            <Dialog>
-              <DialogTrigger>
+            <Dialog open={isAddLightDialogOpen} onOpenChange={setIsAddLightDialogOpen}>
+              <DialogTrigger asChild>
                 <button
                   className="text-gray-500 hover:text-gray-700"
-                  onClick={handleAddButtonClick}
                   aria-label="Add new light"
+                  onClick={() => setIsAddLightDialogOpen(true)}
                 >
                   <Plus size={24} />
                 </button>
