@@ -364,7 +364,7 @@ const Settings = z
         "Defines which channels we send on.  Each remote type has three channels.  We can send on any subset of these."
       ),
     gateway_configs: z
-      .array(z.number().int())
+      .array(z.array(z.number().int()))
       .describe(
         "List of UDP servers, stored as 3-long arrays.  Elements are 1) remote ID to bind to, 2) UDP port to listen on, 3) protocol version (5 or 6)"
       ),

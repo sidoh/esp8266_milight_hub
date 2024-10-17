@@ -17,6 +17,7 @@ import { NetworkSettings } from "./section-network";
 import { SystemSettings } from "./section-system";
 import { RadioSettings } from "./section-radio";
 import { StateSettings } from "./section-state";
+import { UDPSettings } from "./section-udp";
 
 type Settings = z.infer<typeof schemas.Settings>;
 
@@ -26,6 +27,7 @@ const settingsNavItems: NavItem[] = [
   { title: "MQTT", id: "mqtt" },
   { title: "Radio", id: "radio" },
   { title: "State", id: "state" },
+  { title: "UDP", id: "udp" },
   { title: "System", id: "system" },
 ];
 
@@ -68,17 +70,17 @@ export default function SettingsPage() {
       const fieldKey: SettingsKey = name as SettingsKey;
       const fieldType = extractSchemaType(schemas.Settings.shape[fieldKey]);
 
+      console.log("watch update", type, fieldKey, fieldType, value[fieldKey]);
+
       if (
         name &&
-        type === "change" &&
-        (fieldType instanceof z.ZodEnum ||
-          fieldType instanceof z.ZodBoolean ||
-          fieldType instanceof z.ZodArray)
+        ((type === "change" &&
+          (fieldType instanceof z.ZodEnum ||
+            fieldType instanceof z.ZodBoolean ||
+            fieldType instanceof z.ZodArray)) ||
+          name == "gateway_configs") // this is a hack but I CBA to figure out why type is undefined 
       ) {
-        handleFieldChange(
-          name as keyof Settings,
-          value[name as keyof Settings]
-        );
+        handleFieldChange(fieldKey, value[fieldKey]);
       }
     });
     return () => subscription.unsubscribe();
@@ -117,6 +119,7 @@ export default function SettingsPage() {
           <MQTTSettings navId="mqtt" />
           <RadioSettings navId="radio" />
           <StateSettings navId="state" />
+          <UDPSettings navId="udp" />
           <SystemSettings navId="system" />
         </SidebarPillNav>
       </form>

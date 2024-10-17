@@ -253,7 +253,7 @@ const FirmwareSection: React.FC<{ currentVersion: string | null, variant: string
 
   return (
     <div className="space-y-4">
-      <Alert variant="destructive" className="bg-muted">
+      <Alert variant="destructive">
         <AlertTriangle className="h-4 w-4" />
         <AlertTitle>Warning</AlertTitle>
         <AlertDescription>

@@ -26,6 +26,5 @@ export const NetworkSettings: React.FC<NavChildProps<"network">> = () => (
         wifi_static_ip_netmask: "Static IP Netmask",
       }}
     />
-    <FieldSection title="Discovery" fields={["discovery_port"]} />
   </FieldSections>
 );
