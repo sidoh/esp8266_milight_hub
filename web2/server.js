@@ -4,7 +4,7 @@ const path = require('path');
 
 const app = express();
 const PORT = 3000; // You can change this to any port you prefer
-const PROXY_URL = 'http://10.133.8.88'; // Replace with your proxy URL
+const PROXY_URL = process.env.PROXY_URL || 'http://10.133.8.88'; // Replace with your proxy URL
 
 const proxyMiddleware = createProxyMiddleware({
   target: PROXY_URL,
