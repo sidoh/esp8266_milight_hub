@@ -180,6 +180,7 @@ public:
     groupStateFields(DEFAULT_GROUP_STATE_FIELDS),
     rf24ListenChannel(RF24Channel::RF24_LOW),
     packetRepeatsPerLoop(10),
+    homeAssistantDiscoveryPrefix("homeassistant/"),
     wifiMode(WifiMode::G),
     defaultTransitionPeriod(500),
     groupIdAliasNextId(0),
