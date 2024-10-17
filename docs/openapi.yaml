@@ -214,13 +214,13 @@ paths:
             content:
               application/json:
                 schema:
-                  $ref: '#/components/schemas/BooleanResponse'
+                  $ref: '#/components/schemas/BooleanResponseWithMessage'
           201:
             description: Backup uploaded and settings restored successfully
             content:
               application/json:
                 schema:
-                    $ref: '#/components/schemas/BooleanResponse'
+                  $ref: '#/components/schemas/BooleanResponseWithMessage'
     get:
       tags:
       - System
@@ -664,7 +664,7 @@ components:
       name: group-id
       in: path
       description: >
-        Group ID.  Should be 0-8, depending on remote type.  Group 0 is a "wildcard" group.  All bulbs paired with the same device ID will respond to commands sent to Group 0.
+        Group ID.  Should be 0-8, depending on remote type.  Group 0 is a 'wildcard' group.  All bulbs paired with the same device ID will respond to commands sent to Group 0.
       schema:
         type: integer
         minimum: 0
@@ -775,11 +775,9 @@ components:
         - status
       example: brightness
       description: >
-        If transitioning `status`:
-
-        * If transitioning to `OFF`, will fade to 0 brightness and then turn off.
-
-        * If transitioning to `ON`, will turn on, set brightness to 0, and fade to brightness 100.
+        If transitioning 'status':
+        * If transitioning to 'OFF', will fade to 0 brightness and then turn off.
+        * If transitioning to 'ON', will turn on, set brightness to 0, and fade to brightness 100.
     TransitionValue:
       oneOf:
         - type: integer
@@ -1068,6 +1066,7 @@ components:
       - device_type
       - oh_color
       - hex_color
+      - color_mode
       description: >
         Defines a field which is a part of state for a particular light device.  Most fields are self-explanatory, but documentation for each follows:
 
@@ -1098,11 +1097,13 @@ components:
       properties:
         admin_username:
           type: string
-          description: If spcified along with `admin_password`, HTTP basic auth will be enabled to access all REST endpoints.
+          description: If specified along with a password, HTTP basic auth will be enabled to access the web interface and the REST API.
+          title: HTTP Username
           default: ""
         admin_password:
           type: string
-          description: If spcified along with `admin_username`, HTTP basic auth will be enabled to access all REST endpoints.
+          description: If specified along with a username, HTTP basic auth will be enabled to access the web interface and the REST API.
+          title: HTTP Password
           default: ""
         ce_pin:
           type: integer
@@ -1133,9 +1134,13 @@ components:
           description: Automatically restart the device after the number of specified minutes.  Use 0 to disable.
           default: 0
         mqtt_server:
-          type: string
-          description: MQTT server to connect to.
-          format: hostname
+          description: MQTT server to connect to. Can contain port number in the form 'mqtt-hostname:1883'. Leave empty to disable MQTT.
+          oneOf:
+            - type: string
+              format: hostname
+            - type: string 
+              maxLength: 0
+          nullable: true
         mqtt_username:
           type: string
           description: If specified, use this username to authenticate with the MQTT server.
@@ -1158,13 +1163,24 @@ components:
           type: string
           description: Topic client status will be sent to.
           example: milight/status
+        mqtt_retain:
+          type: boolean
+          description: If true, messages sent to state and client status topics will be published with the retain flag.
+          default: true
         simple_mqtt_client_status:
           type: boolean
           description: If true, will use a simple enum flag (`connected` or `disconnected`) to indicate status.  If false, will send a rich JSON message including IP address, version, etc.
           default: true
+        radio_interface_type:
+          type: string
+          description: Type of radio interface to use. NRF24 is better supported and more common. Only use LT8900 if you're sure you mean to!
+          enum:
+            - nRF24
+            - LT8900
+          default: nRF24
         discovery_port:
           type: integer
-          description: UDP discovery port
+          description: UDP port used for milight's discovery protocol. Set to 0 to disable.
           default: 48899
         listen_repeats:
           type: integer
@@ -1206,12 +1222,16 @@ components:
           default: false
         led_mode_wifi_config:
           $ref: '#/components/schemas/LedMode'
+          description: LED mode when connecting to WiFi
         led_mode_wifi_failed:
           $ref: '#/components/schemas/LedMode'
+          description: LED mode when WiFi connection fails
         led_mode_operating:
           $ref: '#/components/schemas/LedMode'
+          description: LED mode when operating normally
         led_mode_packet:
           $ref: '#/components/schemas/LedMode'
+          description: LED mode when packets are being sent
         led_mode_packet_count:
           type: integer
           description: Number of times the LED will flash when packets are changing
@@ -1251,35 +1271,29 @@ components:
         home_assistant_discovery_prefix:
           type: string
           description: If specified along with MQTT settings, will enable HomeAssistant MQTT discovery using the specified discovery prefix.  HomeAssistant's default is `homeassistant/`.
+          default: "homeassistant/"
         wifi_mode:
           type: string
           enum:
-            - B
-            - G
-            - N
-          description: Forces WiFi into the spcified mode.  Try using B or G mode if you are having stability issues.
-          default: N
+            - b 
+            - g
+            - n
+          description: Forces WiFi into the spcified mode.  Try using B or G mode if you are having stability issues. Changing this may cause the device to momentarily lose connection to the network.
+          default: n
         rf24_channels:
           type: array
           items:
             $ref: '#/components/schemas/RF24Channel'
           description: Defines which channels we send on.  Each remote type has three channels.  We can send on any subset of these.
-        device_ids:
-          type: array
-          items:
-            $ref: '#/components/schemas/DeviceId'
-          description:
-            "List of saved device IDs, stored as 3-long arrays.  Elements are: 1) remote ID, 2) remote type, 3) group ID"
-          example:
-            - [1234, 'rgb_cct', 1]
-            - [5678, 'fut089', 5]
         gateway_configs:
           type: array
           items:
-            type: integer
+            type: array
+            items:
+              type: integer
           description: "List of UDP servers, stored as 3-long arrays.  Elements are 1) remote ID to bind to, 2) UDP port to listen on, 3) protocol version (5 or 6)"
           example:
-            - [1234, 5555, 6]
+            - [[1234, 5555, 6]]
         group_state_fields:
           type: array
           items:
@@ -1289,7 +1303,7 @@ components:
           description: |
             DEPRECATED (use /aliases routes instead)
             
-            Keys are aliases, values are 3-long arrays with same schema as items in `device_ids`.
+            Keys are aliases, values are 3-long arrays with same schema as items in 'device_ids'.
           deprecated: true
           example:
             alias1: [1234, 'rgb_cct', 1]
@@ -1310,12 +1324,22 @@ components:
         error:
           type: string
           description: If an error occurred, message specifying what went wrong
+    BooleanResponseWithMessage:
+      type: object
+      required:
+      - success
+      - message
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
     About:
       type: object
       properties:
         firmware:
           type: string
-          description: Always set to "milight-hub"
+          description: Always set to 'milight-hub'
         version:
           type: string
           description: Semver version string

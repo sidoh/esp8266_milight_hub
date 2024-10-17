@@ -155,7 +155,7 @@ void MiLightHttpServer::handleSystemPost(RequestContext& request) {
   if (requestBody.containsKey(GroupStateFieldNames::COMMAND)) {
     if (requestBody[GroupStateFieldNames::COMMAND] == "restart") {
       Serial.println(F("Restarting..."));
-      server.send_P(200, TEXT_PLAIN, PSTR("true"));
+      server.send_P(200, TEXT_PLAIN, PSTR("{\"success\": true}"));
 
       delay(100);
 
@@ -164,7 +164,7 @@ void MiLightHttpServer::handleSystemPost(RequestContext& request) {
       handled = true;
     } else if (requestBody[GroupStateFieldNames::COMMAND] == "clear_wifi_config") {
       Serial.println(F("Resetting Wifi and then Restarting..."));
-      server.send_P(200, TEXT_PLAIN, PSTR("true"));
+      server.send_P(200, TEXT_PLAIN, PSTR("{\"success\": true}"));
 
       delay(100);
 #ifdef ESP8266
