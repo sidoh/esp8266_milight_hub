@@ -662,11 +662,33 @@ void MiLightHttpServer::handlePacketSent(uint8_t *packet, const MiLightRemoteCon
 }
 
 void MiLightHttpServer::handleServe_P(const char* data, size_t length) {
-  server.sendHeader("Content-Encoding", "gzip");
+  const size_t CHUNK_SIZE = 16384; 
+
   server.setContentLength(CONTENT_LENGTH_UNKNOWN);
-  server.send(200, "text/html", "");
-  server.sendContent_P(data, length);
-  server.sendContent("");
+  server.sendHeader("Content-Encoding", "gzip");
+  server.send(200, "text/html");
+
+  WiFiClient client = server.client();
+
+  size_t remaining = length;
+  while (remaining > 0) {
+    size_t chunk = remaining > CHUNK_SIZE ? CHUNK_SIZE : remaining;
+    
+    // Send chunk size in hexadecimal format
+    client.printf("%zx\r\n", chunk);
+    
+    // Send chunk data
+    client.write_P(data, chunk);
+    client.print("\r\n");
+    
+    data += chunk;
+    remaining -= chunk;
+    yield();
+  }
+
+  // Send the terminal chunk
+  client.print("0\r\n\r\n");
+
   server.client().stop();
 }
 
