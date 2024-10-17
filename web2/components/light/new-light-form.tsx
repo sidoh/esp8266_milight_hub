@@ -87,7 +87,7 @@ export function NewLightForm({ onSubmit }: NewLightFormProps) {
             <FormItem>
               <FormLabel>Name</FormLabel>
               <FormControl>
-                <Input placeholder="Name for this light" {...field} />
+                <Input autoComplete="off" placeholder="Name for this light" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -133,6 +133,7 @@ export function NewLightForm({ onSubmit }: NewLightFormProps) {
               <FormControl>
                 <Input
                   type="text" // Keep input type as text to allow hex input
+                  autoComplete="off"
                   placeholder="Enter device ID"
                   {...field}
                 />
@@ -151,6 +152,7 @@ export function NewLightForm({ onSubmit }: NewLightFormProps) {
               <FormControl>
                 <ToggleGroup
                   type="single"
+                  variant="outline"
                   value={field.value.toString()}
                   onValueChange={(value) => field.onChange(parseInt(value, 10))}
                 >
