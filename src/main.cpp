@@ -401,9 +401,16 @@ void setup() {
   String ssid = "ESP" + String(getESPId());
 
   // load up our persistent settings from the file system
-  if (! ProjectFS.begin()) {
-    Serial.println(F("Failed to mount file system"));
-  }
+  // ESP8266 doesn't support the formatOnFail parameter
+  #ifdef ESP8266
+    if (! ProjectFS.begin()) {
+      Serial.println(F("Failed to mount file system"));
+    }
+  #else
+    if (! ProjectFS.begin(true)) {
+      Serial.println(F("Failed to mount file system"));
+    }
+  #endif
 
   Settings::load(settings);
   ESPMH_SETUP_WIFI(settings);
