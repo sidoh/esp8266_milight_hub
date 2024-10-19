@@ -20,8 +20,10 @@ import { Skeleton } from "../ui/skeleton";
 import { api } from "@/lib/api";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
+import { useWebSocketContext } from "@/lib/websocket";
 
 export function LightList() {
+  const { lastMessage } = useWebSocketContext();
   const [lightStates, dispatch] = useReducer(reducer, {
     lights: [],
     isLoading: true,
@@ -42,6 +44,20 @@ export function LightList() {
     };
     loadInitialState();
   }, []);
+
+  useEffect(() => {
+    if (lastMessage && lastMessage.t == "packet") {
+      dispatch({
+        type: "UPDATE_STATE",
+        device: {
+          device_id: lastMessage.d.di,
+          group_id: lastMessage.d.gi,
+          device_type: lastMessage.d.rt,
+        },
+        payload: lastMessage.s,
+      });
+    }
+  }, [lastMessage]);
 
   const updateGroup = (
     light: z.infer<typeof schemas.GatewayListItem>,

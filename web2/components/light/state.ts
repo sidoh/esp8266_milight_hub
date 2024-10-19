@@ -8,10 +8,15 @@ export interface LightIndexState {
   isLoading: boolean;
 }
 
+type Device = Omit<
+  z.infer<typeof schemas.GatewayListItem>["device"],
+  "id" | "alias"
+>;
+
 type Action =
   | {
       type: "UPDATE_STATE";
-      device: z.infer<typeof schemas.GatewayListItem>["device"];
+      device: Device;
       payload: Partial<z.infer<typeof schemas.NormalizedGroupState>>;
     }
   | {
@@ -20,7 +25,7 @@ type Action =
     }
   | {
       type: "DELETE_LIGHT";
-      device: z.infer<typeof schemas.GatewayListItem>["device"];
+      device: Device;
     }
   | {
       type: "ADD_LIGHT";
@@ -33,8 +38,8 @@ type Action =
     };
 
 function devicesAreEqual(
-  a: z.infer<typeof schemas.GatewayListItem>["device"],
-  b: z.infer<typeof schemas.GatewayListItem>["device"]
+  a: Device,
+  b: Device
 ) {
   return (
     a.device_id === b.device_id &&

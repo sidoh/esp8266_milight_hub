@@ -6,11 +6,14 @@ import { Dashboard } from './pages/dashboard';
 import { NotFound } from './pages/not-found';
 import SettingsPage from './pages/settings/settings-index';
 import { Toaster } from '@/components/ui/toaster';
+import { WebSocketProvider } from '@/lib/websocket';
+import SnifferPage from './pages/sniffer';
 
 const PAGES = {
     "/dashboard": Dashboard,
     "/not-found": NotFound,
-    "/settings": SettingsPage
+    "/settings": SettingsPage,
+    "/sniffer": SnifferPage
 }
 
 export default function App() {
@@ -36,17 +39,24 @@ export default function App() {
     const PageComponent = currentPage ? PAGES[currentPage] || PAGES["/not-found"] : null;
 
     return (
-        <div className="bg-background text-foreground flex flex-col items-center justify-start">
-            <div className="container mx-auto px-4">
-                <MainNav />
-                <main className="flex flex-col pt-10">
-                    {PageComponent && <PageComponent />}
-                </main>
-                <Toaster />
+        <WebSocketProvider>
+            <div className="bg-background text-foreground flex flex-col items-center justify-start">
+                <div className="container mx-auto px-4">
+                    <MainNav />
+                    <main className="flex flex-col pt-10">
+                        {PageComponent && <PageComponent />}
+                    </main>
+                    <Toaster />
+                </div>
             </div>
-        </div>
+        </WebSocketProvider>
     );
 }
 
-const root = createRoot(document.body);
-root.render(<App />);
+const rootElement = document.getElementById('page');
+if (rootElement) {
+    const root = createRoot(rootElement);
+    root.render(<App />);
+} else {
+    console.error("Could not find element with id 'page'");
+}

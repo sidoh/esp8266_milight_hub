@@ -15,7 +15,7 @@ export function MainNav({
             className="hover:text-slate-900 dark:hover:text-slate-100 text-slate-900 dark:text-slate-100 text-lg font-bold"
             href="#/dashboard"
           >
-            Light Hub
+            MiLight Hub
           </Link>
           <nav
             className={cn(
@@ -25,6 +25,7 @@ export function MainNav({
             {...props}
           >
             <NavLink href="#/dashboard">Dashboard</NavLink>
+            <NavLink href="#/sniffer">Sniffer</NavLink>
           </nav>
         </div>
         <Link

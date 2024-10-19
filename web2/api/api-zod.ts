@@ -563,6 +563,30 @@ const TransitionData = TransitionArgs.and(
     .passthrough()
 );
 const postTransitions_Body = TransitionData.and(BulbId);
+const PacketMessage = z
+  .object({
+    t: z.literal("packet").describe("Type of message").optional(),
+    d: z
+      .object({
+        di: z.number().int().describe("Device ID"),
+        gi: z.number().int().describe("Group ID"),
+        rt: RemoteType.describe(
+          "Type of remote to read a packet from.  If unspecified, will read packets from all remote types."
+        ),
+      })
+      .passthrough()
+      .describe("The bulb that the packet is for"),
+    p: z.array(z.number().int()).describe("Raw packet data"),
+    s: NormalizedGroupState.describe("Group state with a static set of fields"),
+    u: z
+      .object({})
+      .partial()
+      .passthrough()
+      .describe("The command represented by the packet"),
+  })
+  .passthrough();
+const WebSocketMessage = PacketMessage;
+const DeviceId = z.array(z.unknown());
 
 export const schemas = {
   RemoteType,
@@ -593,6 +617,9 @@ export const schemas = {
   BulbId,
   TransitionData,
   postTransitions_Body,
+  PacketMessage,
+  WebSocketMessage,
+  DeviceId,
 };
 
 const endpoints = makeApi([

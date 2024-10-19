@@ -31,5 +31,5 @@ I do this only to proxy API requests to an actual ESP8266 running on my local ne
 The API client in `web2/api` is generated from the openapi spec using `openapi-zod-client`. Run it with this command:
 
 ```bash
-openapi-zod-client ../docs/openapi.yaml -o ./api/api-zod.ts --with-description
+openapi-zod-client ../docs/openapi.yaml -o ./api/api-zod.ts --with-description --export-schemas
 ```
