@@ -61,8 +61,8 @@ function generateGzippedHeader(inputFile, variableName) {
   console.log(`Generated ${outputFile}.h (${gzippedLength / 1024} KB)`);
 
   const variables = {};
-  variables[`${variableName}:filename`] = outputFile;
-  variables[`${variableName}:filename_with_hash`] = serverFilename;
+  variables[`${variableName}:cdn_filename`] = inputFile;
+  variables[`${variableName}:local_filename`] = serverFilename;
   variables[`${variableName}:size`] = gzippedLength;
 
   return variables;

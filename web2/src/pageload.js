@@ -4,14 +4,14 @@
   const files = [
     {
       type: "stylesheet",
-      cdnPath: cdnBase + "{{bundle_css:filename}}",
-      localPath: "{{bundle_css:filename_with_hash}}",
+      cdnPath: cdnBase + "{{bundle_css:cdn_filename}}",
+      localPath: "{{bundle_css:local_filename}}",
       size: parseInt("{{bundle_css:size}}", 10),
     },
     {
       type: "script",
-      cdnPath: cdnBase + "{{bundle_js:filename}}",
-      localPath: "{{bundle_js:filename_with_hash}}",
+      cdnPath: cdnBase + "{{bundle_js:cdn_filename}}",
+      localPath: "{{bundle_js:local_filename}}",
       size: parseInt("{{bundle_js:size}}", 10),
     },
   ];
@@ -36,7 +36,7 @@
         if (!response.ok) {
           throw new Error("Network response was not ok");
         }
-        return response;
+        return Promise.resolve(response);
       })
       .catch((error) => {
         if (retryCount < maxRetries) {
@@ -50,7 +50,6 @@
 
   function tryLoadFile(file) {
     return tryLoadUrl(file.cdnPath, file.size, 0, 0)
-      .then((response) => response.blob())
       .catch(() => {
         return tryLoadUrl(file.localPath, file.size);
       });
@@ -61,7 +60,6 @@
 
     function loadNextFile() {
       if (currentFileIndex >= files.length) {
-        console.log("All files loaded");
         document.getElementById("loading").style.display = "none";
         return;
       }
