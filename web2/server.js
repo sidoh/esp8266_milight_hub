@@ -20,8 +20,10 @@ const wsProxyMiddleware = createProxyMiddleware({
   ws: true, // Enable WebSocket proxying
 });
 
+
 // Serve static files from the 'dist' directory
-app.use(express.static(path.join(__dirname, 'dist')));
+app.use('/dist', express.static(path.join(__dirname, 'dist/compiled')));
+app.use('/index.html', express.static(path.join(__dirname, 'dist/index.html')));
 
 // Proxy HTTP requests that aren't files
 app.use('/', httpProxyMiddleware);

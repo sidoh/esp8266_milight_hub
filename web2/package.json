@@ -5,8 +5,9 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "node build.mjs && node inline.js",
-    "watch": "nodemon -w src -w components -w api -w inline.js -e js,jsx,ts,tsx --exec \"npm run build\"",
+    "build": "cross-env NODE_ENV=production node build.mjs && cross-env NODE_ENV=production node inline.js",
+    "build-dev": "node build.mjs && node inline.js",
+    "watch": "nodemon -w src -w components -w api -w inline.js -e js,jsx,ts,tsx --exec \"npm run build-dev\"",
     "serve": "http-server dist"
   },
   "author": "",
@@ -16,6 +17,7 @@
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.0",
     "autoprefixer": "^10.4.20",
+    "cross-env": "^7.0.3",
     "esbuild": "^0.24.0",
     "esbuild-plugin-tailwindcss": "^1.2.1",
     "express": "^4.21.0",

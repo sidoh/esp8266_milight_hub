@@ -36,7 +36,7 @@ export default function App() {
         };
     }, []);
 
-    const PageComponent = currentPage ? PAGES[currentPage] || PAGES["/not-found"] : null;
+    const PageComponent = currentPage ? PAGES[currentPage] || PAGES["/not-found"] : PAGES["/dashboard"];
 
     return (
         <WebSocketProvider>

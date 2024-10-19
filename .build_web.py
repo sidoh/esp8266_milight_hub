@@ -26,9 +26,9 @@ def build_web():
             else:
                 print(check_output(["npm", "install"]))
                 print(check_output(["npm", "run", "build"]))
-            copyfile("dist/index.html.gz.h", "../dist/index.html.gz.h")
-            copyfile("dist/bundle.css.gz.h", "../dist/bundle.css.gz.h")
-            copyfile("dist/bundle.js.gz.h", "../dist/bundle.js.gz.h")
+            copyfile("dist/compiled/index.html.gz.h", "../dist/index.html.gz.h")
+            copyfile("dist/compiled/bundle.css.gz.h", "../dist/bundle.css.gz.h")
+            copyfile("dist/compiled/bundle.js.gz.h", "../dist/bundle.js.gz.h")
             copyfile("dist/bundle.js", "../dist/bundle.js")
             copyfile("dist/bundle.css", "../dist/bundle.css")
         except OSError as e:

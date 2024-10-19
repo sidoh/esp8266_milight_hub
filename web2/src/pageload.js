@@ -1,6 +1,5 @@
 (function () {
-  const cdnBase =
-    "https://cdn.jsdelivr.net/gh/sidoh/esp8266_milight_hub@web2/";
+  const cdnBase = "https://cdn.jsdelivr.net/gh/sidoh/esp8266_milight_hub@web2/";
   const files = [
     {
       type: "stylesheet",
@@ -49,10 +48,14 @@
   }
 
   function tryLoadFile(file) {
-    return tryLoadUrl(file.cdnPath, file.size, 0, 0)
-      .catch(() => {
-        return tryLoadUrl(file.localPath, file.size);
-      });
+    const isDevelopment = "{{env}}" === "development";
+    if (isDevelopment) {
+      return tryLoadUrl(file.localPath, file.size, 0, 0);
+    } else {
+      return tryLoadUrl(file.cdnPath, file.size, 0, 0).catch(() =>
+        tryLoadUrl(file.localPath, file.size, 0, 5)
+      );
+    }
   }
 
   function loadPage() {

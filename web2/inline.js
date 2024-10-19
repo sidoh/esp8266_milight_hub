@@ -44,9 +44,9 @@ function generateGzippedHeader(inputFile, variableName) {
     .slice(0, 8);
 
   // Append hash to the output filename
-  const outputFile = `${inputFile}.gz`;
-  const [baseName, extension] = outputFile.split(".");
-  const serverFilename = `${baseName}.${hash}.${extension}`;
+  const outputFile = `dist/compiled/${path.basename(inputFile)}.gz`;
+  const [baseName, extension] = path.basename(inputFile).split(".");
+  const serverFilename = `dist/${baseName}.${hash}.${extension}`;
 
   fs.writeFileSync(outputFile, gzipped);
   fs.writeFileSync(
@@ -58,6 +58,9 @@ function generateGzippedHeader(inputFile, variableName) {
       "};\n"
   );
 
+  // for development
+  fs.copyFileSync(inputFile, `dist/compiled/${path.basename(serverFilename)}`);
+
   console.log(`Generated ${outputFile}.h (${gzippedLength / 1024} KB)`);
 
   const variables = {};
@@ -68,10 +71,16 @@ function generateGzippedHeader(inputFile, variableName) {
   return variables;
 }
 
+  if (fs.existsSync("dist/compiled")) {
+    fs.rmSync("dist/compiled", { recursive: true });
+  }
+  fs.mkdirSync("dist/compiled");
+
 // Generate gzipped files and headers
 const variables = {
   ...generateGzippedHeader("dist/bundle.css", "bundle_css"),
   ...generateGzippedHeader("dist/bundle.js", "bundle_js"),
+  "env": process.env.NODE_ENV || "development"
 };
 
 let outputHtml = html;
