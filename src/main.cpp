@@ -153,7 +153,7 @@ void onPacketSentHandler(uint8_t* packet, const MiLightRemoteConfig& config) {
     }
   }
 
-  httpServer->handlePacketSent(packet, remoteConfig);
+  httpServer->handlePacketSent(packet, remoteConfig, bulbId, result);
 }
 
 /**

@@ -691,6 +691,50 @@ components:
         $ref: '#/components/schemas/RemoteType'
       required: true
   schemas:
+    WebSocketMessage:
+      oneOf:
+        - $ref: '#/components/schemas/PacketMessage'
+    PacketMessage:
+      type: object
+      properties:
+        t:
+          type: string
+          enum:
+            - packet
+          description: Type of message
+        d:
+          description: The bulb that the packet is for
+          type: object
+          required:
+          - di
+          - gi
+          - rt
+          properties:
+            di:
+              type: integer
+              description: Device ID
+            gi:
+              type: integer
+              description: Group ID
+            rt:
+              $ref: '#/components/schemas/RemoteType'
+              description: Device type
+        p:
+          type: array
+          items:
+            type: integer
+          description: Raw packet data
+        s:
+          $ref: '#/components/schemas/NormalizedGroupState'
+          description: Normalized state of the bulb after applying the packet
+        u:
+          type: object
+          description: The command represented by the packet
+      required:
+      - d
+      - p
+      - s
+      - u
     Alias:
       type: object
       properties:

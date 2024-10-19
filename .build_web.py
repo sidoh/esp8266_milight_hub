@@ -17,16 +17,20 @@ def is_tool(name):
 
 def build_web():
     if is_tool("npm"):
-        os.chdir("web")
+        os.chdir("web2")
         print("Attempting to build webpage...")
         try:
             if platform.system() == "Windows":
-                print(check_output(["npm.cmd", "install", "--only=dev"]))
-                print(check_output(["node_modules\\.bin\\gulp.cmd"]))
+                print(check_output(["npm.cmd", "install"]))
+                print(check_output(["npm.cmd", "run", "build"]))
             else:
                 print(check_output(["npm", "install"]))
-                print(check_output(["node_modules/.bin/gulp"]))
-            copyfile("build/index.html.gz.h", "../dist/index.html.gz.h")
+                print(check_output(["npm", "run", "build"]))
+            copyfile("dist/index.html.gz.h", "../dist/index.html.gz.h")
+            copyfile("dist/bundle.css.gz.h", "../dist/bundle.css.gz.h")
+            copyfile("dist/bundle.js.gz.h", "../dist/bundle.js.gz.h")
+            copyfile("dist/bundle.js", "../dist/bundle.js")
+            copyfile("dist/bundle.css", "../dist/bundle.css")
         except OSError as e:
             print("Encountered error OSError building webpage:", e)
             if e.filename:

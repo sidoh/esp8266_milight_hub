@@ -59,13 +59,13 @@ public:
   void onSettingsSaved(SettingsSavedHandler handler);
   void onGroupDeleted(GroupDeletedHandler handler);
   void on(const char* path, HTTPMethod method, THandlerFunction handler);
-  void handlePacketSent(uint8_t* packet, const MiLightRemoteConfig& config);
+  void handlePacketSent(uint8_t* packet, const MiLightRemoteConfig& config, const BulbId& bulbId, const JsonObject& result);
   WiFiClient client();
 
 protected:
 
   bool serveFile(const char* file, const char* contentType = "text/html");
-  void handleServe_P(const char* data, size_t length);
+  void handleServe_P(const char* data, size_t length, const char* contentType);
   void sendGroupState(bool allowAsync, BulbId& bulbId, RichHttp::Response& response);
 
   void serveSettings();

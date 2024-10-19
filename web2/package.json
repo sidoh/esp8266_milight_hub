@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "node build.mjs && node inline.js",
-    "watch": "nodemon -w src -w components -w api -e js,jsx,ts,tsx --exec \"npm run build\"",
+    "watch": "nodemon -w src -w components -w api -w inline.js -e js,jsx,ts,tsx --exec \"npm run build\"",
     "serve": "http-server dist"
   },
   "author": "",

@@ -12,6 +12,8 @@
 #include <StreamUtils.h>
 
 #include <index.html.gz.h>
+#include <bundle.css.gz.h>
+#include <bundle.js.gz.h>
 #include <BackupManager.h>
 
 #ifdef ESP32
@@ -22,11 +24,17 @@
 using namespace std::placeholders;
 
 void MiLightHttpServer::begin() {
-  // set up HTTP end points to serve
-
   server
     .buildHandler("/")
-    .onSimple(HTTP_GET, std::bind(&MiLightHttpServer::handleServe_P, this, index_html_gz, index_html_gz_len));
+    .onSimple(HTTP_GET, std::bind(&MiLightHttpServer::handleServe_P, this, index_html_gz, index_html_gz_len, "text/html"));
+
+  server
+    .buildHandler(bundle_css_filename)
+    .onSimple(HTTP_GET, std::bind(&MiLightHttpServer::handleServe_P, this, bundle_css_gz, bundle_css_gz_len, "text/css"));
+
+  server
+    .buildHandler(bundle_js_filename)
+    .onSimple(HTTP_GET, std::bind(&MiLightHttpServer::handleServe_P, this, bundle_js_gz, bundle_js_gz_len, "application/javascript"));
 
   server
     .buildHandler("/settings")
@@ -640,33 +648,42 @@ void MiLightHttpServer::handleWsEvent(uint8_t num, WStype_t type, uint8_t *paylo
   }
 }
 
-void MiLightHttpServer::handlePacketSent(uint8_t *packet, const MiLightRemoteConfig& config) {
+void MiLightHttpServer::handlePacketSent(uint8_t *packet, const MiLightRemoteConfig& config, const BulbId& bulbId, const JsonObject& result) {
   if (numWsClients > 0) {
-    size_t packetLen = config.packetFormatter->getPacketLength();
-    char buffer[packetLen*3];
-    IntParsing::bytesToHexStr(packet, packetLen, buffer, packetLen*3);
+    DynamicJsonDocument output(1024);
 
-    char formattedPacket[200];
-    config.packetFormatter->format(packet, formattedPacket);
+    output[F("t")] = F("packet");
+    output[F("u")].set(result);
+
+    JsonObject device = output.createNestedObject(F("d"));
+    device[F("di")] = bulbId.deviceId;
+    device[F("gi")] = bulbId.groupId;
+    device[F("rt")] = MiLightRemoteTypeHelpers::remoteTypeToString(bulbId.deviceType);
+
+    JsonArray responsePacket = output.createNestedArray(F("p"));
+    for (size_t i = 0; i < config.packetFormatter->getPacketLength(); ++i) {
+      responsePacket.add(packet[i]);
+    }
+
+    const GroupState* bulbState = this->stateStore->get(bulbId);
+    if (bulbState != nullptr) {
+      JsonObject state = output.createNestedObject(F("s"));
+      bulbState->applyState(state, bulbId, NORMALIZED_GROUP_STATE_FIELDS);
+    }
 
     char responseBuffer[300];
-    sprintf_P(
-      responseBuffer,
-      PSTR("\n%s packet received (%d bytes):\n%s"),
-      config.name.c_str(),
-      packetLen,
-      formattedPacket
-    );
+    serializeJson(output, responseBuffer);
     wsServer.broadcastTXT(reinterpret_cast<uint8_t*>(responseBuffer));
   }
 }
 
-void MiLightHttpServer::handleServe_P(const char* data, size_t length) {
-  const size_t CHUNK_SIZE = 16384; 
+void MiLightHttpServer::handleServe_P(const char* data, size_t length, const char* contentType) {
+  const size_t CHUNK_SIZE = 4096; 
 
   server.setContentLength(CONTENT_LENGTH_UNKNOWN);
   server.sendHeader("Content-Encoding", "gzip");
-  server.send(200, "text/html");
+  server.sendHeader("Cache-Control", "public, max-age=31536000");
+  server.send(200, contentType);
 
   WiFiClient client = server.client();
 
@@ -675,7 +692,7 @@ void MiLightHttpServer::handleServe_P(const char* data, size_t length) {
     size_t chunk = remaining > CHUNK_SIZE ? CHUNK_SIZE : remaining;
     
     // Send chunk size in hexadecimal format
-    client.printf("%zx\r\n", chunk);
+    client.printf("%X\r\n", chunk);
     
     // Send chunk data
     client.write_P(data, chunk);
@@ -683,13 +700,11 @@ void MiLightHttpServer::handleServe_P(const char* data, size_t length) {
     
     data += chunk;
     remaining -= chunk;
-    yield();
   }
 
   // Send the terminal chunk
   client.print("0\r\n\r\n");
-
-  server.client().stop();
+  client.stop();
 }
 
 void MiLightHttpServer::handleGetTransition(RequestContext& request) {

@@ -55,6 +55,7 @@ export default function App() {
 
 const rootElement = document.getElementById('page');
 if (rootElement) {
+    rootElement.innerHTML = ''; // Clear existing contents
     const root = createRoot(rootElement);
     root.render(<App />);
 } else {
