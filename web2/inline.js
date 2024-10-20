@@ -64,7 +64,7 @@ function generateGzippedHeader(inputFile, variableName) {
   console.log(`Generated ${outputFile}.h (${gzippedLength / 1024} KB)`);
 
   const variables = {};
-  variables[`${variableName}:cdn_filename`] = inputFile;
+  variables[`${variableName}:cdn_filename`] = path.basename(inputFile);
   variables[`${variableName}:local_filename`] = serverFilename;
   variables[`${variableName}:size`] = gzippedLength;
 
@@ -105,6 +105,12 @@ if (process.env.NODE_ENV === "production") {
   fs.mkdirSync(`dist/versions/${version}`, { recursive: true });
   for (const file of fs.readdirSync("dist/build")) {
     fs.copyFileSync(`dist/build/${file}`, `dist/versions/${version}/${file}`);
+  }
+
+  for (const file of fs.readdirSync("dist/compiled")) {
+    if (file.endsWith(".h")) {
+      fs.copyFileSync(`dist/compiled/${file}`, `../dist/${file}`);
+    }
   }
 }
 
