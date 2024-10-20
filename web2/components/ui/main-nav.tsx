@@ -1,8 +1,21 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import { NavLink, Link } from "@/components/ui/link";
-import { Settings } from "lucide-react";
+import { Settings, Sun, Moon } from "lucide-react";
 import { useSettings } from "@/lib/settings";
+
+function ThemeSwitcher() {
+  const { theme, toggleTheme } = useSettings();
+
+  return (
+    <button
+      onClick={toggleTheme}
+      className="text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+    >
+      {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
+    </button>
+  );
+}
 
 export function MainNav({
   className,
@@ -31,12 +44,15 @@ export function MainNav({
             <NavLink href="#/sniffer">Sniffer</NavLink>
           </nav>
         </div>
-        <Link
-          href="#/settings"
-          className="text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
-        >
-          <Settings size={24} />
-        </Link>
+        <div className="flex items-center space-x-4">
+          <ThemeSwitcher />
+          <Link
+            href="#/settings"
+            className="text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+          >
+            <Settings size={24} />
+          </Link>
+        </div>
       </div>
     </div>
   );
