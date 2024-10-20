@@ -1199,7 +1199,7 @@ components:
           type: string
           description: Topic pattern individual intercepted commands will be sent to.  More detail on the format in README.
           example: milight/updates/:device_id/:device_type/:group_id
-        mqtt_update_state_pattern:
+        mqtt_state_topic_pattern:
           type: string
           description: Topic pattern device state will be sent to.  More detail on the format in README.
           example: milight/state/:device_id/:device_type/:group_id
