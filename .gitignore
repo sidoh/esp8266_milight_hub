@@ -16,3 +16,4 @@
 /test/remote/settings.json
 /test/remote/espmh.env
 lib/Environment/wifi_credentials.h
+.idea

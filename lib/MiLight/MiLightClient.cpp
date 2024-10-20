@@ -8,6 +8,7 @@
 #include <MiLightCommands.h>
 #include <functional>
 
+
 using namespace std::placeholders;
 
 static const uint8_t STATUS_UNDEFINED = 255;
