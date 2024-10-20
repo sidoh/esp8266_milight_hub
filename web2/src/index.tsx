@@ -24,9 +24,6 @@ export default function App() {
   );
 
   useEffect(() => {
-    // Add dark class to body
-    document.body.classList.add("dark");
-
     const handleHashChange = () => {
       const hash = window.location.hash.slice(1);
       setCurrentPage(hash as keyof typeof PAGES);

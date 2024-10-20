@@ -23,7 +23,7 @@ const html = `
 </style>
 <script>${fs.readFileSync("src/pageload.js")}</script>
 </head>
-<body>
+<body class="dark">
 <div id="page">
 <div id="loading">Loading...</div>
 </div>
