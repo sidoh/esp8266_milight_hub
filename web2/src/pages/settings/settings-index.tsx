@@ -18,6 +18,7 @@ import { SystemSettings } from "./section-system";
 import { RadioSettings } from "./section-radio";
 import { StateSettings } from "./section-state";
 import { UDPSettings } from "./section-udp";
+import { debounce } from "lodash";
 
 type Settings = z.infer<typeof schemas.Settings>;
 
@@ -40,26 +41,27 @@ export default function SettingsPage() {
     mode: "onBlur",
   });
 
-  const onSubmit = () => {
-    const update: Partial<Settings> = {};
+  const debouncedOnSubmit = useCallback(
+    debounce(() => {
+      const update: Partial<Settings> = {};
 
-    for (const field in form.formState.dirtyFields) {
-      update[field as keyof Settings] = form.getValues(field);
-    }
+      for (const field in form.formState.dirtyFields) {
+        update[field as keyof Settings] = form.getValues(field);
+      }
 
-    if (Object.keys(update).length > 0) {
-      api.putSettings(update).then(() => {
-        form.reset(form.getValues());
-      });
-    }
-  };
+      if (Object.keys(update).length > 0) {
+        api.putSettings(update).then(() => {
+          form.reset(form.getValues());
+        });
+      }
+    }, 300), // Adjust the debounce delay as needed
+    [form]
+  );
 
   const handleFieldChange = useCallback((name: keyof Settings, value: any) => {
     console.log(`Field ${name} changed to:`, value);
-    // Here you would typically send the individual field update to your API
-    // api.updateSetting(name, value);
-    onSubmit();
-  }, []);
+    debouncedOnSubmit();
+  }, [debouncedOnSubmit]);
 
   useEffect(() => {
     const subscription = form.watch((value, { name, type }) => {
@@ -70,18 +72,21 @@ export default function SettingsPage() {
       const fieldKey: SettingsKey = name as SettingsKey;
       const fieldType = extractSchemaType(schemas.Settings.shape[fieldKey]);
 
-      console.log("watch update", type, fieldKey, fieldType, value[fieldKey]);
+      handleFieldChange(fieldKey, value[fieldKey]);
 
-      if (
-        name &&
-        ((type === "change" &&
-          (fieldType instanceof z.ZodEnum ||
-            fieldType instanceof z.ZodBoolean ||
-            fieldType instanceof z.ZodArray)) ||
-          name == "gateway_configs") // this is a hack but I CBA to figure out why type is undefined 
-      ) {
-        handleFieldChange(fieldKey, value[fieldKey]);
-      }
+      // console.log("watch update", type, fieldKey, fieldType, value[fieldKey]);
+
+      // if (
+      //   name &&
+      //   ((type === "change" &&
+      //     (fieldType instanceof z.ZodEnum ||
+      //       fieldType instanceof z.ZodBoolean ||
+      //       fieldType instanceof z.ZodArray)) ||
+      //     name == "gateway_configs" ||
+      //     name == "group_state_fields") // this is a hack but I CBA to figure out why type is undefined for controlled fields
+      // ) {
+      //   handleFieldChange(fieldKey, value[fieldKey]);
+      // }
     });
     return () => subscription.unsubscribe();
   }, [form, handleFieldChange]);
@@ -107,10 +112,10 @@ export default function SettingsPage() {
   ) : (
     <FormProvider {...form}>
       <form
-        onBlur={onSubmit}
+        onBlur={debouncedOnSubmit}
         onSubmit={(e) => {
           e.preventDefault();
-          form.handleSubmit(onSubmit)();
+          form.handleSubmit(debouncedOnSubmit)();
         }}
       >
         <SidebarPillNav items={settingsNavItems}>

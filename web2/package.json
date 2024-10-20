@@ -54,6 +54,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",
     "esbuild-plugin-postcss": "^0.2.1",
+    "lodash": "^4.17.21",
     "lucide-react": "^0.447.0",
     "react-hook-form": "^7.53.0",
     "react-router": "^6.26.2",

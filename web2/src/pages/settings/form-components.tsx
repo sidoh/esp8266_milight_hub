@@ -258,7 +258,7 @@ export const FormFields: React.FC<{
 };
 
 export const FieldSection: React.FC<{
-  title: string;
+  title?: string;
   description?: string;
   fields: (keyof typeof schemas.Settings.shape)[];
   fieldNames?: Partial<Record<SettingsKey, string>>;
@@ -266,9 +266,9 @@ export const FieldSection: React.FC<{
   children?: React.ReactNode;
 }> = ({ title, description, fields, fieldNames, fieldTypes, children }) => (
   <div>
-    <h2 className="text-2xl font-bold">{title}</h2>
+    {title && <h2 className="text-2xl font-bold">{title}</h2>}
     {description && <p className="text-sm text-gray-500">{description}</p>}
-    <hr className="my-4" />
+    {title && <hr className="my-4" />}
     <FormFields
       fields={fields}
       fieldNames={fieldNames}

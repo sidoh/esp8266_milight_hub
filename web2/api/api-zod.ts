@@ -217,7 +217,7 @@ const Settings = z
       .describe(
         "Topic pattern individual intercepted commands will be sent to.  More detail on the format in README."
       ),
-    mqtt_update_state_pattern: z
+    mqtt_state_topic_pattern: z
       .string()
       .describe(
         "Topic pattern device state will be sent to.  More detail on the format in README."
