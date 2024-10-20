@@ -21,8 +21,9 @@ const WebSocketContext = createContext<WebSocketContextType | null>(null);
 export const WebSocketProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
-  const { lastJsonMessage, sendJsonMessage } =
-    useWebSocket(`ws://10.133.8.88:81`);
+  const { lastJsonMessage, sendJsonMessage } = useWebSocket(
+    `ws://${window.location.host}:81`
+  );
   const [messages, setMessages] = useState<WebSocketMessage[]>([]);
 
   useEffect(() => {
