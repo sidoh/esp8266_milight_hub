@@ -161,7 +161,6 @@ public:
     listenRepeats(3),
     discoveryPort(48899),
     mqttTopicPattern("milight/commands/:device_id/:device_type/:group_id"),
-    mqttUpdateTopicPattern("milight/updates/:device_id/:device_type/:group_id"),
     mqttStateTopicPattern("milight/state/:device_id/:device_type/:group_id"),
     mqttClientStatusTopic("milight/client_status"),
     simpleMqttClientStatus(true),

@@ -20,8 +20,7 @@ type SettingsKey = keyof typeof schemas.Settings.shape;
 const TOPIC_PRESETS: Record<string, Partial<Settings>> = {
   Default: {
     mqtt_topic_pattern: "milight/commands/:device_id/:device_type/:group_id",
-    mqtt_update_topic_pattern:
-      "milight/updates/:device_id/:device_type/:group_id",
+    mqtt_update_topic_pattern: "",
     mqtt_state_topic_pattern: "milight/state/:device_id/:device_type/:group_id",
     mqtt_client_status_topic: "milight/client_status",
     simple_mqtt_client_status: true,
