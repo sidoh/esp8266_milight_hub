@@ -2,11 +2,14 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 import { NavLink, Link } from "@/components/ui/link";
 import { Settings } from "lucide-react";
+import { useSettings } from "@/lib/settings";
 
 export function MainNav({
   className,
   ...props
 }: React.HTMLAttributes<HTMLElement>) {
+  const { settings, isLoading } = useSettings();
+
   return (
     <div className="w-full">
       <div className="flex h-16 items-center px-4 justify-between">
@@ -15,7 +18,7 @@ export function MainNav({
             className="hover:text-slate-900 dark:hover:text-slate-100 text-slate-900 dark:text-slate-100 text-lg font-bold"
             href="#/dashboard"
           >
-            MiLight Hub
+            {!isLoading ? `MiLight Hub: ${settings?.hostname}` : "MiLight Hub"}
           </Link>
           <nav
             className={cn(

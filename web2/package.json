@@ -1,13 +1,13 @@
 {
   "name": "esp8266_milight_hub_ui",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "cross-env NODE_ENV=production node build.mjs && cross-env NODE_ENV=production node inline.js",
     "build-dev": "cross-env NODE_ENV=development node build.mjs && cross-env NODE_ENV=development node inline.js",
-    "watch": "nodemon -w src -w components -w api -w inline.js -e js,jsx,ts,tsx --exec \"npm run build-dev\"",
+    "watch": "nodemon -w src -w components -w api -w inline.js -w lib -e js,jsx,ts,tsx --exec \"npm run build-dev\"",
     "serve": "http-server dist"
   },
   "author": "",

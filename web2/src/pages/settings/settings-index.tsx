@@ -19,6 +19,7 @@ import { RadioSettings } from "./section-radio";
 import { StateSettings } from "./section-state";
 import { UDPSettings } from "./section-udp";
 import { debounce } from "lodash";
+import { useSettings } from "@/lib/settings";
 
 type Settings = z.infer<typeof schemas.Settings>;
 
@@ -33,7 +34,7 @@ const settingsNavItems: NavItem[] = [
 ];
 
 export default function SettingsPage() {
-  const [loading, setLoading] = useState(true);
+  const { settings, isLoading } = useSettings();
 
   const form = useForm<Settings>({
     resolver: zodResolver(schemas.Settings),
@@ -54,51 +55,28 @@ export default function SettingsPage() {
           form.reset(form.getValues());
         });
       }
-    }, 300), // Adjust the debounce delay as needed
+    }, 300),
     [form]
   );
 
-  const handleFieldChange = useCallback((name: keyof Settings, value: any) => {
-    console.log(`Field ${name} changed to:`, value);
-    debouncedOnSubmit();
-  }, [debouncedOnSubmit]);
-
   useEffect(() => {
-    const subscription = form.watch((value, { name, type }) => {
+    const subscription = form.watch((value, { name }) => {
       if (!name || !(name in schemas.Settings.shape)) {
         return;
       }
 
-      const fieldKey: SettingsKey = name as SettingsKey;
-      const fieldType = extractSchemaType(schemas.Settings.shape[fieldKey]);
-
-      handleFieldChange(fieldKey, value[fieldKey]);
-
-      // console.log("watch update", type, fieldKey, fieldType, value[fieldKey]);
-
-      // if (
-      //   name &&
-      //   ((type === "change" &&
-      //     (fieldType instanceof z.ZodEnum ||
-      //       fieldType instanceof z.ZodBoolean ||
-      //       fieldType instanceof z.ZodArray)) ||
-      //     name == "gateway_configs" ||
-      //     name == "group_state_fields") // this is a hack but I CBA to figure out why type is undefined for controlled fields
-      // ) {
-      //   handleFieldChange(fieldKey, value[fieldKey]);
-      // }
+      debouncedOnSubmit();
     });
     return () => subscription.unsubscribe();
-  }, [form, handleFieldChange]);
+  }, [form]);
 
   useEffect(() => {
-    api.getSettings().then((settings) => {
+    if (settings) {
       form.reset(settings);
-      setLoading(false);
-    });
-  }, []);
+    }
+  }, [settings]);
 
-  return loading ? (
+  return isLoading ? (
     <div className="flex justify-center h-screen space-x-4">
       <div className="w-1/5 h-full max-h-96">
         <Skeleton className="w-full h-full" />

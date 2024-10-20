@@ -21,13 +21,11 @@ import { api } from "@/lib/api";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { useWebSocketContext } from "@/lib/websocket";
+import { useLightState } from "@/lib/light-state";
 
 export function LightList() {
+  const { lightStates, dispatch } = useLightState();
   const { lastMessage } = useWebSocketContext();
-  const [lightStates, dispatch] = useReducer(reducer, {
-    lights: [],
-    isLoading: true,
-  });
   const [isDeleteMode, setIsDeleteMode] = useState(false); 
   const [showConfirmation, setShowConfirmation] = useState(false); 
   const [lightToDelete, setLightToDelete] = useState<z.infer<
@@ -36,14 +34,6 @@ export function LightList() {
   const [selectedLightId, setSelectedLightId] = useState<number | null>(null); 
   const [isAddLightDialogOpen, setIsAddLightDialogOpen] = useState(false);
   const toast = useToast();
-
-  useEffect(() => {
-    const loadInitialState = async () => {
-      const response = await api.getGateways();
-      dispatch({ type: "SET_LIGHTS", lights: response });
-    };
-    loadInitialState();
-  }, []);
 
   useEffect(() => {
     if (lastMessage && lastMessage.t == "packet") {

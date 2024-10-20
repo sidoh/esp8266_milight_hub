@@ -22,7 +22,11 @@ export const WebSocketProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
   const { lastJsonMessage, sendJsonMessage } = useWebSocket(
-    `ws://${window.location.host}:81`
+    `ws://${window.location.hostname}:81`,
+    {
+      share: true,
+      shouldReconnect: () => false,
+    }
   );
   const [messages, setMessages] = useState<WebSocketMessage[]>([]);
 
