@@ -23,7 +23,7 @@ const wsProxyMiddleware = createProxyMiddleware({
 
 // Serve static files from the 'dist' directory
 app.use('/dist', express.static(path.join(__dirname, 'dist/compiled')));
-app.use('/index.html', express.static(path.join(__dirname, 'dist/index.html')));
+app.use('/index.html', express.static(path.join(__dirname, 'dist/build/index.html')));
 
 // Proxy HTTP requests that aren't files
 app.use('/', httpProxyMiddleware);

@@ -1,5 +1,5 @@
 (function () {
-  const cdnBase = "https://cdn.jsdelivr.net/gh/sidoh/esp8266_milight_hub@web2/";
+  const cdnBase = "https://cdn.jsdelivr.net/gh/sidoh/esp8266_milight_hub@web2/web2/dist/versions/{{tag}}/";
   const files = [
     {
       type: "stylesheet",

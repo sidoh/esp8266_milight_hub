@@ -5,7 +5,7 @@ import esbuild from 'esbuild';
 await esbuild.build({
   entryPoints: ['src/index.tsx'],
   bundle: true,
-  outfile: 'dist/bundle.js',
+  outfile: 'dist/build/bundle.js',
   minify: true,
   sourcemap: false,
   define: { 'process.env.NODE_ENV': '"production"' },

@@ -77,10 +77,12 @@ function generateGzippedHeader(inputFile, variableName) {
   fs.mkdirSync("dist/compiled");
 
 // Generate gzipped files and headers
+const version = require("./package.json").version;
 const variables = {
-  ...generateGzippedHeader("dist/bundle.css", "bundle_css"),
-  ...generateGzippedHeader("dist/bundle.js", "bundle_js"),
-  "env": process.env.NODE_ENV || "development"
+  ...generateGzippedHeader("dist/build/bundle.css", "bundle_css"),
+  ...generateGzippedHeader("dist/build/bundle.js", "bundle_js"),
+  "env": process.env.NODE_ENV || "development",
+  "tag": version
 };
 
 let outputHtml = html;
@@ -89,9 +91,20 @@ Object.entries(variables).forEach(([key, value]) => {
 })
 
 fs.writeFileSync(
-  "dist/index.html",
+  "dist/build/index.html",
   outputHtml
 );
-generateGzippedHeader("dist/index.html", "index_html");
+generateGzippedHeader("dist/build/index.html", "index_html");
 
 console.log("Finished compiling all files.");
+
+if (process.env.NODE_ENV === "production") {
+  const version = require("./package.json").version;
+  console.log("Creating CDN release...");
+
+  fs.mkdirSync(`dist/versions/${version}`, { recursive: true });
+  for (const file of fs.readdirSync("dist/build")) {
+    fs.copyFileSync(`dist/build/${file}`, `dist/versions/${version}/${file}`);
+  }
+}
+
