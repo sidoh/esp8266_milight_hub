@@ -66,8 +66,10 @@ platformio run -e d1_mini --target upload
 Alternatively, you can download a pre-compiled firmware image from the [releases](https://github.com/sidoh/esp8266_milight_hub/releases). This can be used with [`esptool.py`](https://github.com/espressif/esptool):
 
 ```
-esptool.py write_flash 0x1000 <firmware_file.bin>
+esptool.py write_flash 0x0 <firmware_file.bin>
 ```
+
+Make sure you read instructions
 
 ### Configure WiFi
 

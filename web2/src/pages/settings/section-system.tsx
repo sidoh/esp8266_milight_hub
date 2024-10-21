@@ -76,6 +76,7 @@ const ActionSection: React.FC = () => {
 const BackupsSection: React.FC = () => {
   const { toast } = useToast();
   const [backupFile, setBackupFile] = React.useState<File | null>(null);
+  const [busy, setBusy] = React.useState(false);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     console.log(event.target.files);
@@ -86,6 +87,7 @@ const BackupsSection: React.FC = () => {
   console.log(backupFile);
 
   const handleUploadBackup = async () => {
+    setBusy(true);
     toast({
       title: "Uploading backup",
       description: "Please wait while your backup is uploaded.",
@@ -118,6 +120,7 @@ const BackupsSection: React.FC = () => {
       });
     } finally {
       setBackupFile(null);
+      setBusy(false);
     }
   };
 
@@ -148,9 +151,11 @@ const BackupsSection: React.FC = () => {
               className="flex-grow"
             />
             <Button
-              type="submit"
-              disabled={!backupFile}
-              onClick={handleUploadBackup}
+              disabled={!backupFile || busy}
+              onClick={(e) => {
+                e.preventDefault();
+                handleUploadBackup();
+              }}
               variant="secondary"
             >
               Upload Backup
@@ -169,6 +174,7 @@ const FirmwareSection: React.FC<{ currentVersion: string | null, variant: string
   const { toast } = useToast();
   const [firmwareFile, setFirmwareFile] = React.useState<File | null>(null);
   const [isChecking, setIsChecking] = React.useState(false);
+  const [busy, setBusy] = React.useState(false);
   const [latestVersionInfo, setLatestVersionInfo] = React.useState<{
     version: string;
     url: string;
@@ -186,7 +192,7 @@ const FirmwareSection: React.FC<{ currentVersion: string | null, variant: string
   };
 
   const handleUploadFirmware = async () => {
-    // TODO: Implement firmware upload logic
+    setBusy(true);
     toast({
       title: "Update started",
       description: "Do not turn off the device until the update is complete.",
@@ -208,6 +214,9 @@ const FirmwareSection: React.FC<{ currentVersion: string | null, variant: string
           description: error.message,
           variant: "destructive",
         });
+      })
+      .finally(() => {
+        setBusy(false);
       });
   };
 
@@ -274,9 +283,11 @@ const FirmwareSection: React.FC<{ currentVersion: string | null, variant: string
               className="flex-grow"
             />
             <Button
-              type="submit"
-              disabled={!firmwareFile}
-              onClick={handleUploadFirmware}
+              disabled={!firmwareFile || busy}
+              onClick={(e) => {
+                e.preventDefault();
+                handleUploadFirmware();
+              }}
               variant="secondary"
             >
               Upload Firmware
