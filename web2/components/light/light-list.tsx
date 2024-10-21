@@ -159,6 +159,11 @@ export function LightList() {
         variant: "destructive",
       });
     });
+
+    dispatch({
+      type: "UPDATE_ALL_STATE",
+      payload: { state: anyLightOn ? "OFF" : "ON" },
+    });
   };
 
   return (

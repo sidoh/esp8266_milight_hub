@@ -20,6 +20,10 @@ type Action =
       payload: Partial<z.infer<typeof schemas.NormalizedGroupState>>;
     }
   | {
+      type: "UPDATE_ALL_STATE";
+      payload: Partial<z.infer<typeof schemas.NormalizedGroupState>>;
+    }
+  | {
       type: "SET_LIGHTS";
       lights: z.infer<typeof schemas.GatewayListItem>[];
     }
@@ -37,10 +41,7 @@ type Action =
       name: string;
     };
 
-function devicesAreEqual(
-  a: Device,
-  b: Device
-) {
+function devicesAreEqual(a: Device, b: Device) {
   return (
     a.device_id === b.device_id &&
     a.device_type === b.device_type &&
@@ -62,6 +63,14 @@ export function reducer(
             ? { ...light, state: { ...light.state, ...action.payload } }
             : light
         ),
+      };
+    case "UPDATE_ALL_STATE":
+      return {
+        ...state,
+        lights: state.lights.map((light) => ({
+          ...light,
+          state: action.payload,
+        })),
       };
     case "SET_LIGHTS":
       return {
