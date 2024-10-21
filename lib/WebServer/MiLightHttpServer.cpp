@@ -81,7 +81,8 @@ void MiLightHttpServer::begin() {
 
   server
     .buildHandler("/gateways")
-    .onSimple(HTTP_GET, std::bind(&MiLightHttpServer::handleListGroups, this));
+    .onSimple(HTTP_GET, std::bind(&MiLightHttpServer::handleListGroups, this))
+    .on(HTTP_PUT, std::bind(&MiLightHttpServer::handleBatchUpdateGroups, this, _1));
 
   server
     .buildHandler("/transitions/:id")
@@ -1048,4 +1049,36 @@ void MiLightHttpServer::handleListGroups() {
   // stop chunked streaming
   server.sendContent("");
   server.client().stop();
+}
+
+void MiLightHttpServer::handleBatchUpdateGroups(RequestContext& request) {
+  JsonArray body = request.getJsonBody().as<JsonArray>();
+
+  if (body.size() == 0) {
+    request.response.setCode(400);
+    request.response.json[F("error")] = F("Must specify an array of gateways and updates");
+    return;
+  }
+
+  for (auto update : body) {
+    JsonArray gateways = update[F("gateways")].as<JsonArray>();
+    JsonObject stateUpdate = update[F("update")].as<JsonObject>();
+
+    for (auto gateway : gateways) {
+      BulbId bulbId(
+        gateway[F("device_id")],
+        gateway[F("group_id")],
+        MiLightRemoteTypeHelpers::remoteTypeFromString(gateway[F("device_type")].as<const char*>())
+      );
+
+      this->milightClient->prepare(
+        bulbId.deviceType,
+        bulbId.deviceId,
+        bulbId.groupId
+      );
+      handleRequest(stateUpdate);
+    }
+  }
+
+  request.response.json[F("success")] = true;
 }

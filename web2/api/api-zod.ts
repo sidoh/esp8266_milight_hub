@@ -69,6 +69,151 @@ const GatewayListItem = z
       .passthrough(),
   })
   .passthrough();
+const BulbId = z
+  .object({
+    device_id: z.number().int().gte(0).lte(65536),
+    group_id: z.number().int().gte(0).lte(8),
+    device_type: RemoteType,
+  })
+  .passthrough();
+const GroupStateCommand = z.enum([
+  "unpair",
+  "pair",
+  "set_white",
+  "night_mode",
+  "level_up",
+  "level_down",
+  "temperature_up",
+  "temperature_down",
+  "next_mode",
+  "previous_mode",
+  "mode_speed_down",
+  "mode_speed_up",
+  "toggle",
+]);
+const TransitionField = z.enum([
+  "hue",
+  "saturation",
+  "brightness",
+  "level",
+  "kelvin",
+  "color_temp",
+  "color",
+  "status",
+]);
+const TransitionValue = z.union([z.number(), z.string()]);
+const TransitionArgs = z
+  .object({
+    field:
+      TransitionField.describe(`If transitioning 'status': * If transitioning to 'OFF', will fade to 0 brightness and then turn off. * If transitioning to 'ON', will turn on, set brightness to 0, and fade to brightness 100.
+`),
+    start_value: TransitionValue.describe("Either an int value or a color"),
+    end_value: TransitionValue.describe("Either an int value or a color"),
+    duration: z
+      .number()
+      .describe("Duration of transition, measured in seconds"),
+    period: z
+      .number()
+      .int()
+      .describe(
+        "Length of time between updates in a transition, measured in milliseconds"
+      ),
+  })
+  .partial()
+  .passthrough();
+const GroupStateCommands = z
+  .object({
+    command: z.union([
+      GroupStateCommand,
+      z
+        .object({ command: z.literal("transition"), args: TransitionArgs })
+        .partial()
+        .passthrough(),
+    ]),
+    commands: z.array(GroupStateCommand),
+  })
+  .partial()
+  .passthrough();
+const GroupState = z
+  .object({
+    state: State.describe("On/Off state"),
+    status: State.describe("On/Off state"),
+    hue: z
+      .number()
+      .int()
+      .gte(0)
+      .lte(359)
+      .describe("Color hue.  Will change bulb to color mode."),
+    saturation: z
+      .number()
+      .int()
+      .gte(0)
+      .lte(100)
+      .describe("Color saturation.  Will normally change bulb to color mode."),
+    kelvin: z
+      .number()
+      .int()
+      .gte(0)
+      .lte(100)
+      .describe("White temperature.  0 is coolest, 100 is warmest."),
+    temperature: z
+      .number()
+      .int()
+      .gte(0)
+      .lte(100)
+      .describe("Alias for `kelvin`."),
+    color_temp: z
+      .number()
+      .int()
+      .gte(153)
+      .lte(370)
+      .describe(
+        "White temperature measured in mireds.  Lower values are cooler."
+      ),
+    mode: z
+      .number()
+      .int()
+      .describe("Party mode ID.  Actual effect depends on the bulb."),
+    color: z.union([
+      z.string(),
+      z
+        .object({
+          r: z.number().int(),
+          g: z.number().int(),
+          b: z.number().int(),
+        })
+        .partial()
+        .passthrough(),
+    ]),
+    level: z
+      .number()
+      .int()
+      .gte(0)
+      .lte(100)
+      .describe("Brightness on a 0-100 scale."),
+    brightness: z
+      .number()
+      .int()
+      .gte(0)
+      .lte(255)
+      .describe("Brightness on a 0-255 scale."),
+    effect: z.enum(["night_mode", "white_mode"]),
+    transition: z.number()
+      .describe(`Enables a transition from current state to the provided state.
+`),
+    color_mode:
+      ColorMode.describe(`Describes the current color mode of the bulb.  Useful for HomeAssistant.
+`),
+  })
+  .partial()
+  .passthrough();
+const UpdateBatch = z
+  .object({
+    gateways: z.array(BulbId),
+    update: z.union([GroupStateCommands, GroupState]),
+  })
+  .partial()
+  .passthrough();
 const About = z
   .object({
     firmware: z.string().describe("Always set to 'milight-hub'"),
@@ -388,137 +533,6 @@ const ReadPacket = z
 const device_id = z
   .union([z.number(), z.string()])
   .describe("2-byte device ID.  Can be decimal or hexadecimal.");
-const GroupState = z
-  .object({
-    state: State.describe("On/Off state"),
-    status: State.describe("On/Off state"),
-    hue: z
-      .number()
-      .int()
-      .gte(0)
-      .lte(359)
-      .describe("Color hue.  Will change bulb to color mode."),
-    saturation: z
-      .number()
-      .int()
-      .gte(0)
-      .lte(100)
-      .describe("Color saturation.  Will normally change bulb to color mode."),
-    kelvin: z
-      .number()
-      .int()
-      .gte(0)
-      .lte(100)
-      .describe("White temperature.  0 is coolest, 100 is warmest."),
-    temperature: z
-      .number()
-      .int()
-      .gte(0)
-      .lte(100)
-      .describe("Alias for `kelvin`."),
-    color_temp: z
-      .number()
-      .int()
-      .gte(153)
-      .lte(370)
-      .describe(
-        "White temperature measured in mireds.  Lower values are cooler."
-      ),
-    mode: z
-      .number()
-      .int()
-      .describe("Party mode ID.  Actual effect depends on the bulb."),
-    color: z.union([
-      z.string(),
-      z
-        .object({
-          r: z.number().int(),
-          g: z.number().int(),
-          b: z.number().int(),
-        })
-        .partial()
-        .passthrough(),
-    ]),
-    level: z
-      .number()
-      .int()
-      .gte(0)
-      .lte(100)
-      .describe("Brightness on a 0-100 scale."),
-    brightness: z
-      .number()
-      .int()
-      .gte(0)
-      .lte(255)
-      .describe("Brightness on a 0-255 scale."),
-    effect: z.enum(["night_mode", "white_mode"]),
-    transition: z.number()
-      .describe(`Enables a transition from current state to the provided state.
-`),
-    color_mode:
-      ColorMode.describe(`Describes the current color mode of the bulb.  Useful for HomeAssistant.
-`),
-  })
-  .partial()
-  .passthrough();
-const GroupStateCommand = z.enum([
-  "unpair",
-  "pair",
-  "set_white",
-  "night_mode",
-  "level_up",
-  "level_down",
-  "temperature_up",
-  "temperature_down",
-  "next_mode",
-  "previous_mode",
-  "mode_speed_down",
-  "mode_speed_up",
-  "toggle",
-]);
-const TransitionField = z.enum([
-  "hue",
-  "saturation",
-  "brightness",
-  "level",
-  "kelvin",
-  "color_temp",
-  "color",
-  "status",
-]);
-const TransitionValue = z.union([z.number(), z.string()]);
-const TransitionArgs = z
-  .object({
-    field:
-      TransitionField.describe(`If transitioning 'status': * If transitioning to 'OFF', will fade to 0 brightness and then turn off. * If transitioning to 'ON', will turn on, set brightness to 0, and fade to brightness 100.
-`),
-    start_value: TransitionValue.describe("Either an int value or a color"),
-    end_value: TransitionValue.describe("Either an int value or a color"),
-    duration: z
-      .number()
-      .describe("Duration of transition, measured in seconds"),
-    period: z
-      .number()
-      .int()
-      .describe(
-        "Length of time between updates in a transition, measured in milliseconds"
-      ),
-  })
-  .partial()
-  .passthrough();
-const GroupStateCommands = z
-  .object({
-    command: z.union([
-      GroupStateCommand,
-      z
-        .object({ command: z.literal("transition"), args: TransitionArgs })
-        .partial()
-        .passthrough(),
-    ]),
-    commands: z.array(GroupStateCommand),
-  })
-  .partial()
-  .passthrough();
 const putGatewaysDeviceIdRemoteTypeGroupId_Body =
   GroupState.and(GroupStateCommands);
 const postRaw_commandsRemoteType_Body = z
@@ -534,15 +548,6 @@ const postRaw_commandsRemoteType_Body = z
       .describe("Number of repeated packets to send"),
   })
   .partial()
-  .passthrough();
-const BulbId = z
-  .object({
-    device_id: z.number().int().gte(0).lte(65536),
-    group_id: z.number().int().gte(0).lte(8),
-    device_type: RemoteType.describe(
-      "Type of remote to read a packet from.  If unspecified, will read packets from all remote types."
-    ),
-  })
   .passthrough();
 const TransitionData = TransitionArgs.and(
   z
@@ -597,6 +602,14 @@ export const schemas = {
   ColorMode,
   NormalizedGroupState,
   GatewayListItem,
+  BulbId,
+  GroupStateCommand,
+  TransitionField,
+  TransitionValue,
+  TransitionArgs,
+  GroupStateCommands,
+  GroupState,
+  UpdateBatch,
   About,
   BooleanResponseWithMessage,
   postSystem_Body,
@@ -606,15 +619,8 @@ export const schemas = {
   Settings,
   ReadPacket,
   device_id,
-  GroupState,
-  GroupStateCommand,
-  TransitionField,
-  TransitionValue,
-  TransitionArgs,
-  GroupStateCommands,
   putGatewaysDeviceIdRemoteTypeGroupId_Body,
   postRaw_commandsRemoteType_Body,
-  BulbId,
   TransitionData,
   postTransitions_Body,
   PacketMessage,
@@ -805,6 +811,41 @@ const endpoints = makeApi([
     alias: "getGateways",
     requestFormat: "json",
     response: z.array(GatewayListItem),
+  },
+  {
+    method: "put",
+    path: "/gateways",
+    alias: "putGateways",
+    description: `Update a batch of gateways with the provided parameters.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: z.array(UpdateBatch),
+      },
+      {
+        name: "blockOnQueue",
+        type: "Query",
+        schema: z
+          .boolean()
+          .describe(
+            "If true, response will block on update packets being sent before returning"
+          )
+          .optional(),
+      },
+      {
+        name: "fmt",
+        type: "Query",
+        schema: z
+          .literal("normalized")
+          .describe(
+            "If set to `normalized`, the response will be in normalized format."
+          )
+          .optional(),
+      },
+    ],
+    response: BooleanResponse,
   },
   {
     method: "get",

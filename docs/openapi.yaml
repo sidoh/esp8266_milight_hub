@@ -147,6 +147,26 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/GatewayListItem'
+    put:
+      tags:
+        - Device Control
+      summary: Update a batch of gateways
+      description:
+        Update a batch of gateways with the provided parameters.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/UpdateBatch'
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BooleanResponse'
 
   /aliases.bin:
     get:
@@ -363,7 +383,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ReadPacket'
-
   /gateways/{device-id}/{remote-type}/{group-id}:
     parameters:
       - $ref: '#/components/parameters/DeviceId'
@@ -1357,7 +1376,18 @@ components:
           description: |
             Default number of milliseconds between transition packets.  Set this value lower for more granular transitions, or higher if
             you are having performance issues during transitions.
-
+    UpdateBatch:
+      type: object
+      properties:
+        gateways:
+          type: array
+          items:
+            $ref: '#/components/schemas/BulbId'
+        update:
+          type: object
+          anyOf:
+            - $ref: '#/components/schemas/GroupStateCommands'
+            - $ref: '#/components/schemas/GroupState'
     BooleanResponse:
       type: object
       required:

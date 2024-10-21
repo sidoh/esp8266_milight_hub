@@ -89,6 +89,7 @@ protected:
   void handleGetGroup(RequestContext& request);
   void handleGetGroupAlias(RequestContext& request);
   void _handleGetGroup(bool allowAsync, BulbId bulbId, RequestContext& request);
+  void handleBatchUpdateGroups(RequestContext& request);
 
   void handleDeleteGroup(RequestContext& request);
   void handleDeleteGroupAlias(RequestContext& request);

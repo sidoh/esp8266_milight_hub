@@ -408,6 +408,41 @@ RSpec.describe 'REST Server' do
     end
   end
 
+  context 'PUT /gateways: batch update' do
+    before(:all) do
+      @id1 = {
+        id: @client.generate_id,
+        type: 'rgb_cct',
+        group_id: 1
+      }
+      @id2 = {
+        id: @client.generate_id,
+        type: 'rgb_cct',
+        group_id: 1
+      }
+      @client.delete_state(@id1)
+      @client.delete_state(@id2)
+    end
+
+    it 'should update multiple gateways' do
+      result = @client.put('/gateways', [{
+        gateways: [
+          {device_id: @id1[:id], group_id: @id1[:group_id], device_type: @id1[:type]},
+          {device_id: @id2[:id], group_id: @id2[:group_id], device_type: @id2[:type]}
+        ],
+        update: {status: 'ON'}
+      }])
+
+      expect(result['success']).to be_truthy
+      
+      id1_state = @client.get_state(@id1)
+      id2_state = @client.get_state(@id2)
+
+      expect(id1_state['status']).to eq('ON')
+      expect(id2_state['status']).to eq('ON')
+    end
+  end
+
   context 'list gateways' do
     before(:all) do
       @id1 = {

@@ -141,11 +141,43 @@ export function LightList() {
     });
   };
 
+  const handleToggleAll = () => {
+    // Determine if any light is currently on
+    const anyLightOn = lightStates.lights.some(light => light.state.state === "ON");
+
+    // Prepare the update payload
+    const updatePayload = {
+      gateways: lightStates.lights.map(light => light.device),
+      update: { state: anyLightOn ? "OFF" : "ON" }
+    };
+
+    // Send the update to toggle all lights
+    api.putGateways([updatePayload]).catch(error => {
+      toast.toast({
+        title: "Error toggling all lights",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    });
+  };
+
   return (
     <div className="flex items-center justify-center mt-10">
       <Card className="w-96">
         <CardHeader>
-          <CardTitle className="text-lg font-medium">Lights</CardTitle>
+          <CardTitle>
+            <div className="flex items-center">
+              <div className="text-lg font-medium flex-grow">Lights</div>
+              <Switch
+                checked={lightStates.lights.some(light => light.state.state === "ON")}
+              onClick={(e) => {
+                e.stopPropagation();
+              }}
+              onCheckedChange={handleToggleAll}
+                aria-label="Toggle all lights"
+              />
+            </div>
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {lightStates.isLoading ? (
