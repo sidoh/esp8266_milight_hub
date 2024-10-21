@@ -1,0 +1,133 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MiLight Hub</title>
+<link href="data:image/x-icon;base64,AAABAAEAEBAAAAEACABoBQAAFgAAACgAAAAQAAAAIAAAAAEACAAAAAAAAAEAAAAAAAAAAAAAAAEAAAAAAAAAAAAA/38NABD+CwD/jQsA9pUOABRu/wD/HQwA+gPrAP4MbAAZ8f8ACxb9AP4GkwCW/AoADYj+AP59CQD7FAkAC//nAJYK/QAQ/w4Acgv/AP71CwCSDP8A+AkYAP7rBAAN/+0A/xEcAP1rCwAM/okADf+HAI/7CgAL/5sADP95AA0U/wD4/gsADXr+ABAO/gDlC/8A+v0NAA3/EwB4Ef8A8wr7AP0IeAAN7P4Abf8LAAuJ/wCVDv8A+hcGACH+DgBz/wsA+g7/ABT+ZQAMCv0Aagn/AJT/DQD+EPsADP7sAOf/DAD/Dx0A/g2AAB4N/gB0/gwADZz/ABLu/wAM/BYA+wqMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAkYAAAAAAAAAAAAAAUsAAA+NwAAGzIAAAAAAAAAIj0AKhAAHh8AAAAAAAoAAAANAAAAABwAAAA/AAAzIAAAAAAAAAAAAAAmAgAAADsjAAAAAAAAAAASLwAAAAAAAAAAAAAAAAAAAAAAABMnNAAAAAAAAAAAAAArMDwVLREAAAAAAAAAAAAADDUdAAAAAAAAAAAAAAAAAAAAAAAAJDEAAAAAAAAAACU4AAAAKDYAAAAAAAAAAAAAFCEAAAcAAAA6AAAAAAEAAAAXAAAAAABACAAWLgAaAwAAAAAAAAALKQAAOQYAAA4EAAAAAAAAAAAAABkPAAAAAAAAAP5/AADmZwAA8k8AALvdAACf+QAAz/MAAP//AAAf+AAAH/gAAP//AADP8wAAn/kAALvdAADyTwAA5mcAAP5/AAA=" rel="icon" type="image/x-icon" />
+<style>
+  #loading {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 24px;
+    font-family: Arial, sans-serif;
+  }
+</style>
+<script>(function () {
+  const cdnBase = "https://cdn.jsdelivr.net/gh/sidoh/esp8266_milight_hub@web2/web2/dist/versions/1.0.3/";
+  const files = [
+    {
+      type: "stylesheet",
+      cdnPath: cdnBase + "bundle.css",
+      localPath: "dist/bundle.ce967bcb.css",
+      size: parseInt("8351", 10),
+    },
+    {
+      type: "script",
+      cdnPath: cdnBase + "bundle.js",
+      localPath: "dist/bundle.7311a119.js",
+      size: parseInt("219635", 10),
+    },
+  ];
+
+  function createStylesheetLink(href) {
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = href;
+    return link;
+  }
+
+  function createScript(src) {
+    const script = document.createElement("script");
+    script.src = src;
+    script.defer = true;
+    return script;
+  }
+
+  function tryLoadUrl(url, size, retryCount = 0, maxRetries = 5) {
+    return fetch(url)
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Network response was not ok");
+        }
+        return Promise.resolve(response);
+      })
+      .catch((error) => {
+        if (retryCount < maxRetries) {
+          console.warn(`Retrying ${url} (${retryCount + 1}/${maxRetries})`);
+          return tryLoadUrl(url, size, retryCount + 1, maxRetries);
+        } else {
+          throw error;
+        }
+      });
+  }
+
+  function tryLoadFile(file) {
+    const isDevelopment = "production" === "development";
+    if (isDevelopment) {
+      return tryLoadUrl(file.localPath, file.size, 0, 0);
+    } else {
+      return tryLoadUrl(file.cdnPath, file.size, 0, 0).catch(() =>
+        tryLoadUrl(file.localPath, file.size, 0, 5)
+      );
+    }
+  }
+
+  function loadPage() {
+    let currentFileIndex = 0;
+
+    function loadNextFile() {
+      if (currentFileIndex >= files.length) {
+        document.getElementById("loading").style.display = "none";
+        return;
+      }
+
+      const file = files[currentFileIndex];
+
+      tryLoadFile(file)
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error("Failed to load file");
+          }
+          return response.blob();
+        })
+        .then((blob) => {
+          const url = URL.createObjectURL(blob);
+          let element;
+
+          if (file.type === "stylesheet") {
+            element = createStylesheetLink(url);
+          } else if (file.type === "script") {
+            element = createScript(url);
+          }
+
+          document.head.appendChild(element);
+          currentFileIndex++;
+          loadNextFile();
+        })
+        .catch((error) => {
+          console.error(`Failed to load file: ${file.cdnPath}`, error);
+          currentFileIndex++;
+          loadNextFile();
+        });
+    }
+
+    // Start loading files
+    loadNextFile();
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    loadPage();
+  });
+})();
+</script>
+</head>
+<body class="dark">
+<div id="page">
+<div id="loading">Loading...</div>
+</div>
+</body>
+</html>
