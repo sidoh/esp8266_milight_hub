@@ -1441,6 +1441,15 @@ components:
             dropped_packets:
               type: integer
               description: Number of packets that have been dropped since last reboot
+        mqtt:
+          type: object
+          properties:
+            configured:
+              type: boolean
+            connected:
+              type: boolean
+            status:
+              type: string
     ReadPacket:
       type: object
       properties:

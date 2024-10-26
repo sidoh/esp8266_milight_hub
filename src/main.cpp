@@ -342,6 +342,16 @@ void wifiExtraSettingsChange() {
   ESP.restart();
 }
 
+void aboutHandler(JsonDocument& json) {
+  JsonObject mqtt = json.createNestedObject(FPSTR("mqtt"));
+  mqtt[FPSTR("configured")] = (mqttClient != nullptr);
+
+  if (mqttClient) {
+    mqtt[FPSTR("connected")] = mqttClient->isConnected();
+    mqtt[FPSTR("status")] = mqttClient->getConnectionStatusString();
+  }
+}
+
 // Called when a group is deleted via the REST API.  Will publish an empty message to
 // the MQTT topic to delete retained state
 void onGroupDeleted(const BulbId& id) {
@@ -376,6 +386,7 @@ void postConnectSetup() {
   httpServer = new MiLightHttpServer(settings, milightClient, stateStore, packetSender, radios, transitions);
   httpServer->onSettingsSaved(applySettings);
   httpServer->onGroupDeleted(onGroupDeleted);
+  httpServer->onAbout(aboutHandler);
   httpServer->on("/description.xml", HTTP_GET, []() { SSDP.schema(httpServer->client()); });
   httpServer->begin();
 

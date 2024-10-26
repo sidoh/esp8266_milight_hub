@@ -15,6 +15,7 @@
 typedef std::function<void(void)> SettingsSavedHandler;
 typedef std::function<void(const BulbId& id)> GroupDeletedHandler;
 typedef std::function<void(void)> THandlerFunction;
+typedef std::function<void(JsonDocument& response)> AboutHandler;
 
 using RichHttpConfig = RichHttp::Generics::Configs::EspressifBuiltin;
 using RequestContext = RichHttpConfig::RequestContextType;
@@ -58,6 +59,7 @@ public:
   void handleClient();
   void onSettingsSaved(SettingsSavedHandler handler);
   void onGroupDeleted(GroupDeletedHandler handler);
+  void onAbout(AboutHandler handler);
   void on(const char* path, HTTPMethod method, THandlerFunction handler);
   void handlePacketSent(uint8_t* packet, const MiLightRemoteConfig& config, const BulbId& bulbId, const JsonObject& result);
   WiFiClient client();
@@ -131,6 +133,8 @@ protected:
   PacketSender*& packetSender;
   RadioSwitchboard*& radios;
   TransitionController& transitions;
+  AboutHandler aboutHandler;
+
 
 };
 

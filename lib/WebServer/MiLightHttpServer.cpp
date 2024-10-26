@@ -143,6 +143,10 @@ void MiLightHttpServer::begin() {
   server.begin();
 }
 
+void MiLightHttpServer::onAbout(AboutHandler handler) {
+  this->aboutHandler = handler;
+}
+
 void MiLightHttpServer::handleClient() {
   server.handleClient();
   wsServer.loop();
@@ -215,6 +219,10 @@ void MiLightHttpServer::onGroupDeleted(GroupDeletedHandler handler) {
 
 void MiLightHttpServer::handleAbout(RequestContext& request) {
   AboutHelper::generateAboutObject(request.response.json);
+
+  if (this->aboutHandler) {
+    this->aboutHandler(request.response.json);
+  }
 
   JsonObject queueStats = request.response.json.createNestedObject("queue_stats");
   queueStats[F("length")] = packetSender->queueLength();
