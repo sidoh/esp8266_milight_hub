@@ -3,19 +3,15 @@ import { z } from "zod";
 import { api, schemas } from "@/api";
 import { reducer } from "@/components/light/state";
 
-// Define the LightState type
 type LightState = z.infer<typeof schemas.GatewayListItem>;
 
-// Define the context type
 interface LightContextType {
   lightStates: { lights: LightState[]; isLoading: boolean };
   dispatch: React.Dispatch<any>;
 }
 
-// Create the context
 const LightContext = createContext<LightContextType | null>(null);
 
-// Implement the provider
 export const LightProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [lightStates, dispatch] = useReducer(reducer, {
     lights: [],
@@ -37,7 +33,6 @@ export const LightProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   );
 };
 
-// Create a custom hook to use the LightContext
 export const useLightState = () => {
   const context = useContext(LightContext);
   if (!context) {

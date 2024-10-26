@@ -8,6 +8,7 @@ import React, {
 } from "react";
 import { z } from "zod";
 import { api, schemas } from "@/api";
+import { useLightState } from "./light-state";
 
 type Settings = z.infer<typeof schemas.Settings>;
 type About = z.infer<typeof schemas.About>;
@@ -29,6 +30,7 @@ const SettingsContext = createContext<SettingsContextType | null>(null);
 export const SettingsProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
+  const { lightStates } = useLightState();
   const [settings, setSettings] = useState<Settings | null>(null);
   const [about, setAbout] = useState<About | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -56,7 +58,9 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({
       : "light";
 
     setTheme(initialTheme as "light" | "dark");
+  }, []);
 
+  useEffect(() => {
     const fetchData = async () => {
       const [settings, about] = await Promise.all([
         api.getSettings(),
@@ -68,8 +72,11 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({
       setIsLoadingAbout(false);
     };
 
-    fetchData();
-  }, []);
+    // Force serial fetching of /gateways => /settings => /about
+    if (!lightStates.isLoading && isLoading) {
+      fetchData();
+    }
+  }, [lightStates.isLoading, isLoading]);
 
   const updateSettings = (newSettings: Partial<Settings>) => {
     const updatedSettings = { ...settings, ...newSettings };
