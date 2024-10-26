@@ -5,14 +5,14 @@ import { FieldSection, FieldSections } from "./form-components";
 export const NetworkSettings: React.FC<NavChildProps<"network">> = () => (
   <FieldSections>
     <FieldSection
-      title="Security"
+      title="🔒 Security"
       fields={["admin_username", "admin_password"]}
       fieldTypes={{
         admin_password: "password",
       }}
     />
     <FieldSection
-      title="WiFi"
+      title="📶 WiFi"
       fields={[
         "hostname",
         "wifi_static_ip",

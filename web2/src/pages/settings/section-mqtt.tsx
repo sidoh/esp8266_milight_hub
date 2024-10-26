@@ -1,7 +1,7 @@
 import * as React from "react";
 import { NavChildProps } from "@/components/ui/sidebar-pill-nav";
 import { FieldSection, FieldSections } from "./form-components";
-import { FieldValues, useFormContext } from "react-hook-form";
+import { FieldValues, useFormContext, useWatch } from "react-hook-form";
 import { useState, useEffect } from "react";
 import {
   FormField,
@@ -13,6 +13,11 @@ import {
 import SimpleSelect from "@/components/ui/select-box";
 import { schemas } from "@/api";
 import { z } from "zod";
+import { useSettings } from "@/lib/settings";
+import { Button } from "@/components/ui/button";
+import { CheckCircle, XCircle } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Spinner } from "@/components/ui/spinner";
 
 type Settings = z.infer<typeof schemas.Settings>;
 type SettingsKey = keyof typeof schemas.Settings.shape;
@@ -135,15 +140,73 @@ const TopicFieldsSelector: React.FC<{}> = ({}) => {
   );
 };
 
-export const MQTTSettings: React.FC<NavChildProps<"mqtt">> = () => (
-  <FieldSections>
+export const MQTTConnectionSection: React.FC<{}> = () => {
+  const { about, reloadAbout, isLoadingAbout } = useSettings();
+  const [mqttServer, mqttUsername, mqttPassword] = useWatch({
+    name: ["mqtt_server", "mqtt_username", "mqtt_password"],
+  });
+  const [hasChanged, setHasChanged] = useState(false);
+
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    setHasChanged(true);
+
+    const debouncedReload = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        if (mqttServer) {
+          reloadAbout();
+          setHasChanged(false);
+        }
+      }, 2000);
+    };
+
+    debouncedReload();
+
+    return () => clearTimeout(timeoutId);
+  }, [mqttServer, mqttUsername, mqttPassword]);
+
+  const mqttStatus = about?.mqtt?.status ?? "Unknown";
+  const isConnected = about?.mqtt?.connected;
+  const isLoading = isLoadingAbout || hasChanged;
+
+  return (
     <FieldSection
       title="MQTT Connection"
       fields={["mqtt_server", "mqtt_username", "mqtt_password"]}
       fieldTypes={{
         mqtt_password: "password",
       }}
-    />
+    >
+      {about?.mqtt?.configured && (
+        <div className="mt-4 flex items-center">
+          <span className="font-medium mr-2">MQTT Status:</span>{" "}
+          {isLoading ? (
+            <div className="flex items-center">
+              <Spinner className="mr-2" />
+              <Skeleton className="h-6 w-20 border-gray-400" />
+            </div>
+          ) : (
+            <div className="flex items-center">
+              <span className="mx-2">
+                {isConnected ? (
+                  <CheckCircle size={16} className="text-green-500" />
+                ) : (
+                  <XCircle size={16} className="text-red-500" />
+                )}
+              </span>
+              <code>{mqttStatus}</code>
+            </div>
+          )}
+        </div>
+      )}
+    </FieldSection>
+  );
+};
+
+export const MQTTSettings: React.FC<NavChildProps<"mqtt">> = () => (
+  <FieldSections>
+    <MQTTConnectionSection />
     <FieldSection title="MQTT Topics" fields={[]}>
       <TopicFieldsSelector />
     </FieldSection>

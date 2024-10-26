@@ -5,7 +5,7 @@ import { FieldSection, FieldSections } from "./form-components";
 export const RadioSettings: React.FC<NavChildProps<"radio">> = () => (
   <FieldSections>
     <FieldSection
-      title="Device"
+      title="📻 Device"
       fields={[
         "radio_interface_type",
         "rf24_power_level",
@@ -14,11 +14,11 @@ export const RadioSettings: React.FC<NavChildProps<"radio">> = () => (
       ]}
     />
     <FieldSection
-      title="Repeats"
+      title="🔁 Repeats"
       fields={["packet_repeats", "packet_repeats_per_loop", "listen_repeats"]}
     />
     <FieldSection
-      title="Throttling"
+      title="⏱️ Throttling"
       fields={[
         "packet_repeat_throttle_sensitivity",
         "packet_repeat_throttle_threshold",

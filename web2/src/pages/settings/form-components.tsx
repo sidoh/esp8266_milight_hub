@@ -38,7 +38,8 @@ export type SettingsKey = keyof typeof schemas.Settings.shape;
 export const DynamicFormControl: React.FC<{
   field: keyof typeof schemas.Settings.shape;
   fieldType?: "text" | "number" | "password";
-}> = ({ field, fieldType: fieldTypeOverride }) => {
+  onChange?: (field: SettingsKey, value: any) => void;
+}> = ({ field, fieldType: fieldTypeOverride, onChange }) => {
   const form = useFormContext<Settings>();
   const fieldSchema = schemas.Settings.shape[field];
   const fieldType = extractSchemaType(fieldSchema);
@@ -62,15 +63,18 @@ export const DynamicFormControl: React.FC<{
             type={inputType}
             {...formField}
             value={formField.value as string | number | undefined}
-            onChange={(e) =>
-              inputType === "number"
-                ? formField.onChange(
-                    Number.isNaN(e.target.valueAsNumber)
-                      ? e.target.value
-                      : e.target.valueAsNumber
-                  )
-                : formField.onChange(e.target.value)
-            }
+            onChange={(e) => {
+              onChange?.(field, e.target.value);
+              if (inputType === "number") {
+                formField.onChange(
+                  Number.isNaN(e.target.valueAsNumber)
+                    ? e.target.value
+                    : e.target.valueAsNumber
+                );
+              } else {
+                formField.onChange(e.target.value);
+              }
+            }}
           />
         )}
       />
@@ -228,7 +232,8 @@ export const FormFields: React.FC<{
   fields: SettingsKey[];
   fieldNames?: Partial<Record<SettingsKey, string>>;
   fieldTypes?: Partial<Record<SettingsKey, "text" | "number" | "password">>;
-}> = ({ fields, fieldNames, fieldTypes }) => {
+  onChange?: (field: SettingsKey, value: any) => void;
+}> = ({ fields, fieldNames, fieldTypes, onChange }) => {
   const form = useFormContext<Settings>();
 
   return (
@@ -247,6 +252,7 @@ export const FormFields: React.FC<{
                 <DynamicFormControl
                   field={field}
                   fieldType={fieldTypes?.[field]}
+                  onChange={onChange}
                 />
               </StandardFormField>
             )}
@@ -264,7 +270,16 @@ export const FieldSection: React.FC<{
   fieldNames?: Partial<Record<SettingsKey, string>>;
   fieldTypes?: Partial<Record<SettingsKey, "text" | "number" | "password">>;
   children?: React.ReactNode;
-}> = ({ title, description, fields, fieldNames, fieldTypes, children }) => (
+  onChange?: (field: SettingsKey, value: any) => void;
+}> = ({
+  title,
+  description,
+  fields,
+  fieldNames,
+  fieldTypes,
+  children,
+  onChange,
+}) => (
   <div>
     {title && <h2 className="text-2xl font-bold">{title}</h2>}
     {description && <p className="text-sm text-gray-500">{description}</p>}
@@ -273,6 +288,7 @@ export const FieldSection: React.FC<{
       fields={fields}
       fieldNames={fieldNames}
       fieldTypes={fieldTypes}
+      onChange={onChange}
     />
     {children}
   </div>

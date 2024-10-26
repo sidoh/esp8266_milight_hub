@@ -10,7 +10,7 @@ import {
 export const HardwareSettings: React.FC<NavChildProps<"hardware">> = () => (
   <FieldSections>
     <FieldSection
-      title="Radio Pins"
+      title="⚙️ Radio Pins"
       fields={["ce_pin", "csn_pin", "reset_pin"]}
       fieldNames={{
         ce_pin: "Chip Enable (CE) Pin",
@@ -19,7 +19,7 @@ export const HardwareSettings: React.FC<NavChildProps<"hardware">> = () => (
       }}
     />
     <FieldSection
-      title="LED"
+      title="💡 LED"
       fields={[
         "led_pin",
         "led_mode_operating",

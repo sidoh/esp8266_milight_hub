@@ -206,11 +206,11 @@ const GroupStateFieldsSelector: React.FC<{}> = ({}) => {
 
 export const StateSettings: React.FC<NavChildProps<"state">> = () => (
   <FieldSections>
-    <FieldSection title="State Fields" fields={[]}>
+    <FieldSection title="🔧 State Fields" fields={[]}>
       <GroupStateFieldsSelector />
     </FieldSection>
     <FieldSection
-      title="Miscellaneous"
+      title="🔍 Miscellaneous"
       fields={[
         "enable_automatic_mode_switching",
         "default_transition_period",

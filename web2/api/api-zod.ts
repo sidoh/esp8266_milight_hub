@@ -243,6 +243,14 @@ const About = z
       })
       .partial()
       .passthrough(),
+    mqtt: z
+      .object({
+        configured: z.boolean(),
+        connected: z.boolean(),
+        status: z.string(),
+      })
+      .partial()
+      .passthrough(),
   })
   .partial()
   .passthrough();
@@ -823,26 +831,6 @@ const endpoints = makeApi([
         name: "body",
         type: "Body",
         schema: z.array(UpdateBatch),
-      },
-      {
-        name: "blockOnQueue",
-        type: "Query",
-        schema: z
-          .boolean()
-          .describe(
-            "If true, response will block on update packets being sent before returning"
-          )
-          .optional(),
-      },
-      {
-        name: "fmt",
-        type: "Query",
-        schema: z
-          .literal("normalized")
-          .describe(
-            "If set to `normalized`, the response will be in normalized format."
-          )
-          .optional(),
       },
     ],
     response: BooleanResponse,

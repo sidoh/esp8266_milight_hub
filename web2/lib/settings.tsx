@@ -1,36 +1,74 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+  useCallback,
+} from "react";
 import { z } from "zod";
 import { api, schemas } from "@/api";
 
 type Settings = z.infer<typeof schemas.Settings>;
+type About = z.infer<typeof schemas.About>;
 
 interface SettingsContextType {
-  settings: Settings | null;
   isLoading: boolean;
+  settings: Settings | null;
+
+  about: About | null;
+  isLoadingAbout: boolean;
   updateSettings: (newSettings: Partial<Settings>) => void;
   theme: "light" | "dark";
   toggleTheme: () => void;
+  reloadAbout: () => void;
 }
 
 const SettingsContext = createContext<SettingsContextType | null>(null);
 
-export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const SettingsProvider: React.FC<{ children: ReactNode }> = ({
+  children,
+}) => {
   const [settings, setSettings] = useState<Settings | null>(null);
+  const [about, setAbout] = useState<About | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingAbout, setIsLoadingAbout] = useState(true);
   const [theme, setTheme] = useState<"light" | "dark">("light");
 
-  useEffect(() => {
-    api.getSettings().then((fetchedSettings) => {
-      setSettings(fetchedSettings);
-      setIsLoading(false);
-    });
+  const reloadAbout = useCallback(() => {
+    setIsLoadingAbout(true);
+    api
+      .getAbout()
+      .then(setAbout)
+      .finally(() => setIsLoadingAbout(false));
+  }, []);
 
+  useEffect(() => {
     // Initialize theme from localStorage or system preference
     const savedTheme = localStorage.getItem("theme");
-    const prefersDarkMode = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    const initialTheme = savedTheme ? savedTheme : (prefersDarkMode ? "dark" : "light");
+    const prefersDarkMode = window.matchMedia(
+      "(prefers-color-scheme: dark)"
+    ).matches;
+    const initialTheme = savedTheme
+      ? savedTheme
+      : prefersDarkMode
+      ? "dark"
+      : "light";
 
     setTheme(initialTheme as "light" | "dark");
+
+    const fetchData = async () => {
+      const [settings, about] = await Promise.all([
+        api.getSettings(),
+        api.getAbout(),
+      ]);
+      setSettings(settings);
+      setAbout(about);
+      setIsLoading(false);
+      setIsLoadingAbout(false);
+    };
+
+    fetchData();
   }, []);
 
   const updateSettings = (newSettings: Partial<Settings>) => {
@@ -54,7 +92,18 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
   }, [theme]);
 
   return (
-    <SettingsContext.Provider value={{ settings, updateSettings, isLoading, theme, toggleTheme }}>
+    <SettingsContext.Provider
+      value={{
+        settings,
+        about,
+        updateSettings,
+        isLoading,
+        isLoadingAbout,
+        theme,
+        toggleTheme,
+        reloadAbout,
+      }}
+    >
       {children}
     </SettingsContext.Provider>
   );

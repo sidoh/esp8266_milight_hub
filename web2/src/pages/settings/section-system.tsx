@@ -9,6 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useSettings } from "@/lib/settings";
 
 type SystemInfo = Awaited<ReturnType<typeof api.getAbout>>;
 
@@ -83,8 +84,6 @@ const BackupsSection: React.FC = () => {
     const file = event.target.files?.[0];
     setBackupFile(file || null);
   };
-
-  console.log(backupFile);
 
   const handleUploadBackup = async () => {
     setBusy(true);
@@ -167,10 +166,10 @@ const BackupsSection: React.FC = () => {
   );
 };
 
-const FirmwareSection: React.FC<{ currentVersion: string | null, variant: string | null }> = ({
-  currentVersion,
-  variant,
-}) => {
+const FirmwareSection: React.FC<{
+  currentVersion: string | null;
+  variant: string | null;
+}> = ({ currentVersion, variant }) => {
   const { toast } = useToast();
   const [firmwareFile, setFirmwareFile] = React.useState<File | null>(null);
   const [isChecking, setIsChecking] = React.useState(false);
@@ -182,7 +181,7 @@ const FirmwareSection: React.FC<{ currentVersion: string | null, variant: string
     download_links: {
       name: string;
       url: string;
-    }[],
+    }[];
     release_date: string;
   } | null>(null);
 
@@ -255,10 +254,12 @@ const FirmwareSection: React.FC<{ currentVersion: string | null, variant: string
 
   const getDownloadLink = React.useMemo(() => {
     if (!latestVersionInfo || !variant) return null;
-    return latestVersionInfo.download_links.find(link => link.name.toLowerCase().includes(variant.toLowerCase()));
+    return latestVersionInfo.download_links.find((link) =>
+      link.name.toLowerCase().includes(variant.toLowerCase())
+    );
   }, [latestVersionInfo, variant]);
 
-  console.log(variant, latestVersionInfo)
+  console.log(variant, latestVersionInfo);
 
   return (
     <div className="space-y-4">
@@ -300,7 +301,11 @@ const FirmwareSection: React.FC<{ currentVersion: string | null, variant: string
         <div className="space-y-2">
           <h3 className="text-lg font-medium">Check for Updates</h3>
           <div className="flex items-center space-x-2">
-            <Button onClick={checkLatestVersion} disabled={isChecking} variant="secondary">
+            <Button
+              onClick={checkLatestVersion}
+              disabled={isChecking}
+              variant="secondary"
+            >
               {isChecking ? "Checking..." : "Check Latest Version"}
             </Button>
           </div>
@@ -341,10 +346,7 @@ const FirmwareSection: React.FC<{ currentVersion: string | null, variant: string
             </Button>
             {getDownloadLink && (
               <Button asChild variant="secondary">
-                <a
-                  href={getDownloadLink.url}
-                  download
-                >
+                <a href={getDownloadLink.url} download>
                   Download Firmware
                 </a>
               </Button>
@@ -386,16 +388,20 @@ const SystemInfoSection: React.FC<{
         <strong className="w-40">Variant:</strong> {systemInfo?.variant}
       </div>
       <div className="flex">
-        <strong className="w-40">Free Heap:</strong> {systemInfo?.free_heap} bytes
+        <strong className="w-40">Free Heap:</strong> {systemInfo?.free_heap}{" "}
+        bytes
       </div>
       <div className="flex">
-        <strong className="w-40">Arduino Version:</strong> {systemInfo?.arduino_version}
+        <strong className="w-40">Arduino Version:</strong>{" "}
+        {systemInfo?.arduino_version}
       </div>
       <div className="flex">
-        <strong className="w-40">Last Reset Reason:</strong> {systemInfo?.reset_reason}
+        <strong className="w-40">Last Reset Reason:</strong>{" "}
+        {systemInfo?.reset_reason}
       </div>
       <div className="flex">
-        <strong className="w-40">Dropped Packets:</strong> {systemInfo?.queue_stats?.dropped_packets}
+        <strong className="w-40">Dropped Packets:</strong>{" "}
+        {systemInfo?.queue_stats?.dropped_packets}
       </div>
     </div>
   ) : (
@@ -404,42 +410,23 @@ const SystemInfoSection: React.FC<{
 };
 
 export const SystemSettings: React.FC<NavChildProps<"system">> = () => {
-  const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const { toast } = useToast();
-
-  useEffect(() => {
-    const fetchSystemInfo = async () => {
-      try {
-        const response = await api.getAbout();
-        setSystemInfo(response);
-      } catch (error) {
-        console.error("Failed to fetch system info:", error);
-        toast({
-          title: "Error fetching system info",
-          description: "Failed to load system information.",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchSystemInfo();
-  }, []);
+  const { about, isLoadingAbout } = useSettings();
 
   return (
     <FieldSections>
-      <FieldSection title="System Information" fields={[]}>
-        <SystemInfoSection systemInfo={systemInfo} isLoading={isLoading} />
+      <FieldSection title="🖥️ System Information" fields={[]}>
+        <SystemInfoSection systemInfo={about} isLoading={isLoadingAbout} />
       </FieldSection>
-      <FieldSection title="Firmware" fields={[]}>
-        <FirmwareSection currentVersion={systemInfo?.version || null} variant={systemInfo?.variant || null} />
+      <FieldSection title="🔧 Firmware" fields={[]}>
+        <FirmwareSection
+          currentVersion={about?.version ?? null}
+          variant={about?.variant ?? null}
+        />
       </FieldSection>
-      <FieldSection title="Backups" fields={[]}>
+      <FieldSection title="💾 Backups" fields={[]}>
         <BackupsSection />
       </FieldSection>
-      <FieldSection title="Reboot" fields={["auto_restart_period"]}>
+      <FieldSection title="🔄 Reboot" fields={["auto_restart_period"]}>
         <ActionSection />
       </FieldSection>
     </FieldSections>
