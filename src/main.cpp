@@ -153,7 +153,7 @@ void onPacketSentHandler(uint8_t* packet, const MiLightRemoteConfig& config) {
     }
   }
 
-  httpServer->handlePacketSent(packet, remoteConfig);
+  httpServer->handlePacketSent(packet, remoteConfig, bulbId, result);
 }
 
 /**
@@ -342,6 +342,16 @@ void wifiExtraSettingsChange() {
   ESP.restart();
 }
 
+void aboutHandler(JsonDocument& json) {
+  JsonObject mqtt = json.createNestedObject(FPSTR("mqtt"));
+  mqtt[FPSTR("configured")] = (mqttClient != nullptr);
+
+  if (mqttClient) {
+    mqtt[FPSTR("connected")] = mqttClient->isConnected();
+    mqtt[FPSTR("status")] = mqttClient->getConnectionStatusString();
+  }
+}
+
 // Called when a group is deleted via the REST API.  Will publish an empty message to
 // the MQTT topic to delete retained state
 void onGroupDeleted(const BulbId& id) {
@@ -376,6 +386,7 @@ void postConnectSetup() {
   httpServer = new MiLightHttpServer(settings, milightClient, stateStore, packetSender, radios, transitions);
   httpServer->onSettingsSaved(applySettings);
   httpServer->onGroupDeleted(onGroupDeleted);
+  httpServer->onAbout(aboutHandler);
   httpServer->on("/description.xml", HTTP_GET, []() { SSDP.schema(httpServer->client()); });
   httpServer->begin();
 
@@ -401,9 +412,16 @@ void setup() {
   String ssid = "ESP" + String(getESPId());
 
   // load up our persistent settings from the file system
-  if (! ProjectFS.begin()) {
-    Serial.println(F("Failed to mount file system"));
-  }
+  // ESP8266 doesn't support the formatOnFail parameter
+  #ifdef ESP8266
+    if (! ProjectFS.begin()) {
+      Serial.println(F("Failed to mount file system"));
+    }
+  #else
+    if (! ProjectFS.begin(true)) {
+      Serial.println(F("Failed to mount file system"));
+    }
+  #endif
 
   Settings::load(settings);
   ESPMH_SETUP_WIFI(settings);

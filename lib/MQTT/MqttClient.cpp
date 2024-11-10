@@ -316,3 +316,15 @@ String MqttClient::generateConnectionStatusMessage(const char* connectionStatus)
     return response;
   }
 }
+
+bool MqttClient::isConnected() {
+  return this->mqttClient.connected();
+}
+
+MqttConnectionStatus MqttClient::getConnectionStatus() {
+  return static_cast<MqttConnectionStatus>(this->mqttClient.state());
+}
+
+const __FlashStringHelper* MqttClient::getConnectionStatusString() {
+  return MQTT_STATUS_STRINGS.at(this->mqttClient.state());
+}

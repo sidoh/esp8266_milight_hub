@@ -8,13 +8,100 @@ This project is a replacement for the wifi gateway.
 
 [This guide](http://blog.christophermullins.com/2017/02/11/milight-wifi-gateway-emulator-on-an-esp8266/) on my blog details setting one of these up.
 
-## Why this is useful
+## Features
 
-1. Both the remote and the WiFi gateway are limited to four groups. This means if you want to control more than four groups of bulbs, you need another remote or another gateway. This project allows you to control 262,144 groups (4*2^16, the limit imposed by the protocol).
-2. This project exposes a nice REST API to control your bulbs.
-3. You can secure the ESP8266 with a username/password, which is more than you can say for the Milight gateway! (The 2.4 GHz protocol is still totally insecure, so this doesn't accomplish much :).
-4. Official hubs connect to remote servers to enable WAN access, and this behavior is not disableable.
-5. This project is capable of passively listening for Milight packets sent from other devices (like remotes). It can publish data from intercepted packets to MQTT. This could, for example, allow the use of Milight remotes while keeping your home automation platform's state in sync. See the MQTT section for more detail.
+* Fully-featured Web UI
+* MQTT support
+* UDP gateway
+* REST API
+* Server-side tracking of device state.
+* Passive listening for intercepted packets from other Milight devices.
+
+## Quick Start
+
+### What you'll need
+
+1. An ESP8266 or ESP32. I used a NodeMCU.
+2. A NRF24L01+ module (~$3 on ebay). Alternatively, you can use a LT8900.
+3. Some way to connect the two (7 female/female dupont cables is probably easiest).
+
+### Wiring Guide
+
+This project technically supports both NRF24L01 and LT8900 radios, but I recommend using an NRF24.  Both modules are SPI devices and should be connected to the standard SPI pins on the ESP8266. See the below diagram for pin connections.
+
+##### NRF24L01+
+
+[This guide](https://www.mysensors.org/build/connect_radio#nrf24l01+-&-esp8266) details how to connect an NRF24 to an ESP8266. By default GPIO 4 for CE and GPIO 15 for CSN are used, but these can be configured later in the Web UI under Settings -> Hardware.
+
+<img src="https://user-images.githubusercontent.com/40266/47967518-67556f00-e05e-11e8-857d-1173a9da955c.png" align="left" width="32%" />
+<img src="https://user-images.githubusercontent.com/40266/47967520-691f3280-e05e-11e8-838a-83706df2edb0.png" align="left" width="22%" />
+
+_Image source: [MySensors.org](https://mysensors.org)_
+
+NodeMCU (Esp8266) | Esp32        | Radio | Color
+--------- |--------------|----| --
+GND | GND          | GND | Black        
+3V3 | 3V3          | VCC | Red    
+D2 (GPIO4) | D4 (GPIO4)   | CE | Orange 
+D8 (GPIO15) | D5 (GPIO5)   | CSN/CS | Yellow 
+D5 (GPIO14) | D18 (GPIO18) | SCK | Green 
+D7 (GPIO13) | D23 (GPIO23) | MOSI | Blue  
+D6 (GPIO12) | D19 (GPIO19) | MISO | Violet 
+
+
+##### LT8900
+
+Connect SPI pins (CE, SCK, MOSI, MISO) to appropriate SPI pins on the ESP8266. With default settings, connect RST to GPIO 0, PKT to GPIO 16, CE to GPIO 4, and CSN to GPIO 15.  Make sure to properly configure these if using non-default pinouts.
+
+### Install firmware
+
+If you have [PlatformIO](http://platformio.org/) set up, you can compile from source and upload with:
+
+```
+platformio run -e d1_mini --target upload
+```
+
+(make sure to substitute `d1_mini` with the board that you're using.)
+
+Alternatively, you can download a pre-compiled firmware image from the [releases](https://github.com/sidoh/esp8266_milight_hub/releases). This can be used with [`esptool.py`](https://github.com/espressif/esptool):
+
+```
+esptool.py write_flash 0x0 <firmware_file.bin>
+```
+
+Make sure you read instructions
+
+### Configure WiFi
+
+This project uses [WiFiManager](https://github.com/tzapu/WiFiManager) to avoid the need to hardcode AP credentials in the firmware.
+
+When the ESP powers on, you should be able to see a network named "ESPXXXXX", with XXXXX being an identifier for your ESP. Connect to this AP and a window should pop up prompting you to enter WiFi credentials.  If your board has a built-in LED (or you wire up an LED), it will [flash to indicate the status](#led-status).
+
+The network password is "**milightHub**".
+
+#### Get IP Address
+
+Both mDNS and SSDP are supported.
+
+* OS X - you should be able to navigate to http://milight-hub.local.
+* Windows - you should see a device called "ESP8266 MiLight Gateway" show up in your network explorer.
+* Linux users can install [avahi](http://www.avahi.org/) (`sudo apt-get install avahi-daemon` on Ubuntu), and should then be able to navigate to http://milight-hub.local.
+
+### Use it!
+
+The default hostname is `milight-hub`. If your network supports local DNS, you can navigate to `http://milight-hub` (you may also want to try `http://milight-hub.local` if your client supports mDNS).
+
+The UI should look like this:
+
+![Web UI](https://github.com/user-attachments/assets/95fc6faa-eb08-48bd-a0ea-caff15bd4857)
+
+Add devices using the "+" button. Use the "Sniffer" tab to intercept packets from existing remotes or milight devices if you wish to spoof their device IDs.
+
+More details on this are [in the wiki](https://github.com/sidoh/esp8266_milight_hub/wiki/Pairing-new-bulbs).
+
+### (Optional) HomeAssistant
+
+Set up HomeAssistant discovery by configuring an MQTT connection with the same broker your HomeAssistant instance is using. If all goes well, lights you create should automatically be discovered by HomeAssistant.
 
 ## Supported remotes
 
@@ -34,94 +121,17 @@ Model #|Name|Compatible Bulbs
 
 Other remotes or bulbs, but have not been tested.
 
-## What you'll need
-
-1. An ESP8266. I used a NodeMCU.
-2. A NRF24L01+ module (~$3 on ebay). Alternatively, you can use a LT8900.
-3. Some way to connect the two (7 female/female dupont cables is probably easiest).
-
-## Installing
-
-#### Connect the NRF24L01+ / LT8900
-
-This project is compatible with both NRF24L01 and LT8900 radios. LT8900 is the same model used in the official MiLight devices. NRF24s are a very common 2.4 GHz radio device, but require software emulation of the LT8900's packet structure. As such, the LT8900 is more performant.
-
-Both modules are SPI devices and should be connected to the standard SPI pins on the ESP8266.
-
-##### NRF24L01+
-
-
-[This guide](https://www.mysensors.org/build/connect_radio#nrf24l01+-&-esp8266) details how to connect an NRF24 to an ESP8266. By default GPIO 4 for CE and GPIO 15 for CSN are used, but these can be configured late in the Web GUI under Settings -> Setup.
-
-<img src="https://user-images.githubusercontent.com/40266/47967518-67556f00-e05e-11e8-857d-1173a9da955c.png" align="left" width="32%" />
-<img src="https://user-images.githubusercontent.com/40266/47967520-691f3280-e05e-11e8-838a-83706df2edb0.png" align="left" width="22%" />
-
-NodeMCU (Esp8266) | Esp32        | Radio | Color
---------- |--------------|----| --
-GND | GND          | GND | Black        
-3V3 | 3V3          | VCC | Red    
-D2 (GPIO4) | D4 (GPIO4)   | CE | Orange 
-D8 (GPIO15) | D5 (GPIO5)   | CSN/CS | Yellow 
-D5 (GPIO14) | D18 (GPIO18) | SCK | Green 
-D7 (GPIO13) | D23 (GPIO23) | MOSI | Blue  
-D6 (GPIO12) | D19 (GPIO19) | MISO | Violet 
-
-_Image source: [MySensors.org](https://mysensors.org)_
-
-
-##### LT8900
-
-Connect SPI pins (CE, SCK, MOSI, MISO) to appropriate SPI pins on the ESP8266. With default settings, connect RST to GPIO 0, PKT to GPIO 16, CE to GPIO 4, and CSN to GPIO 15.  Make sure to properly configure these if using non-default pinouts.
-
-#### Setting up the ESP
-
-The goal here is to flash your ESP with the firmware. It's really easy to do this with [PlatformIO](http://platformio.org/):
-
-```
-export ESP_BOARD=nodemcuv2
-platformio run -e $ESP_BOARD --target upload
-```
-
-Of course make sure to substitute `nodemcuv2` with the board that you're using.
-
-You can find pre-compiled firmware images on the [releases](https://github.com/sidoh/esp8266_milight_hub/releases).
-
-#### Configure WiFi
-
-This project uses [WiFiManager](https://github.com/tzapu/WiFiManager) to avoid the need to hardcode AP credentials in the firmware.
-
-When the ESP powers on, you should be able to see a network named "ESPXXXXX", with XXXXX being an identifier for your ESP. Connect to this AP and a window should pop up prompting you to enter WiFi credentials.  If your board has a built-in LED (or you wire up an LED), it will [flash to indicate the status](#led-status).
-
-The network password is "**milightHub**".
-
-#### Get IP Address
-
-Both mDNS and SSDP are supported.
-
-* OS X - you should be able to navigate to http://milight-hub.local.
-* Windows - you should see a device called "ESP8266 MiLight Gateway" show up in your network explorer.
-* Linux users can install [avahi](http://www.avahi.org/) (`sudo apt-get install avahi-daemon` on Ubuntu), and should then be able to navigate to http://milight-hub.local.
-
-#### Use it!
-
-The HTTP endpoints (shown below) will be fully functional at this point. You should also be able to navigate to `http://<ip_of_esp>`, or `http://milight-hub.local` if your client supports mDNS. The UI should look like this:
-
-![Web UI](https://user-images.githubusercontent.com/589893/61682228-a8151700-acc5-11e9-8b86-1e21efa6cdbe.png)
-
 
 If it does not work as expected see [Troubleshooting](https://github.com/sidoh/esp8266_milight_hub/wiki/Troubleshooting).
-
-#### Pair Bulbs
-
-If you need to pair some bulbs, how to do this is [described in the wiki](https://github.com/sidoh/esp8266_milight_hub/wiki/Pairing-new-bulbs).
 
 ## Device Aliases
 
 You can configure aliases or labels for a given _(Device Type, Device ID, Group ID)_ tuple.  For example, you might want to call the RGB+CCT remote with the ID `0x1111` and the Group ID `1` to be called `living_room`.  Aliases are useful in a couple of different ways:
 
-* **In the UI**: the aliases dropdown shows all previously set aliases.  When one is selected, the corresponding Device ID, Device Type, and Group ID are selected.  This allows you to not need to memorize the ID parameters for each lighting device if you're controlling them through the UI.
+* **In the UI**: These show up as named devices in the UI.
 * **In the REST API**: standard CRUD verbs (`GET`, `PUT`, and `DELETE`) allow you to interact with aliases via the `/gateways/:device_alias` route.
 * **MQTT**: you can configure topics to listen for commands and publish updates/state using aliases rather than IDs.
+* **HomeAssistant**: if you've configured MQTT discovery, aliases that you configure will automatically be discovered by HomeAssistant.
 
 ## REST API
 
@@ -137,90 +147,57 @@ API documentation is generated from the [OpenAPI spec](docs/openapi.yaml) using 
 To configure your ESP to integrate with MQTT, fill out the following settings:
 
 1. `mqtt_server`- IP or hostname should work. Specify a port with standard syntax (e.g., "mymqttbroker.com:1884").
-1. `mqtt_topic_pattern` - you can control arbitrary configurations of device ID, device type, and group ID with this. A good default choice is something like `milight/:device_id/:device_type/:group_id`. More detail is provided below.
-1. (optionally) `mqtt_username`
-1. (optionally) `mqtt_password`
+1. (if necessary) `mqtt_username` and `mqtt_password`
+1. (optional) topic patterns. These come pre-configured with suitable values, but you can customize them if you'd like. These control which topics the device will publish and subscribe to to receive commands and publish updates.
 
-#### More detail on `mqtt_topic_pattern`
+### Topics
 
-`mqtt_topic_pattern` leverages single-level wildcards (documented [here](https://mosquitto.org/man/mqtt-7.html)). For example, specifying `milight/:device_id/:device_type/:group_id` will cause the ESP to subscribe to the topic `milight/+/+/+`. It will then interpret the second, third, and fourth tokens in topics it receives messages on as `:device_id`, `:device_type`, and `:group_id`, respectively.  The following tokens are available:
+There are a few different types of topics used by the light hub. In most cases, the topics are similar to API routes -- they contain the device identifiers in the topic.
 
-1. `:device_id` - Device ID. Can be hexadecimal (e.g. `0x1234`) or decimal (e.g. `4660`).
-1. `:device_type` - Remote type.  `rgbw`, `fut089`, etc.
-1. `:group_id` - Group.  0-4 for most remotes.  The "All" group is group 0.
-1. `:device_alias` - Alias for the given device.  Note that if an alias is not configured, a default token `__unnamed_group` will be substituted instead.
+A pattern of the form:
 
-Messages should be JSON objects using exactly the same schema that the [REST gateway](https://sidoh.github.io/esp8266_milight_hub/branches/latest/#tag/Device-Control/paths/~1gateways~1{device-id}~1{remote-type}~1{group-id}/put) uses for the `/gateways/:device_id/:device_type/:group_id` endpoint.
-
-#### Example:
-
-If `mqtt_topic_pattern` is set to `milight/:device_id/:device_type/:group_id`, you could send the following message to it (the below example uses a ruby MQTT client):
-
-```ruby
-irb(main):001:0> require 'mqtt'
-irb(main):002:0> client = MQTT::Client.new('10.133.8.11',1883)
-irb(main):003:0> client.connect
-irb(main):004:0> client.publish('milight/0x118D/rgb_cct/1', '{"status":"ON","color":{"r":255,"g":200,"b":255},"brightness":100}')
+```
+milight/commands/:device_id/:device_type/:group_id
 ```
 
-This will instruct the ESP to send messages to RGB+CCT bulbs with device ID `0x118D` in group 1 to turn on, set color to RGB(255,200,255), and brightness to 100.
+Will cause the ESP to subscribe to the topic `milight/commands/+/+/+` and interpret the second, third, and fourth tokens as `:device_id`, `:device_type`, and `:group_id`, respectively.
 
-#### Updates
+Likewise, a pattern of the form:
 
-ESPMH is capable of providing two types of updates:
-
-1. Delta: as packets are received, they are translated into the corresponding command (e.g., "set brightness to 50").  The translated command is sent as an update.
-2. State: When an update is received, the corresponding command is applied to known group state, and the whole state for the group is transmitted.
-
-##### Delta updates
-
-To publish data from intercepted packets to an MQTT topic, configure MQTT server settings, and set the `mqtt_update_topic_pattern` to something of your choice. As with `mqtt_topic_pattern`, the tokens `:device_id`, `:device_type`, and `:group_id` will be substituted with the values from the relevant packet.  `:device_id` will always be substituted with the hexadecimal value of the ID.  You can also use `:hex_device_id`, or `:dec_device_id` if you prefer decimal.
-
-The published message is a JSON blob containing the state that was changed.
-
-As an example, if `mqtt_update_topic_pattern` is set to `milight/updates/:hex_device_id/:device_type/:group_id`, and the group 1 on button of a Milight remote is pressed, the following update will be dispatched:
-
-```ruby
-irb(main):005:0> client.subscribe('milight/updates/+/+/+')
-=> 27
-irb(main):006:0> puts client.get.inspect
-["lights/updates/0x1C8E/rgb_cct/1", "{\"status\":\"on\"}"]
+```
+milight/states/:device_id/:device_type/:group_id
 ```
 
-##### Full state updates
+will cause the ESP to publish state updates to the topic (for example) 
 
-For this mode, `mqtt_state_topic_pattern` should be set to something like `milight/states/:hex_device_id/:device_type/:group_id`.  As an example:
-
-```ruby
-irb(main):005:0> client.subscribe('milight/states/+/+/+')
-=> 27
-irb(main):006:0> puts client.get.inspect
-["lights/states/0x1C8E/rgb_cct/1", "{\"state\":\"ON\",\"brightness\":255,\"color_temp\":370,\"bulb_mode\":\"white\"}"]
-irb(main):007:0> puts client.get.inspect
-["lights/states/0x1C8E/rgb_cct/1", "{\"state\":\"ON\",\"brightness\":100,\"color_temp\":370,\"bulb_mode\":\"white\"}"]
+```
+milight/states/0x1234/rgb_cct/1
 ```
 
-**Make sure that `mqtt_topic_pattern`, `mqtt_state_topic_pattern`, and `matt_update_topic_pattern` are all different!**  If they are they same you can put your ESP in a loop where its own updates trigger an infinite command loop.
+Here's a brief description of supported topics:
 
-##### Customize fields
+1. `mqtt_topic_pattern` - controls the topic that the ESP subscribes to for commands. See the above example.
+1. `mqtt_update_topic_pattern` - controls the topic that the ESP publishes delta updates to. These are a fairly direct translation of the raw RF packets submitted by milight control devices. They might look something like `{"state":"ON"}`.
+1. `mqtt_state_topic_pattern` - controls the topic that the ESP publishes full state updates to. These are JSON objects that contain the entirety of the current state for a given device. The hub tracks state internally and applies updates as they come in.
+1. `mqtt_client_status_topic` - nothing fancy for this one! It controls the topic that the ESP publishes client status updates to (in MQTT lingo, this is where birth and LWT messages are sent). 
 
-You can select which fields should be included in state updates by configuring the `group_state_fields` parameter.  Available fields should be mostly self explanatory, but are all documented in the REST API spec under `GroupStateField`.
+### Customize state fields
 
-#### Client Status
+If you're integrating with a platform that expects specific fields in the state update topic, you can customize which fields are included in the state updates published by the hub. The default is designed to be compatible with HomeAssistant!
 
-To receive updates when the MQTT client connects or disconnects from the broker, confugre the `mqtt_client_status_topic` parameter.  A message of the following form will be published:
-
-```json
-{"status":"disconnected_unclean","firmware":"milight-hub","version":"1.9.0-rc3","ip_address":"192.168.1.111","reset_reason":"External System"}
-```
-
-If you wish to have the simple messages `connected` and `disconnected` instead of the above environmental data, configure `simple_mqtt_client_status` to `true` (or set Client Status Message Mode to "Simple" in the Web UI).
+There's a fair amount of duplication in the available fields (for example, `computed_color`, `oh_color`, `hex_color` all control the `color` field in state updates). Sorry this is confusing!
 
 ## UDP Gateways
 
-You can add an arbitrary number of UDP gateways through the REST API or through the web UI. Each gateway server listens on a port and responds to the standard set of commands supported by the Milight protocol. This should allow you to use one of these with standard Milight integrations (SmartThings, Home Assistant, OpenHAB, etc.).
+If for whatever reason you wish to integrate with this hub using the UDP protocol used by the official Milight gateways, you can do that! 
 
-You can select between versions 5 and 6 of the UDP protocol (documented [here](https://github.com/BKrajancic/LimitlessLED-DevAPI/)). Version 6 has support for the newer RGB+CCT bulbs and also includes response packets, which can theoretically improve reliability. Version 5 has much smaller packets and is probably lower latency.
+1. In the Web UI, navigate to Settings -> UDP
+1. Add a gateway with the "+" button.
+1. Configure the remote ID you want to associate with this gateway. If you're wanting to mimic an existing gateway, use the "Sniffer" tab while the existing gateway is sending commands to snag its ID.
+1. Choose a UDP port for the gateway -- it shouldn't matter, maybe choose something in the 5000 range.
+1. Choose v5 or v6 based on your integration requirements.
+
+The UDP protocol is documented [in this handy github archive](https://github.com/BKrajancic/LimitlessLED-DevAPI/). Version 6 has support for the newer RGB+CCT bulbs and also includes response packets, which can theoretically improve reliability. Version 5 has much smaller packets and is probably lower latency.
 
 ## Transitions
 
@@ -282,6 +259,8 @@ Another option is to use an external LED parallel to the (inverted) internal one
 ## Development
 
 This project is developed and built using [PlatformIO](https://platformio.org/).
+
+The Web UI is [documented here](./web2/README.md).
 
 #### Running tests
 
