@@ -148,9 +148,7 @@ void onPacketSentHandler(uint8_t* packet, const MiLightRemoteConfig& config) {
     mqttClient->sendUpdate(remoteConfig, bulbId.deviceId, bulbId.groupId, output);
 
     // Sends the entire state
-    if (groupState != NULL) {
-      bulbStateUpdater->enqueueUpdate(bulbId, *groupState);
-    }
+    bulbStateUpdater->enqueueUpdate(bulbId);
   }
 
   httpServer->handlePacketSent(packet, remoteConfig, bulbId, result);
@@ -272,6 +270,10 @@ void applySettings() {
         discoveryClient.removeOldDevices(settings.deletedGroupIdAliases);
 
         settings.deletedGroupIdAliases.clear();
+      }
+      // make sure state is up to date
+      for (auto itr = settings.groupIdAliases.begin(); itr != settings.groupIdAliases.end(); ++itr) {
+        bulbStateUpdater->enqueueUpdate(itr->second);
       }
     });
 
