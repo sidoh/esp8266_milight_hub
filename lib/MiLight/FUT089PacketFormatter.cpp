@@ -48,7 +48,7 @@ void FUT089PacketFormatter::updateTemperature(uint8_t value) {
   }
 
   // now make the temperature change
-  command(FUT089_KELVIN, 100 - value);
+  command(FUT089_KELVIN_SATURATION, 100 - value);
 
   // and return to our original mode
   if (ourState != NULL && (settings->enableAutomaticModeSwitching) && (originalBulbMode != BulbMode::BULB_MODE_WHITE)) {
@@ -75,7 +75,7 @@ void FUT089PacketFormatter::updateSaturation(uint8_t value) {
   }
 
   // now make the saturation change
-  command(FUT089_SATURATION, 100 - value);
+  command(FUT089_KELVIN_SATURATION, 100 - value);
 
   // and revert back if necessary
   if (ourState != NULL && (settings->enableAutomaticModeSwitching) && (originalBulbMode != BulbMode::BULB_MODE_COLOR)) {
@@ -137,7 +137,7 @@ BulbId FUT089PacketFormatter::parsePacket(const uint8_t *packet, JsonObject resu
     result[GroupStateFieldNames::BRIGHTNESS] = Units::rescale<uint8_t, uint8_t>(level, 255, 100);
   // saturation == kelvin. arg ranges are the same, so can't distinguish
   // without using state
-  } else if (command == FUT089_SATURATION) {
+  } else if (command == FUT089_KELVIN_SATURATION) {
     const GroupState* state = stateStore->get(bulbId);
 
     if (state != NULL && state->getBulbMode() == BULB_MODE_COLOR) {
@@ -147,6 +147,11 @@ BulbId FUT089PacketFormatter::parsePacket(const uint8_t *packet, JsonObject resu
     }
   } else if (command == FUT089_MODE) {
     result[GroupStateFieldNames::MODE] = arg;
+  // FUT092 commands
+  } else if(command == FUT092_KELVIN) {
+    result[GroupStateFieldNames::COLOR_TEMP] = Units::whiteValToMireds(100 - arg, 100);
+  } else if(command == FUT092_SATURATION) {
+    result[GroupStateFieldNames::SATURATION] = 100 - constrain(arg, 0, 100);
   } else {
     result["button_id"] = command;
     result["argument"] = arg;
