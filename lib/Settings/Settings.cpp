@@ -158,6 +158,13 @@ void Settings::patch(JsonObject parsedSettings) {
     JsonArray arr = parsedSettings[FPSTR(SettingsKeys::GROUP_STATE_FIELDS)];
     groupStateFields = JsonHelpers::jsonArrToVector<GroupStateField, const char*>(arr, GroupStateFieldHelpers::getFieldByName);
   }
+  if (parsedSettings.containsKey(FPSTR(SettingsKeys::IGNORED_LISTEN_PROTOCOLS))) {
+    ignoredListenProtocols = 0;
+    JsonArray arr = parsedSettings[FPSTR(SettingsKeys::IGNORED_LISTEN_PROTOCOLS)];
+    for(JsonVariant v : arr){
+      ignoredListenProtocols |= (1 << ListenProtocolHelpers::indexFromName(v.as<String>()));
+    }
+  }
 
   // this key will only be present in old settings files, but for backwards
   // compatability, parse it if it's present.
@@ -355,6 +362,7 @@ void Settings::serialize(Print& stream, const bool prettyPrint) const {
   root[FPSTR(SettingsKeys::HOME_ASSISTANT_DISCOVERY_PREFIX)] = this->homeAssistantDiscoveryPrefix;
   root[FPSTR(SettingsKeys::WIFI_MODE)] = wifiModeToString(this->wifiMode);
   root[FPSTR(SettingsKeys::DEFAULT_TRANSITION_PERIOD)] = this->defaultTransitionPeriod;
+  
 
   JsonArray channelArr = root.createNestedArray(FPSTR(SettingsKeys::RF24_CHANNELS));
   JsonHelpers::vectorToJsonArr<RF24Channel, String>(channelArr, rf24Channels, RF24ChannelHelpers::nameFromValue);
@@ -372,6 +380,13 @@ void Settings::serialize(Print& stream, const bool prettyPrint) const {
 
   JsonArray groupStateFieldArr = root.createNestedArray(FPSTR(SettingsKeys::GROUP_STATE_FIELDS));
   JsonHelpers::vectorToJsonArr<GroupStateField, const char*>(groupStateFieldArr, groupStateFields, GroupStateFieldHelpers::getFieldName);
+
+  JsonArray ignoredProtocolsArr = root.createNestedArray(FPSTR(SettingsKeys::IGNORED_LISTEN_PROTOCOLS));
+  for (uint8_t i = 0; i < ListenProtocolHelpers::numProtocols(); ++i) {
+    if (ignoredListenProtocols & (1 << i)) {
+      ignoredProtocolsArr.add(ListenProtocolHelpers::nameFromIndex(i));
+    }
+  }
 
   if (prettyPrint) {
     serializeJsonPretty(root, stream);
@@ -439,6 +454,10 @@ String Settings::wifiModeToString(WifiMode mode) {
     default:
       return "n";
   }
+}
+
+bool Settings::isListenProtocolEnabled(uint8_t index) const {
+  return (ignoredListenProtocols & (1 << index)) == 0;
 }
 
 void Settings::addAlias(const char *alias, const BulbId &bulbId) {

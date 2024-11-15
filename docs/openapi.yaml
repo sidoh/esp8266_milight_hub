@@ -6,7 +6,7 @@ info:
     email: chris@sidoh.org
   license:
     name: MIT
-  version: 1.0.0
+  version: 1.0.1
 servers:
   - url: http://milight-hub
 tags:
@@ -1249,6 +1249,19 @@ components:
           type: integer
           description: Controls how many cycles are spent listening for packets.  Set to 0 to disable passive listening.
           default: 3
+        ignored_listen_protocols:
+          type: array
+          description: Improve listen reliability by ignoring specific protocol types. Leave empty if you are unsure.
+          default: []
+          items:
+            type: string
+            enum:
+              - RGBW
+              - CCT
+              - FUT089
+              - RGB
+              - FUT020
+          uniqueItems: true
         state_flush_interval:
           type: integer
           description: Controls how many miliseconds must pass between states being flushed to persistent storage.  Set to 0 to disable throttling.

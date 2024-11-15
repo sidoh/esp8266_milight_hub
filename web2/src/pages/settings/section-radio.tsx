@@ -15,7 +15,7 @@ export const RadioSettings: React.FC<NavChildProps<"radio">> = () => (
     />
     <FieldSection
       title="🔁 Repeats"
-      fields={["packet_repeats", "packet_repeats_per_loop", "listen_repeats"]}
+      fields={["packet_repeats", "packet_repeats_per_loop", "listen_repeats", "ignored_listen_protocols"]}
     />
     <FieldSection
       title="⏱️ Throttling"
