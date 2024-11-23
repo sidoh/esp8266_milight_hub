@@ -42,11 +42,21 @@ RSpec.describe 'Settings' do
         'mqtt_retain' => [true, false],
         'packet_repeats_per_loop' => [10],
         'home_assistant_discovery_prefix' => ['', 'abc', 'a/b/c'],
-        'default_transition_period' => [200, 500]
+        'default_transition_period' => [200, 500],
+        'ignored_listen_protocols' => [['RGBW'], ['FUT089', 'RGBW'], ['FUT089', 'RGB', 'RGBW']]
       }.each do |key, values|
         values.each do |v|
           @client.patch_settings({key => v})
-          expect(@client.get('/settings')[key]).to eq(v), "Should persist #{key} possible value: #{v}"
+          updated_settings = @client.get('/settings')
+          updated_value = updated_settings[key]
+          expected_value = v
+
+          if updated_value.is_a?(Array)
+            updated_value = updated_value.sort
+            expected_value = expected_value.sort
+          end
+
+          expect(updated_value).to eq(expected_value), "Should persist #{key}. Tested value: #{v}, actual value: #{updated_value}"
         end
       end
     end
