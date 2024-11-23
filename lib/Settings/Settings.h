@@ -9,6 +9,7 @@
 #include <GroupAlias.h>
 
 #include <MiLightRemoteType.h>
+#include <ListenProtocols.h>
 #include <BulbId.h>
 
 #include <vector>
@@ -38,9 +39,9 @@
 #endif
 
 #ifdef ESP8266
-  #define CSN_DEFAULT_PIN 15
+#define CSN_DEFAULT_PIN 15
 #elif ESP32
-  #define CSN_DEFAULT_PIN 5
+#define CSN_DEFAULT_PIN 5
 #endif
 
 #ifndef MILIGHT_MAX_STATE_ITEMS
@@ -82,7 +83,7 @@ static const std::vector<GroupStateField> DEFAULT_GROUP_STATE_FIELDS({
   GroupStateField::MODE,
   GroupStateField::COLOR_TEMP,
   GroupStateField::COLOR_MODE
-});
+  });
 
 struct GatewayConfig {
   GatewayConfig(uint16_t deviceId, uint16_t port, uint8_t protocolVersion);
@@ -142,6 +143,7 @@ namespace SettingsKeys {
   static const char GATEWAY_CONFIGS[] PROGMEM = "gateway_configs";
   static const char GROUP_STATE_FIELDS[] PROGMEM = "group_state_fields";
   static const char GROUP_ID_ALIASES[] PROGMEM = "group_id_aliases";
+  static const char IGNORED_LISTEN_PROTOCOLS[] PROGMEM = "ignored_listen_protocols";
 }
 
 class Settings {
@@ -187,8 +189,10 @@ public:
     wifiMode(WifiMode::G),
     defaultTransitionPeriod(500),
     groupIdAliasNextId(0),
-    _autoRestartPeriod(0)
-  { }
+    _autoRestartPeriod(0),
+    ignoredListenProtocols(0) // All protocols enabled by default
+  {
+  }
 
   ~Settings() = default;
 
@@ -267,9 +271,14 @@ public:
   WifiMode wifiMode;
   uint16_t defaultTransitionPeriod;
   size_t groupIdAliasNextId;
+  uint8_t ignoredListenProtocols; // Bit mask of ignored protocols in order of MiLightRadioConfig::ALL_CONFIGS.
+  // Save the ignored protocols, so if one is added later it will be enabled by default
+  static_assert(ListenProtocolHelpers::numProtocols() <= sizeof(ignoredListenProtocols) * 8, "Listen protocol bitmask needs to be extended");
 
   static WifiMode wifiModeFromString(const String& mode);
   static String wifiModeToString(WifiMode mode);
+
+  bool isListenProtocolEnabled(uint8_t index) const;
 
 protected:
   size_t _autoRestartPeriod;
@@ -286,36 +295,44 @@ protected:
 
 #ifdef ESP8266
       if (std::is_same_v<bool, T>) {
-                  if (val.is<bool>()) {
+        if (val.is<bool>()) {
           var = val.as<bool>();
-        } else if (val.is<const char*>()) {
+        }
+        else if (val.is<const char*>()) {
           var = strcmp(val.as<const char*>(), "true") == 0;
-        } else if (val.is<int>()) {
+        }
+        else if (val.is<int>()) {
           var = val.as<int>() == 1;
-        } else {
+        }
+        else {
           var = false;
         }
-      } else {
+      }
+      else {
         var = val.as<T>();
       }
 #elif ESP32
-        if (std::is_same<bool, T>::value) {
-            if (val.is<bool>()) {
-                var = val.as<bool>();
-            } else if (val.is<const char*>()) {
-                var = strcmp(val.as<const char*>(), "true") == 0;
-            } else if (val.is<int>()) {
-                var = val.as<int>() == 1;
-            } else {
-                var = false;
-            }
-        } else {
-            var = val.as<T>();
+      if (std::is_same<bool, T>::value) {
+        if (val.is<bool>()) {
+          var = val.as<bool>();
         }
+        else if (val.is<const char*>()) {
+          var = strcmp(val.as<const char*>(), "true") == 0;
+        }
+        else if (val.is<int>()) {
+          var = val.as<int>() == 1;
+        }
+        else {
+          var = false;
+        }
+      }
+      else {
+        var = val.as<T>();
+    }
 #endif
 
-    }
   }
+}
 };
 
 #endif
