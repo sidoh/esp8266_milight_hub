@@ -4,7 +4,7 @@ import { schemas } from "@/api/api-zod";
 import { z } from "zod";
 
 export interface LightIndexState {
-  lights: z.infer<typeof schemas.GatewayListItem>[];
+  lights: (z.infer<typeof schemas.GatewayListItem> & { ephemeral: boolean })[];
   isLoading: boolean;
 }
 
@@ -56,14 +56,32 @@ export function reducer(
 ): LightIndexState {
   switch (action.type) {
     case "UPDATE_STATE":
-      return {
-        ...state,
-        lights: state.lights.map((light) =>
-          devicesAreEqual(light.device, action.device)
-            ? { ...light, state: { ...light.state, ...action.payload } }
-            : light
-        ),
-      };
+      const lightExists = state.lights.some((light) =>
+        devicesAreEqual(light.device, action.device)
+      );
+
+      if (lightExists) {
+        return {
+          ...state,
+          lights: state.lights.map((light) =>
+            devicesAreEqual(light.device, action.device)
+              ? { ...light, state: { ...light.state, ...action.payload } }
+              : light
+          ),
+        };
+      } else {
+        const newLight: z.infer<typeof schemas.GatewayListItem> & {
+          ephemeral: boolean;
+        } = {
+          device: { ...action.device } as z.infer<typeof schemas.GatewayListItem>["device"],
+          state: { ...action.payload },
+          ephemeral: true,
+        };
+        return {
+          ...state,
+          lights: [...state.lights, newLight],
+        };
+      }
     case "UPDATE_ALL_STATE":
       return {
         ...state,
@@ -75,7 +93,10 @@ export function reducer(
     case "SET_LIGHTS":
       return {
         ...state,
-        lights: action.lights,
+        lights: action.lights.map((light) => ({
+          ...light,
+          ephemeral: false,
+        })),
         isLoading: false,
       };
     case "DELETE_LIGHT":
@@ -86,7 +107,6 @@ export function reducer(
         ),
       };
     case "ADD_LIGHT":
-      console.log(action.device);
       const device = {
         id: action.device.id!,
         device_id: action.device.device_id!,
@@ -96,7 +116,7 @@ export function reducer(
       };
       return {
         ...state,
-        lights: [...state.lights, { device, state: { state: "OFF" } }],
+        lights: [...state.lights, { device, state: { state: "OFF" }, ephemeral: false }],
       };
     case "UPDATE_LIGHT_NAME":
       return {
