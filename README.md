@@ -55,6 +55,8 @@ Connect SPI pins (CE, SCK, MOSI, MISO) to appropriate SPI pins on the ESP8266. W
 
 ### Install firmware
 
+#### ESP8266
+
 If you have [PlatformIO](http://platformio.org/) set up, you can compile from source and upload with:
 
 ```
@@ -70,6 +72,21 @@ esptool.py write_flash 0x0 <firmware_file.bin>
 ```
 
 Make sure you read instructions
+
+#### ESP32
+
+For ESP32, you need to flash both the partition table and the firmware image. The easiest way to do this is with [PlatformIO](http://platformio.org/):
+
+```
+platformio run -e esp32 --target upload
+```
+
+After you've flashed it once, you can update using the web ui or with `esptool.py`:
+
+```
+# >>> FOR ESP32 ONLY <<<
+esptool.py write_flash 0x1000 <firmware_file.bin>
+```
 
 ### Configure WiFi
 
