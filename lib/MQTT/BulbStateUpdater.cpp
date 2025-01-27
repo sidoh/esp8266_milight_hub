@@ -17,11 +17,19 @@ void BulbStateUpdater::disable() {
   this->enabled = false;
 }
 
-void BulbStateUpdater::enqueueUpdate(BulbId bulbId, GroupState& groupState) {
+void BulbStateUpdater::enqueueUpdate(BulbId bulbId) {
   staleGroups.push(bulbId);
+  // if this was to group 0, we need to enqueue an update for all child groups as well
+  if (bulbId.groupId == 0) {
+    const MiLightRemoteConfig* remote = MiLightRemoteConfig::fromType(bulbId.deviceType);
+
+    for (size_t i = 1; i <= remote->numGroups; i++) {
+      bulbId.groupId = i;
+      staleGroups.push(bulbId);
+    }
+  }
   //Remember time, when queue was added for debounce delay
   lastQueue = millis();
-
 }
 
 void BulbStateUpdater::loop() {
