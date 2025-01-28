@@ -183,13 +183,13 @@ Will cause the ESP to subscribe to the topic `milight/commands/+/+/+` and interp
 Likewise, a pattern of the form:
 
 ```
-milight/states/:device_id/:device_type/:group_id
+milight/state/:device_id/:device_type/:group_id
 ```
 
 will cause the ESP to publish state updates to the topic (for example) 
 
 ```
-milight/states/0x1234/rgb_cct/1
+milight/state/0x1234/rgb_cct/1
 ```
 
 Here's a brief description of supported topics:
