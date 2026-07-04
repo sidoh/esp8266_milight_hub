@@ -221,6 +221,10 @@ const About = z
     ip_address: z.string(),
     reset_reason: z.string().describe("Reason the system was last rebooted"),
     variant: z.string().describe("Firmware variant (e.g., d1_mini, nodemcuv2)"),
+    ethernet: z
+      .boolean()
+      .describe("True when the firmware uses a wired Ethernet connection")
+      .optional(),
     free_heap: z
       .number()
       .int()

@@ -79,6 +79,9 @@ protected:
 
   void handleAbout(RequestContext& request);
   void handleSystemPost(RequestContext& request);
+#ifndef USE_ETHERNET
+  void handleWifiScan(RequestContext& request);
+#endif
   void handleFirmwareUpload();
   void handleFirmwarePost();
   void handleListenGateway(RequestContext& request);

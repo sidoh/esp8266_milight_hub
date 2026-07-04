@@ -1,5 +1,10 @@
 #include <MiLightRadioFactory.h>
 
+#if defined(ESP32) && defined(RF24_SPI_SCK) && defined(RF24_SPI_MOSI) && defined(RF24_SPI_MISO)
+  #include <SPI.h>
+  #define ESPMH_REMAP_RF24_SPI 1
+#endif
+
 std::shared_ptr<MiLightRadioFactory> MiLightRadioFactory::fromSettings(const Settings& settings) {
   switch (settings.radioInterfaceType) {
     case nRF24:
@@ -30,6 +35,13 @@ NRF24Factory::NRF24Factory(
   channels(channels),
   listenChannel(listenChannel)
 {
+#ifdef ESPMH_REMAP_RF24_SPI
+  // Bring up the SPI bus on the pins provided by the board variant before
+  // RF24::begin() runs. The Arduino ESP32 SPI class ignores the pin arguments
+  // if the bus is already initialized, so this is safe to call more than once
+  // (e.g. when applySettings() reconstructs the factory).
+  SPI.begin(RF24_SPI_SCK, RF24_SPI_MISO, RF24_SPI_MOSI, csnPin);
+#endif
   rf24.setPALevel(RF24PowerLevelHelpers::rf24ValueFromValue(rF24PowerLevel));
 }
 

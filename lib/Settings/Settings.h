@@ -43,6 +43,18 @@
   #define CSN_DEFAULT_PIN 5
 #endif
 
+// Board variants (e.g. WT32-ETH01) can pin the NRF24 wiring at build time.
+#ifdef RF24_CE_PIN
+  #define CE_DEFAULT_PIN RF24_CE_PIN
+#else
+  #define CE_DEFAULT_PIN 4
+#endif
+
+#ifdef RF24_CSN_PIN
+  #undef CSN_DEFAULT_PIN
+  #define CSN_DEFAULT_PIN RF24_CSN_PIN
+#endif
+
 #ifndef MILIGHT_MAX_STATE_ITEMS
 #define MILIGHT_MAX_STATE_ITEMS 100
 #endif
@@ -151,7 +163,7 @@ public:
     adminUsername(""),
     adminPassword(""),
     // CE and CSN pins from nrf24l01
-    cePin(4),
+    cePin(CE_DEFAULT_PIN),
     csnPin(CSN_DEFAULT_PIN),
     resetPin(0),
     ledPin(-2),

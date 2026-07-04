@@ -33,6 +33,9 @@
   #include <esp_wifi.h>
   #include <SPIFFS.h>
   #include <ESPmDNS.h>
+  #ifdef USE_ETHERNET
+    #include <ETH.h>
+  #endif
 #endif
 
 #include <vector>
@@ -66,11 +69,116 @@ TransitionController transitions;
 
 std::vector<std::shared_ptr<MiLightUdpServer>> udpServers;
 
+#ifdef USE_ETHERNET
+// Tracks whether the wired Ethernet link is up and has an IP address.
+static bool ethConnected = false;
+
+static void configureEthStaticIp();
+#endif
+
+void postConnectSetup();
+
+/**
+ * Returns true when we have IP connectivity, whether via WiFi or Ethernet.
+ */
+static inline bool isNetworkConnected() {
+#ifdef USE_ETHERNET
+  return ethConnected;
+#else
+  return WiFi.isConnected();
+#endif
+}
+
+#ifdef USE_ETHERNET
+/**
+ * Handle ESP32 Ethernet lifecycle events. `postConnectSetup()` is invoked
+ * from the loop once `ethConnected` becomes true, so this callback stays
+ * minimal and safe to run from the network task.
+ */
+static void onEthEvent(WiFiEvent_t event) {
+  switch (event) {
+    case ARDUINO_EVENT_ETH_START:
+      Serial.println(F("ETH Started"));
+      ETH.setHostname(settings.hostname.c_str());
+      break;
+    case ARDUINO_EVENT_ETH_CONNECTED:
+      Serial.println(F("ETH Link Up"));
+      // Apply static IP before DHCP assigns an address. ETH.config() must be
+      // called after ETH.begin(), not before.
+      configureEthStaticIp();
+      break;
+    case ARDUINO_EVENT_ETH_GOT_IP:
+      Serial.print(F("ETH MAC: "));
+      Serial.print(ETH.macAddress());
+      Serial.print(F(", IP: "));
+      Serial.print(ETH.localIP());
+      Serial.print(F(", Speed: "));
+      Serial.print(ETH.linkSpeed());
+      Serial.println(F(" Mbps"));
+      ethConnected = true;
+      break;
+    case ARDUINO_EVENT_ETH_DISCONNECTED:
+      Serial.println(F("ETH Link Down"));
+      ethConnected = false;
+      break;
+    case ARDUINO_EVENT_ETH_STOP:
+      Serial.println(F("ETH Stopped"));
+      ethConnected = false;
+      break;
+    default:
+      break;
+  }
+}
+
+/**
+ * Apply a static IP configuration to the Ethernet interface if one is saved.
+ * Must be called after ETH.begin() while the link is up but before DHCP
+ * completes (ARDUINO_EVENT_ETH_CONNECTED is the ideal hook).
+ */
+static void configureEthStaticIp() {
+  if (settings.wifiStaticIP.length() == 0) {
+    return;
+  }
+
+  IPAddress ip;
+  if (! ip.fromString(settings.wifiStaticIP)) {
+    Serial.println(F("Invalid static Ethernet IP address"));
+    return;
+  }
+
+  IPAddress gateway;
+  IPAddress subnet(255, 255, 255, 0);
+  IPAddress dns(8, 8, 8, 8);
+
+  if (settings.wifiStaticIPGateway.length() > 0) {
+    gateway.fromString(settings.wifiStaticIPGateway);
+    dns = gateway;
+  }
+  if (settings.wifiStaticIPNetmask.length() > 0) {
+    subnet.fromString(settings.wifiStaticIPNetmask);
+  }
+
+  if (gateway == IPAddress(0, 0, 0, 0)) {
+    Serial.println(F("Static Ethernet IP requires a gateway"));
+    return;
+  }
+
+  if (! ETH.config(ip, gateway, subnet, dns)) {
+    Serial.println(F("Failed to apply static Ethernet IP config"));
+  } else {
+    Serial.printf_P(
+      PSTR("Configured static Ethernet IP: %s\n"),
+      settings.wifiStaticIP.c_str()
+    );
+  }
+}
+#endif
+
 /**
  * Set up UDP servers (both v5 and v6).  Clean up old ones if necessary.
  */
 void initMilightUdpServers() {
-  if (! WiFi.isConnected()) {
+  if (! isNetworkConnected()) {
     return;
   }
 
@@ -286,6 +394,10 @@ void applySettings() {
     ledStatus->continuous(settings.ledModeOperating);
   }
 
+#ifdef USE_ETHERNET
+  ETH.setHostname(settings.hostname.c_str());
+  configureEthStaticIp();
+#else
   WiFi.hostname(settings.hostname);
 #ifdef ESP8266
   WiFiPhyMode_t wifiPhyMode;
@@ -316,6 +428,7 @@ switch (settings.wifiMode) {
       break;
   }
   esp_wifi_set_bandwidth(WIFI_IF_STA, WIFI_BW_HT20);
+#endif
 #endif
 }
 
@@ -424,7 +537,9 @@ void setup() {
   #endif
 
   Settings::load(settings);
+#ifndef USE_ETHERNET
   ESPMH_SETUP_WIFI(settings);
+#endif
   applySettings();
 
   // set up the LED status for wifi configuration
@@ -435,6 +550,18 @@ void setup() {
   if (! MDNS.begin("milight-hub")) {
     Serial.println(F("Error setting up MDNS responder"));
   }
+
+#ifdef USE_ETHERNET
+  // Wired boards (e.g. WT32-ETH01) skip WiFiManager entirely and bring up
+  // the LAN8720 PHY. `postConnectSetup()` will fire from `loop()` once we
+  // receive an IP.
+  WiFi.onEvent(onEthEvent);
+  if (! ETH.begin(ETH_PHY_ADDR, 16, ETH_PHY_MDC, ETH_PHY_MDIO, ETH_PHY_TYPE, ETH_CLOCK_GPIO0_IN)) {
+    Serial.println(F("ETH.begin() failed"));
+    ledStatus->continuous(settings.ledModeWifiFailed);
+  }
+  return;
+#else
 
   // Allows us to have static IP config in the captive portal. Yucky pointers to pointers, just to have the settings carry through
   wifiManager = new WiFiManager();
@@ -511,6 +638,7 @@ void setup() {
 
     postConnectSetup();
   }
+#endif
 }
 
 size_t i = 0;
@@ -528,7 +656,13 @@ void loop() {
     wifiManager->process();
   }
 
-  if (WiFi.getMode() == WIFI_STA && WiFi.isConnected()) {
+#ifdef USE_ETHERNET
+  const bool networkReady = ethConnected;
+#else
+  const bool networkReady = (WiFi.getMode() == WIFI_STA && WiFi.isConnected());
+#endif
+
+  if (networkReady) {
     postConnectSetup();
 
     httpServer->handleClient();

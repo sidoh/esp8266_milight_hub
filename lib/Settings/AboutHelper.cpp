@@ -12,6 +12,10 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
+#ifdef USE_ETHERNET
+#include <ETH.h>
+#endif
+
 #endif
 
 #include <ProjectFS.h>
@@ -36,7 +40,13 @@ String AboutHelper::generateAboutString(bool abbreviated) {
 void AboutHelper::generateAboutObject(JsonDocument &obj, bool abbreviated) {
   obj[FPSTR("firmware")] = QUOTE(FIRMWARE_NAME);
   obj[FPSTR("version")] = QUOTE(MILIGHT_HUB_VERSION);
+#ifdef USE_ETHERNET
+  obj[FPSTR("ip_address")] = ETH.localIP().toString();
+  obj[FPSTR("ethernet")] = true;
+#else
   obj[FPSTR("ip_address")] = WiFi.localIP().toString();
+  obj[FPSTR("ethernet")] = false;
+#endif
 #ifdef ESP8266
   obj[FPSTR("reset_reason")] = ESP.getResetReason();
 #elif ESP32
