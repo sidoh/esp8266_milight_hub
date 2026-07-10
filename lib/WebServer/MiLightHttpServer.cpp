@@ -106,12 +106,6 @@ void MiLightHttpServer::begin() {
     .buildHandler("/system")
     .on(HTTP_POST, std::bind(&MiLightHttpServer::handleSystemPost, this, _1));
 
-#ifndef USE_ETHERNET
-  server
-    .buildHandler("/wifi/scan")
-    .on(HTTP_GET, std::bind(&MiLightHttpServer::handleWifiScan, this, _1));
-#endif
-
   server
     .buildHandler("/aliases")
     .on(HTTP_GET, std::bind(&MiLightHttpServer::handleListAliases, this, _1))
@@ -208,26 +202,6 @@ void MiLightHttpServer::handleSystemPost(RequestContext& request) {
     request.response.setCode(400);
   }
 }
-
-#ifndef USE_ETHERNET
-void MiLightHttpServer::handleWifiScan(RequestContext& request) {
-  // On non-Ethernet builds the WiFi radio is already in STA mode, so we can
-  // scan directly and return the results as a JSON array.
-  const int16_t found = WiFi.scanNetworks(/*async=*/false, /*show_hidden=*/true);
-
-  JsonArray arr = request.response.json.to<JsonArray>();
-
-  if (found > 0) {
-    for (int16_t i = 0; i < found; i++) {
-      JsonObject entry = arr.createNestedObject();
-      entry[F("ssid")] = WiFi.SSID(i);
-      entry[F("rssi")] = WiFi.RSSI(i);
-    }
-  }
-
-  WiFi.scanDelete();
-}
-#endif
 
 void MiLightHttpServer::serveSettings() {
   // Save first to set defaults

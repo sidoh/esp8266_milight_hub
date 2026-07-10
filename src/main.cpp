@@ -72,8 +72,6 @@ std::vector<std::shared_ptr<MiLightUdpServer>> udpServers;
 #ifdef USE_ETHERNET
 // Tracks whether the wired Ethernet link is up and has an IP address.
 static bool ethConnected = false;
-
-static void configureEthStaticIp();
 #endif
 
 void postConnectSetup();
@@ -103,9 +101,6 @@ static void onEthEvent(WiFiEvent_t event) {
       break;
     case ARDUINO_EVENT_ETH_CONNECTED:
       Serial.println(F("ETH Link Up"));
-      // Apply static IP before DHCP assigns an address. ETH.config() must be
-      // called after ETH.begin(), not before.
-      configureEthStaticIp();
       break;
     case ARDUINO_EVENT_ETH_GOT_IP:
       Serial.print(F("ETH MAC: "));
@@ -127,49 +122,6 @@ static void onEthEvent(WiFiEvent_t event) {
       break;
     default:
       break;
-  }
-}
-
-/**
- * Apply a static IP configuration to the Ethernet interface if one is saved.
- * Must be called after ETH.begin() while the link is up but before DHCP
- * completes (ARDUINO_EVENT_ETH_CONNECTED is the ideal hook).
- */
-static void configureEthStaticIp() {
-  if (settings.wifiStaticIP.length() == 0) {
-    return;
-  }
-
-  IPAddress ip;
-  if (! ip.fromString(settings.wifiStaticIP)) {
-    Serial.println(F("Invalid static Ethernet IP address"));
-    return;
-  }
-
-  IPAddress gateway;
-  IPAddress subnet(255, 255, 255, 0);
-  IPAddress dns(8, 8, 8, 8);
-
-  if (settings.wifiStaticIPGateway.length() > 0) {
-    gateway.fromString(settings.wifiStaticIPGateway);
-    dns = gateway;
-  }
-  if (settings.wifiStaticIPNetmask.length() > 0) {
-    subnet.fromString(settings.wifiStaticIPNetmask);
-  }
-
-  if (gateway == IPAddress(0, 0, 0, 0)) {
-    Serial.println(F("Static Ethernet IP requires a gateway"));
-    return;
-  }
-
-  if (! ETH.config(ip, gateway, subnet, dns)) {
-    Serial.println(F("Failed to apply static Ethernet IP config"));
-  } else {
-    Serial.printf_P(
-      PSTR("Configured static Ethernet IP: %s\n"),
-      settings.wifiStaticIP.c_str()
-    );
   }
 }
 #endif
@@ -396,7 +348,6 @@ void applySettings() {
 
 #ifdef USE_ETHERNET
   ETH.setHostname(settings.hostname.c_str());
-  configureEthStaticIp();
 #else
   WiFi.hostname(settings.hostname);
 #ifdef ESP8266
