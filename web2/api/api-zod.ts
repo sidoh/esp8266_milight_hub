@@ -410,6 +410,12 @@ const Settings = z
         "Controls how many cycles are spent listening for packets.  Set to 0 to disable passive listening."
       )
       .default(3),
+    ignored_listen_protocols: z
+      .array(z.enum(["RGBW", "CCT", "FUT089", "RGB", "FUT020"]))
+      .describe(
+        "Improve listen reliability by ignoring specific protocol types. Leave empty if you are unsure."
+      )
+      .default([]),
     state_flush_interval: z
       .number()
       .int()

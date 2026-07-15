@@ -9,10 +9,11 @@ enum MiLightFUT089Command {
   FUT089_ON = 0x01,
   FUT089_OFF = 0x01,
   FUT089_COLOR = 0x02,
+  FUT092_KELVIN = 0x03,           // The FUT092 uses the same protocol, but has separate temperature and saturation commands
+  FUT092_SATURATION = 0x04,       // Used by FUT092
   FUT089_BRIGHTNESS = 0x05,
   FUT089_MODE = 0x06,
-  FUT089_KELVIN = 0x07,     // Controls Kelvin when in White mode
-  FUT089_SATURATION = 0x07  // Controls Saturation when in Color mode
+  FUT089_KELVIN_SATURATION = 0x07 // Controls Kelvin when in White mode, controls Saturation when in Color mode
 };
 
 enum MiLightFUT089Arguments {

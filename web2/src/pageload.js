@@ -1,15 +1,12 @@
 (function () {
-  const cdnBase = "https://cdn.jsdelivr.net/gh/sidoh/esp8266_milight_hub@web2/web2/dist/versions/{{tag}}/";
   const files = [
     {
       type: "stylesheet",
-      cdnPath: cdnBase + "{{bundle_css:cdn_filename}}",
       localPath: "{{bundle_css:local_filename}}",
       size: parseInt("{{bundle_css:size}}", 10),
     },
     {
       type: "script",
-      cdnPath: cdnBase + "{{bundle_js:cdn_filename}}",
       localPath: "{{bundle_js:local_filename}}",
       size: parseInt("{{bundle_js:size}}", 10),
     },
@@ -52,9 +49,8 @@
     if (isDevelopment) {
       return tryLoadUrl(file.localPath, file.size, 0, 0);
     } else {
-      return tryLoadUrl(file.cdnPath, file.size, 0, 0).catch(() =>
-        tryLoadUrl(file.localPath, file.size, 0, 5)
-      );
+      // Load directly from the chip (remote copy was removed upstream).
+      return tryLoadUrl(file.localPath, file.size, 0, 5);
     }
   }
 
@@ -91,7 +87,7 @@
           loadNextFile();
         })
         .catch((error) => {
-          console.error(`Failed to load file: ${file.cdnPath}`, error);
+          console.error(`Failed to load file: ${file.localPath}`, error);
           currentFileIndex++;
           loadNextFile();
         });

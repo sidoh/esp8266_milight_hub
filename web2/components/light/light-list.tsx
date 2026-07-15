@@ -194,7 +194,7 @@ export function LightList() {
               </div>
             </div>
           ) : (
-            lightStates.lights.map((light, index) => (
+            lightStates.lights.filter((light) => !light.ephemeral).map((light, index) => (
               <div
                 key={index}
                 className="flex items-center justify-between py-2 cursor-pointer"
