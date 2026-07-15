@@ -81,6 +81,8 @@ void HomeAssistantDiscoveryClient::addConfig(const char* alias, const BulbId& bu
     config[F("pl_not_avail")] = F("disconnected");
   }
 
+  // To remain compatible with Homeassistant and Domoticz
+  config[GroupStateFieldNames::BRIGHTNESS] = true;
   // Configure supported commands based on the bulb type
   config[GroupStateFieldNames::EFFECT] = true;
 

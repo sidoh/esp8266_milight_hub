@@ -23,6 +23,7 @@ import {
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { RemoteTypeDescriptions } from "@/components/light/remote-data";
 import { schemas } from "@/api";
+import { getGroupCountForRemoteType, parseDeviceId } from "@/lib/utils";
 
 const schema = z.object({
   name: z.string().min(1, { message: "Name is required." }),
@@ -38,20 +39,6 @@ interface NewLightFormProps {
   onSubmit: (data: z.infer<typeof schemas.Alias>) => void;
 }
 
-const getGroupCountForRemoteType = (
-  remoteType: z.infer<typeof schemas.RemoteType>
-): number => {
-  // Stub function - replace with actual logic
-  switch (remoteType) {
-    case schemas.RemoteType.Values.fut089:
-      return 8;
-    case schemas.RemoteType.Values.rgb:
-      return 1;
-    default:
-      return 4;
-  }
-};
-
 export function NewLightForm({ onSubmit }: NewLightFormProps) {
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
@@ -61,9 +48,7 @@ export function NewLightForm({ onSubmit }: NewLightFormProps) {
   });
 
   const handleSubmit = (data: z.infer<typeof schema>) => {
-    const parsedDeviceId = data.device_id.startsWith("0x")
-      ? parseInt(data.device_id, 16)
-      : parseInt(data.device_id, 10);
+    const parsedDeviceId = parseDeviceId(data.device_id);
 
     const parsedData = {
       ...data,

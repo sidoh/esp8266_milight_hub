@@ -1,5 +1,6 @@
 #ifndef UNIT_TEST
 
+#include <LEDStatus.h>
 #include <WiFiManager.h>
 #include <ArduinoJson.h>
 #include <cstdlib>
@@ -157,6 +158,21 @@ void onPacketSentHandler(uint8_t* packet, const MiLightRemoteConfig& config) {
 }
 
 /**
+ * Cycle to the next enabled radio type and returns true.
+ * Returns false if none is enabled.
+ */
+bool nextRadioType() {
+  for (uint8_t offset = 1; offset < ListenProtocolHelpers::numProtocols(); ++offset) {
+    uint8_t idx = (currentRadioType + offset) % ListenProtocolHelpers::numProtocols();
+    if (settings.isListenProtocolEnabled(idx)) {
+      currentRadioType = idx;
+      return true;
+    }
+  }
+  return settings.isListenProtocolEnabled(currentRadioType);
+}
+
+/**
  * Listen for packets on one radio config.  Cycles through all configs as its
  * called.
  */
@@ -168,7 +184,11 @@ void handleListen() {
     return;
   }
 
-  std::shared_ptr<MiLightRadio> radio = radios->switchRadio(currentRadioType++ % radios->getNumRadios());
+  if(!nextRadioType()) {
+    // No listening protocols enabled
+    return;
+  }
+  std::shared_ptr<MiLightRadio> radio = radios->switchRadio(currentRadioType);
 
   for (size_t i = 0; i < settings.listenRepeats; i++) {
     if (radios->available()) {
@@ -264,7 +284,15 @@ void applySettings() {
 
   if (settings.mqttServer().length() > 0) {
     mqttClient = new MqttClient(settings, milightClient);
-    mqttClient->begin();
+    // On ESP32, MqttClient::begin() touches the lwIP stack. During boot,
+    // applySettings() runs before WiFi is connected, so calling begin() here
+    // asserts "tcpip_send_msg_wait_sem ... Invalid mbox" and boot-loops the
+    // device the moment an MQTT server is configured. Defer begin() to
+    // postConnectSetup() when WiFi isn't up yet; at runtime (settings save)
+    // WiFi is already connected so begin() runs immediately as before.
+    if (WiFi.status() == WL_CONNECTED) {
+      mqttClient->begin();
+    }
     mqttClient->onConnect([]() {
       if (settings.homeAssistantDiscoveryPrefix.length() > 0) {
         HomeAssistantDiscoveryClient discoveryClient(settings, mqttClient);
@@ -369,6 +397,13 @@ bool initialized = false;
 void postConnectSetup() {
   if (initialized) return;
   initialized = true;
+
+  // MQTT begin() is deferred during boot-time applySettings() because WiFi
+  // isn't up yet (calling it early asserts on ESP32). WiFi is connected now,
+  // so start the MQTT client here.
+  if (mqttClient) {
+    mqttClient->begin();
+  }
 
   delete wifiManager;
   wifiManager = NULL;
