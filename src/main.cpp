@@ -284,7 +284,15 @@ void applySettings() {
 
   if (settings.mqttServer().length() > 0) {
     mqttClient = new MqttClient(settings, milightClient);
-    mqttClient->begin();
+    // On ESP32, MqttClient::begin() touches the lwIP stack. During boot,
+    // applySettings() runs before WiFi is connected, so calling begin() here
+    // asserts "tcpip_send_msg_wait_sem ... Invalid mbox" and boot-loops the
+    // device the moment an MQTT server is configured. Defer begin() to
+    // postConnectSetup() when WiFi isn't up yet; at runtime (settings save)
+    // WiFi is already connected so begin() runs immediately as before.
+    if (WiFi.status() == WL_CONNECTED) {
+      mqttClient->begin();
+    }
     mqttClient->onConnect([]() {
       if (settings.homeAssistantDiscoveryPrefix.length() > 0) {
         HomeAssistantDiscoveryClient discoveryClient(settings, mqttClient);
@@ -389,6 +397,13 @@ bool initialized = false;
 void postConnectSetup() {
   if (initialized) return;
   initialized = true;
+
+  // MQTT begin() is deferred during boot-time applySettings() because WiFi
+  // isn't up yet (calling it early asserts on ESP32). WiFi is connected now,
+  // so start the MQTT client here.
+  if (mqttClient) {
+    mqttClient->begin();
+  }
 
   delete wifiManager;
   wifiManager = NULL;
