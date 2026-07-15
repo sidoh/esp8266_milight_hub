@@ -4,7 +4,7 @@
 #define _SIZE_H
 
 template<typename T, size_t sz>
-size_t size(T(&)[sz]) {
+constexpr size_t size(T(&)[sz]) {
     return sz;
 }
 

@@ -1,5 +1,6 @@
 #ifndef UNIT_TEST
 
+#include <LEDStatus.h>
 #include <WiFiManager.h>
 #include <ArduinoJson.h>
 #include <cstdlib>
@@ -157,6 +158,21 @@ void onPacketSentHandler(uint8_t* packet, const MiLightRemoteConfig& config) {
 }
 
 /**
+ * Cycle to the next enabled radio type and returns true.
+ * Returns false if none is enabled.
+ */
+bool nextRadioType() {
+  for (uint8_t offset = 1; offset < ListenProtocolHelpers::numProtocols(); ++offset) {
+    uint8_t idx = (currentRadioType + offset) % ListenProtocolHelpers::numProtocols();
+    if (settings.isListenProtocolEnabled(idx)) {
+      currentRadioType = idx;
+      return true;
+    }
+  }
+  return settings.isListenProtocolEnabled(currentRadioType);
+}
+
+/**
  * Listen for packets on one radio config.  Cycles through all configs as its
  * called.
  */
@@ -168,7 +184,11 @@ void handleListen() {
     return;
   }
 
-  std::shared_ptr<MiLightRadio> radio = radios->switchRadio(currentRadioType++ % radios->getNumRadios());
+  if(!nextRadioType()) {
+    // No listening protocols enabled
+    return;
+  }
+  std::shared_ptr<MiLightRadio> radio = radios->switchRadio(currentRadioType);
 
   for (size_t i = 0; i < settings.listenRepeats; i++) {
     if (radios->available()) {

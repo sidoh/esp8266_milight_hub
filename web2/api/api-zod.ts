@@ -410,6 +410,12 @@ const Settings = z
         "Controls how many cycles are spent listening for packets.  Set to 0 to disable passive listening."
       )
       .default(3),
+    ignored_listen_protocols: z
+      .array(z.enum(["RGBW", "CCT", "FUT089", "RGB", "FUT020"]))
+      .describe(
+        "Improve listen reliability by ignoring specific protocol types. Leave empty if you are unsure."
+      )
+      .default([]),
     state_flush_interval: z
       .number()
       .int()
@@ -471,7 +477,12 @@ const Settings = z
       .default(3),
     hostname: z
       .string()
-      .regex(/[a-zA-Z0-9-]+/)
+      // Allow empty: a blank hostname is a valid "use the default" state that
+      // the device happily returns. The previous /[a-zA-Z0-9-]+/ required at
+      // least one character, so an empty hostname failed response validation
+      // and the Settings page silently failed to load. Anchor the pattern and
+      // permit zero-or-more characters.
+      .regex(/^[a-zA-Z0-9-]*$/)
       .describe("Hostname that will be advertized on a DHCP request")
       .default("milight-hub"),
     rf24_power_level: z
