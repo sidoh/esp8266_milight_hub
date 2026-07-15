@@ -477,7 +477,12 @@ const Settings = z
       .default(3),
     hostname: z
       .string()
-      .regex(/[a-zA-Z0-9-]+/)
+      // Allow empty: a blank hostname is a valid "use the default" state that
+      // the device happily returns. The previous /[a-zA-Z0-9-]+/ required at
+      // least one character, so an empty hostname failed response validation
+      // and the Settings page silently failed to load. Anchor the pattern and
+      // permit zero-or-more characters.
+      .regex(/^[a-zA-Z0-9-]*$/)
       .describe("Hostname that will be advertized on a DHCP request")
       .default("milight-hub"),
     rf24_power_level: z
