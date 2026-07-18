@@ -14,6 +14,11 @@
 #include <RadioUtils.h>
 #include <MiLightRadioConfig.h>
 
+#if defined(ESP32) && defined(USE_ETHERNET)
+#include <SPI.h>
+extern SPIClass ETH_SAFE_SPI;
+#endif
+
 static uint16_t calc_crc(uint8_t *data, size_t data_length);
 
 PL1167_nRF24::PL1167_nRF24(RF24 &radio)
@@ -21,7 +26,12 @@ PL1167_nRF24::PL1167_nRF24(RF24 &radio)
 { }
 
 int PL1167_nRF24::open() {
+#if defined(ESP32) && defined(USE_ETHERNET)
+  // Use HSPI on safe pins; RF24 has no SPIClass* constructor — pass via begin().
+  _radio.begin(&ETH_SAFE_SPI);
+#else
   _radio.begin();
+#endif
   _radio.setAutoAck(false);
   _radio.setDataRate(RF24_1MBPS);
   _radio.disableCRC();

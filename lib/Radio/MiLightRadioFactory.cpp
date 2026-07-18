@@ -1,4 +1,11 @@
 #include <MiLightRadioFactory.h>
+#include <SPI.h>
+
+#if defined(ESP32) && defined(USE_ETHERNET)
+// HSPI bus remapped off the LAN8720 pins (VSPI 18/19/23).
+// Non-static so PL1167_nRF24 can pass it to RF24::begin().
+SPIClass ETH_SAFE_SPI(HSPI);
+#endif
 
 std::shared_ptr<MiLightRadioFactory> MiLightRadioFactory::fromSettings(const Settings& settings) {
   switch (settings.radioInterfaceType) {
@@ -30,6 +37,10 @@ NRF24Factory::NRF24Factory(
   channels(channels),
   listenChannel(listenChannel)
 {
+#if defined(ESP32) && defined(USE_ETHERNET)
+  // Must begin the bus before RF24::begin(&ETH_SAFE_SPI) in PL1167_nRF24::open().
+  ETH_SAFE_SPI.begin(14, 35, 15, csnPin);
+#endif
   rf24.setPALevel(RF24PowerLevelHelpers::rf24ValueFromValue(rF24PowerLevel));
 }
 
