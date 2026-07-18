@@ -33,6 +33,19 @@
   #include <esp_wifi.h>
   #include <SPIFFS.h>
   #include <ESPmDNS.h>
+  #include <ETH.h>
+#endif
+
+// --- WT32-ETH01 Ethernet (LAN8720) ---
+#ifdef USE_ETHERNET
+  // NOTE: do not reuse the ETH_PHY_* names -- ETH.h already defines them.
+  #define WT32_ETH_PHY_TYPE   ETH_PHY_LAN8720
+  #define WT32_ETH_PHY_ADDR   1
+  #define WT32_ETH_PHY_MDC    23
+  #define WT32_ETH_PHY_MDIO   18
+  #define WT32_ETH_PHY_POWER  16
+  #define WT32_ETH_CLK_MODE   ETH_CLOCK_GPIO0_IN
+  static volatile bool ethConnected = false;   // set true once DHCP gives us an IP
 #endif
 
 #include <vector>
@@ -67,10 +80,21 @@ TransitionController transitions;
 std::vector<std::shared_ptr<MiLightUdpServer>> udpServers;
 
 /**
+ * Returns true if we have a usable network connection (WiFi STA or Ethernet).
+ */
+static bool networkUp() {
+  bool up = WiFi.isConnected();
+#ifdef USE_ETHERNET
+  up = up || ethConnected;
+#endif
+  return up;
+}
+
+/**
  * Set up UDP servers (both v5 and v6).  Clean up old ones if necessary.
  */
 void initMilightUdpServers() {
-  if (! WiFi.isConnected()) {
+  if (! networkUp()) {
     return;
   }
 
@@ -366,6 +390,36 @@ void onGroupDeleted(const BulbId& id) {
 }
 
 bool initialized = false;
+
+#ifdef USE_ETHERNET
+// Ethernet event handler for the WT32-ETH01 (LAN8720).
+// ARDUINO_EVENT_ETH_GOT_IP fires when DHCP hands us an address.
+void onEthEvent(WiFiEvent_t event) {
+  switch (event) {
+    case ARDUINO_EVENT_ETH_START:
+      ETH.setHostname(settings.hostname.c_str());
+      break;
+    case ARDUINO_EVENT_ETH_CONNECTED:
+      Serial.println(F("ETH link up"));
+      break;
+    case ARDUINO_EVENT_ETH_GOT_IP:
+      Serial.print(F("ETH got IP: "));
+      Serial.println(ETH.localIP());
+      ethConnected = true;
+      if (ledStatus) {
+        ledStatus->continuous(settings.ledModeOperating);
+      }
+      break;
+    case ARDUINO_EVENT_ETH_DISCONNECTED:
+      Serial.println(F("ETH link down"));
+      ethConnected = false;
+      break;
+    default:
+      break;
+  }
+}
+#endif
+
 void postConnectSetup() {
   if (initialized) return;
   initialized = true;
@@ -431,11 +485,25 @@ void setup() {
   ledStatus = new LEDStatus(settings.ledPin);
   ledStatus->continuous(settings.ledModeWifiConfig);
 
-  // start up the wifi manager
+  // start up mDNS (binds to whatever interface is up -- ETH or WiFi)
   if (! MDNS.begin("milight-hub")) {
     Serial.println(F("Error setting up MDNS responder"));
   }
 
+#ifdef USE_ETHERNET
+  // --- Ethernet (WT32-ETH01) ---
+  // Settings are loaded above so the hostname is available for DHCP.
+  pinMode(16, OUTPUT);
+  digitalWrite(16, LOW);
+  delay(250);
+  digitalWrite(16, HIGH);
+  delay(250);
+  WiFi.onEvent(onEthEvent);
+  // ETH.begin(phy_addr, power, mdc, mdio, type, clk_mode)
+  ETH.begin(WT32_ETH_PHY_ADDR, WT32_ETH_PHY_POWER, WT32_ETH_PHY_MDC,
+            WT32_ETH_PHY_MDIO, WT32_ETH_PHY_TYPE, WT32_ETH_CLK_MODE);
+  return;  // skip WiFiManager — loop() brings services up once DHCP succeeds
+#else
   // Allows us to have static IP config in the captive portal. Yucky pointers to pointers, just to have the settings carry through
   wifiManager = new WiFiManager();
 
@@ -511,6 +579,7 @@ void setup() {
 
     postConnectSetup();
   }
+#endif
 }
 
 size_t i = 0;
@@ -528,7 +597,13 @@ void loop() {
     wifiManager->process();
   }
 
-  if (WiFi.getMode() == WIFI_STA && WiFi.isConnected()) {
+  // Service the hub when we have a network connection over either interface.
+  bool netUp = (WiFi.getMode() == WIFI_STA && WiFi.isConnected());
+#ifdef USE_ETHERNET
+  netUp = netUp || ethConnected;
+#endif
+
+  if (netUp) {
     postConnectSetup();
 
     httpServer->handleClient();

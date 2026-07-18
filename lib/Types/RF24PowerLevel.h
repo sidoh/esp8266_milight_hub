@@ -1,5 +1,10 @@
 #include <Arduino.h>
 #include <RF24.h>
+// RF24 1.4+ maps printf_P to Serial.printf, which breaks Serial.printf_P(...).
+#ifdef printf_P
+#undef printf_P
+#define printf_P printf
+#endif
 
 #ifndef _RF24_POWER_LEVEL_H
 #define _RF24_POWER_LEVEL_H
