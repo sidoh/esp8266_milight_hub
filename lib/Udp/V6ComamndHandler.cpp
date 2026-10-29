@@ -1,5 +1,6 @@
 #include <V6CommandHandler.h>
 #include <V6RgbCctCommandHandler.h>
+#include <V6Fut089CommandHandler.h>
 #include <V6RgbwCommandHandler.h>
 #include <V6RgbCommandHandler.h>
 #include <V6CctCommandHandler.h>
@@ -7,6 +8,7 @@
 
 V6CommandHandler* V6CommandHandler::ALL_HANDLERS[] = {
   new V6RgbCctCommandHandler(),
+  new V6Fut089CommandHandler(),
   new V6RgbwCommandHandler(),
   new V6RgbCommandHandler(),
   new V6CctCommandHandler()
@@ -46,7 +48,7 @@ bool V6CommandDemuxer::handleCommand(MiLightClient* client,
   uint32_t commandArg)
 {
   for (size_t i = 0; i < numHandlers; i++) {
-    if (((handlers[i]->commandId & command) == handlers[i]->commandId)
+    if (((command & 0xFF00) == handlers[i]->commandId)
       && handlers[i]->handleCommand(client, deviceId, group, commandType, command, commandArg)) {
       return true;
     }
