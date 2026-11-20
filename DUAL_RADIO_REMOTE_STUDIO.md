@@ -1,6 +1,6 @@
-# Dual-Radio 2.4GHz Remote Studio & Stateful MQTT Extension (Preview)
+# Dual-Radio 2.4GHz Remote Studio, Stateful MQTT & DDP Extension (Preview)
 
-This branch previews native **Dual-NRF24L01+ ESP32 physical remote capture**, a **61-model Futlight/MiBoxer Remote Studio UI (`/remotes-ui`)**, **`fut100` 100-zone protocol support**, and **stateful MQTT registry/event/state routing** for `esp8266_milight_hub`.
+This branch previews native **Dual-NRF24L01+ ESP32 physical remote capture**, a **61-model Futlight/MiBoxer Remote Studio UI (`/remotes-ui`)**, **`fut100` 100-zone protocol support**, **stateful MQTT registry/event/state routing**, and a **UDP port 4048 DDP real-time streaming receiver** for `esp8266_milight_hub`.
 
 ## 1. Hardware Target (Off-the-Shelf Dual-Radio ESP32)
 Designed for Dual-NRF24L01+ ESP32 boards (e.g. AliExpress item `1005012187776793`) while remaining backwards-compatible with single-radio builds:
@@ -20,10 +20,17 @@ Registered remotes publish retained discovery metadata alongside structured per-
 - **Per-Zone Stateful Snapshot (Retained):** `<topic_prefix>/zone/<0..N>/state`
 - **Unified Automation Stream:** `milight/ha_events`
 
-## 4. Key Code Touchpoints
+## 4. Real-Time UDP DDP Receiver (`DDPStaticZoneHandler` — Port 4048)
+This preview branch also includes a standalone **Distributed Display Protocol (DDP)** listener (`lib/DDPStaticZoneHandler/`) on **UDP port 4048**:
+- Allows external lighting engines (WLED virtual LED outputs, xLights, LedFx, or audio-reactive beat detectors) to stream real-time RGB frames directly into mapped Mi-Light / MiBoxer static zones.
+- Performs delta/rate-aware packet queuing and RGB-to-Hue/Saturation/Brightness translation on Radio #1 (VSPI) so 2.4GHz RF airtime isn't saturated during live color chases, while Radio #2 (HSPI) continues capturing physical remote overrides uninterrupted.
+- Designed cleanly as a self-contained module so it can be split into a separate upstream PR if desired.
+
+## 5. Key Code Touchpoints
 - `lib/Radio/HspiNRF24MiLightRadio.*` — Secondary HSPI NRF24L01+ continuous RX driver.
 - `lib/MiLight/FUT100PacketFormatter.*` — 100-zone LCD remote packet formatter/parser.
 - `lib/RemoteRegistry/` — Persistent remote profile store, MQTT discovery publisher, and gzipped UI headers (`RemoteStudioHtml.gz.h`, `PatchedRootHtml.gz.h`).
+- `lib/DDPStaticZoneHandler/` — Real-time UDP port 4048 DDP RGB frame receiver & zone mapper.
 - `lib/WebServer/MiLightHttpServer.*` — REST endpoints (`/remotes-ui`, `/api/remotes`, `/api/remotes/last_seen`, `/api/remotes/virtual_send`).
 
 *Note: Currently in preview/RFC stage — `RemoteStudioHtml` and `MainNav` link injection are packaged as PROGMEM headers for rapid testing and can be migrated directly into `web2/src/pages/` TypeScript components for upstream PR submission.*
