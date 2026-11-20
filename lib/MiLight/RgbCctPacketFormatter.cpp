@@ -112,28 +112,76 @@ BulbId RgbCctPacketFormatter::parsePacket(const uint8_t *packet, JsonObject resu
   memcpy(packetCopy, packet, V2_PACKET_LEN);
   V2RFEncoding::decodeV2Packet(packetCopy);
 
-  BulbId bulbId(
-    (packetCopy[2] << 8) | packetCopy[3],
-    packetCopy[7],
-    REMOTE_TYPE_RGB_CCT
-  );
+  struct RgbCctZoneTrack {
+    uint16_t devId;
+    uint8_t group;
+    uint8_t lastOnArg;
+    uint32_t lastOnMs;
+    uint32_t lastOffMs;
+  };
+  static RgbCctZoneTrack s_zones[8] = {};
 
-  uint8_t command = (packetCopy[V2_COMMAND_INDEX] & 0x7F);
+  uint16_t parsedDevId = ((uint16_t)packetCopy[2] << 8) | packetCopy[3];
+  uint8_t rawKey = packet[0];
+  uint8_t rawGroup = packetCopy[7];
+  uint8_t rawCmdByte = packetCopy[V2_COMMAND_INDEX];
+  uint8_t command = (rawCmdByte & 0x7F);
+  bool isHold = (rawCmdByte & 0x80) == 0x80;
   uint8_t arg = packetCopy[V2_ARGUMENT_INDEX];
+  uint32_t nowMs = millis();
+
+  int slot = -1, emptySlot = -1;
+  for (int i = 0; i < 8; i++) {
+    if (s_zones[i].devId == parsedDevId) { slot = i; break; }
+    if (emptySlot < 0 && s_zones[i].devId == 0) emptySlot = i;
+  }
+  if (slot < 0) {
+    slot = (emptySlot >= 0) ? emptySlot : 0;
+    s_zones[slot] = { parsedDevId, 1, 0xFF, 0, 0 };
+  }
+
+  // Only Hub virtual TX (rawKey == 0x00) puts a valid zone in packetCopy[7].
+  // Physical FUT092/B4 remotes only update active zone on ON (0..4) and OFF (5..9)!
+  if (rawGroup <= 4) {
+    s_zones[slot].group = rawGroup;
+  }
+  uint8_t resolvedGroup = (rawGroup <= 4) ? rawGroup : s_zones[slot].group;
+  BulbId bulbId(parsedDevId, resolvedGroup, REMOTE_TYPE_RGB_CCT);
 
   if (command == RGB_CCT_ON) {
-    if ((packetCopy[V2_COMMAND_INDEX] & 0x80) == 0x80) {
-      result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::NIGHT_MODE;
-    } else if (arg == RGB_CCT_MODE_SPEED_DOWN) {
+    if (arg == RGB_CCT_MODE_SPEED_DOWN) {
       result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::MODE_SPEED_DOWN;
     } else if (arg == RGB_CCT_MODE_SPEED_UP) {
       result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::MODE_SPEED_UP;
-    } else if (arg < 5) { // Group is not reliably encoded in group byte. Extract from arg byte
-      result[GroupStateFieldNames::STATE] = "ON";
+    } else if (arg < 5) {
       bulbId.groupId = arg;
+      s_zones[slot].group = arg;
+      if (isHold) {
+        // Ignore brief finger-press hold tail (<500ms); intentional ~1s hold on Zone '|' ON = White Mode!
+        if (s_zones[slot].lastOnArg == arg && (nowMs - s_zones[slot].lastOnMs < 500)) {
+          return DEFAULT_BULB_ID;
+        }
+        result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::SET_WHITE;
+      } else {
+        s_zones[slot].lastOnArg = arg;
+        s_zones[slot].lastOnMs = nowMs;
+        result[GroupStateFieldNames::STATE] = "ON";
+      }
+    } else if (arg >= 5 && arg <= 9) {
+      bulbId.groupId = arg - 5;
+      s_zones[slot].group = bulbId.groupId;
+      if (isHold) {
+        if (nowMs - s_zones[slot].lastOffMs < 600) {
+          return DEFAULT_BULB_ID;
+        }
+        result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::NIGHT_MODE;
+      } else {
+        s_zones[slot].lastOffMs = nowMs;
+        result[GroupStateFieldNames::STATE] = "OFF";
+      }
     } else {
-      result[GroupStateFieldNames::STATE] = "OFF";
-      bulbId.groupId = arg-5;
+      result["button_id"] = rawCmdByte;
+      result["argument"] = arg;
     }
   } else if (command == RGB_CCT_COLOR) {
     uint8_t rescaledColor = (arg - RGB_CCT_COLOR_OFFSET) % 0x100;
@@ -142,7 +190,6 @@ BulbId RgbCctPacketFormatter::parsePacket(const uint8_t *packet, JsonObject resu
   } else if (command == RGB_CCT_KELVIN) {
     uint8_t temperature = V2PacketFormatter::fromv2scale(arg, RGB_CCT_KELVIN_REMOTE_END, 2);
     result[GroupStateFieldNames::COLOR_TEMP] = Units::whiteValToMireds(temperature, 100);
-  // brightness == saturation
   } else if (command == RGB_CCT_BRIGHTNESS && arg >= (RGB_CCT_BRIGHTNESS_OFFSET - 15)) {
     uint8_t level = constrain(arg - RGB_CCT_BRIGHTNESS_OFFSET, 0, 100);
     result[GroupStateFieldNames::BRIGHTNESS] = Units::rescale<uint8_t, uint8_t>(level, 255, 100);
@@ -151,7 +198,7 @@ BulbId RgbCctPacketFormatter::parsePacket(const uint8_t *packet, JsonObject resu
   } else if (command == RGB_CCT_MODE) {
     result[GroupStateFieldNames::MODE] = arg;
   } else {
-    result["button_id"] = command;
+    result["button_id"] = rawCmdByte;
     result["argument"] = arg;
   }
 

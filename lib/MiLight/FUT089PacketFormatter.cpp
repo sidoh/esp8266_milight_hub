@@ -94,7 +94,6 @@ void FUT089PacketFormatter::enableNightMode() {
 
 BulbId FUT089PacketFormatter::parsePacket(const uint8_t *packet, JsonObject result) {
   if (stateStore == NULL) {
-    Serial.println(F("ERROR: stateStore not set.  Prepare was not called!  **THIS IS A BUG**"));
     BulbId fakeId(0, 0, REMOTE_TYPE_FUT089);
     return fakeId;
   }
@@ -103,30 +102,74 @@ BulbId FUT089PacketFormatter::parsePacket(const uint8_t *packet, JsonObject resu
   memcpy(packetCopy, packet, V2_PACKET_LEN);
   V2RFEncoding::decodeV2Packet(packetCopy);
 
-  BulbId bulbId(
-    (packetCopy[2] << 8) | packetCopy[3],
-    packetCopy[7],
-    REMOTE_TYPE_FUT089
-  );
+  struct DevZoneTrack { uint16_t devId; uint8_t group; uint8_t lastOnArg; uint32_t lastOnMs; uint32_t lastOffMs; };
+  static DevZoneTrack s_zones[8] = {};
 
-  uint8_t command = (packetCopy[V2_COMMAND_INDEX] & 0x7F);
+  uint16_t parsedDevId = ((uint16_t)packetCopy[2] << 8) | packetCopy[3];
+  uint8_t rawKey = packet[0];
+  uint8_t rawGroup = packetCopy[7];
+  uint8_t rawCmdByte = packetCopy[V2_COMMAND_INDEX];
+  uint8_t command = (rawCmdByte & 0x7F);
+  bool isHold = (rawCmdByte & 0x80) == 0x80;
   uint8_t arg = packetCopy[V2_ARGUMENT_INDEX];
+  uint32_t nowMs = millis();
+
+  int slot = -1, emptySlot = -1;
+  for (int i = 0; i < 8; i++) {
+    if (s_zones[i].devId == parsedDevId) { slot = i; break; }
+    if (emptySlot < 0 && s_zones[i].devId == 0) emptySlot = i;
+  }
+  if (slot < 0) {
+    slot = (emptySlot >= 0) ? emptySlot : 0;
+    s_zones[slot] = { parsedDevId, 1, 0xFF, 0, 0 };
+  }
+
+  // CRITICAL: Physical B8/FUT089 remotes put rolling data in packetCopy[7] (rawKey != 0x00).
+  // Only Hub-generated packets (rawKey == 0x00) carry an explicit zone in packetCopy[7]!
+  if (rawGroup <= 8) {
+    s_zones[slot].group = rawGroup;
+  }
+  uint8_t resolvedGroup = (rawGroup <= 8) ? rawGroup : s_zones[slot].group;
+  BulbId bulbId(parsedDevId, resolvedGroup, REMOTE_TYPE_FUT089);
 
   if (command == FUT089_ON) {
-    if ((packetCopy[V2_COMMAND_INDEX] & 0x80) == 0x80) {
-      result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::NIGHT_MODE;
-    } else if (arg == FUT089_MODE_SPEED_DOWN) {
+    if (arg == FUT089_MODE_SPEED_DOWN) {
       result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::MODE_SPEED_DOWN;
     } else if (arg == FUT089_MODE_SPEED_UP) {
       result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::MODE_SPEED_UP;
     } else if (arg == FUT089_WHITE_MODE) {
       result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::SET_WHITE;
-    } else if (arg <= 8) { // Group is not reliably encoded in group byte. Extract from arg byte
-      result[GroupStateFieldNames::STATE] = "ON";
-      bulbId.groupId = arg;
+    } else if (arg <= 8) {
+    bulbId.groupId = arg;
+    s_zones[slot].group = arg;
+    // Suppress all trailing cmd=0x81 capacitive hold frames on the SAME zone while finger remains down!
+    if (isHold && s_zones[slot].lastOnArg == arg && (nowMs - s_zones[slot].lastOnMs < 1600)) {
+      s_zones[slot].lastOnMs = nowMs;
+      return DEFAULT_BULB_ID;
+    }
+    s_zones[slot].lastOnArg = arg;
+    s_zones[slot].lastOnMs = nowMs;
+    result[GroupStateFieldNames::STATE] = "ON";
     } else if (arg >= 9 && arg <= 17) {
-      result[GroupStateFieldNames::STATE] = "OFF";
-      bulbId.groupId = arg-9;
+      bulbId.groupId = arg - 9;
+      s_zones[slot].group = bulbId.groupId;
+      if (isHold) {
+        if (nowMs - s_zones[slot].lastOffMs < 550) {
+          return DEFAULT_BULB_ID;
+        }
+        if (nowMs - s_zones[slot].lastOffMs < 2200) {
+          result[GroupStateFieldNames::COMMAND] = MiLightCommandNames::NIGHT_MODE;
+        } else {
+          s_zones[slot].lastOffMs = nowMs;
+          result[GroupStateFieldNames::STATE] = "OFF";
+        }
+      } else {
+        s_zones[slot].lastOffMs = nowMs;
+        result[GroupStateFieldNames::STATE] = "OFF";
+      }
+    } else {
+      result["button_id"] = rawCmdByte;
+      result["argument"] = arg;
     }
   } else if (command == FUT089_COLOR) {
     uint8_t rescaledColor = (arg - FUT089_COLOR_OFFSET) % 0x100;
@@ -135,11 +178,8 @@ BulbId FUT089PacketFormatter::parsePacket(const uint8_t *packet, JsonObject resu
   } else if (command == FUT089_BRIGHTNESS) {
     uint8_t level = constrain(arg, 0, 100);
     result[GroupStateFieldNames::BRIGHTNESS] = Units::rescale<uint8_t, uint8_t>(level, 255, 100);
-  // saturation == kelvin. arg ranges are the same, so can't distinguish
-  // without using state
   } else if (command == FUT089_SATURATION) {
     const GroupState* state = stateStore->get(bulbId);
-
     if (state != NULL && state->getBulbMode() == BULB_MODE_COLOR) {
       result[GroupStateFieldNames::SATURATION] = 100 - constrain(arg, 0, 100);
     } else {
@@ -148,7 +188,7 @@ BulbId FUT089PacketFormatter::parsePacket(const uint8_t *packet, JsonObject resu
   } else if (command == FUT089_MODE) {
     result[GroupStateFieldNames::MODE] = arg;
   } else {
-    result["button_id"] = command;
+    result["button_id"] = rawCmdByte;
     result["argument"] = arg;
   }
 

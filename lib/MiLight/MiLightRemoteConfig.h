@@ -6,6 +6,7 @@
 #include <RgbCctPacketFormatter.h>
 #include <CctPacketFormatter.h>
 #include <FUT089PacketFormatter.h>
+#include <FUT100PacketFormatter.h>
 #include <FUT091PacketFormatter.h>
 #include <FUT020PacketFormatter.h>
 #include <PacketFormatter.h>
@@ -45,7 +46,8 @@ public:
 extern const MiLightRemoteConfig FUT096Config; //rgbw
 extern const MiLightRemoteConfig FUT007Config; //cct
 extern const MiLightRemoteConfig FUT092Config; //rgb+cct
-extern const MiLightRemoteConfig FUT089Config; //rgb+cct B8 / FUT089
+extern const MiLightRemoteConfig FUT089Config;
+extern const MiLightRemoteConfig FUT100Config; //rgb+cct B8 / FUT089
 extern const MiLightRemoteConfig FUT098Config; //rgb
 extern const MiLightRemoteConfig FUT091Config; //v2 cct
 extern const MiLightRemoteConfig FUT020Config;

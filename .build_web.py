@@ -41,4 +41,7 @@ def build_web():
         finally:
             os.chdir("..");
 
-build_web()
+if os.environ.get("MLH_REBUILD_WEB") == "1" or not os.path.exists("dist/index.html.gz.h"):
+    build_web()
+else:
+    print("[FAST-BUILD] Skipping npm web2 rebuild (dist/index.html.gz.h present)")

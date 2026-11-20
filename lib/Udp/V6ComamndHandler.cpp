@@ -23,7 +23,12 @@ bool V6CommandHandler::handleCommand(MiLightClient* client,
   uint32_t command,
   uint32_t commandArg)
 {
-  client->prepare(&remoteConfig, deviceId, group);
+  // Bridge v6 RGBW (0x0700) Zone 1 -> FUT089 (8-zone) Group 7 ("Fence Lights") on same gateway
+  if (commandId == 0x0700 && group == 1) {
+    client->prepare(&FUT089Config, deviceId, 7);
+  } else {
+    client->prepare(&remoteConfig, deviceId, group);
+  }
 
   if (commandType == V6_PAIR) {
     client->pair();
