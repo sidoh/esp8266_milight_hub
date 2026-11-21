@@ -78,6 +78,11 @@ protected:
   void handleGetRadioConfigs(RequestContext& request);
 
   void handleAbout(RequestContext& request);
+  void handleListRemotes(RequestContext& request);
+  void handleUpsertRemote(RequestContext& request);
+  void handleDeleteRemote(RequestContext& request);
+  void handleLastSeenRemote(RequestContext& request);
+  void handleVirtualRemoteSend(RequestContext& request);
   void handleSystemPost(RequestContext& request);
   void handleFirmwareUpload();
   void handleFirmwarePost();

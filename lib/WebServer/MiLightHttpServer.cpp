@@ -1,8 +1,10 @@
+#include "MiBoxerCatalogAsset.h"
 #include <FS.h>
 #include <WiFiUdp.h>
 #include <IntParsing.h>
 #include <Settings.h>
 #include <MiLightHttpServer.h>
+#include <RemoteRegistry.h>
 #include <MiLightRadioConfig.h>
 #include <string.h>
 #include <TokenIterator.h>
@@ -27,6 +29,31 @@ void MiLightHttpServer::begin() {
   server
     .buildHandler("/")
     .onSimple(HTTP_GET, std::bind(&MiLightHttpServer::handleServe_P, this, index_html_gz, index_html_gz_len, "text/html"));
+
+  server
+    .buildHandler("/remotes-ui")
+    .onSimple(HTTP_GET, [this](const UrlTokenBindings*) { server.sendHeader("Location", "/#/remotes", true); server.send(302, "text/plain", ""); });
+
+  server
+    .buildHandler("/miboxer_catalog.js")
+    .onSimple(HTTP_GET, std::bind(&MiLightHttpServer::handleServe_P, this, miboxer_catalog_js_gz, miboxer_catalog_js_gz_len, "application/javascript"));
+
+  server
+    .buildHandler("/api/remotes")
+    .on(HTTP_GET, std::bind(&MiLightHttpServer::handleListRemotes, this, _1))
+    .on(HTTP_POST, std::bind(&MiLightHttpServer::handleUpsertRemote, this, _1));
+
+  server
+    .buildHandler("/api/remotes/delete")
+    .on(HTTP_POST, std::bind(&MiLightHttpServer::handleDeleteRemote, this, _1));
+
+  server
+    .buildHandler("/api/remotes/last_seen")
+    .on(HTTP_GET, std::bind(&MiLightHttpServer::handleLastSeenRemote, this, _1));
+
+  server
+    .buildHandler("/api/remotes/virtual_send")
+    .on(HTTP_POST, std::bind(&MiLightHttpServer::handleVirtualRemoteSend, this, _1));
 
   server
     .buildHandler(bundle_css_filename)
@@ -1089,4 +1116,57 @@ void MiLightHttpServer::handleBatchUpdateGroups(RequestContext& request) {
   }
 
   request.response.json[F("success")] = true;
+}
+
+void MiLightHttpServer::handleListRemotes(RequestContext& request) {
+  DynamicJsonDocument doc(4096);
+  JsonArray arr = doc.to<JsonArray>();
+  RemoteRegistry::instance().serializeRemotes(arr);
+  String out;
+  serializeJson(doc, out);
+  request.response.setCode(200);
+  server.send(200, APPLICATION_JSON, out.c_str());
+}
+
+void MiLightHttpServer::handleUpsertRemote(RequestContext& request) {
+  JsonObject body = request.getJsonBody().as<JsonObject>();
+  RegisteredRemote item;
+  item.deviceId = body["device_id"] | 0;
+  item.remoteType = body["remote_type"] | "fut089";
+  item.visualModel = body["visual_model"] | "FUT089";
+  item.name = body["name"] | "Remote";
+  item.topicPrefix = body["topic_prefix"] | "milight/actions/remote";
+  item.numZones = body["num_zones"] | 8;
+  item.active = body["active"] | true;
+
+  bool ok = RemoteRegistry::instance().upsert(item);
+  server.send(ok ? 200 : 400, APPLICATION_JSON, ok ? "{\"success\":true}" : "{\"success\":false}");
+}
+
+void MiLightHttpServer::handleDeleteRemote(RequestContext& request) {
+  JsonObject body = request.getJsonBody().as<JsonObject>();
+  uint16_t devId = body["device_id"] | 0;
+  bool ok = RemoteRegistry::instance().remove(devId);
+  server.send(200, APPLICATION_JSON, ok ? "{\"success\":true}" : "{\"success\":false}");
+}
+
+void MiLightHttpServer::handleLastSeenRemote(RequestContext& request) {
+  DynamicJsonDocument doc(4096);
+  JsonObject obj = doc.to<JsonObject>();
+  RemoteRegistry::instance().serializeLastSeen(obj);
+  String out;
+  serializeJson(doc, out);
+  server.send(200, APPLICATION_JSON, out.c_str());
+}
+
+void MiLightHttpServer::handleVirtualRemoteSend(RequestContext& request) {
+  JsonObject body = request.getJsonBody().as<JsonObject>();
+  uint16_t devId = body["device_id"] | 0x125C;
+  String rType = body["remote_type"] | "fut089";
+  uint8_t grp = body["group_id"] | 1;
+  String action = body["action"] | "on";
+  int32_t val = body["value"] | 0;
+
+  RemoteRegistry::instance().virtualSend(devId, rType, grp, action, val);
+  server.send(200, APPLICATION_JSON, "{\"success\":true}");
 }

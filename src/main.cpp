@@ -33,14 +33,20 @@
   #include <esp_wifi.h>
   #include <SPIFFS.h>
   #include <ESPmDNS.h>
+  #include <SPI.h>
+  #include <HspiNRF24MiLightRadio.h>
+  #include <V2RFEncoding.h>
+  #include <freertos/FreeRTOS.h>
+  #include <freertos/task.h>
+  #include <freertos/queue.h>
 #endif
 
 #include <vector>
 #include <memory>
 #include "ProjectFS.h"
+#include <RemoteRegistry.h>
 
 WiFiManager* wifiManager;
-// because of callbacks, these need to be in the higher scope :(
 WiFiManagerParameter* wifiStaticIP = NULL;
 WiFiManagerParameter* wifiStaticIPNetmask = NULL;
 WiFiManagerParameter* wifiStaticIPGateway = NULL;
@@ -52,23 +58,49 @@ Settings settings;
 
 MiLightClient* milightClient = NULL;
 RadioSwitchboard* radios = nullptr;
+RadioSwitchboard* rxRadios = nullptr;
 PacketSender* packetSender = nullptr;
 std::shared_ptr<MiLightRadioFactory> radioFactory;
+#ifdef ESP32
+struct Radio2ScanResult {
+  bool scanned = false;
+  int csnPin = -1;
+  int cePin = -1;
+  bool ceHardwiredHigh = false;
+};
+Radio2ScanResult g_radio2Scan;
+std::shared_ptr<HspiNRF24Factory> rxRadioFactory;
+uint32_t g_rxPacketsDecoded = 0;
+uint32_t g_rxSelfEchoIgnored = 0;
+uint32_t g_core0LoopTicks = 0;
+String g_lastSniffedSummary = "none";
+String g_lastClientCmdSummary = "none";
+
+struct Core0RadioEvent {
+  uint8_t packet[MILIGHT_MAX_PACKET_LENGTH];
+  uint8_t packetLen;
+  const MiLightRemoteConfig* remoteConfig;
+  bool isFromRxSniffer;
+  bool isInternalTx;
+};
+
+QueueHandle_t g_core0EventQueue = nullptr;
+TaskHandle_t g_core0RadioTaskHandle = nullptr;
+volatile bool g_pauseCore0Radio = false;
+volatile bool g_core0RadioPausedAck = false;
+#endif
 MiLightHttpServer *httpServer = NULL;
 MqttClient* mqttClient = NULL;
+bool initialized = false;
 MiLightDiscoveryServer* discoveryServer = NULL;
 uint8_t currentRadioType = 0;
 
-// For tracking and managing group state
 GroupStateStore* stateStore = NULL;
 BulbStateUpdater* bulbStateUpdater = NULL;
 TransitionController transitions;
 
 std::vector<std::shared_ptr<MiLightUdpServer>> udpServers;
 
-/**
- * Set up UDP servers (both v5 and v6).  Clean up old ones if necessary.
- */
 void initMilightUdpServers() {
   if (! WiFi.isConnected()) {
     return;
@@ -105,75 +137,203 @@ void initMilightUdpServers() {
   }
 }
 
-/**
- * Milight RF packet handler.
- *
- * Called both when a packet is sent locally, and when an intercepted packet
- * is read.
- */
-void onPacketSentHandler(uint8_t* packet, const MiLightRemoteConfig& config) {
+void processDecodedPacket(uint8_t* packet, const MiLightRemoteConfig& config, bool isFromRxSniffer, bool isInternalTx) {
   StaticJsonDocument<200> buffer;
   JsonObject result = buffer.to<JsonObject>();
 
-  BulbId bulbId = config.packetFormatter->parsePacket(packet, result);
+  const MiLightRemoteConfig* effectiveCfg = &config;
+  if (config.type == REMOTE_TYPE_FUT089 && config.packetFormatter->getPacketLength() == 9) {
+    uint8_t decTmp[9];
+    memcpy(decTmp, packet, 9);
+    V2RFEncoding::decodeV2Packet(decTmp);
+    uint16_t peekDevId = ((uint16_t)decTmp[2] << 8) | decTmp[3];
+    uint8_t peekCmd = decTmp[4] & 0x7F;
+    MiLightRemoteType regType;
+    if (peekCmd == 0x08 || (RemoteRegistry::instance().hasTypeOverride(peekDevId, regType) && regType == REMOTE_TYPE_FUT100)) {
+      effectiveCfg = &FUT100Config;
+    }
+  }
+  BulbId bulbId = effectiveCfg->packetFormatter->parsePacket(packet, result);
 
-  // set LED mode for a packet movement
   ledStatus->oneshot(settings.ledModePacket, settings.ledModePacketCount);
 
   if (bulbId == DEFAULT_BULB_ID) {
-    Serial.println(F("Skipping packet handler because packet was not decoded"));
     return;
   }
 
   const MiLightRemoteConfig& remoteConfig =
     *MiLightRemoteConfig::fromType(bulbId.deviceType);
 
-  // update state to reflect changes from this packet
+  // Normalize wild V2 slider group bytes (e.g. Z83, Z223 on physical rgb_cct / fut091 / 1-zone remotes)
+  bulbId.groupId = RemoteRegistry::instance().resolveGroupId(
+    bulbId.deviceId,
+    bulbId.groupId,
+    (uint8_t)remoteConfig.numGroups
+  );
+
+  // If a packet changes brightness, hue, saturation, or kelvin without explicitly setting state,
+  // the bulb implicitly turns ON (both on physical Mi-Light bulbs and in GroupStateStore)!
+  if (!result.containsKey("state") && !result.containsKey("command") &&
+      (result.containsKey("brightness") || result.containsKey("level") ||
+       result.containsKey("hue") || result.containsKey("saturation") ||
+       result.containsKey("color_temp") || result.containsKey("kelvin"))) {
+    result["state"] = "ON";
+  }
+
+  // Always create/persist stateStore entry even on first touch of a zone!
   GroupState* groupState = stateStore->get(bulbId);
-
-  // pass in previous scratch state as well
   const GroupState stateUpdates(groupState, result);
-
   if (groupState != NULL) {
     groupState->patch(stateUpdates);
-
-    // Copy state before setting it to avoid group 0 re-initialization clobbering it
+    stateStore->set(bulbId, *groupState);
+  } else {
     stateStore->set(bulbId, stateUpdates);
+    groupState = stateStore->get(bulbId);
   }
 
   if (mqttClient) {
-    // Sends the state delta derived from the raw packet
     char output[200];
     serializeJson(result, output);
     mqttClient->sendUpdate(remoteConfig, bulbId.deviceId, bulbId.groupId, output);
 
-    // Sends the entire state
     if (groupState != NULL) {
       bulbStateUpdater->enqueueUpdate(bulbId, *groupState);
     }
   }
 
-  httpServer->handlePacketSent(packet, remoteConfig, bulbId, result);
+  if (httpServer) {
+    httpServer->handlePacketSent(packet, remoteConfig, bulbId, result);
+  }
+
+  if (isFromRxSniffer) {
+#ifdef ESP32
+    static uint32_t s_lastV2Sig = 0xFFFFFFFF;
+    static uint32_t s_lastV2Ms = 0;
+    if (remoteConfig.packetFormatter->getPacketLength() == 9) {
+      uint8_t dec[9];
+      memcpy(dec, packet, 9);
+      V2RFEncoding::decodeV2Packet(dec);
+      uint32_t sig = ((uint32_t)bulbId.deviceId << 16) | ((uint32_t)dec[6] << 8) | ((uint32_t)(dec[4] & 0x7F) ^ dec[5]);
+      uint32_t nowMs = millis();
+      if (sig == s_lastV2Sig && (nowMs - s_lastV2Ms < 110)) {
+        return;
+      }
+      s_lastV2Sig = sig;
+      s_lastV2Ms = nowMs;
+    }
+    g_rxPacketsDecoded++;
+    char summary[80];
+    snprintf(summary, sizeof(summary), "0x%04X %s grp=%u", bulbId.deviceId, remoteConfig.name.c_str(), bulbId.groupId);
+    g_lastSniffedSummary = summary;
+#endif
+    if (remoteConfig.packetFormatter->getPacketLength() == 9) {
+      uint8_t d9[9];
+      memcpy(d9, packet, 9);
+      V2RFEncoding::decodeV2Packet(d9);
+      char v2Hex[96];
+      snprintf(v2Hex, sizeof(v2Hex), "raw=%02X%02X%02X%02X%02X%02X%02X%02X%02X dec=%02X:%02X:%02X%02X:%02X:%02X:%02X:%02X:%02X",
+        packet[0], packet[1], packet[2], packet[3], packet[4], packet[5], packet[6], packet[7], packet[8],
+        d9[0], d9[1], d9[2], d9[3], d9[4], d9[5], d9[6], d9[7], d9[8]);
+      result["v2_dec"] = v2Hex;
+    }
+    RemoteRegistry::instance().handlePacket(bulbId.deviceId, bulbId.groupId, remoteConfig.name, result);
+  } else if (!isInternalTx) {
+#ifdef ESP32
+    char cmdSum[96];
+    char resJson[64];
+    serializeJson(result, resJson, sizeof(resJson));
+    snprintf(cmdSum, sizeof(cmdSum), "0x%04X %s grp=%u %s", bulbId.deviceId, remoteConfig.name.c_str(), bulbId.groupId, resJson);
+    g_lastClientCmdSummary = cmdSum;
+#endif
+  }
 }
 
-/**
- * Listen for packets on one radio config.  Cycles through all configs as its
- * called.
- */
-void handleListen() {
-  // Do not handle listens while there are packets enqueued to be sent
-  // Doing so causes the radio module to need to be reinitialized inbetween
-  // repeats, which slows things down.
-  if (! settings.listenRepeats || packetSender->isSending()) {
+void onPacketSentHandler(uint8_t* packet, const MiLightRemoteConfig& config, bool isInternal) {
+#ifdef ESP32
+  if (g_core0EventQueue != nullptr && xPortGetCoreID() == 0) {
+    Core0RadioEvent ev;
+    size_t len = config.packetFormatter->getPacketLength();
+    if (len > MILIGHT_MAX_PACKET_LENGTH) len = MILIGHT_MAX_PACKET_LENGTH;
+    memcpy(ev.packet, packet, len);
+    ev.packetLen = (uint8_t)len;
+    ev.remoteConfig = &config;
+    ev.isFromRxSniffer = false;
+    ev.isInternalTx = isInternal;
+    xQueueSend(g_core0EventQueue, &ev, 0);
+    return;
+  }
+#endif
+  processDecodedPacket(packet, config, false, isInternal);
+}
+
+void pollRadioListenOnce() {
+  if (! settings.listenRepeats) {
     return;
   }
 
-  std::shared_ptr<MiLightRadio> radio = radios->switchRadio(currentRadioType++ % radios->getNumRadios());
+  RadioSwitchboard* activeRx = (rxRadios != nullptr) ? rxRadios : radios;
+  if (activeRx == nullptr) {
+    return;
+  }
 
-  for (size_t i = 0; i < settings.listenRepeats; i++) {
-    if (radios->available()) {
+  // Only pause listening if sharing a single transceiver with TX
+  if (rxRadios == nullptr && packetSender->isSending()) {
+    return;
+  }
+
+  static uint32_t lastProtoSwitchMs = 0;
+  static size_t heldConfigIx = 2;
+  size_t targetConfigIx = heldConfigIx;
+
+  if (rxRadios != nullptr && activeRx->getNumRadios() >= 3) {
+    // Keep Radio #2 locked 100% onto Config 2 (V2 2.4GHz syncword 0x7236/0x1809: FUT089, B8, FUT092, FUT096, B4, T4, FUT100)
+    // unless a legacy V1 remote (rgbw/cct/fut020) is explicitly registered in RemoteRegistry!
+    bool hasLegacyRemote = false;
+    for (const auto& rr : RemoteRegistry::instance().remotes) {
+      if (rr.active && (rr.remoteType == "rgbw" || rr.remoteType == "cct" || rr.remoteType == "rgb" || rr.remoteType == "fut020")) {
+        hasLegacyRemote = true;
+        break;
+      }
+    }
+    if (!hasLegacyRemote) {
+      targetConfigIx = 2;
+    } else {
+      uint32_t nowMs = millis();
+      uint32_t dwellMs = (heldConfigIx == 2) ? 450 : 12;
+      if (nowMs - lastProtoSwitchMs >= dwellMs) {
+        lastProtoSwitchMs = nowMs;
+        uint8_t slot = currentRadioType++;
+        if ((slot & 0x03) != 0x03) heldConfigIx = 2;
+        else {
+          static uint8_t altCursor = 0;
+          const size_t altIndices[] = { 0, 1, 3, 4 };
+          heldConfigIx = altIndices[altCursor++ & 0x03] % activeRx->getNumRadios();
+        }
+      }
+      targetConfigIx = heldConfigIx;
+    }
+  } else {
+    targetConfigIx = currentRadioType++ % activeRx->getNumRadios();
+  }
+
+  std::shared_ptr<MiLightRadio> radio = activeRx->switchRadio(targetConfigIx);
+  if (radio == nullptr) {
+    return;
+  }
+
+  size_t polls = (rxRadios != nullptr) ? max((size_t)6, (size_t)settings.listenRepeats) : settings.listenRepeats;
+
+  for (size_t i = 0; i < polls; i++) {
+    if (activeRx->available()) {
       uint8_t readPacket[MILIGHT_MAX_PACKET_LENGTH];
-      size_t packetLen = radios->read(readPacket);
+      size_t packetLen = activeRx->read(readPacket);
+
+      if (rxRadios != nullptr && packetSender != nullptr && packetSender->isRecentLocalTx(readPacket, packetLen)) {
+#ifdef ESP32
+        g_rxSelfEchoIgnored++;
+#endif
+        continue;
+      }
 
       const MiLightRemoteConfig* remoteConfig = MiLightRemoteConfig::fromReceivedPacket(
         radio->config(),
@@ -182,43 +342,90 @@ void handleListen() {
       );
 
       if (remoteConfig == NULL) {
-        // This can happen under normal circumstances, so not an error condition
-#ifdef DEBUG_PRINTF
-        Serial.println(F("WARNING: Couldn't find remote for received packet"));
-#endif
-        return;
+        continue;
       }
 
-      // update state to reflect this packet
-      onPacketSentHandler(readPacket, *remoteConfig);
+#ifdef ESP32
+      if (g_core0EventQueue != nullptr && xPortGetCoreID() == 0) {
+        Core0RadioEvent ev;
+        size_t copyLen = (packetLen <= MILIGHT_MAX_PACKET_LENGTH) ? packetLen : MILIGHT_MAX_PACKET_LENGTH;
+        memcpy(ev.packet, readPacket, copyLen);
+        ev.packetLen = (uint8_t)copyLen;
+        ev.remoteConfig = remoteConfig;
+        ev.isFromRxSniffer = true;
+        ev.isInternalTx = false;
+        xQueueSend(g_core0EventQueue, &ev, 0);
+        continue;
+      }
+#endif
+      processDecodedPacket(readPacket, *remoteConfig, true, false);
     }
   }
 }
 
-/**
- * Called when MqttClient#update is first being processed.  Stop sending updates
- * and aggregate state changes until the update is finished.
- */
+#ifdef ESP32
+void drainCore0RadioEvents() {
+  if (g_core0EventQueue == nullptr) return;
+  Core0RadioEvent ev;
+  uint8_t drained = 0;
+  while (drained < 16 && xQueueReceive(g_core0EventQueue, &ev, 0) == pdTRUE) {
+    if (ev.remoteConfig != nullptr) {
+      processDecodedPacket(ev.packet, *ev.remoteConfig, ev.isFromRxSniffer, ev.isInternalTx);
+    }
+    drained++;
+  }
+}
+
+void core0RadioTask(void* param) {
+  for (;;) {
+    if (g_pauseCore0Radio) {
+      g_core0RadioPausedAck = true;
+      vTaskDelay(pdMS_TO_TICKS(2));
+      continue;
+    }
+    g_core0RadioPausedAck = false;
+
+    bool didWork = false;
+    if (packetSender != nullptr) {
+      if (packetSender->isSending()) didWork = true;
+      packetSender->loop();
+    }
+    if (radios != nullptr || rxRadios != nullptr) {
+      pollRadioListenOnce();
+    }
+    g_core0LoopTicks++;
+
+    if (!didWork) {
+      vTaskDelay(1);
+    } else {
+      taskYIELD();
+    }
+  }
+}
+#endif
+
 void onUpdateBegin() {
   if (bulbStateUpdater) {
     bulbStateUpdater->disable();
   }
 }
 
-/**
- * Called when MqttClient#update is finished processing.  Re-enable state
- * updates, which will flush accumulated state changes.
- */
 void onUpdateEnd() {
   if (bulbStateUpdater) {
     bulbStateUpdater->enable();
   }
 }
 
-/**
- * Apply what's in the Settings object.
- */
 void applySettings() {
+#ifdef ESP32
+  if (g_core0RadioTaskHandle != nullptr) {
+    g_pauseCore0Radio = true;
+    uint32_t waitStart = millis();
+    while (!g_core0RadioPausedAck && (millis() - waitStart < 100)) {
+      delay(1);
+    }
+  }
+#endif
   if (milightClient) {
     delete milightClient;
   }
@@ -237,10 +444,14 @@ void applySettings() {
   }
   if (radios) {
     delete radios;
+    radios = nullptr;
+  }
+  if (rxRadios) {
+    delete rxRadios;
+    rxRadios = nullptr;
   }
 
   transitions.setDefaultPeriod(settings.defaultTransitionPeriod);
-
   radioFactory = MiLightRadioFactory::fromSettings(settings);
 
   if (radioFactory == NULL) {
@@ -248,8 +459,77 @@ void applySettings() {
   }
 
   stateStore = new GroupStateStore(MILIGHT_MAX_STATE_ITEMS, settings.stateFlushInterval);
-
   radios = new RadioSwitchboard(radioFactory, stateStore, settings);
+
+#ifdef ESP32
+  if (g_radio2Scan.csnPin >= 0) {
+    // Live Over-The-Air Loopback Calibration using Radio 1 (VSPI) -> Radio 2 (HSPI)!
+    // Tests every safe GPIO & both syncword byte orders until Radio 2 physically receives Radio 1's Mi-Light frame!
+    const uint8_t ceCandidates[] = { 4, 2, 16, 17, 27, 26, 25, 33, 32, 5 };
+    uint8_t dummyFrame[9] = { 0x25, 0x12, 0x5C, 0x01, 0x00, 0x00, 0x00, 0x00, 0xAA };
+
+    int verifiedCe = -1;
+    for (int revOrder = 0; revOrder <= 1 && verifiedCe < 0; revOrder++) {
+      HspiNRF24MiLightRadio::reverseSyncwordOrder = (revOrder == 1);
+
+      for (uint8_t candCe : ceCandidates) {
+        if (candCe == (uint8_t)g_radio2Scan.csnPin || candCe == settings.cePin || candCe == settings.csnPin || candCe == settings.ledPin) {
+          continue;
+        }
+        // Pull all other candidates LOW so only candCe is HIGH
+        for (uint8_t other : ceCandidates) {
+          if (other == (uint8_t)g_radio2Scan.csnPin || other == settings.cePin || other == settings.csnPin || other == settings.ledPin) continue;
+          pinMode(other, OUTPUT);
+          digitalWrite(other, LOW);
+        }
+
+        auto testFactory = std::make_shared<HspiNRF24Factory>(candCe, (uint8_t)g_radio2Scan.csnPin);
+        if (!testFactory->isReady()) break;
+
+        auto testRx = testFactory->create(MiLightRadioConfig::ALL_CONFIGS[2]);
+        testRx->begin(); // Sets Pipe 1 syncword, channel, and pulls candCe HIGH!
+        delayMicroseconds(250);
+
+        // Transmit 4 real V2 frames from Radio 1 (VSPI) across LOW/MID/HIGH channels
+        radios->switchRadio(2);
+        for (int burst = 0; burst < 4; burst++) {
+          radios->write(dummyFrame, sizeof(dummyFrame));
+        }
+        delayMicroseconds(200);
+
+        if (testRx->available()) {
+          uint8_t rxBuf[12];
+          size_t rxLen = sizeof(rxBuf);
+          (rxLen = MILIGHT_MAX_PACKET_LENGTH, testRx->read(rxBuf, rxLen));
+          verifiedCe = candCe;
+          g_radio2Scan.cePin = candCe;
+          break;
+        }
+        digitalWrite(candCe, LOW);
+      }
+    }
+
+    // Release non-matching candidate pins back to INPUT
+    for (uint8_t other : ceCandidates) {
+      if (other == (uint8_t)g_radio2Scan.csnPin || other == settings.cePin || other == settings.csnPin || other == settings.ledPin) continue;
+      if ((int)other != g_radio2Scan.cePin) {
+        pinMode(other, INPUT);
+      }
+    }
+
+    // Reset diagnostic counters after boot calibration burst
+    HspiNRF24MiLightRadio::rawFifoHits = 0;
+    HspiNRF24MiLightRadio::crcPassCount = 0;
+    HspiNRF24MiLightRadio::crcFailCount = 0;
+
+    if (g_radio2Scan.cePin >= 0) {
+      rxRadioFactory = std::make_shared<HspiNRF24Factory>((uint8_t)g_radio2Scan.cePin, (uint8_t)g_radio2Scan.csnPin);
+      if (rxRadioFactory->isReady()) {
+        rxRadios = new RadioSwitchboard(rxRadioFactory, stateStore, settings);
+      }
+    }
+  }
+#endif
   packetSender = new PacketSender(*radios, settings, onPacketSentHandler);
 
   milightClient = new MiLightClient(
@@ -262,10 +542,11 @@ void applySettings() {
   milightClient->onUpdateBegin(onUpdateBegin);
   milightClient->onUpdateEnd(onUpdateEnd);
 
-  if (settings.mqttServer().length() > 0) {
+  if (initialized && settings.mqttServer().length() > 0) {
     mqttClient = new MqttClient(settings, milightClient);
     mqttClient->begin();
     mqttClient->onConnect([]() {
+      RemoteRegistry::instance().publishDiscovery();
       if (settings.homeAssistantDiscoveryPrefix.length() > 0) {
         HomeAssistantDiscoveryClient discoveryClient(settings, mqttClient);
         discoveryClient.sendDiscoverableDevices(settings.groupIdAliases);
@@ -278,9 +559,26 @@ void applySettings() {
     bulbStateUpdater = new BulbStateUpdater(settings, *mqttClient, *stateStore);
   }
 
+  RemoteRegistry::instance().begin(&mqttClient, &milightClient);
+    if (mqttClient == NULL && settings.mqttServer().length() > 0) {
+    mqttClient = new MqttClient(settings, milightClient);
+    mqttClient->begin();
+    mqttClient->onConnect([]() {
+      RemoteRegistry::instance().publishDiscovery();
+      if (settings.homeAssistantDiscoveryPrefix.length() > 0) {
+        HomeAssistantDiscoveryClient discoveryClient(settings, mqttClient);
+        discoveryClient.sendDiscoverableDevices(settings.groupIdAliases);
+        discoveryClient.removeOldDevices(settings.deletedGroupIdAliases);
+        settings.deletedGroupIdAliases.clear();
+      }
+    });
+    if (bulbStateUpdater) {
+      delete bulbStateUpdater;
+    }
+    bulbStateUpdater = new BulbStateUpdater(settings, *mqttClient, *stateStore);
+  }
   initMilightUdpServers();
 
-  // update LED pin and operating mode
   if (ledStatus) {
     ledStatus->changePin(settings.ledPin);
     ledStatus->continuous(settings.ledModeOperating);
@@ -289,44 +587,43 @@ void applySettings() {
   WiFi.hostname(settings.hostname);
 #ifdef ESP8266
   WiFiPhyMode_t wifiPhyMode;
-switch (settings.wifiMode) {
-  case WifiMode::B:
-    wifiPhyMode = WIFI_PHY_MODE_11B;
-    break;
-  case WifiMode::G:
-    wifiPhyMode = WIFI_PHY_MODE_11G;
-    break;
-  default:
-  case WifiMode::N:
-    wifiPhyMode = WIFI_PHY_MODE_11N;
-    break;
-}
+  switch (settings.wifiMode) {
+    case WifiMode::B: wifiPhyMode = WIFI_PHY_MODE_11B; break;
+    case WifiMode::G: wifiPhyMode = WIFI_PHY_MODE_11G; break;
+    default:
+    case WifiMode::N: wifiPhyMode = WIFI_PHY_MODE_11N; break;
+  }
   WiFi.setPhyMode(wifiPhyMode);
 #elif ESP32
   switch (settings.wifiMode) {
-    case WifiMode::B:
-      esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_11B);
-      break;
-    case WifiMode::G:
-      esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_11G);
-      break;
+    case WifiMode::B: esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_11B); break;
+    case WifiMode::G: esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_11G); break;
     default:
-    case WifiMode::N:
-      esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_11N);
-      break;
+    case WifiMode::N: esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_11N); break;
   }
   esp_wifi_set_bandwidth(WIFI_IF_STA, WIFI_BW_HT20);
+  g_pauseCore0Radio = false;
+  if (g_core0EventQueue == nullptr) {
+    g_core0EventQueue = xQueueCreate(32, sizeof(Core0RadioEvent));
+  }
+  if (g_core0RadioTaskHandle == nullptr && g_core0EventQueue != nullptr) {
+    xTaskCreatePinnedToCore(
+      core0RadioTask,
+      "RadioCore0",
+      6144,
+      nullptr,
+      3,
+      &g_core0RadioTaskHandle,
+      0
+    );
+  }
 #endif
 }
 
-/**
- *
- */
 bool shouldRestart() {
   if (! settings.isAutoRestartEnabled()) {
     return false;
   }
-
   return settings.getAutoRestartPeriod()*60*1000 < millis();
 }
 
@@ -336,11 +633,147 @@ void wifiExtraSettingsChange() {
   settings.wifiStaticIPGateway = wifiStaticIPGateway->getValue();
   settings.wifiMode = Settings::wifiModeFromString(wifiMode->getValue());
   settings.save();
-
-  // Restart the device
   delay(1000);
   ESP.restart();
 }
+
+#ifdef ESP32
+
+static uint8_t hspiReadReg(SPIClass& hspi, uint8_t csn, uint8_t reg) {
+  hspi.beginTransaction(SPISettings(4000000, MSBFIRST, SPI_MODE0));
+  digitalWrite(csn, LOW);
+  delayMicroseconds(5);
+  hspi.transfer(reg & 0x1F);
+  uint8_t val = hspi.transfer(0xFF);
+  digitalWrite(csn, HIGH);
+  hspi.endTransaction();
+  delayMicroseconds(5);
+  return val;
+}
+
+static void hspiWriteReg(SPIClass& hspi, uint8_t csn, uint8_t reg, uint8_t val) {
+  hspi.beginTransaction(SPISettings(4000000, MSBFIRST, SPI_MODE0));
+  digitalWrite(csn, LOW);
+  delayMicroseconds(5);
+  hspi.transfer(0x20 | (reg & 0x1F));
+  hspi.transfer(val);
+  digitalWrite(csn, HIGH);
+  hspi.endTransaction();
+  delayMicroseconds(5);
+}
+
+static void hspiCmd(SPIClass& hspi, uint8_t csn, uint8_t cmd) {
+  hspi.beginTransaction(SPISettings(4000000, MSBFIRST, SPI_MODE0));
+  digitalWrite(csn, LOW);
+  delayMicroseconds(5);
+  hspi.transfer(cmd);
+  digitalWrite(csn, HIGH);
+  hspi.endTransaction();
+  delayMicroseconds(5);
+}
+
+void scanSecondRadioPins() {
+  const uint8_t rawCandidates[] = { 27, 26, 25, 33, 32, 15, 4, 5, 16, 17, 2 };
+  std::vector<uint8_t> cands;
+  for (uint8_t p : rawCandidates) {
+    if (p == settings.cePin || p == settings.csnPin || p == settings.ledPin) continue;
+    cands.push_back(p);
+    pinMode(p, INPUT_PULLUP);
+  }
+  delay(2);
+
+  SPIClass hspi(HSPI);
+  hspi.begin(14, 12, 13, -1);
+
+  for (uint8_t p : cands) {
+    pinMode(p, OUTPUT);
+    digitalWrite(p, HIGH);
+    delayMicroseconds(10);
+
+    hspiWriteReg(hspi, p, 0x05, 0x2A);
+    uint8_t r1 = hspiReadReg(hspi, p, 0x05);
+    hspiWriteReg(hspi, p, 0x05, 0x15);
+    uint8_t r2 = hspiReadReg(hspi, p, 0x05);
+
+    if (r1 == 0x2A && r2 == 0x15) {
+      hspiWriteReg(hspi, p, 0x05, 0x02);
+      g_radio2Scan.csnPin = p;
+      digitalWrite(p, HIGH);
+      break;
+    }
+    pinMode(p, INPUT_PULLUP);
+  }
+
+  if (g_radio2Scan.csnPin >= 0) {
+    uint8_t csn = (uint8_t)g_radio2Scan.csnPin;
+    for (uint8_t q : cands) {
+      if (q != csn) pinMode(q, INPUT_PULLDOWN);
+    }
+    delay(2);
+
+    hspiWriteReg(hspi, csn, 0x00, 0x0A); // PWR_UP=1, EN_CRC=1, PRIM_RX=0 (PTX)
+    delay(5);                            // Crystal oscillator startup
+    hspiWriteReg(hspi, csn, 0x01, 0x00); // EN_AA=0 (no ACK needed for TX_DS)
+    hspiWriteReg(hspi, csn, 0x04, 0x00); // SETUP_RETR=0
+    hspiWriteReg(hspi, csn, 0x05, 0x7C); // Channel 124 (2.524 GHz)
+    hspiWriteReg(hspi, csn, 0x06, 0x00); // -18 dBm min power, 1 Mbps
+    hspiCmd(hspi, csn, 0xE1);            // FLUSH_TX
+    hspiWriteReg(hspi, csn, 0x07, 0x70); // Clear STATUS flags
+
+    // Queue 4-byte dummy TX payload
+    hspi.beginTransaction(SPISettings(4000000, MSBFIRST, SPI_MODE0));
+    digitalWrite(csn, LOW);
+    delayMicroseconds(5);
+    hspi.transfer(0xA0);
+    for (int i = 0; i < 4; i++) hspi.transfer(0x55);
+    digitalWrite(csn, HIGH);
+    hspi.endTransaction();
+
+    delayMicroseconds(600);
+    if (hspiReadReg(hspi, csn, 0x07) & 0x20) {
+      g_radio2Scan.ceHardwiredHigh = true;
+    } else {
+      for (uint8_t q : cands) {
+        if (q == csn) continue;
+        pinMode(q, OUTPUT);
+        digitalWrite(q, HIGH);
+        delayMicroseconds(30);
+        digitalWrite(q, LOW);
+        delayMicroseconds(600);
+
+        uint8_t st = hspiReadReg(hspi, csn, 0x07);
+        uint8_t fifo = hspiReadReg(hspi, csn, 0x17);
+        if ((st & 0x20) || (fifo & 0x10)) {
+          g_radio2Scan.cePin = q;
+          break;
+        }
+        pinMode(q, INPUT_PULLDOWN);
+      }
+    }
+
+    // Power down cleanly & release unused test pins
+    hspiCmd(hspi, csn, 0xE1);
+    hspiWriteReg(hspi, csn, 0x07, 0x70);
+    hspiWriteReg(hspi, csn, 0x00, 0x08);
+    for (uint8_t q : cands) {
+      if (q == csn) {
+        pinMode(q, OUTPUT);
+        digitalWrite(q, HIGH);
+      } else if ((int)q == g_radio2Scan.cePin) {
+        pinMode(q, OUTPUT);
+        digitalWrite(q, LOW);
+      } else {
+        pinMode(q, INPUT);
+      }
+    }
+  } else {
+    for (uint8_t q : cands) pinMode(q, INPUT);
+  }
+
+  hspi.end();
+  g_radio2Scan.scanned = true;
+}
+#endif
 
 void aboutHandler(JsonDocument& json) {
   JsonObject mqtt = json.createNestedObject(FPSTR("mqtt"));
@@ -350,10 +783,26 @@ void aboutHandler(JsonDocument& json) {
     mqtt[FPSTR("connected")] = mqttClient->isConnected();
     mqtt[FPSTR("status")] = mqttClient->getConnectionStatusString();
   }
+#ifdef ESP32
+  JsonObject r2 = json.createNestedObject("radio2");
+  r2["scanned"] = g_radio2Scan.scanned;
+  r2["dual_rx_active"] = (rxRadios != nullptr);
+  r2["csn_pin"] = g_radio2Scan.csnPin;
+  r2["ce_pin"] = g_radio2Scan.cePin;
+  r2["rev_syncword"] = HspiNRF24MiLightRadio::reverseSyncwordOrder;
+  r2["raw_fifo_hits"] = HspiNRF24MiLightRadio::rawFifoHits;
+  r2["crc_pass"] = HspiNRF24MiLightRadio::crcPassCount;
+  r2["crc_fail"] = HspiNRF24MiLightRadio::crcFailCount;
+  r2["rx_packets_decoded"] = g_rxPacketsDecoded;
+  r2["self_echo_ignored"] = g_rxSelfEchoIgnored;
+  r2["last_sniffed"] = g_lastSniffedSummary;
+  r2["last_client_cmd"] = g_lastClientCmdSummary;
+  r2["core0_task_active"] = (g_core0RadioTaskHandle != nullptr);
+  r2["core0_ticks"] = g_core0LoopTicks;
+  r2["tx_coalesced"] = packetSender ? packetSender->coalescedPackets() : 0;
+#endif
 }
 
-// Called when a group is deleted via the REST API.  Will publish an empty message to
-// the MQTT topic to delete retained state
 void onGroupDeleted(const BulbId& id) {
   if (mqttClient != NULL) {
     mqttClient->sendState(
@@ -365,10 +814,10 @@ void onGroupDeleted(const BulbId& id) {
   }
 }
 
-bool initialized = false;
 void postConnectSetup() {
   if (initialized) return;
   initialized = true;
+  applySettings();
 
   delete wifiManager;
   wifiManager = NULL;
@@ -387,16 +836,19 @@ void postConnectSetup() {
   httpServer->onSettingsSaved(applySettings);
   httpServer->onGroupDeleted(onGroupDeleted);
   httpServer->onAbout(aboutHandler);
-  httpServer->on("/description.xml", HTTP_GET, []() { SSDP.schema(httpServer->client()); });
+  httpServer->on("/description.xml", HTTP_GET, []() {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+    SSDP.schema(httpServer->client());
+#pragma GCC diagnostic pop
+  });
   httpServer->begin();
 
   transitions.addListener(
       [](const BulbId& bulbId, GroupStateField field, uint16_t value) {
           StaticJsonDocument<100> buffer;
-
           const char* fieldName = GroupStateFieldHelpers::getFieldName(field);
           buffer[fieldName] = value;
-
           milightClient->prepare(bulbId.deviceType, bulbId.deviceId, bulbId.groupId);
           milightClient->update(buffer.as<JsonObject>());
       }
@@ -404,15 +856,17 @@ void postConnectSetup() {
 
   initMilightUdpServers();
 
+
   Serial.printf_P(PSTR("Setup complete (version %s)\n"), QUOTE(MILIGHT_HUB_VERSION));
 }
 
 void setup() {
   Serial.begin(9600);
+#ifdef ESP32
+  WiFi.mode(WIFI_STA); // init LwIP mbox before any Settings/HTTP/MQTT/WiFi calls
+#endif
   String ssid = "ESP" + String(getESPId());
 
-  // load up our persistent settings from the file system
-  // ESP8266 doesn't support the formatOnFail parameter
   #ifdef ESP8266
     if (! ProjectFS.begin()) {
       Serial.println(F("Failed to mount file system"));
@@ -423,27 +877,31 @@ void setup() {
     }
   #endif
 
+    pinMode(0, INPUT_PULLUP);
+  delay(100);
+  if (digitalRead(0) == LOW) {
+    Serial.println(F("[SAFE-BOOT] BOOT button held! Deleting corrupt /config.json..."));
+    ProjectFS.remove("/config.json");
+    delay(1000);
+  }
   Settings::load(settings);
+#ifdef ESP32
+  scanSecondRadioPins();
+#endif
+  
   ESPMH_SETUP_WIFI(settings);
   applySettings();
 
-  // set up the LED status for wifi configuration
   ledStatus = new LEDStatus(settings.ledPin);
   ledStatus->continuous(settings.ledModeWifiConfig);
 
-  // start up the wifi manager
   if (! MDNS.begin("milight-hub")) {
     Serial.println(F("Error setting up MDNS responder"));
   }
 
-  // Allows us to have static IP config in the captive portal. Yucky pointers to pointers, just to have the settings carry through
   wifiManager = new WiFiManager();
-
-  // Setting breakAfterConfig to true causes wifiExtraSettingsChange to be called whenever config params are changed
-  // (even when connection fails or user is just changing settings and not network)
   wifiManager->setBreakAfterConfig(true);
   wifiManager->setSaveConfigCallback(wifiExtraSettingsChange);
-
   wifiManager->setConfigPortalBlocking(false);
   wifiManager->setConnectTimeout(20);
   wifiManager->setConnectRetries(5);
@@ -480,43 +938,32 @@ void setup() {
   );
   wifiManager->addParameter(wifiMode);
 
-  // We have a saved static IP, let's try and use it.
   if (settings.wifiStaticIP.length() > 0) {
     Serial.printf_P(PSTR("We have a static IP: %s\n"), settings.wifiStaticIP.c_str());
-
     IPAddress _ip, _subnet, _gw;
     _ip.fromString(settings.wifiStaticIP);
     _subnet.fromString(settings.wifiStaticIPNetmask);
     _gw.fromString(settings.wifiStaticIPGateway);
-
     wifiManager->setSTAStaticIPConfig(_ip,_gw,_subnet);
   }
 
   wifiManager->setConfigPortalTimeout(180);
   wifiManager->setConfigPortalTimeoutCallback([]() {
       ledStatus->continuous(settings.ledModeWifiFailed);
-
       Serial.println(F("Wifi config portal timed out.  Restarting..."));
       delay(10000);
       ESP.restart();
   });
 
   if (wifiManager->autoConnect(ssid.c_str(), "milightHub")) {
-    // set LED mode for successful operation
     ledStatus->continuous(settings.ledModeOperating);
     Serial.println(F("Wifi connected succesfully\n"));
-
-    // if the config portal was started, make sure to turn off the config AP
     WiFi.mode(WIFI_STA);
-
     postConnectSetup();
   }
 }
 
-size_t i = 0;
-
 void loop() {
-  // update LED with status
   ledStatus->handle();
 
   if (shouldRestart()) {
@@ -541,15 +988,24 @@ void loop() {
       udpServer->handleClient();
     }
 
+    RemoteRegistry::instance().tick();
+
     if (discoveryServer) {
       discoveryServer->handleClient();
     }
 
-    handleListen();
-
-    stateStore->limitedFlush();
+#ifdef ESP32
+    if (g_core0RadioTaskHandle != nullptr) {
+      drainCore0RadioEvents();
+    } else {
+      pollRadioListenOnce();
+      packetSender->loop();
+    }
+#else
+    pollRadioListenOnce();
     packetSender->loop();
-
+#endif
+    stateStore->limitedFlush();
     transitions.loop();
   }
 }

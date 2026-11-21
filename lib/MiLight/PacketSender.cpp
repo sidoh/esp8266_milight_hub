@@ -19,7 +19,7 @@ PacketSender::PacketSender(
     )
 { }
 
-void PacketSender::enqueue(uint8_t* packet, const MiLightRemoteConfig* remoteConfig, const size_t repeatsOverride) {
+bool PacketSender::enqueue(uint8_t* packet, const MiLightRemoteConfig* remoteConfig, const size_t repeatsOverride, bool isInternal) {
 #ifdef DEBUG_PRINTF
   Serial.println("Enqueuing packet");
 #endif
@@ -27,7 +27,9 @@ void PacketSender::enqueue(uint8_t* packet, const MiLightRemoteConfig* remoteCon
     ? this->currentResendCount
     : repeatsOverride;
 
-  queue.push(packet, remoteConfig, repeats);
+  size_t pktLen = remoteConfig->packetFormatter->getPacketLength();
+  recordTxEcho(packet, pktLen);
+  return queue.push(packet, remoteConfig, repeats, isInternal);
 }
 
 void PacketSender::loop() {
@@ -51,6 +53,10 @@ void PacketSender::nextPacket() {
   Serial.printf("Switching to next packet, %d packets in queue\n", queue.size());
 #endif
   currentPacket = queue.pop();
+  if (currentPacket == nullptr) {
+    packetRepeatsRemaining = 0;
+    return;
+  }
 
   if (currentPacket->repeatsOverride > 0) {
     packetRepeatsRemaining = currentPacket->repeatsOverride;
@@ -70,9 +76,9 @@ void PacketSender::handleCurrentPacket() {
   sendRepeats(numToSend);
   packetRepeatsRemaining -= numToSend;
 
-  // If we're done sending this packet, fire the sent packet callback
+  // If we're done sending this packet, fire the sent packet callback with exact internal/external origin
   if (packetRepeatsRemaining == 0 && packetSentHandler != nullptr) {
-    packetSentHandler(currentPacket->packet, *currentPacket->remoteConfig);
+    packetSentHandler(currentPacket->packet, *currentPacket->remoteConfig, currentPacket->isInternal);
   }
 }
 
@@ -82,6 +88,10 @@ size_t PacketSender::queueLength() const {
 
 size_t PacketSender::droppedPackets() const {
   return queue.getDroppedPacketCount();
+}
+
+size_t PacketSender::coalescedPackets() const {
+  return queue.getCoalescedPacketCount();
 }
 
 void PacketSender::sendRepeats(size_t num) {
@@ -96,9 +106,13 @@ void PacketSender::sendRepeats(size_t num) {
   int iStart = millis();
 #endif
 
+  lastRadioWriteMs = millis();
+  recordTxEcho(currentPacket->packet, len);
   for (size_t i = 0; i < num; ++i) {
     radioSwitchboard.write(currentPacket->packet, len);
   }
+  lastRadioWriteMs = millis();
+  recordTxEcho(currentPacket->packet, len);
 
 #ifdef DEBUG_PRINTF
   int iElapsed = millis() - iStart;
@@ -122,4 +136,55 @@ void PacketSender::updateResendCount() {
 
   this->currentResendCount = signedResends;
   this->lastSend = now;
+}
+
+void PacketSender::recordTxEcho(const uint8_t* packet, size_t len) {
+  if (len == 0 || len > MILIGHT_MAX_PACKET_LENGTH) return;
+  uint32_t now = millis();
+#ifdef ESP32
+  portENTER_CRITICAL(&echoMux);
+#endif
+  for (size_t i = 0; i < TX_ECHO_RING_SIZE; i++) {
+    if (txEchoRing[i].len == len && memcmp(txEchoRing[i].bytes, packet, len) == 0) {
+      txEchoRing[i].ts = now;
+#ifdef ESP32
+      portEXIT_CRITICAL(&echoMux);
+#endif
+      return;
+    }
+  }
+  TxEchoSlot& slot = txEchoRing[txEchoHead];
+  memcpy(slot.bytes, packet, len);
+  slot.len = (uint8_t)len;
+  slot.ts = now;
+  txEchoHead = (txEchoHead + 1) % TX_ECHO_RING_SIZE;
+#ifdef ESP32
+  portEXIT_CRITICAL(&echoMux);
+#endif
+}
+
+bool PacketSender::isRecentLocalTx(const uint8_t* packet, size_t len, uint32_t windowMs) const {
+  if (len == 0 || len > MILIGHT_MAX_PACKET_LENGTH) return false;
+  uint32_t now = millis();
+  // Hardware half-duplex air guard: if Radio 1 is actively transmitting right now or finished < 280ms ago,
+  // any packet arriving on Radio 2 is Radio 1's own RF transmission!
+  if (packetRepeatsRemaining > 0 || !queue.isEmpty() || (lastRadioWriteMs > 0 && (now - lastRadioWriteMs <= 280))) {
+    return true;
+  }
+  bool match = false;
+#ifdef ESP32
+  portENTER_CRITICAL(&echoMux);
+#endif
+  for (size_t i = 0; i < TX_ECHO_RING_SIZE; i++) {
+    if (txEchoRing[i].len == len && (now - txEchoRing[i].ts <= windowMs)) {
+      if (memcmp(txEchoRing[i].bytes, packet, len) == 0) {
+        match = true;
+        break;
+      }
+    }
+  }
+#ifdef ESP32
+  portEXIT_CRITICAL(&echoMux);
+#endif
+  return match;
 }
