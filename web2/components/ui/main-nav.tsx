@@ -42,6 +42,7 @@ export function MainNav({
           >
             <NavLink href="#/dashboard">Dashboard</NavLink>
             <NavLink href="#/sniffer">Sniffer</NavLink>
+            <NavLink href="#/remotes">Remotes</NavLink>
           </nav>
         </div>
         <div className="flex items-center space-x-4">

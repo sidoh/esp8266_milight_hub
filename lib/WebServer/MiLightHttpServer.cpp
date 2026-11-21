@@ -4,8 +4,6 @@
 #include <IntParsing.h>
 #include <Settings.h>
 #include <MiLightHttpServer.h>
-#include <RemoteStudioHtml.gz.h>
-#include <PatchedRootHtml.gz.h>
 #include <RemoteRegistry.h>
 #include <MiLightRadioConfig.h>
 #include <string.h>
@@ -30,11 +28,11 @@ using namespace std::placeholders;
 void MiLightHttpServer::begin() {
   server
     .buildHandler("/")
-    .onSimple(HTTP_GET, std::bind(&MiLightHttpServer::handleServe_P, this, patched_index_html_gz, patched_index_html_gz_len, "text/html"));
+    .onSimple(HTTP_GET, std::bind(&MiLightHttpServer::handleServe_P, this, index_html_gz, index_html_gz_len, "text/html"));
 
   server
     .buildHandler("/remotes-ui")
-    .onSimple(HTTP_GET, std::bind(&MiLightHttpServer::handleServe_P, this, remote_studio_html_gz, remote_studio_html_gz_len, "text/html"));
+    .onSimple(HTTP_GET, [this](const UrlTokenBindings*) { server.sendHeader("Location", "/#/remotes", true); server.send(302, "text/plain", ""); });
 
   server
     .buildHandler("/miboxer_catalog.js")

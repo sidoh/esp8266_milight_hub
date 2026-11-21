@@ -48,14 +48,9 @@
   }
 
   function tryLoadFile(file) {
-    const isDevelopment = "{{env}}" === "development";
-    if (isDevelopment) {
-      return tryLoadUrl(file.localPath, file.size, 0, 0);
-    } else {
-      return tryLoadUrl(file.cdnPath, file.size, 0, 0).catch(() =>
-        tryLoadUrl(file.localPath, file.size, 0, 5)
-      );
-    }
+    return tryLoadUrl(file.localPath, file.size, 0, 2).catch(() =>
+      tryLoadUrl(file.cdnPath, file.size, 0, 2)
+    );
   }
 
   function loadPage() {

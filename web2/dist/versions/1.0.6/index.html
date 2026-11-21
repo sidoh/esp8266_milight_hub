@@ -22,14 +22,14 @@
     {
       type: "stylesheet",
       cdnPath: cdnBase + "bundle.css",
-      localPath: "dist/bundle.37b5a8fa.css",
-      size: parseInt("8419", 10),
+      localPath: "dist/bundle.ed90eccd.css",
+      size: parseInt("9189", 10),
     },
     {
       type: "script",
       cdnPath: cdnBase + "bundle.js",
-      localPath: "dist/bundle.10ec1cc5.js",
-      size: parseInt("220595", 10),
+      localPath: "dist/bundle.d042591b.js",
+      size: parseInt("229122", 10),
     },
   ];
 
@@ -66,14 +66,9 @@
   }
 
   function tryLoadFile(file) {
-    const isDevelopment = "production" === "development";
-    if (isDevelopment) {
-      return tryLoadUrl(file.localPath, file.size, 0, 0);
-    } else {
-      return tryLoadUrl(file.cdnPath, file.size, 0, 0).catch(() =>
-        tryLoadUrl(file.localPath, file.size, 0, 5)
-      );
-    }
+    return tryLoadUrl(file.localPath, file.size, 0, 2).catch(() =>
+      tryLoadUrl(file.cdnPath, file.size, 0, 2)
+    );
   }
 
   function loadPage() {
