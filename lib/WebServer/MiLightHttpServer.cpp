@@ -1119,7 +1119,7 @@ void MiLightHttpServer::handleBatchUpdateGroups(RequestContext& request) {
 }
 
 void MiLightHttpServer::handleListRemotes(RequestContext& request) {
-  DynamicJsonDocument doc(4096);
+  DynamicJsonDocument doc(8192);
   JsonArray arr = doc.to<JsonArray>();
   RemoteRegistry::instance().serializeRemotes(arr);
   String out;
@@ -1130,14 +1130,13 @@ void MiLightHttpServer::handleListRemotes(RequestContext& request) {
 
 void MiLightHttpServer::handleUpsertRemote(RequestContext& request) {
   JsonObject body = request.getJsonBody().as<JsonObject>();
+  uint16_t devId = body["device_id"] | (body["id"] | 0);
   RegisteredRemote item;
-  item.deviceId = body["device_id"] | 0;
-  item.remoteType = body["remote_type"] | "fut089";
-  item.visualModel = body["visual_model"] | "FUT089";
-  item.name = body["name"] | "Remote";
-  item.topicPrefix = body["topic_prefix"] | "milight/actions/remote";
-  item.numZones = body["num_zones"] | 8;
-  item.active = body["active"] | true;
+  const RegisteredRemote* existing = RemoteRegistry::instance().find(devId);
+  if (existing != nullptr) {
+    item = *existing; // Preserve existing gestures & touch_zones if caller only updates name/model!
+  }
+  RemoteRegistry::parseRemoteFromJson(body, item);
 
   bool ok = RemoteRegistry::instance().upsert(item);
   server.send(ok ? 200 : 400, APPLICATION_JSON, ok ? "{\"success\":true}" : "{\"success\":false}");

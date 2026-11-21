@@ -1034,6 +1034,7 @@ void loop() {
     if (ddpServer) {
       ddpServer->loop();
     }
+    RemoteRegistry::instance().tick();
 
     if (discoveryServer) {
       discoveryServer->handleClient();
