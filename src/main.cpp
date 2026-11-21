@@ -22,6 +22,8 @@
 #include <HomeAssistantDiscoveryClient.h>
 #include <TransitionController.h>
 #include <ProjectWifi.h>
+#include <DDPStaticZoneHandler.h>
+#include <memory>
 
 #include <ESPId.h>
 
@@ -65,6 +67,7 @@ BulbStateUpdater* bulbStateUpdater = NULL;
 TransitionController transitions;
 
 std::vector<std::shared_ptr<MiLightUdpServer>> udpServers;
+std::unique_ptr<DDPStaticZoneHandler> ddpServer;
 
 /**
  * Set up UDP servers (both v5 and v6).  Clean up old ones if necessary.
@@ -111,7 +114,7 @@ void initMilightUdpServers() {
  * Called both when a packet is sent locally, and when an intercepted packet
  * is read.
  */
-void onPacketSentHandler(uint8_t* packet, const MiLightRemoteConfig& config) {
+void onPacketSentHandler(uint8_t* packet, const MiLightRemoteConfig& config, bool isInternal = false) {
   StaticJsonDocument<200> buffer;
   JsonObject result = buffer.to<JsonObject>();
 
@@ -154,6 +157,10 @@ void onPacketSentHandler(uint8_t* packet, const MiLightRemoteConfig& config) {
   }
 
   httpServer->handlePacketSent(packet, remoteConfig, bulbId, result);
+  if (ddpServer && !isInternal) {
+    const GroupState* updatedState = stateStore->get(bulbId);
+    ddpServer->publishLocalStateToMqtt(bulbId.deviceId, bulbId.groupId, bulbId.deviceType, updatedState ? updatedState : &stateUpdates);
+  }
 }
 
 /**
@@ -387,7 +394,12 @@ void postConnectSetup() {
   httpServer->onSettingsSaved(applySettings);
   httpServer->onGroupDeleted(onGroupDeleted);
   httpServer->onAbout(aboutHandler);
-  httpServer->on("/description.xml", HTTP_GET, []() { SSDP.schema(httpServer->client()); });
+  httpServer->on("/description.xml", HTTP_GET, []() {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+    SSDP.schema(httpServer->client());
+#pragma GCC diagnostic pop
+  });
   httpServer->begin();
 
   transitions.addListener(
@@ -403,6 +415,19 @@ void postConnectSetup() {
   );
 
   initMilightUdpServers();
+
+  if (milightClient != NULL) {
+    uint16_t resolvedFut089Id = 0x125C;
+    for (size_t g = 0; g < settings.gatewayConfigs.size(); ++g) {
+      if (settings.gatewayConfigs[g]->protocolVersion == 6 ||
+          settings.gatewayConfigs[g]->protocolVersion == MiLightRemoteType::REMOTE_TYPE_FUT089) {
+        resolvedFut089Id = settings.gatewayConfigs[g]->deviceId;
+        break;
+      }
+    }
+    ddpServer = std::unique_ptr<DDPStaticZoneHandler>(new DDPStaticZoneHandler(milightClient, resolvedFut089Id, stateStore, settings));
+    ddpServer->begin();
+  }
 
   Serial.printf_P(PSTR("Setup complete (version %s)\n"), QUOTE(MILIGHT_HUB_VERSION));
 }
@@ -539,6 +564,9 @@ void loop() {
 
     for (auto & udpServer : udpServers) {
       udpServer->handleClient();
+    }
+    if (ddpServer) {
+      ddpServer->loop();
     }
 
     if (discoveryServer) {

@@ -7,7 +7,7 @@
 
 class PacketSender {
 public:
-  typedef std::function<void(uint8_t* packet, const MiLightRemoteConfig& config)> PacketSentHandler;
+  typedef std::function<void(uint8_t* packet, const MiLightRemoteConfig& config, bool isInternal)> PacketSentHandler;
   static const size_t DEFAULT_PACKET_SENDS_VALUE = 0;
 
   PacketSender(
@@ -16,7 +16,7 @@ public:
     PacketSentHandler packetSentHandler
   );
 
-  void enqueue(uint8_t* packet, const MiLightRemoteConfig* remoteConfig, const size_t repeatsOverride = 0);
+  bool enqueue(uint8_t* packet, const MiLightRemoteConfig* remoteConfig, const size_t repeatsOverride = 0, bool isInternal = false);
   void loop();
 
   // Return true if there are queued packets
@@ -25,6 +25,8 @@ public:
   // Return the number of queued packets
   size_t queueLength() const;
   size_t droppedPackets() const;
+  size_t coalescedPackets() const;
+  bool isRecentLocalTx(const uint8_t* packet, size_t len, uint32_t windowMs = 1200) const;
 
 private:
   RadioSwitchboard& radioSwitchboard;
@@ -71,4 +73,18 @@ private:
    * increased up to a maximum of the default resend count.
    */
   void updateResendCount();
+
+  struct TxEchoSlot {
+    uint8_t bytes[MILIGHT_MAX_PACKET_LENGTH];
+    uint8_t len = 0;
+    uint32_t ts = 0;
+  };
+  static const size_t TX_ECHO_RING_SIZE = 16;
+  TxEchoSlot txEchoRing[TX_ECHO_RING_SIZE];
+  size_t txEchoHead = 0;
+  volatile uint32_t lastRadioWriteMs = 0;
+#ifdef ESP32
+  mutable portMUX_TYPE echoMux = portMUX_INITIALIZER_UNLOCKED;
+#endif
+  void recordTxEcho(const uint8_t* packet, size_t len);
 };
