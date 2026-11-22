@@ -1069,5 +1069,798 @@
     </svg>`;
   }
 
-  root.MiBoxerCatalog = { MODELS, renderModelSvg };
+
+// === MIBOXER_FACIA_EXTENSION_START ===
+  const CAPACITIVE_LAYOUTS = new Set(['b8', 'b_strip', 'b0', 'b5', 'u_panel', 'm4']);
+
+  function isCapacitiveFlatPanel(modelOrId) {
+    const m = typeof modelOrId === 'string' ? (MODELS.find(x => x.id === modelOrId) || {}) : (modelOrId || {});
+    return (m.cat === 'panel' || m.isCustom) && CAPACITIVE_LAYOUTS.has(m.layout);
+  }
+
+  function getPhysicalDims(modelOrId) {
+    const m = typeof modelOrId === 'string' ? (MODELS.find(x => x.id === modelOrId) || { id: modelOrId }) : (modelOrId || {});
+    const layout = m.layout || '';
+    if (layout === 'b8') return { width_mm: 106, height_mm: 146, glass_w_mm: 100, glass_h_mm: 140, corner_mm: 4.5, led_x_pct: 50, led_y_pct: 7.5, mount: 'EU/AU Portrait Glass Wall Panel' };
+    if (layout === 'u_panel') return { width_mm: 70, height_mm: 114, glass_w_mm: 65, glass_h_mm: 109, corner_mm: 4.0, led_x_pct: 50, led_y_pct: 8.5, mount: 'US Single-Gang Glass Wall Panel' };
+    if (layout === 'm4') return { width_mm: 142, height_mm: 86, glass_w_mm: 136, glass_h_mm: 80, corner_mm: 4.0, led_x_pct: 8.5, led_y_pct: 11, mount: 'Italian 503/504 Landscape Glass Panel' };
+    if (layout === 'b_strip' || layout === 'b0' || layout === 'b5') return { width_mm: 86, height_mm: 86, glass_w_mm: 81, glass_h_mm: 81, corner_mm: 4.0, led_x_pct: 50, led_y_pct: 8.0, mount: '86x86mm Square Glass Wall Panel' };
+    return { width_mm: 86, height_mm: 86, glass_w_mm: 80, glass_h_mm: 80, corner_mm: 4.0, mount: 'Standard Panel' };
+  }
+
+  // Standardized 24x24 Architectural Vector Icons: Rooms (Group A) + Devices & Controls (Group B)
+  const FACIA_ICONS = {
+    none:       { group: 'basic',  name: 'No Icon (Text Only)', svg: '' },
+    // --- Standardized Room Icons (for Multi-Zone Remotes) ---
+    home_all:   { group: 'room',   name: 'Whole Home / All', svg: '<path d="M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1h-5.5v-6h-5v6H4a1 1 0 0 1-1-1v-9.5z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/>' },
+    sofa:       { group: 'room',   name: 'Living / Lounge', svg: '<path d="M5 11V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v3m-16 0h18v5H3v-5zm2 5v2.5m14-2.5v2.5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>' },
+    kitchen:    { group: 'room',   name: 'Kitchen', svg: '<rect x="4" y="4" width="16" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="1.9"/><line x1="4" y1="10" x2="20" y2="10" stroke="currentColor" stroke-width="1.8"/><circle cx="8" cy="7" r="1" fill="currentColor"/><circle cx="12" cy="7" r="1" fill="currentColor"/><line x1="9" y1="13" x2="15" y2="13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>' },
+    dining:     { group: 'room',   name: 'Dining Room', svg: '<path d="M7 3v7a2 2 0 0 0 4 0V3M9 3v18m8-18c-2.2 2-2.2 6 0 8v10" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>' },
+    bed:        { group: 'room',   name: 'Master Bedroom', svg: '<path d="M3 7v11m0-4h18m0 4v-7a2 2 0 0 0-2-2h-8v5M7 11a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>' },
+    bed_single: { group: 'room',   name: 'Bedroom 2 / Guest', svg: '<path d="M4 9v9m16-7v7M4 14h16M6 14v-3a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v3" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>' },
+    bath:       { group: 'room',   name: 'Bathroom / Ensuite', svg: '<path d="M4 12h16v3a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4v-3zm2-6a2 2 0 0 1 4 0v1M6 12V6m2 13v2m8-2v2" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>' },
+    desk:       { group: 'room',   name: 'Study / Office', svg: '<rect x="4" y="4" width="16" height="10" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M12 14v4m-4 0h8M3 20h18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>' },
+    stairs:     { group: 'room',   name: 'Hallway / Stairs', svg: '<path d="M4 19h4v-4h4v-4h4V7h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' },
+    garden:     { group: 'room',   name: 'Patio / Outdoor', svg: '<path d="M12 21v-8m0 0C8 13 6 9.5 6 6c3.5 0 6 2 6 7zm0 0c4 0 6-3.5 6-7-3.5 0-6 2-6 7z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>' },
+    tv:         { group: 'room',   name: 'Cinema / Media', svg: '<rect x="3" y="5" width="18" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M8 21h8m-4-4v4" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>' },
+    garage:     { group: 'room',   name: 'Garage / Entry', svg: '<path d="M3 10L12 4l9 6v10H3V10zm3 3h12m-12 3.5h12" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>' },
+
+    // --- Multi-Function Room Devices (Tap = +1 Step Cycle, Hold = ON/OFF Toggle) ---
+    fan:        { group: 'device', name: 'Ceiling Fan (1-6 / Hold)', svg: '<circle cx="12" cy="12" r="2" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M12 10c-2-3.5 1-6.5 3.5-5 1.8 1 .8 4-1.5 5m2 2c3.5-2 6.5 1 5 3.5-1 1.8-4 .8-5-1.5m-2 2c2 3.5-1 6.5-3.5 5-1.8-1-.8-4 1.5-5m-2-2c-3.5 2-6.5-1-5-3.5 1-1.8 4-.8 5 1.5" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round"/>' },
+    blinds:     { group: 'device', name: 'Roller Blinds (Step / Hold)', svg: '<path d="M4 4h16M5 8h14M5 12h14M5 16h14M12 16v4m-2 0h4" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>' },
+    curtains:   { group: 'device', name: 'Motor Curtains', svg: '<path d="M3 4h18M5 4c0 6 3 9 3 16M19 4c0 6-3 9-3 16M5 13h3m8 0h3" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>' },
+    ac:         { group: 'device', name: 'AC / Climate', svg: '<path d="M12 3v18M4.2 7.5l15.6 9M19.8 7.5l-15.6 9M9.5 5L12 7.5 14.5 5M9.5 19L12 16.5 14.5 19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>' },
+    heater:     { group: 'device', name: 'Heater / Towel Rail', svg: '<path d="M7 20V6a2 2 0 0 1 4 0v14a2 2 0 0 0 4 0V6a2 2 0 0 1 4 0v14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>' },
+    speaker:    { group: 'device', name: 'Sonos / Audio', svg: '<rect x="6" y="3" width="12" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="1.9"/><circle cx="12" cy="14.5" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="7.5" r="1" fill="currentColor"/>' },
+    music:      { group: 'device', name: 'Music / Playlist', svg: '<path d="M9 18V6l11-2v12" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6.5" cy="18" r="2.4" fill="none" stroke="currentColor" stroke-width="1.9"/><circle cx="17.5" cy="16" r="2.4" fill="none" stroke="currentColor" stroke-width="1.9"/>' },
+    pendant:    { group: 'device', name: 'Pendant / Chandelier', svg: '<path d="M12 3v5m-6 6a6 6 0 0 1 12 0H6zm4 0a2 2 0 0 0 4 0" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>' },
+    downlight:  { group: 'device', name: 'Recessed Downlights', svg: '<ellipse cx="12" cy="8" rx="7" ry="3" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M8 13l-2 5m6-4v5m4-6l2 5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>' },
+    strip:      { group: 'device', name: 'LED Cove / Strip', svg: '<rect x="3" y="9" width="18" height="6" rx="2" fill="none" stroke="currentColor" stroke-width="1.9"/><circle cx="7.5" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="16.5" cy="12" r="1" fill="currentColor"/>' },
+    lamp:       { group: 'device', name: 'Floor / Reading Lamp', svg: '<path d="M7 4h10l2.5 7h-15L7 4zm5 7v9m-4 0h8" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>' },
+    bulb:       { group: 'device', name: 'Smart Bulb', svg: '<path d="M9 18h6m-5 3h4M12 3a6 6 0 0 0-3.8 10.6c.7.6 1.3 1.5 1.5 2.4h4.6c.2-.9.8-1.8 1.5-2.4A6 6 0 0 0 12 3z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>' },
+    extractor:  { group: 'device', name: 'Exhaust / Ventilation', svg: '<rect x="4" y="4" width="16" height="16" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="4.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 7.5v9M7.5 12h9" stroke="currentColor" stroke-width="1.6"/>' },
+    power:      { group: 'device', name: 'Master Power', svg: '<path d="M12 3v9m6.36-5.36a9 9 0 1 1-12.73 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' },
+    sun:        { group: 'device', name: 'Bright / Daylight', svg: '<circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2v2.5M12 19.5V22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M2 12h2.5M19.5 12H22M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>' },
+    moon:       { group: 'device', name: 'Night / Sleep', svg: '<path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/>' },
+    sparkles:   { group: 'device', name: 'Scene / Mood', svg: '<path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8L12 3zm6 12l.9 2.1L21 18l-2.1.9L18 21l-.9-2.1L15 18l2.1-.9L18 15z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>' },
+    coffee:     { group: 'device', name: 'Morning Scene', svg: '<path d="M17 8h1a3 3 0 0 1 0 6h-1M5 8h12v6a5 5 0 0 1-5 5H10a5 5 0 0 1-5-5V8zm-1 13h14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>' },
+    timer:      { group: 'device', name: 'Delay Off / Timer', svg: '<circle cx="12" cy="13" r="8" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M12 9v4l2.5 2M9.5 2h5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>' },
+    lock:       { group: 'device', name: 'Away / Lock', svg: '<rect x="5" y="11" width="14" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M8 11V7a4 4 0 0 1 8 0v4" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>' },
+    warm_cool:  { group: 'device', name: 'Warm / Cool CCT', svg: '<path d="M12 4a8 8 0 1 0 0 16 8 8 0 0 0 0-16zm0 0v16" fill="none" stroke="currentColor" stroke-width="1.9"/>' }
+  };
+
+  const FACIA_THEMES = {
+    pure_white:      { name: 'Pure White Architectural',  bg: '#f1f5f9', glass: '#ffffff', bezel: '#cbd5e1', padFill: '#f8fafc', padStroke: '#cbd5e1', ink: '#0f172a', subInk: '#64748b', accent: '#0284c7', mono: false },
+    matte_black:     { name: 'Matte Black Glass',         bg: '#0f1115', glass: '#171a21', bezel: '#2d3340', padFill: '#212631', padStroke: '#384152', ink: '#f8fafc', subInk: '#94a3b8', accent: '#38bdf8', mono: false },
+    ink_bw:          { name: 'Crisp B&W Stencil (Print)', bg: '#ffffff', glass: '#ffffff', bezel: '#0f172a', padFill: '#ffffff', padStroke: '#0f172a', ink: '#000000', subInk: '#334155', accent: '#000000', mono: true },
+    reverse_bw:      { name: 'White Ink on Black Vinyl',  bg: '#000000', glass: '#09090b', bezel: '#ffffff', padFill: '#121215', padStroke: '#d4d4d8', ink: '#ffffff', subInk: '#a1a1aa', accent: '#ffffff', mono: true },
+    grayscale_slate: { name: 'Soft Grayscale Slate',      bg: '#e4e4e7', glass: '#f4f4f5', bezel: '#a1a1aa', padFill: '#ffffff', padStroke: '#a1a1aa', ink: '#18181b', subInk: '#52525b', accent: '#27272a', mono: true },
+    warm_stone:      { name: 'Warm Travertine / Linen',   bg: '#e7e2d8', glass: '#f7f4ee', bezel: '#c7beae', padFill: '#efeae0', padStroke: '#c7beae', ink: '#292524', subInk: '#57534e', accent: '#b45309', mono: false },
+    charcoal_brass:  { name: 'Charcoal & Brushed Brass',  bg: '#161618', glass: '#1e1e22', bezel: '#856a3f', padFill: '#26252b', padStroke: '#a18049', ink: '#fef3c7', subInk: '#d6c7a9', accent: '#eab308', mono: false }
+  };
+
+  function polarPt(cx, cy, r, deg) {
+    const rad = ((deg - 90) * Math.PI) / 180;
+    return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+  }
+
+  function ringWedgePath(cx, cy, rIn, rOut, startDeg, endDeg) {
+    const p1 = polarPt(cx, cy, rOut, endDeg), p2 = polarPt(cx, cy, rOut, startDeg);
+    const p3 = polarPt(cx, cy, rIn, startDeg), p4 = polarPt(cx, cy, rIn, endDeg);
+    const lg = endDeg - startDeg <= 180 ? '0' : '1';
+    return `M ${p1.x.toFixed(2)} ${p1.y.toFixed(2)} A ${rOut.toFixed(2)} ${rOut.toFixed(2)} 0 ${lg} 0 ${p2.x.toFixed(2)} ${p2.y.toFixed(2)} L ${p3.x.toFixed(2)} ${p3.y.toFixed(2)} A ${rIn.toFixed(2)} ${rIn.toFixed(2)} 0 ${lg} 1 ${p4.x.toFixed(2)} ${p4.y.toFixed(2)} Z`;
+  }
+
+  function escXml(s) {
+    return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  // Exact hardware stencil geometry for every capacitive flat panel layout!
+  function getPanelBlueprint(model) {
+    const m = typeof model === 'string' ? (MODELS.find(x => x.id === model) || MODELS[0]) : (model || MODELS[0]);
+    if (m.layout === 'b8') {
+      const slots = [
+        { key: 'sat_bar', type: 'vbar', surf: 'sat_bar', act: 'saturation', x: 23, y: 42, w: 15, h: 86, label: 'SAT' },
+        { key: 'hue_ring', type: 'ring', surf: 'hue_ring', act: 'hue', cx: 95, cy: 85, rIn: 21, rOut: 43, label: 'COLOR' },
+        { key: 'center_w', type: 'circle', act: 'set_white', cx: 95, cy: 85, r: 14.5, label: 'W' },
+        { key: 'bri_bar', type: 'vbar', surf: 'bri_bar', act: 'brightness', x: 152, y: 42, w: 15, h: 86, label: 'DIM' }
+      ];
+      [['btn_on','ON','on'],['btn_off','OFF','off'],['btn_sdn','S-','mode_speed_down'],['btn_m','M','mode'],['btn_sup','S+','mode_speed_up']].forEach(([k,l,a], i) => {
+        slots.push({ key: k, type: 'rect', act: a, x: 21 + i * 30.5, y: 146, w: 26.5, h: 19, rx: 3.5, label: l });
+      });
+      const r1 = [['zone_0','All',0,'zone'],['zone_1','1',1,'zone'],['zone_2','2',2,'zone'],['zone_3','3',3,'zone'],['zone_4','4',4,'zone']];
+      const r2 = [['btn_60s','60S',null,'night_mode','Delay'],['zone_5','5',5,'zone'],['zone_6','6',6,'zone'],['zone_7','7',7,'zone'],['zone_8','8',8,'zone']];
+      [r1, r2].forEach((row, ri) => {
+        row.forEach(([k, lbl, z, act, sub], ci) => {
+          slots.push({ key: k, type: 'circle', act, zone: z, cx: 34 + ci * 30.5, cy: 185 + ri * 31.5, r: 12.6, label: lbl, sublabel: sub || '' });
+        });
+      });
+      return { vw: 190, vh: 250, outer: { x: 4, y: 4, w: 182, h: 242, rx: 8 }, glass: { x: 9, y: 9, w: 172, h: 232, rx: 5 }, titleY: 24, slots };
+    }
+
+    if (m.layout === 'b0') {
+      const slots = [
+        { key: 'sat_bar', type: 'vbar', surf: 'sat_bar', act: 'saturation', x: 28, y: 43, w: 15, h: 80, label: 'CCT' },
+        { key: 'hue_ring', type: 'ring', surf: 'hue_ring', act: 'hue', cx: 105, cy: 83, rIn: 19.5, rOut: 41, label: 'COLOR' },
+        { key: 'center_w', type: 'circle', act: 'set_white', cx: 105, cy: 83, r: 14, label: 'W' },
+        { key: 'bri_bar', type: 'vbar', surf: 'bri_bar', act: 'brightness', x: 167, y: 43, w: 15, h: 80, label: 'DIM' },
+        { key: 'btn_on',  type: 'rect', act: 'on',  x: 26,  y: 137, w: 35, h: 21, rx: 4, label: 'ON' },
+        { key: 'btn_r',   type: 'rect', act: 'hue', val: 0,   x: 68,  y: 137, w: 35, h: 21, rx: 4, label: 'R' },
+        { key: 'btn_g',   type: 'rect', act: 'hue', val: 120, x: 110, y: 137, w: 35, h: 21, rx: 4, label: 'G' },
+        { key: 'btn_b',   type: 'rect', act: 'hue', val: 240, x: 152, y: 137, w: 35, h: 21, rx: 4, label: 'B' },
+        { key: 'btn_off', type: 'rect', act: 'off', x: 26,  y: 164, w: 35, h: 21, rx: 4, label: 'OFF' },
+        { key: 'btn_m',   type: 'rect', act: 'mode', x: 68, y: 164, w: 35, h: 21, rx: 4, label: 'M' },
+        { key: 'btn_sdn', type: 'rect', act: 'mode_speed_down', x: 110, y: 164, w: 35, h: 21, rx: 4, label: 'S-', sublabel: '60s' },
+        { key: 'btn_sup', type: 'rect', act: 'mode_speed_up',   x: 152, y: 164, w: 35, h: 21, rx: 4, label: 'S+', sublabel: '10m' }
+      ];
+      return { vw: 210, vh: 210, outer: { x: 6, y: 6, w: 198, h: 198, rx: 11 }, glass: { x: 11, y: 11, w: 188, h: 188, rx: 8 }, titleY: 27, slots };
+    }
+
+    if (m.layout === 'b_strip') {
+      const slots = [];
+      if (m.kind === 'b1') {
+        slots.push({ key: 'bri_bar', type: 'hbar', surf: 'bri_bar', act: 'brightness', x: 26, y: 52, w: 158, h: 20, label: 'DIMMER' });
+      } else if (m.kind === 'b2') {
+        slots.push({ key: 'cct_bar', type: 'hbar', surf: 'cct_bar', act: 'kelvin', x: 26, y: 40, w: 158, h: 18, label: 'CCT' });
+        slots.push({ key: 'bri_bar', type: 'hbar', surf: 'bri_bar', act: 'brightness', x: 26, y: 68, w: 158, h: 18, label: 'DIM' });
+      } else if (m.kind === 'b3') {
+        slots.push({ key: 'hue_ring', type: 'hbar', surf: 'hue_ring', act: 'hue', x: 26, y: 40, w: 158, h: 18, label: 'COLOR' });
+        slots.push({ key: 'bri_bar',  type: 'hbar', surf: 'bri_bar',  act: 'brightness', x: 26, y: 68, w: 158, h: 18, label: 'DIM' });
+      } else {
+        // B4 / T4
+        slots.push({ key: 'hue_ring', type: 'hbar', surf: 'hue_ring', act: 'hue', x: 26, y: 39, w: 158, h: 18, label: 'COLOR' });
+        slots.push({ key: 'cct_bar',  type: 'hbar', surf: 'cct_bar',  act: 'kelvin', x: 26, y: 66, w: 75, h: 18, label: 'CCT' });
+        slots.push({ key: 'bri_bar',  type: 'hbar', surf: 'bri_bar',  act: 'brightness', x: 109, y: 66, w: 75, h: 18, label: 'DIM' });
+      }
+      if (m.kind === 'b1' || m.kind === 'b2') {
+        slots.push({ key: 'btn_on',  type: 'rect', act: 'on', x: 26, y: 98, w: 46, h: 24, rx: 4, label: 'ON' });
+        slots.push({ key: 'btn_60s', type: 'rect', act: 'night_mode', x: 82, y: 98, w: 46, h: 24, rx: 4, label: '60S', sublabel: 'Delay' });
+        slots.push({ key: 'btn_off', type: 'rect', act: 'off', x: 138, y: 98, w: 46, h: 24, rx: 4, label: 'OFF' });
+        for (let z = 1; z <= 4; z++) {
+          slots.push({ key: `zone_${z}`, type: 'rocker', act: 'zone', zone: z, x: 26 + (z - 1) * 43, y: 134, w: 29, h: 52, rx: 6, label: `${z}` });
+        }
+      } else {
+        [['btn_w','White','set_white'],['btn_m','Mode','mode'],['btn_sdn','Spd-','mode_speed_down'],['btn_sup','Spd+','mode_speed_up']].forEach(([k,l,a], i) => {
+          slots.push({ key: k, type: 'rect', act: a, x: 26 + i * 41, y: 98, w: 35, h: 21, rx: 4, label: l });
+        });
+        [['zone_0','All',0],['zone_1','1',1],['zone_2','2',2],['zone_3','3',3],['zone_4','4',4]].forEach(([k,l,z], i) => {
+          slots.push({ key: k, type: 'rocker', act: 'zone', zone: z, x: 26 + i * 33.5, y: 132, w: 24, h: 54, rx: 5, label: l });
+        });
+      }
+      return { vw: 210, vh: 210, outer: { x: 6, y: 6, w: 198, h: 198, rx: 11 }, glass: { x: 11, y: 11, w: 188, h: 188, rx: 8 }, titleY: 27, slots };
+    }
+
+    if (m.layout === 'u_panel') {
+      const slots = [];
+      if (m.kind === 'u1') {
+        slots.push({ key: 'bri_bar', type: 'hbar', surf: 'bri_bar', act: 'brightness', x: 24, y: 56, w: 122, h: 20, label: 'DIM' });
+      } else if (m.kind === 'u2') {
+        slots.push({ key: 'cct_bar', type: 'hbar', surf: 'cct_bar', act: 'kelvin', x: 24, y: 40, w: 122, h: 18, label: 'CCT' });
+        slots.push({ key: 'bri_bar', type: 'hbar', surf: 'bri_bar', act: 'brightness', x: 24, y: 68, w: 122, h: 18, label: 'DIM' });
+      } else {
+        slots.push({ key: 'hue_ring', type: 'hbar', surf: 'hue_ring', act: 'hue', x: 24, y: 40, w: 122, h: 18, label: 'COLOR' });
+        slots.push({ key: 'bri_bar',  type: 'hbar', surf: 'bri_bar',  act: 'brightness', x: 24, y: 68, w: 122, h: 18, label: 'DIM' });
+      }
+      const mid = m.kind === 'u3' ? ['btn_w','W','set_white'] : ['btn_60s','60S','night_mode'];
+      const r2 = m.kind === 'u3' ? [['btn_sdn','S-','mode_speed_down'],['btn_m','M','mode'],['btn_sup','S+','mode_speed_up']] : [['btn_s1','S1','mode'],['btn_s2','S2','mode'],['btn_s3','S3','mode']];
+      slots.push({ key: 'btn_on', type: 'rect', act: 'on', x: 24, y: 100, w: 34, h: 22, rx: 4, label: 'ON' });
+      slots.push({ key: mid[0],   type: 'rect', act: mid[2], x: 68, y: 100, w: 34, h: 22, rx: 4, label: mid[1] });
+      slots.push({ key: 'btn_off',type: 'rect', act: 'off', x: 112, y: 100, w: 34, h: 22, rx: 4, label: 'OFF' });
+      r2.forEach(([k,l,a], i) => slots.push({ key: k, type: 'rect', act: a, x: 24 + i * 44, y: 130, w: 34, h: 22, rx: 4, label: l }));
+      for (let z = 1; z <= 3; z++) slots.push({ key: `zone_${z}`, type: 'rocker', act: 'zone', zone: z, x: 24 + (z - 1) * 44, y: 162, w: 34, h: 54, rx: 6, label: `${z}` });
+      return { vw: 170, vh: 240, outer: { x: 8, y: 6, w: 154, h: 228, rx: 10 }, glass: { x: 13, y: 11, w: 144, h: 218, rx: 7 }, titleY: 26, slots };
+    }
+
+    if (m.layout === 'm4') {
+      const slots = [
+        { key: 'hue_ring', type: 'hbar', surf: 'hue_ring', act: 'hue', x: 20, y: 36, w: 196, h: 17, label: 'COLOR' },
+        { key: 'cct_bar',  type: 'hbar', surf: 'cct_bar',  act: 'kelvin', x: 20, y: 61, w: 92, h: 18, label: 'CCT' },
+        { key: 'bri_bar',  type: 'hbar', surf: 'bri_bar',  act: 'brightness', x: 124, y: 61, w: 92, h: 18, label: 'DIM' },
+        { key: 'zone_0',   type: 'rocker', act: 'zone', zone: 0, x: 20, y: 94, w: 24, h: 72, rx: 4, label: 'All' }
+      ];
+      for (let z = 1; z <= 4; z++) slots.push({ key: `zone_${z}`, type: 'rocker', act: 'zone', zone: z, x: 20 + z * 29, y: 94, w: 24, h: 72, rx: 4, label: `${z}` });
+      slots.push({ key: 'btn_w',   type: 'rect', act: 'set_white', x: 165, y: 94, w: 23, h: 34, rx: 4, label: 'W' });
+      slots.push({ key: 'btn_m',   type: 'rect', act: 'mode',      x: 165, y: 132, w: 23, h: 34, rx: 4, label: 'M' });
+      slots.push({ key: 'btn_sup', type: 'rect', act: 'mode_speed_up',   x: 193, y: 94, w: 23, h: 34, rx: 4, label: 'S+' });
+      slots.push({ key: 'btn_sdn', type: 'rect', act: 'mode_speed_down', x: 193, y: 132, w: 23, h: 34, rx: 4, label: 'S-' });
+      return { vw: 236, vh: 184, outer: { x: 6, y: 6, w: 224, h: 172, rx: 10 }, glass: { x: 11, y: 11, w: 214, h: 162, rx: 7 }, titleY: 25, slots };
+    }
+
+    // B5 4-bar panel
+    const slots = [];
+    for (let z = 1; z <= 4; z++) {
+      const x = 26 + (z - 1) * 33;
+      slots.push({ key: `bri_z${z}`, type: 'vbar', act: 'brightness', zone: z, x, y: 42, w: 24, h: 84, label: `Z${z}` });
+      slots.push({ key: `zone_${z}`, type: 'rocker', act: 'zone', zone: z, x, y: 134, w: 24, h: 52, rx: 5, label: `${z}` });
+    }
+    ['S1','S2','S3','S4'].forEach((s, i) => slots.push({ key: `btn_s${i+1}`, type: 'rect', act: 'mode', x: 160, y: 42 + i * 31, w: 28, h: 20, rx: 4, label: s }));
+    slots.push({ key: 'btn_60s', type: 'rect', act: 'night_mode', x: 160, y: 166, w: 28, h: 20, rx: 4, label: '60S' });
+    return { vw: 210, vh: 210, outer: { x: 6, y: 6, w: 198, h: 198, rx: 11 }, glass: { x: 11, y: 11, w: 188, h: 188, rx: 8 }, titleY: 27, slots };
+  }
+
+  // Render exact coordinate-driven Capacitive Stencil & Custom Facia SVG!
+  function renderCapacitiveStencilSvg(modelOrId, opts) {
+    const o = opts || {};
+    const m = typeof modelOrId === 'string' ? (MODELS.find(x => x.id === modelOrId) || MODELS[0]) : (modelOrId || MODELS[0]);
+    const bp = getPanelBlueprint(m);
+    const sc = o.size === 'thumb' ? 0.45 : 1;
+    const facia = o.facia || {};
+    const preset = FACIA_THEMES[facia.theme] || (m.finish === 'black' ? FACIA_THEMES.matte_black : FACIA_THEMES.pure_white);
+    const col = Object.assign({}, preset, facia.colors || {});
+    const isMono = Boolean(facia.monochrome !== undefined ? facia.monochrome : col.mono);
+    const pads = facia.pads || {};
+    const defStyle = facia.defaultPadStyle || 'keycap';
+    const selKey = o.selectedPadKey || null;
+    const showStencilSlots = Boolean(o.editorMode);
+    const tz = o.touchZones || {};
+    const u = m.id.replace(/[^a-zA-Z0-9]/g, '') + '_' + (o.uid || 'st');
+
+    let defs = `<defs>
+      <linearGradient id="st_rgb_${u}" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#ef4444"/><stop offset="20%" stop-color="#eab308"/><stop offset="40%" stop-color="#22c55e"/>
+        <stop offset="60%" stop-color="#06b6d4"/><stop offset="80%" stop-color="#3b82f6"/><stop offset="100%" stop-color="#ec4899"/>
+      </linearGradient>
+      <linearGradient id="st_cct_${u}" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#f59e0b"/><stop offset="50%" stop-color="#fef9c3"/><stop offset="100%" stop-color="#38bdf8"/>
+      </linearGradient>
+      <linearGradient id="st_cct_v_${u}" x1="0" y1="1" x2="0" y2="0">
+        <stop offset="0%" stop-color="#f59e0b"/><stop offset="50%" stop-color="#fef9c3"/><stop offset="100%" stop-color="#38bdf8"/>
+      </linearGradient>
+      <linearGradient id="st_bri_v_${u}" x1="0" y1="1" x2="0" y2="0">
+        <stop offset="0%" stop-color="#1e293b"/><stop offset="100%" stop-color="#0ea5e9"/>
+      </linearGradient>
+      <linearGradient id="st_bri_h_${u}" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#334155"/><stop offset="100%" stop-color="#0ea5e9"/>
+      </linearGradient>`;
+    if (facia.bgPattern === 'grid') {
+      defs += `<pattern id="pat_${u}" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="${col.padStroke}" stroke-width="0.3" opacity="0.35"/></pattern>`;
+    } else if (facia.bgPattern === 'brushed') {
+      defs += `<pattern id="pat_${u}" width="8" height="3" patternUnits="userSpaceOnUse"><line x1="0" y1="1" x2="8" y2="1" stroke="${col.padStroke}" stroke-width="0.35" opacity="0.3"/></pattern>`;
+    }
+    defs += `</defs>`;
+
+    let body = `${defs}
+      <rect x="${bp.outer.x}" y="${bp.outer.y}" width="${bp.outer.w}" height="${bp.outer.h}" rx="${bp.outer.rx}" fill="${col.bg}" stroke="${col.bezel}" stroke-width="2"/>
+      <rect x="${bp.glass.x}" y="${bp.glass.y}" width="${bp.glass.w}" height="${bp.glass.h}" rx="${bp.glass.rx}" fill="${col.glass}" stroke="${col.bezel}" stroke-width="0.8"/>`;
+
+    if (facia.bgPattern === 'grid' || facia.bgPattern === 'brushed') {
+      body += `<rect x="${bp.glass.x}" y="${bp.glass.y}" width="${bp.glass.w}" height="${bp.glass.h}" rx="${bp.glass.rx}" fill="url(#pat_${u})" pointer-events="none"/>`;
+    }
+
+    if (facia.panelTitle) {
+      body += `<text x="${(bp.vw / 2).toFixed(1)}" y="${bp.titleY}" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="7.2" font-weight="800" letter-spacing="0.7" fill="${col.subInk}" pointer-events="none">${escXml(facia.panelTitle.toUpperCase())}</text>`;
+    } else if (facia.hideLogo === false) {
+      body += `<text x="${bp.glass.x + 12}" y="${bp.titleY}" font-family="Inter,system-ui,sans-serif" font-size="8" font-weight="800" fill="${col.subInk}" pointer-events="none">MiBOXER®</text>`;
+    }
+
+    if (facia.showLedPinhole) {
+      const dims = getPhysicalDims(m);
+      const lx = (bp.vw * (dims.led_x_pct || 50)) / 100;
+      const ly = (bp.vh * (dims.led_y_pct || 8)) / 100;
+      body += `<circle cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="1.5" fill="${o.stencilMode ? '#ffffff' : col.bg}" stroke="${col.padStroke}" stroke-width="0.6" pointer-events="none"/>`;
+    }
+
+    // Automatic box-aware autofit: sizes icon & text to fit safely inside pad width & height without overflow
+    function fitText(str, maxW, desiredFs, minFs) {
+      const s = String(str || '').trim();
+      if (!s) return { text: '', fs: minFs };
+      const usableW = Math.max(8, maxW - 3.5);
+      const charFactor = 0.56;
+      const byWidth = usableW / Math.max(1, s.length * charFactor);
+      const fs = Math.max(minFs, Math.min(desiredFs, byWidth));
+      const maxChars = Math.max(1, Math.floor(usableW / Math.max(0.1, fs * charFactor)));
+      const clipped = s.length > maxChars ? (maxChars > 2 ? s.slice(0, maxChars - 1) + '…' : s.slice(0, maxChars)) : s;
+      return { text: clipped, fs };
+    }
+
+    function drawGlyphContent(cx, cy, bw, bh, cfg, fallbackLbl, fallbackSub) {
+      const icoKey = (cfg && cfg.icon) || 'none';
+      const ico = FACIA_ICONS[icoKey];
+      const hasIco = Boolean(ico && ico.svg);
+      const rawLbl = (cfg && cfg.label !== undefined) ? String(cfg.label) : (fallbackLbl || '');
+      let rawSub = (cfg && cfg.sublabel !== undefined) ? String(cfg.sublabel) : (fallbackSub || '');
+      if (!rawSub && cfg && cfg.multifunc && cfg.multifunc.enabled) {
+        rawSub = `1-${cfg.multifunc.steps || 4} • Hold`;
+      }
+      const ink = (cfg && cfg.color) || col.ink;
+
+      const padW = Math.max(8, bw - 3);
+      const padH = Math.max(8, bh - 3);
+      const minD = Math.min(padW, padH);
+
+      const lblFit = rawLbl ? fitText(rawLbl, padW, Math.min(7.4, minD * (hasIco ? 0.24 : 0.36)), 3.6) : { text: '', fs: 0 };
+      const subFit = rawSub ? fitText(rawSub, padW, Math.min(4.8, (lblFit.fs || minD * 0.22) * 0.72), 3.0) : { text: '', fs: 0 };
+
+      const textBlockH = (lblFit.text ? lblFit.fs * 1.15 : 0) + (subFit.text ? subFit.fs * 1.2 : 0);
+      const availForIco = hasIco ? (lblFit.text || subFit.text ? Math.max(5.5, padH - textBlockH - 2.2) : Math.min(padW * 0.68, padH * 0.68)) : 0;
+      const icoSz = hasIco ? Math.max(5.2, Math.min(14.5, availForIco)) : 0;
+
+      const totalH = icoSz + (hasIco && textBlockH > 0 ? 1.8 : 0) + textBlockH;
+      let yCursor = cy - totalH / 2;
+      let out = '';
+
+      if (hasIco) {
+        const ix = cx - icoSz / 2;
+        const iy = yCursor;
+        const inner = ico.svg.replace(/currentColor/g, ink);
+        out += `<g transform="translate(${ix.toFixed(2)},${iy.toFixed(2)}) scale(${(icoSz / 24).toFixed(4)})" pointer-events="none">${inner}</g>`;
+        yCursor += icoSz + 1.8;
+      }
+
+      if (lblFit.text) {
+        const baselineY = yCursor + lblFit.fs * 0.82;
+        out += `<text x="${cx.toFixed(2)}" y="${baselineY.toFixed(2)}" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="${lblFit.fs.toFixed(2)}" font-weight="700" fill="${ink}" pointer-events="none">${escXml(lblFit.text)}</text>`;
+        yCursor += lblFit.fs * 1.15;
+      }
+
+      if (subFit.text) {
+        const subBaselineY = yCursor + subFit.fs * 0.82;
+        out += `<text x="${cx.toFixed(2)}" y="${subBaselineY.toFixed(2)}" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="${subFit.fs.toFixed(2)}" font-weight="600" fill="${col.subInk}" pointer-events="none">${escXml(subFit.text)}</text>`;
+      }
+
+      return out;
+    }
+
+    function padColors(cfg) {
+      const st = (cfg && cfg.style) || defStyle;
+      if (st === 'blank') return { st, fill: col.glass, stroke: showStencilSlots ? col.padStroke : 'none', dash: showStencilSlots ? '2 2' : '', op: showStencilSlots ? '0.45' : '1' };
+      if (st === 'minimal') return { st, fill: col.glass, stroke: showStencilSlots ? col.padStroke : 'none', dash: showStencilSlots ? '1.5 1.5' : '', op: '1' };
+      if (st === 'outline') return { st, fill: col.glass, stroke: col.padStroke, dash: '', op: '1' };
+      return { st: 'keycap', fill: (cfg && cfg.fill) || col.padFill, stroke: col.padStroke, dash: '', op: '1' };
+    }
+
+    function selRingRect(x, y, w, h, rx) {
+      return `<rect x="${(x - 1.6).toFixed(1)}" y="${(y - 1.6).toFixed(1)}" width="${(w + 3.2).toFixed(1)}" height="${(h + 3.2).toFixed(1)}" rx="${rx + 1.5}" fill="none" stroke="${col.accent}" stroke-width="1.8" stroke-dasharray="3 1.5" pointer-events="none"/>`;
+    }
+
+    bp.slots.forEach(s => {
+      // Check if this slot is a touch surface that has been segmented!
+      const surfCfg = s.surf ? tz[s.surf] : null;
+      const isSeg = Boolean(surfCfg && surfCfg.enabled && Number(surfCfg.segments) >= 2);
+
+      if (s.type === 'ring') {
+        if (isSeg) {
+          const n = Math.min(12, Math.max(2, Number(surfCfg.segments || 6)));
+          const span = 360 / n;
+          const off = Number(surfCfg.offset_deg || 0);
+          for (let i = 0; i < n; i++) {
+            const sKey = `hue_seg_${i + 1}`;
+            const cfg = pads[sKey] || {};
+            const pc = padColors(cfg);
+            const sDeg = off + i * span + 1.5, eDeg = off + (i + 1) * span - 1.5;
+            const d = ringWedgePath(s.cx, s.cy, s.rIn, s.rOut, sDeg, eDeg);
+            const isSelected = selKey === sKey;
+            body += `<path class="mbx-seg-hit" data-seg-act="${sKey}" data-pad-key="${sKey}" ${pc.st === 'blank' ? 'data-blanked="1"' : ''} d="${d}" fill="${pc.fill}" stroke="${isSelected ? col.accent : pc.stroke}" stroke-width="${isSelected ? 2 : 1.05}" ${pc.dash ? `stroke-dasharray="${pc.dash}"` : ''} style="cursor:pointer"/>`;
+            const mp = polarPt(s.cx, s.cy, (s.rIn + s.rOut) / 2, off + (i + 0.5) * span);
+            const defL = (surfCfg.labels && surfCfg.labels[i]) || `S${i + 1}`;
+            if (pc.st !== 'blank') {
+              body += drawGlyphContent(mp.x, mp.y, (s.rOut - s.rIn) * 0.98, (s.rOut - s.rIn) * 0.98, cfg, defL, '');
+            }
+          }
+          return;
+        }
+
+        // Continuous Ring (not segmented)
+        const cfg = pads[s.key] || {};
+        const pc = padColors(cfg);
+        const rMid = (s.rIn + s.rOut) / 2, rw = s.rOut - s.rIn;
+        if (pc.st === 'blank') {
+          if (showStencilSlots) body += `<circle class="mbx-hit" data-act="hue" data-pad-key="${s.key}" data-blanked="1" cx="${s.cx}" cy="${s.cy}" r="${rMid}" fill="none" stroke="${col.padStroke}" stroke-width="${rw}" stroke-dasharray="2 3" opacity="0.3" style="cursor:pointer"/>`;
+          return;
+        }
+        if (isMono || facia.sliderStyle === 'mono_ticks' || facia.sliderStyle === 'minimal') {
+          body += `<circle cx="${s.cx}" cy="${s.cy}" r="${s.rOut}" fill="none" stroke="${col.padStroke}" stroke-width="0.9"/>`;
+          body += `<circle cx="${s.cx}" cy="${s.cy}" r="${s.rIn}" fill="none" stroke="${col.padStroke}" stroke-width="0.9"/>`;
+          body += `<circle class="mbx-hit" data-act="hue" data-pad-key="${s.key}" cx="${s.cx}" cy="${s.cy}" r="${rMid}" fill="none" stroke="${col.ink}" stroke-width="${facia.sliderStyle === 'minimal' ? 1.5 : rw * 0.55}" ${facia.sliderStyle === 'mono_ticks' ? 'stroke-dasharray="2.2 3.2"' : ''} opacity="${facia.sliderStyle === 'minimal' ? 0.5 : 0.75}" style="cursor:pointer"/>`;
+          // Invisible wide hit ring for smooth dragging
+          body += `<circle class="mbx-hit" data-act="hue" data-pad-key="${s.key}" cx="${s.cx}" cy="${s.cy}" r="${rMid}" fill="none" stroke="transparent" stroke-width="${rw}" style="cursor:pointer"/>`;
+        } else {
+          // Crisp 12-hue color ring
+          const cols12 = ['#ef4444','#f97316','#eab308','#84cc16','#22c55e','#14b8a6','#06b6d4','#3b82f6','#6366f1','#a855f7','#ec4899','#f43f5e'];
+          for (let i = 0; i < 12; i++) {
+            body += `<path d="${ringWedgePath(s.cx, s.cy, s.rIn, s.rOut, i * 30, (i + 1) * 30 + 0.6)}" fill="${cols12[i]}" pointer-events="none"/>`;
+          }
+          body += `<circle class="mbx-hit" data-act="hue" data-pad-key="${s.key}" cx="${s.cx}" cy="${s.cy}" r="${rMid}" fill="none" stroke="transparent" stroke-width="${rw}" style="cursor:pointer"/>`;
+        }
+        if (selKey === s.key) body += `<circle cx="${s.cx}" cy="${s.cy}" r="${s.rOut + 2}" fill="none" stroke="${col.accent}" stroke-width="1.8" stroke-dasharray="3 1.5" pointer-events="none"/>`;
+        return;
+      }
+
+      if (s.type === 'vbar' || s.type === 'hbar') {
+        const vert = s.type === 'vbar';
+        if (isSeg) {
+          const pref = s.surf === 'hue_ring' ? 'hue_seg_' : s.surf === 'cct_bar' ? 'cct_seg_' : s.surf === 'sat_bar' ? 'sat_seg_' : 'bri_seg_';
+          const maxN = s.surf === 'hue_ring' ? 8 : 6;
+          const n = Math.min(maxN, Math.max(2, Number(surfCfg.segments || 4)));
+          const gap = 2.0;
+          for (let i = 0; i < n; i++) {
+            const sKey = `${pref}${i + 1}`;
+            const cfg = pads[sKey] || {};
+            const pc = padColors(cfg);
+            const idx = vert ? (n - 1 - i) : i;
+            const rx = vert ? s.x : s.x + idx * ((s.w + gap) / n);
+            const ry = vert ? s.y + idx * ((s.h + gap) / n) : s.y;
+            const rw = vert ? s.w : (s.w - gap * (n - 1)) / n;
+            const rh = vert ? (s.h - gap * (n - 1)) / n : s.h;
+            const isSelected = selKey === sKey;
+            body += `<rect class="mbx-seg-hit" data-seg-act="${sKey}" data-pad-key="${sKey}" ${pc.st === 'blank' ? 'data-blanked="1"' : ''} x="${rx.toFixed(2)}" y="${ry.toFixed(2)}" width="${rw.toFixed(2)}" height="${rh.toFixed(2)}" rx="3" fill="${pc.fill}" stroke="${isSelected ? col.accent : pc.stroke}" stroke-width="${isSelected ? 1.9 : 1.0}" ${pc.dash ? `stroke-dasharray="${pc.dash}"` : ''} style="cursor:pointer"/>`;
+            const defL = (surfCfg.labels && surfCfg.labels[i]) || `${i + 1}`;
+            if (pc.st !== 'blank') body += drawGlyphContent(rx + rw / 2, ry + rh / 2, rw, rh, cfg, defL, '');
+          }
+          return;
+        }
+
+        // Continuous Bar (not segmented)
+        const cfg = pads[s.key] || {};
+        const pc = padColors(cfg);
+        if (pc.st === 'blank') {
+          if (showStencilSlots) body += `<rect class="mbx-hit" data-act="${s.act}" data-pad-key="${s.key}" data-blanked="1" x="${s.x}" y="${s.y}" width="${s.w}" height="${s.h}" rx="${Math.min(s.w, s.h) / 2}" fill="none" stroke="${col.padStroke}" stroke-dasharray="2 2" opacity="0.35" style="cursor:pointer"/>`;
+          return;
+        }
+        let gradFill = pc.fill;
+        if (!isMono && facia.sliderStyle !== 'mono_ticks' && facia.sliderStyle !== 'minimal') {
+          if (s.act === 'hue') gradFill = `url(#st_rgb_${u})`;
+          else if (s.act === 'kelvin' || s.act === 'saturation') gradFill = vert ? `url(#st_cct_v_${u})` : `url(#st_cct_${u})`;
+          else gradFill = vert ? `url(#st_bri_v_${u})` : `url(#st_bri_h_${u})`;
+        }
+        const rad = Math.min(6, Math.min(s.w, s.h) / 2);
+        body += `<rect class="mbx-hit" data-act="${s.act}" ${s.zone !== undefined ? `data-zone="${s.zone}"` : ''} data-pad-key="${s.key}" x="${s.x}" y="${s.y}" width="${s.w}" height="${s.h}" rx="${rad}" fill="${gradFill}" stroke="${col.padStroke}" stroke-width="0.95" style="cursor:pointer"/>`;
+        // Graduated ticks for monochrome/minimal clarity
+        const steps = 6;
+        for (let t = 1; t < steps; t++) {
+          if (vert) {
+            const ty = s.y + (t * s.h) / steps;
+            body += `<line x1="${s.x + 3}" y1="${ty.toFixed(1)}" x2="${s.x + s.w - 3}" y2="${ty.toFixed(1)}" stroke="${isMono ? col.ink : '#ffffff'}" stroke-opacity="0.55" stroke-width="0.8" pointer-events="none"/>`;
+          } else {
+            const tx = s.x + (t * s.w) / steps;
+            body += `<line x1="${tx.toFixed(1)}" y1="${s.y + 3}" x2="${tx.toFixed(1)}" y2="${s.y + s.h - 3}" stroke="${isMono ? col.ink : '#ffffff'}" stroke-opacity="0.55" stroke-width="0.8" pointer-events="none"/>`;
+          }
+        }
+        if (cfg.icon || cfg.label) body += drawGlyphContent(s.x + s.w / 2, s.y + s.h / 2, s.w, s.h, cfg, '', '');
+        if (selKey === s.key) body += selRingRect(s.x, s.y, s.w, s.h, rad);
+        return;
+      }
+
+      if (s.type === 'circle') {
+        const cfg = pads[s.key] || {};
+        const pc = padColors(cfg);
+        const zAttr = (s.zone !== undefined && s.zone !== null) ? `data-zone="${s.zone}"` : '';
+        body += `<circle class="mbx-hit" data-act="${s.act}" ${zAttr} data-pad-key="${s.key}" ${pc.st === 'blank' ? 'data-blanked="1"' : ''} cx="${s.cx}" cy="${s.cy}" r="${s.r}" fill="${pc.fill}" stroke="${selKey === s.key ? col.accent : pc.stroke}" stroke-width="${selKey === s.key ? 1.9 : 1.0}" ${pc.dash ? `stroke-dasharray="${pc.dash}"` : ''} opacity="${pc.op}" style="cursor:pointer"/>`;
+        if (pc.st !== 'blank') {
+          body += drawGlyphContent(s.cx, s.cy, s.r * 1.85, s.r * 1.85, cfg, s.label, s.sublabel || '');
+        } else if (showStencilSlots && selKey === s.key) {
+          body += drawGlyphContent(s.cx, s.cy, s.r * 1.8, s.r * 1.8, { label: 'MASK' }, 'MASK', '');
+        }
+        return;
+      }
+
+      if (s.type === 'rocker') {
+        // Vertical Zone Rocker: Top = zone_on, Center = room icon + label, Bottom = zone_off
+        const cfg = pads[s.key] || {};
+        const pc = padColors(cfg);
+        const z = s.zone ?? 1;
+        body += `<g data-pad-key="${s.key}">
+          <rect x="${s.x}" y="${s.y}" width="${s.w}" height="${s.h}" rx="${s.rx || 5}" fill="${pc.fill}" stroke="${selKey === s.key ? col.accent : pc.stroke}" stroke-width="${selKey === s.key ? 1.9 : 1.0}" ${pc.dash ? `stroke-dasharray="${pc.dash}"` : ''} opacity="${pc.op}"/>`;
+        if (pc.st !== 'blank') {
+          // Subtle top '|' and bottom 'o' rocker pips + room icon/name in center
+          body += `<line x1="${(s.x + s.w / 2).toFixed(1)}" y1="${(s.y + 4.5).toFixed(1)}" x2="${(s.x + s.w / 2).toFixed(1)}" y2="${(s.y + 9).toFixed(1)}" stroke="${col.subInk}" stroke-width="1.2" stroke-linecap="round" pointer-events="none"/>`;
+          body += `<circle cx="${(s.x + s.w / 2).toFixed(1)}" cy="${(s.y + s.h - 6.8).toFixed(1)}" r="2.3" fill="none" stroke="${col.subInk}" stroke-width="1.0" pointer-events="none"/>`;
+          body += drawGlyphContent(s.x + s.w / 2, s.y + s.h / 2, s.w * 0.92, s.h * 0.56, cfg, s.label, s.sublabel || '');
+        }
+        body += `<rect class="mbx-hit" data-act="zone_on" data-zone="${z}" data-pad-key="${s.key}" ${pc.st === 'blank' ? 'data-blanked="1"' : ''} x="${s.x}" y="${s.y}" width="${s.w}" height="${(s.h * 0.5).toFixed(1)}" fill="transparent" style="cursor:pointer"/>`;
+        body += `<rect class="mbx-hit" data-act="zone_off" data-zone="${z}" data-pad-key="${s.key}" ${pc.st === 'blank' ? 'data-blanked="1"' : ''} x="${s.x}" y="${(s.y + s.h * 0.5).toFixed(1)}" width="${s.w}" height="${(s.h * 0.5).toFixed(1)}" fill="transparent" style="cursor:pointer"/>
+        </g>`;
+        return;
+      }
+
+      // Standard Rectangular Capacitive Button
+      const cfg = pads[s.key] || {};
+      const pc = padColors(cfg);
+      const zAttr = (s.zone !== undefined && s.zone !== null) ? `data-zone="${s.zone}"` : '';
+      const vAttr = (s.val !== undefined && s.val !== null) ? `data-val="${s.val}"` : '';
+      body += `<rect class="mbx-hit" data-act="${s.act}" ${zAttr} ${vAttr} data-pad-key="${s.key}" ${pc.st === 'blank' ? 'data-blanked="1"' : ''} x="${s.x}" y="${s.y}" width="${s.w}" height="${s.h}" rx="${s.rx || 4}" fill="${pc.fill}" stroke="${selKey === s.key ? col.accent : pc.stroke}" stroke-width="${selKey === s.key ? 1.9 : 1.0}" ${pc.dash ? `stroke-dasharray="${pc.dash}"` : ''} opacity="${pc.op}" style="cursor:pointer"/>`;
+      if (pc.st !== 'blank') {
+        body += drawGlyphContent(s.x + s.w / 2, s.y + s.h / 2, s.w, s.h, cfg, s.label, s.sublabel || '');
+      }
+    });
+
+    return `<svg viewBox="0 0 ${bp.vw} ${bp.vh}" width="${Math.round(bp.vw * sc)}" height="${Math.round(bp.vh * sc)}">${body}</svg>`;
+  }
+
+  // Ready-to-load Smart Showcase Presets per Panel Type!
+  function getSamplePresetsForModel(modelOrId) {
+    const m = typeof modelOrId === 'string' ? (MODELS.find(x => x.id === modelOrId) || MODELS[0]) : (modelOrId || MODELS[0]);
+    const isBlk = m.finish === 'black';
+    const defTheme = isBlk ? 'matte_black' : 'pure_white';
+
+    // 1. SINGLE-ZONE B0: Showcase whole-room multi-device control on ONE single-zone glass panel!
+    if (m.layout === 'b0') {
+      return [
+        {
+          id: 'b0_smart_suite',
+          name: 'Smart Room Multi-Device Hub (6-Slice Ring + Step/Hold)',
+          desc: 'Turns 1-zone B0 into a 14-function room controller: Fan (1-6/Hold), Blinds, Curtains, AC, Sonos & Lighting',
+          touch_zones: {
+            hue_ring: { enabled: true, segments: 6, offset_deg: -30, zone_mask: 65535, labels: ['Fan','Blinds','Curtain','Climate','Audio','Strip'] },
+            sat_bar:  { enabled: true, segments: 3, offset_deg: 0,   zone_mask: 65535, labels: ['Bright','Relax','Cinema'] },
+            bri_bar:  { enabled: false, segments: 4, offset_deg: 0,  zone_mask: 65535, labels: ['','','',''] },
+            cct_bar:  { enabled: false, segments: 4, offset_deg: 0,  zone_mask: 65535, labels: ['','','',''] }
+          },
+          facia: {
+            enabled: true, theme: defTheme, panelTitle: 'MASTER SUITE', defaultPadStyle: 'keycap', showLedPinhole: true, hideLogo: true,
+            pads: {
+              hue_seg_1: { icon: 'fan',       label: 'Fan',     multifunc: { enabled: true, steps: 6, unit: 'Spd' } },
+              hue_seg_2: { icon: 'blinds',    label: 'Blinds',  multifunc: { enabled: true, steps: 4, unit: 'Pos' } },
+              hue_seg_3: { icon: 'curtains',  label: 'Drapes',  multifunc: { enabled: true, steps: 4, unit: 'Pos' } },
+              hue_seg_4: { icon: 'ac',        label: 'AC',      multifunc: { enabled: true, steps: 5, unit: 'Temp' } },
+              hue_seg_5: { icon: 'speaker',   label: 'Sonos',   multifunc: { enabled: true, steps: 5, unit: 'Vol' } },
+              hue_seg_6: { icon: 'strip',     label: 'Cove',    multifunc: { enabled: true, steps: 4, unit: 'Hue' } },
+              sat_seg_1: { icon: 'sun',       label: 'Day' },
+              sat_seg_2: { icon: 'coffee',    label: 'Relax' },
+              sat_seg_3: { icon: 'tv',        label: 'Movie' },
+              center_w:  { icon: 'pendant',   label: 'Main',    sublabel: 'Hold W' },
+              btn_on:    { icon: 'power',     label: 'Room On' },
+              btn_r:     { icon: 'lamp',      label: 'Bed L',   multifunc: { enabled: true, steps: 3, unit: 'Lvl' } },
+              btn_g:     { icon: 'lamp',      label: 'Bed R',   multifunc: { enabled: true, steps: 3, unit: 'Lvl' } },
+              btn_b:     { icon: 'desk',      label: 'Desk',    multifunc: { enabled: true, steps: 3, unit: 'Lvl' } },
+              btn_off:   { icon: 'moon',      label: 'All Off', sublabel: 'Hold Night' },
+              btn_m:     { icon: 'sparkles',  label: 'Scene' },
+              btn_sdn:   { icon: 'timer',     label: 'Sleep',   sublabel: '60m' },
+              btn_sup:   { icon: 'extractor', label: 'Vent',    multifunc: { enabled: true, steps: 3, unit: 'Spd' } }
+            }
+          }
+        },
+        {
+          id: 'b0_minimal_bw',
+          name: 'Minimalist B&W Accessibility Stencil (4-Device Ring)',
+          desc: 'High-contrast black & white stencil with blanked unused RGB keys',
+          touch_zones: {
+            hue_ring: { enabled: true, segments: 4, offset_deg: -45, zone_mask: 65535, labels: ['Lights','Fan','Blinds','TV'] },
+            sat_bar:  { enabled: false, segments: 4, offset_deg: 0, zone_mask: 65535, labels: ['','','',''] },
+            bri_bar:  { enabled: false, segments: 4, offset_deg: 0, zone_mask: 65535, labels: ['','','',''] },
+            cct_bar:  { enabled: false, segments: 4, offset_deg: 0, zone_mask: 65535, labels: ['','','',''] }
+          },
+          facia: {
+            enabled: true, theme: 'ink_bw', monochrome: true, panelTitle: 'LIVING ROOM', defaultPadStyle: 'outline', showLedPinhole: true, hideLogo: true,
+            pads: {
+              hue_seg_1: { icon: 'bulb',   label: 'Lights', multifunc: { enabled: true, steps: 4, unit: 'Bri' } },
+              hue_seg_2: { icon: 'fan',    label: 'Fan',    multifunc: { enabled: true, steps: 6, unit: 'Spd' } },
+              hue_seg_3: { icon: 'blinds', label: 'Blinds', multifunc: { enabled: true, steps: 4, unit: 'Pos' } },
+              hue_seg_4: { icon: 'tv',     label: 'TV',     multifunc: { enabled: true, steps: 3, unit: 'Src' } },
+              sat_bar:   { style: 'blank' },
+              btn_r:     { style: 'blank' },
+              btn_g:     { style: 'blank' },
+              btn_b:     { style: 'blank' },
+              btn_sdn:   { style: 'blank' },
+              btn_sup:   { style: 'blank' },
+              btn_on:    { icon: 'sun',    label: 'ON' },
+              btn_off:   { icon: 'moon',   label: 'OFF' },
+              btn_m:     { icon: 'lock',   label: 'Away' }
+            }
+          }
+        }
+      ];
+    }
+
+    // 2. 8-ZONE B8: Standardized 8-Room Icons + Segmented Device Ring / Sliders!
+    if (m.layout === 'b8') {
+      return [
+        {
+          id: 'b8_whole_home_devices',
+          name: '8-Room Standardized Icons + 6-Device Segmented Wheel',
+          desc: 'Zones 1-8 mapped to standardized rooms; Color Ring segmented into Fan (1-6), Blinds, Curtains, AC, Sonos & Strip',
+          touch_zones: {
+            hue_ring: { enabled: true, segments: 6, offset_deg: -30, zone_mask: 65535, labels: ['Fan','Blinds','Curtains','AC','Audio','Strip'] },
+            sat_bar:  { enabled: true, segments: 3, offset_deg: 0,   zone_mask: 65535, labels: ['Day','Relax','Cinema'] },
+            bri_bar:  { enabled: false, segments: 4, offset_deg: 0,  zone_mask: 65535, labels: ['','','',''] },
+            cct_bar:  { enabled: false, segments: 4, offset_deg: 0,  zone_mask: 65535, labels: ['','','',''] }
+          },
+          facia: {
+            enabled: true, theme: defTheme, panelTitle: 'SMART HOME CONTROL', defaultPadStyle: 'keycap', showLedPinhole: true, hideLogo: true,
+            pads: {
+              hue_seg_1: { icon: 'fan',        label: 'Fan',     multifunc: { enabled: true, steps: 6, unit: 'Spd' } },
+              hue_seg_2: { icon: 'blinds',     label: 'Blinds',  multifunc: { enabled: true, steps: 4, unit: 'Pos' } },
+              hue_seg_3: { icon: 'curtains',   label: 'Drapes',  multifunc: { enabled: true, steps: 4, unit: 'Pos' } },
+              hue_seg_4: { icon: 'ac',         label: 'Climate', multifunc: { enabled: true, steps: 5, unit: 'Temp' } },
+              hue_seg_5: { icon: 'speaker',    label: 'Sonos',   multifunc: { enabled: true, steps: 5, unit: 'Vol' } },
+              hue_seg_6: { icon: 'strip',      label: 'LEDs',    multifunc: { enabled: true, steps: 4, unit: 'Scene' } },
+              sat_seg_1: { icon: 'sun',        label: 'Bright' },
+              sat_seg_2: { icon: 'coffee',     label: 'Warm' },
+              sat_seg_3: { icon: 'tv',         label: 'Movie' },
+              center_w:  { icon: 'downlight',  label: 'White' },
+              btn_on:    { icon: 'power',      label: 'ON' },
+              btn_off:   { icon: 'moon',       label: 'OFF' },
+              btn_sdn:   { icon: 'blinds',     label: 'Shut' },
+              btn_m:     { icon: 'sparkles',   label: 'Scene' },
+              btn_sup:   { icon: 'sun',        label: 'Open' },
+              zone_0:    { icon: 'home_all',   label: 'Home' },
+              zone_1:    { icon: 'sofa',       label: 'Living' },
+              zone_2:    { icon: 'kitchen',    label: 'Kitchen' },
+              zone_3:    { icon: 'dining',     label: 'Dining' },
+              zone_4:    { icon: 'bed',        label: 'Master' },
+              btn_60s:   { icon: 'lock',       label: 'Away' },
+              zone_5:    { icon: 'bed_single', label: 'Bed 2' },
+              zone_6:    { icon: 'desk',       label: 'Study' },
+              zone_7:    { icon: 'bath',       label: 'Bath' },
+              zone_8:    { icon: 'garden',     label: 'Patio' }
+            }
+          }
+        },
+        {
+          id: 'b8_rooms_analog',
+          name: '8-Room Standardized Lighting (Continuous Wheel & Sliders)',
+          desc: 'Keeps analog Color Wheel & Dimmer sliders while adding crisp Room Icons to Zones 1-8',
+          touch_zones: {
+            hue_ring: { enabled: false, segments: 6, offset_deg: 0, zone_mask: 65535, labels: ['','','','','',''] },
+            sat_bar:  { enabled: false, segments: 4, offset_deg: 0, zone_mask: 65535, labels: ['','','',''] },
+            bri_bar:  { enabled: false, segments: 4, offset_deg: 0, zone_mask: 65535, labels: ['','','',''] },
+            cct_bar:  { enabled: false, segments: 4, offset_deg: 0, zone_mask: 65535, labels: ['','','',''] }
+          },
+          facia: {
+            enabled: true, theme: defTheme, panelTitle: 'RESIDENCE LIGHTING', defaultPadStyle: 'keycap', showLedPinhole: true, hideLogo: true,
+            pads: {
+              center_w: { icon: 'sun',        label: 'White' },
+              zone_0:   { icon: 'home_all',   label: 'All' },
+              zone_1:   { icon: 'sofa',       label: 'Living' },
+              zone_2:   { icon: 'kitchen',    label: 'Kitchen' },
+              zone_3:   { icon: 'dining',     label: 'Dining' },
+              zone_4:   { icon: 'bed',        label: 'Master' },
+              btn_60s:  { icon: 'timer',      label: '60s Off' },
+              zone_5:   { icon: 'bed_single', label: 'Guest' },
+              zone_6:   { icon: 'desk',       label: 'Office' },
+              zone_7:   { icon: 'bath',       label: 'Bath' },
+              zone_8:   { icon: 'garden',     label: 'Outdoor' }
+            }
+          }
+        }
+      ];
+    }
+
+    // 3. STRIP / MULTI-ZONE PANELS (B1..B4, U1..U3, M4, B5): Standardized Room Rockers + Segmented Multi-Device Bars!
+    const topSurf = (m.kind === 'b1' || m.kind === 'u1') ? 'bri_bar' : (m.kind === 'b2' || m.kind === 'u2') ? 'cct_bar' : 'hue_ring';
+    const segPref = topSurf === 'bri_bar' ? 'bri_seg_' : topSurf === 'cct_bar' ? 'cct_seg_' : 'hue_seg_';
+    return [
+      {
+        id: 'strip_rooms_plus_devices',
+        name: 'Room Rockers + 4-Device Segmented Bar (Fan/Blinds/AC/Audio)',
+        desc: 'Top touch strip becomes 4 multi-function device pads (Tap = Step 1-6, Hold = Toggle); bottom rockers use standardized Room Icons',
+        touch_zones: {
+          hue_ring: { enabled: topSurf === 'hue_ring', segments: 4, offset_deg: 0, zone_mask: 65535, labels: ['Fan','Blinds','AC','Audio'] },
+          cct_bar:  { enabled: topSurf === 'cct_bar',  segments: 4, offset_deg: 0, zone_mask: 65535, labels: ['Fan','Blinds','AC','Audio'] },
+          bri_bar:  { enabled: topSurf === 'bri_bar',  segments: 4, offset_deg: 0, zone_mask: 65535, labels: ['Fan','Blinds','AC','Audio'] },
+          sat_bar:  { enabled: false, segments: 4, offset_deg: 0, zone_mask: 65535, labels: ['','','',''] }
+        },
+        facia: {
+          enabled: true, theme: defTheme, panelTitle: 'APARTMENT SUITE', defaultPadStyle: 'keycap', showLedPinhole: true, hideLogo: true,
+          pads: {
+            [segPref + '1']: { icon: 'fan',      label: 'Fan',     multifunc: { enabled: true, steps: 6, unit: 'Spd' } },
+            [segPref + '2']: { icon: 'blinds',   label: 'Blinds',  multifunc: { enabled: true, steps: 4, unit: 'Pos' } },
+            [segPref + '3']: { icon: 'ac',       label: 'Climate', multifunc: { enabled: true, steps: 5, unit: 'Temp' } },
+            [segPref + '4']: { icon: 'speaker',  label: 'Sonos',   multifunc: { enabled: true, steps: 5, unit: 'Vol' } },
+            zone_0: { icon: 'home_all', label: 'All' },
+            zone_1: { icon: 'sofa',     label: 'Living' },
+            zone_2: { icon: 'kitchen',  label: 'Kitchen' },
+            zone_3: { icon: 'bed',      label: 'Master' },
+            zone_4: { icon: 'garden',   label: 'Patio' }
+          }
+        }
+      },
+      {
+        id: 'strip_bw_print',
+        name: 'High-Contrast B&W Room Stencil',
+        desc: 'Clean monochrome room rockers and crisp graduated dimmer bar ready for 1:1 laser/vinyl printing',
+        touch_zones: {
+          hue_ring: { enabled: false, segments: 4, offset_deg: 0, zone_mask: 65535, labels: ['','','',''] },
+          cct_bar:  { enabled: false, segments: 4, offset_deg: 0, zone_mask: 65535, labels: ['','','',''] },
+          bri_bar:  { enabled: false, segments: 4, offset_deg: 0, zone_mask: 65535, labels: ['','','',''] },
+          sat_bar:  { enabled: false, segments: 4, offset_deg: 0, zone_mask: 65535, labels: ['','','',''] }
+        },
+        facia: {
+          enabled: true, theme: 'ink_bw', monochrome: true, panelTitle: 'LIGHTING ZONES', defaultPadStyle: 'outline', showLedPinhole: true, hideLogo: true,
+          pads: {
+            zone_0: { icon: 'home_all', label: 'All' },
+            zone_1: { icon: 'sofa',     label: 'Lounge' },
+            zone_2: { icon: 'dining',   label: 'Dining' },
+            zone_3: { icon: 'bed',      label: 'Bedroom' },
+            zone_4: { icon: 'bath',     label: 'Bath' }
+          }
+        }
+      }
+    ];
+  }
+
+  // Stamp all 61 packaged factory MiBoxer models as read-only!
+  const FACTORY_MODELS = MODELS.map(m => {
+    m.readonly = true;
+    m.isCustom = false;
+    return m;
+  });
+
+  function resolveBaseModel(modelOrId) {
+    const m = typeof modelOrId === 'string' ? (MODELS.find(x => x.id === modelOrId) || FACTORY_MODELS[0]) : (modelOrId || FACTORY_MODELS[0]);
+    if (m.isCustom && m.baseModel) {
+      return FACTORY_MODELS.find(f => f.id === m.baseModel) || m;
+    }
+    return m;
+  }
+
+  function registerCustomModels(rawList) {
+    // Strip existing custom entries in-place while keeping MODELS array reference stable
+    for (let i = MODELS.length - 1; i >= 0; i--) {
+      if (MODELS[i].isCustom) MODELS.splice(i, 1);
+    }
+    if (!Array.isArray(rawList)) return MODELS;
+    rawList.forEach(cm => {
+      if (!cm || !cm.id) return;
+      const bId = cm.base_model || cm.baseModel || 'B8';
+      const base = FACTORY_MODELS.find(f => f.id === bId) || FACTORY_MODELS[0];
+      MODELS.unshift({
+        id: cm.id,
+        base: base.base || base.id,
+        baseModel: base.id,
+        finish: base.finish || 'white',
+        cat: 'custom',
+        baseCat: base.cat,
+        proto: base.proto,
+        zones: base.zones,
+        layout: base.layout,
+        kind: base.kind,
+        name: cm.name || `${base.id} Custom`,
+        sub: `Custom ${base.id} (${base.zones}Z)`,
+        readonly: false,
+        isCustom: true,
+        stencilMode: cm.stencil_mode || 'full_panel',
+        facia: cm.facia || null,
+        touchZones: cm.touch_zones || null
+      });
+    });
+    return MODELS;
+  }
+
+  async function syncCustomModelsFromHub(hubBaseUrl) {
+    const base = (hubBaseUrl || '').replace(/\/$/, '');
+    try {
+      const res = await fetch(`${base}/api/remotes/custom_models`, { cache: 'no-store' });
+      if (!res.ok) return MODELS;
+      const list = await res.json();
+      return registerCustomModels(list);
+    } catch (_) {
+      return MODELS;
+    }
+  }
+
+  const _baseRenderModelSvg = renderModelSvg;
+  function renderStudioSvg(modelOrId, opts) {
+    const o = opts || {};
+    const m = typeof modelOrId === 'string' ? (MODELS.find(x => x.id === modelOrId) || MODELS[0]) : (modelOrId || MODELS[0]);
+    const effFacia = o.facia || m.facia || null;
+    const effTz = o.touchZones || m.touchZones || null;
+    if (isCapacitiveFlatPanel(m) && ((effFacia && effFacia.enabled) || o.editorMode)) {
+      return renderCapacitiveStencilSvg(m, Object.assign({}, o, { facia: effFacia, touchZones: effTz }));
+    }
+    return _baseRenderModelSvg(m, o);
+  }
+
+  // Auto-hydrate custom models if loaded inside a browser pointing at Hub
+  if (typeof fetch === 'function' && typeof document !== 'undefined') {
+    const curScript = document.currentScript && document.currentScript.src ? new URL(document.currentScript.src, location.href).origin : '';
+    syncCustomModelsFromHub(curScript);
+  }
+
+  root.MiBoxerCatalog = {
+    MODELS,
+    FACTORY_MODELS,
+    FACIA_ICONS,
+    FACIA_THEMES,
+    isCapacitiveFlatPanel,
+    resolveBaseModel,
+    registerCustomModels,
+    syncCustomModelsFromHub,
+    getPhysicalDims,
+    getPanelBlueprint,
+    getSamplePresetsForModel,
+    renderCapacitiveStencilSvg,
+    baseRenderModelSvg: _baseRenderModelSvg,
+    renderModelSvg: renderStudioSvg
+  };
 })(typeof window !== 'undefined' ? window : globalThis);
