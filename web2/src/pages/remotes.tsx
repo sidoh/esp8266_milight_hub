@@ -11,8 +11,11 @@ declare global {
   interface Window {
     MiBoxerCatalog?: {
       MODELS: CatalogModel[];
-      renderModelSvg: (model: CatalogModel, opts?: { size?: string; uid?: string }) => string;
+      renderModelSvg: (model: CatalogModel, opts?: any) => string;
+      isCapacitiveFlatPanel?: (model: any) => boolean;
+      syncCustomModelsFromHub?: (hubBase?: string) => Promise<CatalogModel[]>;
     };
+    MiLightRemoteStudio?: any;
   }
 }
 
@@ -26,6 +29,11 @@ interface CatalogModel {
   zones: number;
   finish?: string;
   pairId?: string;
+  readonly?: boolean;
+  isCustom?: boolean;
+  baseModel?: string;
+  facia?: any;
+  touchZones?: any;
 }
 
 interface GestureConfig {
@@ -62,6 +70,10 @@ interface RegisteredRemote {
   active: boolean;
   gestures?: GestureConfig;
   touch_zones?: TouchZonesConfig;
+  facia?: any;
+  calibration?: any;
+  linked_device_id?: number;
+  linked_hex_id?: string;
 }
 
 interface RemoteEventItem {
@@ -176,6 +188,15 @@ export default function RemotesPage() {
   const [activeSurfaceTab, setActiveSurfaceTab] = useState<"hue_ring" | "cct_bar" | "sat_bar" | "bri_bar">("hue_ring");
 
   const svgStageRef = useRef<HTMLDivElement | null>(null);
+  const stageCtrlRef = useRef<any>(null);
+  const remotesRef = useRef<RegisteredRemote[]>([]);
+  const [pairingCustomId, setPairingCustomId] = useState<number | null>(null);
+  const pairingCustomIdRef = useRef<number | null>(null);
+  const [selectedCompanionId, setSelectedCompanionId] = useState<string>("");
+  const companionStageRef = useRef<HTMLDivElement | null>(null);
+  const companionCtrlRef = useRef<any>(null);
+  const [pairViewMode, setPairViewMode] = useState<"split" | "custom" | "physical">("split");
+  const saveRemoteLinkRef = useRef<any>(null);
   const seenSeqRef = useRef<number>(-1);
   const localUiSuppressRef = useRef<Record<string, number>>({});
   const selectedIdRef = useRef<number | null>(null);
@@ -216,11 +237,16 @@ export default function RemotesPage() {
       setCatalogReady(true);
       return;
     }
-    const sc = document.createElement("script");
-    sc.src = "/miboxer_catalog.js";
-    sc.async = true;
-    sc.onload = () => setCatalogReady(true);
-    document.head.appendChild(sc);
+    const loadScript = (src: string) =>
+      new Promise<void>((resolve) => {
+        const s = document.createElement("script");
+        s.src = src;
+        s.async = false;
+        s.onload = () => resolve();
+        s.onerror = () => resolve();
+        document.head.appendChild(s);
+      });
+    Promise.all([loadScript("/miboxer_catalog.js?v=1795344248"), loadScript("/remote-studio.js?v=1795344248")]).then(async () => { await window.MiBoxerCatalog?.syncCustomModelsFromHub?.(''); setCatalogReady(true); setCatalogTick((t) => t + 1); });
   }, []);
 
   const loadRemotes = useCallback(async () => {
@@ -249,7 +275,36 @@ export default function RemotesPage() {
     catalogModels.find((m) => m.proto === currentRemote?.remote_type) ||
     catalogModels[0];
 
-  const pulseFaceplate = useCallback((action: string, zone: number, isRf: boolean) => {
+  const linkedPartner = (() => {
+    if (!currentRemote) return null;
+    if (currentRemote.linked_device_id) {
+      return remotes.find((r) => r.device_id === currentRemote.linked_device_id) || null;
+    }
+    return remotes.find((c) => c.linked_device_id === currentRemote.device_id) || null;
+  })();
+  const partnerCatalogModel = linkedPartner
+    ? catalogModels.find((m) => m.id === linkedPartner.visual_model) ||
+      catalogModels.find((m) => m.proto === linkedPartner.remote_type) ||
+      catalogModels[0]
+    : null;
+
+  const pulseFaceplate = useCallback((action: string, zone: number, isRf: boolean, val?: number) => {
+    if (companionCtrlRef.current && companionCtrlRef.current.pulseAction && linkedPartner) {
+      const wAny = window as any;
+      if (currentRemote?.linked_device_id && wAny.MiLightRemoteStudio?.resolveCustomToPhysicalAction) {
+        const rev = wAny.MiLightRemoteStudio.resolveCustomToPhysicalAction(action, val, zone, currentRemote.touch_zones, linkedPartner.calibration);
+        companionCtrlRef.current.pulseAction(rev.action, zone, isRf, rev.value);
+      } else if (wAny.MiLightRemoteStudio?.resolvePhysicalToCustomAction) {
+        const conv = wAny.MiLightRemoteStudio.resolvePhysicalToCustomAction(action, val ?? -1, zone, linkedPartner.touch_zones, linkedPartner.calibration);
+        companionCtrlRef.current.pulseAction(conv.converted ? conv.action : action, zone, isRf, conv.converted ? conv.value : val);
+      } else {
+        companionCtrlRef.current.pulseAction(action, zone, isRf, val);
+      }
+    }
+    if (stageCtrlRef.current && stageCtrlRef.current.pulseAction) {
+      stageCtrlRef.current.pulseAction(action, zone, isRf, val);
+      return;
+    }
     const stage = svgStageRef.current;
     if (!stage) return;
     const cls = isRf ? "fire-rf" : "fire-ui";
@@ -290,7 +345,7 @@ export default function RemotesPage() {
       const z = zoneOverride !== undefined ? zoneOverride : activeZoneRef.current;
       const apiAction = action === "kelvin" ? "color_temp" : action;
       localUiSuppressRef.current[`${rem.device_id}:${z}:${apiAction}`] = Date.now();
-      pulseFaceplate(apiAction, z, false);
+      pulseFaceplate(apiAction, z, false, value);
       const stamp = new Date().toLocaleTimeString();
       setSvgCaption(`[Virtual UI] Zone ${z} → ${customLabel ? `${apiAction} ("${customLabel}")` : `${apiAction}(${value})`}`);
       setLogs((prev) => [
@@ -310,6 +365,21 @@ export default function RemotesPage() {
             value: Number(value),
           }),
         });
+        if (rem.linked_device_id && rem.linked_device_id !== rem.device_id && !/^(hue|cct|sat|bri)_seg_\d+$/.test(apiAction)) {
+          const linkedPhys = remotesRef.current.find((p) => p.device_id === rem.linked_device_id);
+          localUiSuppressRef.current[`${rem.linked_device_id}:${z}:${apiAction}`] = Date.now();
+          await fetch("/api/remotes/virtual_send", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              device_id: rem.linked_device_id,
+              remote_type: linkedPhys ? linkedPhys.remote_type : rem.remote_type,
+              group_id: z,
+              action: apiAction,
+              value: Number(value),
+            }),
+          });
+        }
       } catch (e) {
         console.error("virtual_send error", e);
       }
@@ -317,11 +387,55 @@ export default function RemotesPage() {
     [currentRemote, pulseFaceplate]
   );
 
+
+  useEffect(() => {
+    const cStage = companionStageRef.current;
+    if (!cStage || !linkedPartner || !partnerCatalogModel || pairViewMode !== "split" || !window.MiLightRemoteStudio?.mountInteractiveStage) {
+      if (cStage) cStage.innerHTML = "";
+      companionCtrlRef.current = null;
+      return;
+    }
+    companionCtrlRef.current = window.MiLightRemoteStudio.mountInteractiveStage(cStage, {
+      model: partnerCatalogModel,
+      uid: `hub_comp_${linkedPartner.device_id}`,
+      maxHeight: "340px",
+      facia: linkedPartner.facia,
+      touchZones: linkedPartner.touch_zones,
+      calibration: linkedPartner.calibration,
+      activeZone: activeZone,
+      onZoneChange: (z: number) => setActiveZone(z),
+      onAction: (act: string, val: number, z: number, lbl?: string) => {
+        sendVirtualTx(act, val, z, linkedPartner, lbl);
+      },
+    });
+  }, [linkedPartner, partnerCatalogModel, pairViewMode, activeZone, catalogReady, sendVirtualTx]);
+
   // Render interactive 1:1 SVG faceplate + Graphical Segmented Ring & Bar Overlays!
   useEffect(() => {
     const stage = svgStageRef.current;
     if (!stage || !catalogReady || !window.MiBoxerCatalog || !currentCatalogModel || !currentRemote) {
       if (stage && !currentRemote) stage.innerHTML = "";
+      return;
+    }
+    if (window.MiLightRemoteStudio && window.MiLightRemoteStudio.mountInteractiveStage) {
+      stageCtrlRef.current = window.MiLightRemoteStudio.mountInteractiveStage(stage, {
+        model: currentCatalogModel,
+        uid: `hub_${currentRemote.device_id}`,
+        maxHeight: "375px",
+        facia: currentRemote.facia,
+        touchZones: currentRemote.touch_zones,
+        calibration: currentRemote.calibration,
+        activeZone: activeZone,
+        onZoneChange: (z: number) => setActiveZone(z),
+        onScrubPreview: (act: string, v: number) => {
+          if (act === "hue") setHueVal(v);
+          if (act === "brightness") setBriVal(v);
+          if (act === "kelvin") setCctVal(v);
+        },
+        onAction: (act: string, val: number, z: number, lbl?: string) => {
+          sendVirtualTx(act, val, z, currentRemote, lbl);
+        },
+      });
       return;
     }
     stage.innerHTML = window.MiBoxerCatalog.renderModelSvg(currentCatalogModel, {
@@ -584,12 +698,54 @@ export default function RemotesPage() {
             setModalSniffBanner(`🟢 Captured Physical Remote ${ev.hex_id} (${ev.remote_type}, Zone ${ev.group_id} ${ev.action})!`);
           }
 
-          if (ev.device_id === selectedIdRef.current) {
+          if (!isVirtual && pairingCustomIdRef.current && ev.device_id && ev.device_id !== pairingCustomIdRef.current) {
+            const targetCust = remotesRef.current.find((r) => r.device_id === pairingCustomIdRef.current);
+            const physMatch = remotesRef.current.find((r) => r.device_id === ev.device_id);
+            if (targetCust && saveRemoteLinkRef.current) {
+              saveRemoteLinkRef.current(targetCust, {
+                device_id: ev.device_id,
+                hex_id: ev.hex_id,
+                name: physMatch?.name || ev.hex_id,
+              });
+            }
+          }
+
+          const selRem = remotesRef.current.find((r) => r.device_id === selectedIdRef.current);
+          const evRem = remotesRef.current.find((r) => r.device_id === ev.device_id);
+          const isDirect = ev.device_id === selectedIdRef.current;
+          const isLinkedPhysToCustom = Boolean(selRem && selRem.linked_device_id === ev.device_id);
+          const isLinkedCustomToPhys = Boolean(selRem && evRem && evRem.linked_device_id === selRem.device_id);
+
+          if (selRem && (isDirect || isLinkedPhysToCustom || isLinkedCustomToPhys)) {
+            let dispAct = ev.action;
+            let dispVal = ev.value;
+            let dispLbl = ev.label || "";
+
+            if (isLinkedPhysToCustom && window.MiLightRemoteStudio?.resolvePhysicalToCustomAction) {
+              const conv = window.MiLightRemoteStudio.resolvePhysicalToCustomAction(
+                ev.action,
+                ev.value,
+                ev.group_id,
+                selRem.touch_zones,
+                selRem.calibration
+              );
+              if (conv.converted) {
+                dispAct = conv.action;
+                dispVal = conv.value;
+                dispLbl = conv.label;
+              }
+            }
+
             setActiveZone(ev.group_id);
-            pulseFaceplate(ev.action, ev.group_id, !isVirtual);
+            pulseFaceplate(dispAct, ev.group_id, !isVirtual, dispVal);
+            const linkTag = isLinkedPhysToCustom
+              ? ` • Linked ${ev.hex_id}`
+              : isLinkedCustomToPhys
+              ? ` • From Custom ${evRem?.name || ev.hex_id}`
+              : "";
             setSvgCaption(
-              `${isVirtual ? "[Virtual UI]" : "[Physical 2.4GHz RF]"}${gBadge} Z${ev.group_id} → ${ev.action}${
-                ev.label ? ` ("${ev.label}")` : ev.value !== -1 ? `(${ev.value})` : ""
+              `${isVirtual ? "[Virtual UI" : "[Physical 2.4GHz RF"}${linkTag}]${gBadge} Z${ev.group_id} → ${dispAct}${
+                dispLbl ? ` ("${dispLbl}")` : dispVal !== -1 ? `(${dispVal})` : ""
               }`
             );
           }
@@ -598,6 +754,41 @@ export default function RemotesPage() {
     }, 320);
     return () => clearInterval(timer);
   }, [pulseFaceplate]);
+
+  useEffect(() => {
+    remotesRef.current = remotes;
+  }, [remotes]);
+
+  useEffect(() => {
+    pairingCustomIdRef.current = pairingCustomId;
+  }, [pairingCustomId]);
+
+  const saveRemoteLink = async (
+    customRem: RegisteredRemote,
+    physTarget: { device_id: number; hex_id: string; name?: string } | null,
+    switchToId?: number
+  ) => {
+    await fetch("/api/remotes/studio_meta", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        device_id: customRem.device_id,
+        hex_id: customRem.hex_id,
+        linked_device_id: physTarget ? physTarget.device_id : 0,
+        linked_hex_id: physTarget ? physTarget.hex_id : "",
+      }),
+    });
+    setPairingCustomId(null);
+    await loadRemotes();
+    if (switchToId) setSelectedId(switchToId);
+    toast({
+      title: physTarget ? `Linked to ${physTarget.name || physTarget.hex_id}` : "Unlinked Custom Panel",
+      description: physTarget
+        ? `Live 2.4GHz presses on ${physTarget.hex_id} & UI clicks on "${customRem.name}" are now synchronized.`
+        : `"${customRem.name}" returned to standalone virtual mode (${customRem.hex_id}).`,
+    });
+  };
+  saveRemoteLinkRef.current = saveRemoteLink;
 
   const openConfigurator = (mode: "add" | "edit", adoptEv?: RemoteEventItem | null) => {
     setModalMode(mode);
@@ -683,6 +874,12 @@ export default function RemotesPage() {
         topic_prefix: wPrefix.trim() || `milight/actions/rem_${parsedId.toString(16).toLowerCase()}`,
         num_zones: Number(wZones) || 8,
         active: true,
+        ...(catalogModels.find((cm) => cm.id === wModel)?.isCustom
+          ? {
+              touch_zones: catalogModels.find((cm) => cm.id === wModel)?.touchZones,
+              facia: catalogModels.find((cm) => cm.id === wModel)?.facia,
+            }
+          : {}),
       }),
     });
     setModalOpen(false);
@@ -745,7 +942,7 @@ export default function RemotesPage() {
             </span>
           </span>
         </div>
-        <Button onClick={() => openConfigurator("add")}>+ Detect / Add Remote</Button>
+        <div className="flex flex-wrap items-center gap-2"><Button variant="outline" onClick={() => loadRemotes()}>Sync Remotes</Button><Button variant="outline" onClick={() => window.open("http://192.168.6.196:8588", "milight_3d_twin_singleton")}>3D Twin (:8588) ↗</Button><Button onClick={() => openConfigurator("add")}>+ Detect / Add Remote</Button></div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -775,6 +972,15 @@ export default function RemotesPage() {
                       <div className="font-semibold text-sm">{r.name}</div>
                       <div className="text-xs text-muted-foreground font-mono">
                         {r.visual_model} • {r.hex_id} • {r.num_zones}Z {hasMulti ? "• 2x/3x" : ""}
+                        {r.linked_hex_id ? (
+                          <span className="ml-1.5 text-emerald-600 dark:text-emerald-400 font-sans font-semibold">
+                            🔗 {r.linked_hex_id}
+                          </span>
+                        ) : remotes.some((c) => c.linked_device_id === r.device_id) ? (
+                          <span className="ml-1.5 text-sky-600 dark:text-sky-400 font-sans font-semibold">
+                            🔗 Overlay {remotes.find((c) => c.linked_device_id === r.device_id)?.hex_id || 'Linked'}
+                          </span>
+                        ) : null}
                       </div>
                     </div>
                     <Badge variant={isSel ? "default" : "outline"}>{r.visual_model}</Badge>
@@ -844,6 +1050,56 @@ export default function RemotesPage() {
               </div>
               {currentRemote && (
                 <div className="flex flex-wrap items-center gap-2">
+                  {window.MiBoxerCatalog?.isCapacitiveFlatPanel?.(currentCatalogModel) && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        window.MiLightRemoteStudio?.openFaciaDesigner({
+                          model: currentCatalogModel,
+                          hexId: currentRemote.hex_id,
+                          remoteName: currentRemote.name,
+                          facia: currentRemote.facia,
+                          touchZones: currentRemote.touch_zones,
+                          calibration: currentRemote.calibration,
+                          onTestAction: (act: string, val: number, z: number) => sendVirtualTx(act, val, z, currentRemote),
+                          onSaveCustomModel: async ({ customModel, bindNow, calibration, touchZones, facia }: any) => {
+                            setCatalogTick((t) => t + 1);
+                            if (bindNow) {
+                              await fetch("/api/remotes", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                  ...currentRemote,
+                                  visual_model: customModel.id,
+                                  touch_zones: touchZones || currentRemote.touch_zones,
+                                  facia: facia,
+                                  calibration: calibration,
+                                }),
+                              });
+                            }
+                            await loadRemotes();
+                            toast({
+                              title: `Saved Custom Remote "${customModel.name}"`,
+                              description: bindNow
+                                ? `Bound ${currentRemote.hex_id} to ${customModel.id} & synced across Hub, Homebridge & HA.`
+                                : `Added ${customModel.id} to Custom Remote catalog.`,
+                            });
+                          },
+                          onDeleteCustomModel: async (_delId: string, baseId: string) => {
+                            setCatalogTick((t) => t + 1);
+                            await loadRemotes();
+                            toast({
+                              title: "Deleted Custom Remote",
+                              description: `Reverted bound remotes safely to factory ${baseId}.`,
+                            });
+                          },
+                        });
+                      }}
+                    >
+                      {currentCatalogModel?.isCustom ? "Edit Custom Stencil" : "+ Create Custom Remote"}
+                    </Button>
+                  )}
                   <Button size="sm" onClick={openMacroStudio}>
                     Gestures &amp; Touch Zones
                   </Button>
@@ -857,17 +1113,249 @@ export default function RemotesPage() {
               )}
             </CardHeader>
 
-            <CardContent className="pt-6">
+            <CardContent className="pt-5 space-y-5">
+              {currentRemote && (() => {
+                const isCustomEntry = Boolean(
+                  currentCatalogModel?.isCustom ||
+                    currentRemote.visual_model.startsWith("CUST_") ||
+                    currentRemote.name.includes("[Showcase]")
+                );
+                const physicalRemotes = remotes.filter(
+                  (r) => !r.visual_model.startsWith("CUST_") && !r.name.includes("[Showcase]") && r.device_id !== currentRemote.device_id
+                );
+                const customEntries = remotes.filter(
+                  (r) => (r.visual_model.startsWith("CUST_") || r.name.includes("[Showcase]")) && r.device_id !== currentRemote.device_id
+                );
+
+                if (isCustomEntry) {
+                  const linkedPhys = remotes.find((r) => r.device_id === currentRemote.linked_device_id);
+                  const baseId = (currentCatalogModel as any)?.baseModel || currentCatalogModel?.base || "";
+                  const sortedPhys = [...physicalRemotes].sort((a, b) => {
+                    const aMatch = a.visual_model === baseId || a.remote_type === currentRemote.remote_type ? 0 : 1;
+                    const bMatch = b.visual_model === baseId || b.remote_type === currentRemote.remote_type ? 0 : 1;
+                    return aMatch - bMatch;
+                  });
+                  const isListening = pairingCustomId === currentRemote.device_id;
+
+                  return (
+                    <div
+                      className={`rounded-lg border px-4 py-3 flex flex-wrap items-center justify-between gap-3 text-xs ${
+                        currentRemote.linked_device_id
+                          ? "border-emerald-500/40 bg-emerald-500/10"
+                          : "border-border bg-muted/40"
+                      }`}
+                    >
+                      <div className="space-y-0.5">
+                        <div className="font-semibold text-sm">
+                          {currentRemote.linked_device_id
+                            ? `🟢 Linked to Live Hardware: ${linkedPhys ? linkedPhys.name : currentRemote.linked_hex_id} (${currentRemote.linked_hex_id})`
+                            : "🔗 Link to Live / Detected Panel"}
+                        </div>
+                        <div className="text-muted-foreground">
+                          {isListening
+                            ? "Listening on Radio #2... Press ANY button on your physical wall panel or remote now!"
+                            : currentRemote.linked_device_id
+                            ? `Physical 2.4GHz presses on ${currentRemote.linked_hex_id} animate this custom stencil & its segmented buttons in real time.`
+                            : `Currently acting as virtual ${currentRemote.hex_id}. Link to your physical ${baseId || "MiBoxer"} panel to see & send live button presses:`}
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        <select
+                          value={currentRemote.linked_device_id ? String(currentRemote.linked_device_id) : ""}
+                          onChange={(e) => {
+                            const valId = Number(e.target.value);
+                            if (!valId) {
+                              saveRemoteLink(currentRemote, null);
+                              return;
+                            }
+                            const found = remotes.find((r) => r.device_id === valId);
+                            if (found) saveRemoteLink(currentRemote, found);
+                            else if (lastRf && lastRf.device_id === valId) {
+                              saveRemoteLink(currentRemote, {
+                                device_id: lastRf.device_id,
+                                hex_id: lastRf.hex_id,
+                                name: `Sniffed ${lastRf.hex_id}`,
+                              });
+                            }
+                          }}
+                          className="h-8 rounded-md border border-input bg-background px-2.5 text-xs font-medium"
+                        >
+                          <option value="">Unlinked (Virtual {currentRemote.hex_id} Only)</option>
+                          {sortedPhys.map((p) => {
+                            const compat = p.visual_model === baseId || p.visual_model.startsWith(baseId);
+                            return (
+                              <option key={p.device_id} value={p.device_id}>
+                                {compat ? "★ " : ""}{p.name} ({p.hex_id} • {p.visual_model})
+                              </option>
+                            );
+                          })}
+                          {lastRf && lastRf.device_id && !remotes.some((r) => r.device_id === lastRf.device_id) && (
+                            <option value={lastRf.device_id}>
+                              🟢 Live Sniffed Panel ({lastRf.hex_id} • {lastRf.remote_type})
+                            </option>
+                          )}
+                        </select>
+
+                        <Button
+                          size="sm"
+                          variant={isListening ? "default" : "outline"}
+                          className="h-8 text-xs"
+                          onClick={() => setPairingCustomId(isListening ? null : currentRemote.device_id)}
+                        >
+                          {isListening ? "Cancel RF Listen" : "📡 Press Panel to Link"}
+                        </Button>
+
+                        {linkedPhys && (
+                          <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setSelectedId(linkedPhys.device_id)}>
+                            View {linkedPhys.visual_model} ({linkedPhys.hex_id})
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                }
+
+                const linkedCompanions = customEntries.filter((c) => c.linked_device_id === currentRemote.device_id);
+                const sortedCompatibleCustom = [...customEntries].sort((a, b) => {
+                  const modA = catalogModels.find((m) => m.id === a.visual_model);
+                  const modB = catalogModels.find((m) => m.id === b.visual_model);
+                  const aOk = modA?.baseModel === currentRemote.visual_model || modA?.base === currentRemote.visual_model ? 0 : 1;
+                  const bOk = modB?.baseModel === currentRemote.visual_model || modB?.base === currentRemote.visual_model ? 0 : 1;
+                  return aOk - bOk;
+                });
+
+                if (linkedCompanions.length > 0) {
+                  return (
+                    <div className="rounded-lg border border-sky-500/40 bg-sky-500/10 px-4 py-3 flex flex-wrap items-center justify-between gap-3 text-xs">
+                      <div className="space-y-0.5">
+                        <div className="font-semibold text-sm">
+                          🔗 Linked Custom Stencil: {linkedCompanions.map((c) => c.name).join(", ")}
+                        </div>
+                        <div className="text-muted-foreground">
+                          Button presses on {currentRemote.hex_id} &amp; your linked custom panel stay synchronized in real time.
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {linkedCompanions.map((comp) => (
+                          <Button key={comp.device_id} size="sm" className="h-8 text-xs" onClick={() => setSelectedId(comp.device_id)}>
+                            Open Custom View ({comp.name.replace("[Showcase] ", "")}) →
+                          </Button>
+                        ))}
+                        <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => saveRemoteLink(linkedCompanions[0], null)}>
+                          Unlink
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                }
+
+                if (sortedCompatibleCustom.length > 0) {
+                  const defaultTarget =
+                    sortedCompatibleCustom.find((c) => String(c.device_id) === selectedCompanionId) || sortedCompatibleCustom[0];
+                  return (
+                    <div className="rounded-lg border bg-muted/40 px-4 py-3 flex flex-wrap items-center justify-between gap-3 text-xs">
+                      <div className="space-y-0.5">
+                        <div className="font-semibold text-sm">
+                          🔗 Link a Custom Remote Stencil to {currentRemote.name} ({currentRemote.hex_id})
+                        </div>
+                        <div className="text-muted-foreground">
+                          Mirror live 2.4GHz presses from {currentRemote.hex_id} onto a Custom Panel without overwriting this factory {currentRemote.visual_model}:
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <select
+                          value={String(defaultTarget.device_id)}
+                          onChange={(e) => setSelectedCompanionId(e.target.value)}
+                          className="h-8 rounded-md border border-input bg-background px-2.5 text-xs font-medium"
+                        >
+                          {sortedCompatibleCustom.map((c) => {
+                            const cm = catalogModels.find((m) => m.id === c.visual_model);
+                            const match = cm?.baseModel === currentRemote.visual_model || cm?.base === currentRemote.visual_model;
+                            return (
+                              <option key={c.device_id} value={c.device_id}>
+                                {match ? "★ " : ""}{c.name} ({c.visual_model})
+                              </option>
+                            );
+                          })}
+                        </select>
+                        <Button
+                          size="sm"
+                          className="h-8 text-xs"
+                          onClick={() =>
+                            saveRemoteLink(
+                              defaultTarget,
+                              { device_id: currentRemote.device_id, hex_id: currentRemote.hex_id, name: currentRemote.name },
+                              defaultTarget.device_id
+                            )
+                          }
+                        >
+                          Link &amp; Open Custom View
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
               {currentRemote && (
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
-                  {/* 1:1 Vector Faceplate + Live Segmented Ring/Bar Overlays */}
-                  <div className="md:col-span-5 flex flex-col items-center rounded-xl border bg-muted/30 p-5">
-                    <div ref={svgStageRef} className="min-h-[350px] flex items-center justify-center w-full" />
+                  {/* 1:1 Vector Faceplate + Side-by-Side Linked Companion Stage */}
+                  <div className={`${linkedPartner && pairViewMode === "split" ? "md:col-span-7" : "md:col-span-5"} flex flex-col items-center rounded-xl border bg-muted/30 p-4`}>
+                    {linkedPartner && (
+                      <div className="flex flex-wrap items-center justify-center gap-1.5 mb-3 p-1 rounded-lg border bg-background/80 text-xs">
+                        <Button size="sm" variant={pairViewMode === "split" ? "default" : "ghost"} className="h-7 px-2.5 text-xs" onClick={() => setPairViewMode("split")}>
+                          ⇄ Side-by-Side (Linked)
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={pairViewMode === "custom" ? "default" : "ghost"}
+                          className="h-7 px-2.5 text-xs"
+                          onClick={() => {
+                            const cust = currentRemote.linked_device_id ? currentRemote : linkedPartner;
+                            setPairViewMode("custom");
+                            setSelectedId(cust.device_id);
+                          }}
+                        >
+                          🎨 Custom Overlay ({(currentRemote.linked_device_id ? currentRemote : linkedPartner).hex_id})
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={pairViewMode === "physical" ? "default" : "ghost"}
+                          className="h-7 px-2.5 text-xs"
+                          onClick={() => {
+                            const phys = currentRemote.linked_device_id ? linkedPartner : currentRemote;
+                            setPairViewMode("physical");
+                            setSelectedId(phys.device_id);
+                          }}
+                        >
+                          📡 Live Panel ({(currentRemote.linked_device_id ? linkedPartner : currentRemote).hex_id})
+                        </Button>
+                      </div>
+                    )}
+                    <div className="flex flex-wrap md:flex-nowrap items-start justify-center gap-4 w-full">
+                      <div className="flex-1 flex flex-col items-center min-w-[190px]">
+                        {linkedPartner && pairViewMode === "split" && (
+                          <div className="text-[11px] font-semibold mb-1.5 text-emerald-600 dark:text-emerald-400">
+                            {currentRemote.linked_device_id ? `🎨 Custom Overlay (${currentRemote.hex_id})` : `📡 Live Panel (${currentRemote.hex_id})`}
+                          </div>
+                        )}
+                        <div ref={svgStageRef} className="min-h-[340px] flex items-center justify-center w-full" />
+                      </div>
+                      {linkedPartner && pairViewMode === "split" && (
+                        <div className="flex-1 flex flex-col items-center min-w-[190px] border-t md:border-t-0 md:border-l border-dashed pt-3 md:pt-0 md:pl-4">
+                          <div className="text-[11px] font-semibold mb-1.5 text-sky-600 dark:text-sky-400">
+                            {linkedPartner.linked_device_id ? `🎨 Linked Overlay (${linkedPartner.hex_id})` : `📡 Linked Live Panel (${linkedPartner.hex_id})`}
+                          </div>
+                          <div ref={companionStageRef} className="min-h-[340px] flex items-center justify-center w-full" />
+                        </div>
+                      )}
+                    </div>
                     <div className="mt-3 text-center text-xs font-mono text-muted-foreground">{svgCaption}</div>
                   </div>
 
                   {/* Virtual Transmitter + Segmented Quick Pad + Log */}
-                  <div className="md:col-span-7 space-y-4">
+                  <div className={`${linkedPartner && pairViewMode === "split" ? "md:col-span-5" : "md:col-span-7"} space-y-4`}>
                     <div>
                       <Label className="text-xs uppercase tracking-wider text-muted-foreground">Active Zone</Label>
                       <div className="flex flex-wrap gap-1.5 mt-1.5">
@@ -1330,10 +1818,13 @@ export default function RemotesPage() {
 
             <div className="space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <Label className="text-sm font-semibold">1. Choose Hardware Faceplate (61 White &amp; Black Models)</Label>
+                <Label className="text-sm font-semibold">
+                  1. Choose Remote Model ({catalogModels.filter((m) => m.isCustom).length} Custom • 61 Read-Only Factory)
+                </Label>
                 <div className="flex flex-wrap gap-1.5">
                   {[
-                    ["all", "All (61)"],
+                    ["all", `All (${catalogModels.length})`],
+                    ["custom", `Custom (${catalogModels.filter((m) => m.isCustom).length})`],
                     ["panel", "Wall Panels (20)"],
                     ["rgbcct", "RGB+CCT / RGBW (18)"],
                     ["cct", "CCT & Dimmer (23)"],
@@ -1374,10 +1865,36 @@ export default function RemotesPage() {
                         className="h-20 flex items-center justify-center overflow-hidden [&>svg]:max-h-16 [&>svg]:w-auto"
                         dangerouslySetInnerHTML={{ __html: svgThumb }}
                       />
-                      <div className="mt-1">
-                        <div className="text-xs font-bold leading-tight">{m.id}</div>
-                        <div className="text-[10px] text-muted-foreground">
-                          {m.proto} • {m.zones}Z
+                      <div className="mt-1 w-full">
+                        <div className="text-xs font-bold leading-tight truncate" title={m.name || m.id}>
+                          {m.isCustom ? m.name : m.id}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground flex items-center justify-center gap-1 mt-0.5">
+                          <span>{m.isCustom ? `Custom ${m.baseModel}` : `${m.proto} • ${m.zones}Z`}</span>
+                          {m.isCustom ? (
+                            <button
+                              type="button"
+                              title="Delete Custom Remote Model"
+                              className="text-destructive hover:underline ml-1 font-semibold"
+                              onClick={async (ev) => {
+                                ev.stopPropagation();
+                                if (!confirm(`Delete custom remote "${m.name}"? Bound remotes will revert to ${m.baseModel}.`)) return;
+                                await fetch("/api/remotes/custom_models/delete", {
+                                  method: "POST",
+                                  headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify({ id: m.id }),
+                                });
+                                await window.MiBoxerCatalog?.syncCustomModelsFromHub?.("");
+                                setCatalogTick((t) => t + 1);
+                                if (wModel === m.id) setWModel(m.baseModel || "B8");
+                                await loadRemotes();
+                              }}
+                            >
+                              ✕
+                            </button>
+                          ) : (
+                            <span className="opacity-60">• RO</span>
+                          )}
                         </div>
                       </div>
                     </div>

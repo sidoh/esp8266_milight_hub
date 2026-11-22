@@ -83,6 +83,11 @@ protected:
   void handleDeleteRemote(RequestContext& request);
   void handleLastSeenRemote(RequestContext& request);
   void handleVirtualRemoteSend(RequestContext& request);
+  void handleStudioMetaGet(RequestContext& request);
+  void handleStudioMetaPost(RequestContext& request);
+  void handleCustomModelsGet(RequestContext& request);
+  void handleCustomModelsPost(RequestContext& request);
+  void handleCustomModelsDelete(RequestContext& request);
   void handleSystemPost(RequestContext& request);
   void handleFirmwareUpload();
   void handleFirmwarePost();

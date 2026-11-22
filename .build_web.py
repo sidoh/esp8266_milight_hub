@@ -7,6 +7,11 @@ import subprocess
 
 Import("env")
 
+# Always keep MiBoxerCatalogAsset.h and RemoteStudioAsset.h synced from root JS sources
+if os.path.exists("tools/pack_studio_assets.py"):
+    subprocess.check_call([sys.executable, "tools/pack_studio_assets.py"])
+os.environ["BROWSERSLIST_IGNORE_OLD_DATA"] = "1"
+
 def is_tool(name):
     cmd = "where" if platform.system() == "Windows" else "which"
     try:
