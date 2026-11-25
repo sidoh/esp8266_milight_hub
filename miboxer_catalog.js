@@ -1071,11 +1071,16 @@
 
 
 // === MIBOXER_FACIA_EXTENSION_START ===
-  const CAPACITIVE_LAYOUTS = new Set(['b8', 'b_strip', 'b0', 'b5', 'u_panel', 'm4']);
+  const CAPACITIVE_LAYOUTS = new Set([
+    'b8', 'b_strip', 'b0', 'b5', 'u_panel', 'm4',
+    'k_display', 's_puck', 'fut087',
+    'fut089', 'fut092', 'c_wheel', 'c_slot'
+  ]);
 
   function isCapacitiveFlatPanel(modelOrId) {
     const m = typeof modelOrId === 'string' ? (MODELS.find(x => x.id === modelOrId) || {}) : (modelOrId || {});
-    return (m.cat === 'panel' || m.isCustom) && CAPACITIVE_LAYOUTS.has(m.layout);
+    if (m.isCustom) return true;
+    return CAPACITIVE_LAYOUTS.has(m.layout);
   }
 
 
@@ -1118,6 +1123,11 @@
     if (layout === 'u_panel') return { width_mm: 70, height_mm: 114, glass_w_mm: 65, glass_h_mm: 109, corner_mm: 4.0, led_x_pct: 50, led_y_pct: 8.5, mount: 'US Single-Gang Glass Wall Panel', form_factor: 'US Single-Gang Glass Wall Panel' };
     if (layout === 'm4') return { width_mm: 142, height_mm: 86, glass_w_mm: 136, glass_h_mm: 80, corner_mm: 4.0, led_x_pct: 8.5, led_y_pct: 11, mount: 'Italian 503/504 Landscape Glass Panel', form_factor: 'Italian 503/504 Landscape Glass Panel' };
     if (layout === 'b_strip' || layout === 'b0' || layout === 'b5') return { width_mm: 86, height_mm: 86, glass_w_mm: 81, glass_h_mm: 81, corner_mm: 4.0, led_x_pct: 50, led_y_pct: 8.0, mount: '86x86mm Square Glass Wall Panel', form_factor: '86x86mm Square Glass Wall Panel' };
+    if (layout === 'k_display') return { width_mm: 72, height_mm: 72, glass_w_mm: 66, glass_h_mm: 66, corner_mm: 36.0, shape: 'round', led_x_pct: 50, led_y_pct: 27, mount: '72mm Round Rotary Display Puck', form_factor: '72mm Round Rotary Knob / Puck' };
+    if (layout === 's_puck') return { width_mm: 70, height_mm: 70, glass_w_mm: 64, glass_h_mm: 64, corner_mm: 35.0, shape: 'round', led_x_pct: 50, led_y_pct: 16, mount: '70mm Round Magnetic Touch Puck', form_factor: '70mm Round Capacitive Puck' };
+    if (layout === 'fut087') return { width_mm: 80, height_mm: 80, glass_w_mm: 62, glass_h_mm: 62, corner_mm: 40.0, shape: 'round', led_x_pct: 50, led_y_pct: 18, mount: '80mm Round Dimmer Puck', form_factor: '80mm Round Touch Dimmer' };
+    if (layout === 'fut089') return { width_mm: 47, height_mm: 153, glass_w_mm: 43, glass_h_mm: 148, corner_mm: 10.0, led_x_pct: 50, led_y_pct: 5.5, mount: 'Handheld 8-Zone Remote Overlay', form_factor: '47x153mm Handheld 8-Zone Remote' };
+    if (layout === 'fut092' || layout === 'c_wheel' || layout === 'c_slot') return { width_mm: 47, height_mm: 138, glass_w_mm: 43, glass_h_mm: 133, corner_mm: 10.0, led_x_pct: 50, led_y_pct: 6.0, mount: 'Handheld 4-Zone Remote Overlay', form_factor: '47x138mm Handheld Capacitive Remote' };
     return { width_mm: 86, height_mm: 86, glass_w_mm: 80, glass_h_mm: 80, corner_mm: 4.0, mount: 'Standard Panel', form_factor: 'Standard Remote / Wall Panel' };
   }
 
@@ -1299,6 +1309,104 @@
       return { vw: 236, vh: 184, outer: { x: 6, y: 6, w: 224, h: 172, rx: 10 }, glass: { x: 11, y: 11, w: 214, h: 162, rx: 7 }, titleY: 25, slots };
     }
 
+    if (m.layout === 'k_display') {
+      const isK6 = m.kind === 'k6';
+      const slots = [];
+      if (isK6) {
+        slots.push({ key: 'hue_ring', type: 'ring', surf: 'hue_ring', act: 'hue', cx: 95, cy: 95, rIn: 66, rOut: 80, label: 'COLOR' });
+      }
+      slots.push(
+        { key: 'btn_on',  type: 'circle', act: 'on',          cx: 95,  cy: 99,  r: 14, label: 'PWR', sublabel: 'Hold Off' },
+        { key: 'btn_bri', type: 'circle', act: 'brightness',  cx: 60,  cy: 52,  r: 12.5, label: 'BRI' },
+        { key: 'btn_cct', type: 'circle', act: 'kelvin',      cx: 130, cy: 52,  r: 12.5, label: 'CCT' },
+        { key: 'btn_pal', type: 'circle', act: 'set_white',   cx: 43,  cy: 99,  r: 12.5, label: isK6 ? 'RGB/W' : 'Z1' },
+        { key: 'btn_sat', type: 'circle', act: 'saturation',  cx: 147, cy: 99,  r: 12.5, label: isK6 ? 'SAT' : 'Z4' },
+        { key: 'btn_m',   type: 'circle', act: 'mode',        cx: 64,  cy: 143, r: 12.5, label: isK6 ? 'MODE' : 'Z2' },
+        { key: 'btn_dly', type: 'circle', act: 'night_mode',  cx: 126, cy: 143, r: 12.5, label: isK6 ? 'DELAY' : 'Z3' }
+      );
+      return {
+        vw: 190, vh: 190,
+        outer: { x: 11, y: 11, w: 168, h: 168, rx: 84 },
+        glass: { x: 15, y: 15, w: 160, h: 160, rx: 80 },
+        cutout: { x: 73, y: 55, w: 44, h: 20, rx: 5, text: '100%' },
+        titleY: 168,
+        slots
+      };
+    }
+
+    if (m.layout === 's_puck') {
+      const isRgb = m.kind === 's2';
+      const slots = [
+        isRgb
+          ? { key: 'hue_ring', type: 'ring', surf: 'hue_ring', act: 'hue', cx: 95, cy: 95, rIn: 54, rOut: 78, label: 'COLOR' }
+          : { key: 'cct_bar',  type: 'ring', surf: 'cct_bar',  act: 'kelvin', cx: 95, cy: 95, rIn: 54, rOut: 78, label: 'CCT' },
+        { key: 'btn_on',  type: 'circle', act: 'on',         cx: 95, cy: 74,  r: 15, label: 'ON' },
+        { key: 'btn_off', type: 'circle', act: 'off',        cx: 95, cy: 116, r: 15, label: 'OFF' },
+        { key: 'btn_sdn', type: 'circle', act: 'brightness', cx: 63, cy: 95,  r: 12, label: 'DIM-' },
+        { key: 'btn_sup', type: 'circle', act: 'mode',       cx: 127, cy: 95, r: 12, label: isRgb ? 'MODE' : 'DIM+' }
+      ];
+      return {
+        vw: 190, vh: 190,
+        outer: { x: 11, y: 11, w: 168, h: 168, rx: 84 },
+        glass: { x: 16, y: 16, w: 158, h: 158, rx: 79 },
+        titleY: 42,
+        slots
+      };
+    }
+
+    if (m.layout === 'fut087') {
+      const slots = [
+        { key: 'bri_bar', type: 'ring', surf: 'bri_bar', act: 'brightness', cx: 95, cy: 95, rIn: 48, rOut: 76, label: 'DIMMER' },
+        { key: 'btn_on',  type: 'circle', act: 'on', cx: 95, cy: 95, r: 28, label: 'ON / OFF', sublabel: 'Hold Night' }
+      ];
+      return {
+        vw: 190, vh: 190,
+        outer: { x: 11, y: 11, w: 168, h: 168, rx: 84 },
+        glass: { x: 17, y: 17, w: 156, h: 156, rx: 78 },
+        titleY: 36,
+        slots
+      };
+    }
+
+    if (m.layout === 'fut089') {
+      const slots = [
+        { key: 'btn_on',   type: 'rect', act: 'on',  x: 24, y: 24, w: 46, h: 20, rx: 10, label: 'ALL ON' },
+        { key: 'btn_off',  type: 'rect', act: 'off', x: 90, y: 24, w: 46, h: 20, rx: 10, label: 'ALL OFF' },
+        { key: 'hue_ring', type: 'ring', surf: 'hue_ring', act: 'hue', cx: 80, cy: 86, rIn: 19, rOut: 38, label: 'COLOR' },
+        { key: 'center_w', type: 'circle', act: 'set_white', cx: 80, cy: 86, r: 13, label: 'W' },
+        { key: 'bri_bar',  type: 'hbar', surf: 'bri_bar', act: 'brightness', x: 24, y: 132, w: 112, h: 15, label: 'BRIGHTNESS' },
+        { key: 'cct_bar',  type: 'hbar', surf: 'cct_bar', act: 'kelvin',     x: 24, y: 153, w: 112, h: 15, label: 'WARM / COOL' },
+        { key: 'btn_sdn',  type: 'rect', act: 'mode_speed_down', x: 24, y: 175, w: 34, h: 18, rx: 4, label: 'S-' },
+        { key: 'btn_m',    type: 'rect', act: 'mode',            x: 63, y: 175, w: 34, h: 18, rx: 4, label: 'M' },
+        { key: 'btn_sup',  type: 'rect', act: 'mode_speed_up',   x: 102, y: 175, w: 34, h: 18, rx: 4, label: 'S+' }
+      ];
+      for (let z = 1; z <= 8; z++) {
+        const row = z <= 4 ? 0 : 1;
+        const colIdx = (z - 1) % 4;
+        slots.push({ key: `zone_${z}`, type: 'rocker', act: 'zone', zone: z, x: 24 + colIdx * 29, y: 200 + row * 44, w: 25, h: 38, rx: 5, label: `${z}` });
+      }
+      return { vw: 160, vh: 300, outer: { x: 10, y: 6, w: 140, h: 288, rx: 22 }, glass: { x: 14, y: 10, w: 132, h: 280, rx: 19 }, titleY: 19, slots };
+    }
+
+    if (m.layout === 'fut092' || m.layout === 'c_wheel' || m.layout === 'c_slot') {
+      const slots = [
+        { key: 'btn_on',   type: 'rect', act: 'on',  x: 24, y: 26, w: 46, h: 20, rx: 10, label: 'ALL ON' },
+        { key: 'btn_off',  type: 'rect', act: 'off', x: 90, y: 26, w: 46, h: 20, rx: 10, label: 'ALL OFF' },
+        m.layout === 'c_slot'
+          ? { key: 'hue_ring', type: 'hbar', surf: 'hue_ring', act: 'hue', x: 24, y: 64, w: 112, h: 22, label: 'COLOR' }
+          : { key: 'hue_ring', type: 'ring', surf: 'hue_ring', act: 'hue', cx: 80, cy: 88, rIn: 19, rOut: 38, label: 'COLOR' },
+        { key: 'bri_bar',  type: 'hbar', surf: 'bri_bar', act: 'brightness', x: 24, y: 136, w: 112, h: 16, label: 'BRIGHTNESS' },
+        { key: 'cct_bar',  type: 'hbar', surf: 'cct_bar', act: 'kelvin',     x: 24, y: 158, w: 112, h: 16, label: 'CCT / SAT' },
+        { key: 'btn_w',    type: 'rect', act: 'set_white',       x: 24, y: 182, w: 34, h: 19, rx: 4, label: 'W' },
+        { key: 'btn_m',    type: 'rect', act: 'mode',            x: 63, y: 182, w: 34, h: 19, rx: 4, label: 'M' },
+        { key: 'btn_sup',  type: 'rect', act: 'mode_speed_up',   x: 102, y: 182, w: 34, h: 19, rx: 4, label: 'S+' }
+      ];
+      for (let z = 1; z <= (m.zones || 4); z++) {
+        slots.push({ key: `zone_${z}`, type: 'rocker', act: 'zone', zone: z, x: 24 + (z - 1) * 29, y: 210, w: 25, h: 52, rx: 5, label: `${z}` });
+      }
+      return { vw: 160, vh: 280, outer: { x: 10, y: 6, w: 140, h: 268, rx: 22 }, glass: { x: 14, y: 10, w: 132, h: 260, rx: 19 }, titleY: 19, slots };
+    }
+
     // B5 4-bar panel
     const slots = [];
     for (let z = 1; z <= 4; z++) {
@@ -1364,6 +1472,13 @@
       body += `<text x="${(bp.vw / 2).toFixed(1)}" y="${bp.titleY}" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="7.2" font-weight="800" letter-spacing="0.7" fill="${col.subInk}" pointer-events="none">${escXml(facia.panelTitle.toUpperCase())}</text>`;
     } else if (facia.hideLogo === false) {
       body += `<text x="${bp.glass.x + 12}" y="${bp.titleY}" font-family="Inter,system-ui,sans-serif" font-size="8" font-weight="800" fill="${col.subInk}" pointer-events="none">MiBOXER®</text>`;
+    }
+
+    if (bp.cutout) {
+      body += `<rect x="${bp.cutout.x}" y="${bp.cutout.y}" width="${bp.cutout.w}" height="${bp.cutout.h}" rx="${bp.cutout.rx}" fill="${o.stencilMode ? '#ffffff' : '#090b10'}" stroke="${col.padStroke}" stroke-width="0.9" stroke-dasharray="${o.stencilMode ? '2,1.5' : 'none'}" pointer-events="none"/>`;
+      if (!o.stencilMode && bp.cutout.text) {
+        body += `<text x="${(bp.cutout.x + bp.cutout.w / 2).toFixed(1)}" y="${(bp.cutout.y + bp.cutout.h * 0.74).toFixed(1)}" text-anchor="middle" fill="#f97316" font-family="monospace" font-size="11" font-weight="800" pointer-events="none">${escXml(bp.cutout.text)}</text>`;
+      }
     }
 
     if (facia.showLedPinhole) {
