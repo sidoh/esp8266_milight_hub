@@ -136,11 +136,11 @@
       .mlrs-pill-group .mlrs-btn.active-tab { background: var(--mlrs-primary); color: var(--mlrs-primary-fg); }
 
       .mlrs-modal.mlrs-fullscreen { width: 100vw !important; max-width: 100vw !important; height: 100vh !important; border-radius: 0 !important; border: none !important; }
-      .mlrs-peel-wrap { display: flex; flex-direction: column; align-items: center; width: 100%; user-select: none; }
+      .mlrs-peel-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; flex: 1; min-height: 0; user-select: none; }
       .mlrs-peel-bar { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; padding: 6px 10px; border-radius: 9px; border: 1px solid rgba(2,132,199,0.32); background: rgba(2,132,199,0.07); font-size: 11.5px; width: 100%; box-sizing: border-box; }
       .mlrs-peel-btn { padding: 4px 10px; border-radius: 6px; border: 1px solid #0284c7; background: #0284c7; color: #fff; font-weight: 700; font-size: 11.5px; cursor: pointer; }
       .mlrs-peel-btn.peeled { background: #0f172a; border-color: #334155; }
-      .mlrs-peel-stack { position: relative; display: inline-grid; place-items: center; padding: 6px; }
+      .mlrs-peel-stack { position: relative; display: inline-grid; place-items: center; padding: 6px; flex: 1; min-height: 0; }
       .mlrs-peel-under, .mlrs-peel-over { grid-area: 1 / 1; display: flex; align-items: center; justify-content: center; }
       .mlrs-peel-over { position: relative; z-index: 2; transition: clip-path 0.24s cubic-bezier(.22,.9,.3,1), filter 0.2s ease; filter: drop-shadow(-3px 5px 8px rgba(15,23,42,0.28)); }
       .mlrs-peel-stack.scrubbing .mlrs-peel-over, .mlrs-peel-stack.scrubbing .mlrs-peel-flap { transition: none !important; }
@@ -200,9 +200,18 @@
 
     const svgEl = stageEl.querySelector('svg');
     if (!svgEl) return null;
-    svgEl.style.maxHeight = opts.maxHeight || 'min(62vh, 540px)';
-    svgEl.style.height = '100%';
+    const vb = (svgEl.getAttribute('viewBox') || '0 0 220 310').trim().split(/[\s,]+/).map(Number);
+    const vbRatio = (vb[2] > 0 && vb[3] > 0) ? (vb[2] / vb[3]) : 0.71;
+    svgEl.removeAttribute('width');
+    svgEl.removeAttribute('height');
+    svgEl.style.height = opts.maxHeight || 'clamp(370px, 58vh, 640px)';
+    svgEl.style.maxHeight = '100%';
     svgEl.style.width = 'auto';
+    svgEl.style.maxWidth = '100%';
+    svgEl.style.aspectRatio = `${vb[2] || 220} / ${vb[3] || 310}`;
+    if (vbRatio > 0.88) {
+      svgEl.style.height = opts.squareHeight || 'clamp(330px, 48vh, 520px)';
+    }
     svgEl.style.display = 'block';
     svgEl.style.userSelect = 'none';
 
@@ -1176,7 +1185,7 @@
       : (Cat.MODELS.find(m => m.id === baseId && !m.isCustom) || Cat.MODELS.find(m => (m.base || m.id) === String(baseId).replace(/-B$/, '') && !m.isCustom) || Cat.MODELS[0]);
 
     let peelPct = Math.max(0, Math.min(100, Number(opts.initialPeelPct || 0)));
-    const maxH = opts.maxHeight || 'min(60vh, 520px)';
+    const maxH = opts.maxHeight || 'clamp(370px, 56vh, 620px)';
     const linkedTitle = opts.linkedBadgeText || `Custom Stencil ⇄ Bare ${physicalModel.id}`;
 
     containerEl.innerHTML = `

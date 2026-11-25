@@ -223,8 +223,9 @@ export default function RemotesPage() {
       body:has([data-hub-cockpit="1"]) main,
       body:has([data-hub-cockpit="1"]) .container { padding-top: 6px !important; padding-bottom: 6px !important; max-width: 98vw !important; }
       [data-hub-cockpit="1"]:not([data-active-rtab="link"]) [data-right-hdr="1"] > :nth-child(n+2) { display: none !important; }
+      [data-rtab="controls"] > :last-child,
       [data-rtab="controls"] > [data-log-pane="1"],
-      [data-rtab="link"] > div:not(:first-child) { display: none !important; }
+      [data-rtab="link"] > div:not(:first-child):not([data-link-hint="1"]) { display: none !important; }
       [data-rtab="log"] > div:not(:first-child):not([data-log-pane="1"]) { display: none !important; }
 
       .mbx-hit, .mbx-seg-hit { cursor: pointer; transition: filter 0.14s ease, fill 0.15s ease; }
@@ -261,10 +262,10 @@ export default function RemotesPage() {
       });
     (async () => {
       for (let attempt = 0; attempt < 3 && !window.MiBoxerCatalog; attempt++) {
-        await loadScript(`/miboxer_catalog.js?v=253_${attempt}`);
+        await loadScript(`/miboxer_catalog.js?v=254_${attempt}`);
       }
       for (let attempt = 0; attempt < 3 && !(window as any).MiLightRemoteStudio; attempt++) {
-        await loadScript(`/remote-studio.js?v=253_${attempt}`);
+        await loadScript(`/remote-studio.js?v=254_${attempt}`);
       }
       await window.MiBoxerCatalog?.syncCustomModelsFromHub?.("");
       setCatalogReady(true);
@@ -479,7 +480,7 @@ export default function RemotesPage() {
         overlayModel: custMod,
         physicalModel: physMod,
         uid: `hub_peel_${custRem.device_id}`,
-        maxHeight: "min(56vh, 490px)",
+        maxHeight: "clamp(370px, 56vh, 600px)",
         facia: custRem.facia,
         touchZones: custRem.touch_zones,
         calibration: custRem.calibration,
@@ -501,7 +502,7 @@ export default function RemotesPage() {
       stageCtrlRef.current = wAny.MiLightRemoteStudio.mountInteractiveStage(stage, {
         model: currentCatalogModel,
         uid: `hub_${currentRemote.device_id}`,
-        maxHeight: "min(56vh, 490px)",
+        maxHeight: "clamp(370px, 56vh, 600px)",
         facia: currentRemote.facia,
         touchZones: currentRemote.touch_zones,
         calibration: currentRemote.calibration,
@@ -1381,13 +1382,13 @@ export default function RemotesPage() {
               {currentRemote && (
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
                   {/* 1:1 Vector Faceplate + Interactive Peel-Back Stencil Stage */}
-                  <div className="md:col-span-5 flex flex-col items-center rounded-xl border bg-muted/30 p-4">
+                  <div className="md:col-span-7 flex flex-col items-center justify-center rounded-xl border bg-muted/30 p-3 min-h-[430px]">
                     <div ref={svgStageRef} className="flex-1 min-h-[360px] flex items-center justify-center w-full" />
                     <div className="mt-3 text-center text-xs font-mono text-muted-foreground">{svgCaption}</div>
                   </div>
 
                   {/* Tabbed Right Inspector: Controls vs Live Log */}
-                  <div className="md:col-span-7 space-y-4" data-rtab={rightTab}>
+                  <div className="md:col-span-5 space-y-3 self-start" data-rtab={rightTab}>
                     <div className="flex flex-wrap gap-1 p-1 rounded-lg border bg-muted/40">
                       <Button size="sm" variant={rightTab === "controls" ? "default" : "ghost"} className="flex-1 h-8 text-xs font-semibold" onClick={() => setRightTab("controls")}>🎛️ 1. Zones &amp; Pads</Button>
                       <Button size="sm" variant={rightTab === "link" ? "default" : "ghost"} className="flex-1 h-8 text-xs font-semibold" onClick={() => setRightTab("link")}>🔗 2. Hardware Link {linkedPartner ? "🟢" : ""}</Button>
