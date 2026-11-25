@@ -22,14 +22,14 @@
     {
       type: "stylesheet",
       cdnPath: cdnBase + "bundle.css",
-      localPath: "dist/bundle.f7fba2c7.css",
-      size: parseInt("9409", 10),
+      localPath: "dist/bundle.15639bd9.css",
+      size: parseInt("9344", 10),
     },
     {
       type: "script",
       cdnPath: cdnBase + "bundle.js",
-      localPath: "dist/bundle.575a45ac.js",
-      size: parseInt("235434", 10),
+      localPath: "dist/bundle.a301f3b1.js",
+      size: parseInt("235353", 10),
     },
   ];
 
@@ -66,9 +66,7 @@
   }
 
   function tryLoadFile(file) {
-    return tryLoadUrl(file.localPath, file.size, 0, 2).catch(() =>
-      tryLoadUrl(file.cdnPath, file.size, 0, 2)
-    );
+    return tryLoadUrl('/' + file.localPath.replace(/^\/+/, ''), file.size, 0, 4);
   }
 
   function loadPage() {

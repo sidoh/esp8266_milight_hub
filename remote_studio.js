@@ -106,12 +106,12 @@
       }
       .mlrs-modal {
         background: var(--mlrs-bg); color: var(--mlrs-fg); border: 1px solid var(--mlrs-border); border-radius: 12px;
-        width: min(1240px, 97vw); height: min(860px, 94vh); display: flex; flex-direction: column; overflow: hidden;
+        width: 96vw; max-width: 1840px; height: 94vh; display: flex; flex-direction: column; overflow: hidden;
         box-shadow: 0 20px 45px -10px rgba(15, 23, 42, 0.25);
       }
       .mlrs-topbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 20px; background: var(--mlrs-bg); border-bottom: 1px solid var(--mlrs-border); }
       .mlrs-preset-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 9px 20px; background: var(--mlrs-muted); border-bottom: 1px solid var(--mlrs-border); font-size: 12px; }
-      .mlrs-body { display: grid; grid-template-columns: 310px 1fr 350px; flex: 1; min-height: 0; overflow: hidden; }
+      .mlrs-body { display: grid; grid-template-columns: minmax(300px, 360px) 1fr minmax(320px, 400px); flex: 1; min-height: 0; overflow: hidden; }
       @media (max-width: 1040px) { .mlrs-body { grid-template-columns: 1fr; overflow-y: auto; } }
       .mlrs-col { padding: 14px 16px; overflow-y: auto; border-right: 1px solid var(--mlrs-border); background: var(--mlrs-bg); }
       .mlrs-col:last-child { border-right: none; border-left: 1px solid var(--mlrs-border); }
@@ -134,6 +134,19 @@
       .mlrs-pill-group { display: inline-flex; background: var(--mlrs-muted); padding: 3px; border-radius: 8px; border: 1px solid var(--mlrs-border); gap: 3px; }
       .mlrs-pill-group .mlrs-btn { border: none; padding: 5px 11px; font-size: 12px; border-radius: 6px; background: transparent; }
       .mlrs-pill-group .mlrs-btn.active-tab { background: var(--mlrs-primary); color: var(--mlrs-primary-fg); }
+
+      .mlrs-modal.mlrs-fullscreen { width: 100vw !important; max-width: 100vw !important; height: 100vh !important; border-radius: 0 !important; border: none !important; }
+      .mlrs-peel-wrap { display: flex; flex-direction: column; align-items: center; width: 100%; user-select: none; }
+      .mlrs-peel-bar { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; padding: 6px 10px; border-radius: 9px; border: 1px solid rgba(2,132,199,0.32); background: rgba(2,132,199,0.07); font-size: 11.5px; width: 100%; box-sizing: border-box; }
+      .mlrs-peel-btn { padding: 4px 10px; border-radius: 6px; border: 1px solid #0284c7; background: #0284c7; color: #fff; font-weight: 700; font-size: 11.5px; cursor: pointer; }
+      .mlrs-peel-btn.peeled { background: #0f172a; border-color: #334155; }
+      .mlrs-peel-stack { position: relative; display: inline-grid; place-items: center; padding: 6px; }
+      .mlrs-peel-under, .mlrs-peel-over { grid-area: 1 / 1; display: flex; align-items: center; justify-content: center; }
+      .mlrs-peel-over { position: relative; z-index: 2; transition: clip-path 0.24s cubic-bezier(.22,.9,.3,1), filter 0.2s ease; filter: drop-shadow(-3px 5px 8px rgba(15,23,42,0.28)); }
+      .mlrs-peel-stack.scrubbing .mlrs-peel-over, .mlrs-peel-stack.scrubbing .mlrs-peel-flap { transition: none !important; }
+      .mlrs-peel-corner-hit { position: absolute; top: 2px; right: 2px; width: 42px; height: 42px; z-index: 5; cursor: pointer; border-radius: 0 10px 0 28px; background: linear-gradient(225deg, rgba(148,163,184,0.38) 0%, rgba(255,255,255,0.88) 48%, rgba(15,23,42,0.16) 52%, transparent 56%); box-shadow: -2px 2px 5px rgba(15,23,42,0.18); }
+      .mlrs-peel-flap { position: absolute; inset: 6px; z-index: 4; pointer-events: none; background: linear-gradient(225deg, rgba(241,245,249,0.97) 0%, rgba(203,213,225,0.94) 55%, rgba(148,163,184,0.88) 100%); filter: drop-shadow(-6px 7px 10px rgba(15,23,42,0.34)); transition: clip-path 0.24s cubic-bezier(.22,.9,.3,1), opacity 0.2s ease; }
+
       .mlrs-box-sub { padding: 9px 10px; border-radius: 8px; background: var(--mlrs-muted); border: 1px solid var(--mlrs-border); margin-bottom: 10px; }
     `;
     document.head.appendChild(st);
@@ -644,6 +657,8 @@
                 <button type="button" class="mlrs-btn ${mode === 'edit' ? 'active-tab' : ''}" id="mlrsModeEdit">1. Design Stencil</button>
                 <button type="button" class="mlrs-btn ${mode === 'test' ? 'active-tab' : ''}" id="mlrsModeTest">2. Interactive Test (Tap / Hold)</button>
               </div>
+              ${opts.onOpenGestures ? `<button type="button" class="mlrs-btn" id="mlrsOpenGestBtn">🎛️ Gestures &amp; Segments</button>` : ''}
+              <button type="button" class="mlrs-btn" id="mlrsFullBtn">⤢ Fullscreen</button>
               <button type="button" class="mlrs-btn" id="mlrsCloseBtn">✕ Close</button>
             </div>
           </div>
@@ -1101,9 +1116,127 @@
     return { action: 'brightness', value: pct, pct, converted: true };
   }
 
+
+  function computePeelClipPolygons(peelPct) {
+    const p = Math.max(0, Math.min(100, Number(peelPct) || 0));
+    if (p <= 0.5) return { overClip: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)', flapClip: 'polygon(100% 0%, 100% 0%, 100% 0%)', flapOpacity: 0 };
+    if (p >= 99.5) return { overClip: 'polygon(0% 100%, 0% 100%, 0% 100%)', flapClip: 'polygon(0% 0%, 0% 0%, 0% 0%)', flapOpacity: 0 };
+    const d = (p / 100) * 200;
+    if (d <= 100) {
+      const xCut = 100 - d, yCut = d;
+      const fx = Math.max(0, xCut - d * 0.28), fy = Math.min(100, yCut + d * 0.28);
+      return {
+        overClip: `polygon(0% 0%, ${xCut.toFixed(1)}% 0%, 100% ${yCut.toFixed(1)}%, 100% 100%, 0% 100%)`,
+        flapClip: `polygon(${xCut.toFixed(1)}% 0%, 100% ${yCut.toFixed(1)}%, ${fx.toFixed(1)}% ${fy.toFixed(1)}%)`,
+        flapOpacity: 0.92
+      };
+    }
+    const rem = 200 - d, xBot = rem, yLeft = 100 - rem;
+    const fx = Math.max(0, xBot * 0.55), fy = Math.min(100, yLeft + (100 - yLeft) * 0.45);
+    return {
+      overClip: `polygon(0% ${yLeft.toFixed(1)}%, ${xBot.toFixed(1)}% 100%, 0% 100%)`,
+      flapClip: `polygon(0% ${yLeft.toFixed(1)}%, ${xBot.toFixed(1)}% 100%, ${fx.toFixed(1)}% ${fy.toFixed(1)}%)`,
+      flapOpacity: Math.max(0.18, rem / 110)
+    };
+  }
+
+  function mountPeelableStage(containerEl, opts) {
+    injectStudioStyles();
+    const Cat = root.MiBoxerCatalog;
+    if (!containerEl || !Cat) return null;
+    const overlayModel = typeof opts.overlayModel === 'string' ? (Cat.MODELS.find(m => m.id === opts.overlayModel) || Cat.MODELS[0]) : opts.overlayModel;
+    const baseId = (overlayModel && (overlayModel.baseModel || overlayModel.base)) || opts.physicalModelId || 'B8';
+    const physicalModel = opts.physicalModel
+      ? (typeof opts.physicalModel === 'string' ? (Cat.MODELS.find(m => m.id === opts.physicalModel) || Cat.MODELS[0]) : opts.physicalModel)
+      : (Cat.MODELS.find(m => m.id === baseId && !m.isCustom) || Cat.MODELS[0]);
+
+    let peelPct = Math.max(0, Math.min(100, Number(opts.initialPeelPct || 0)));
+    const maxH = opts.maxHeight || '385px';
+    const linkedTitle = opts.linkedBadgeText || `Custom Stencil ⇄ Bare ${physicalModel.id}`;
+
+    containerEl.innerHTML = `
+      <div class="mlrs-peel-wrap">
+        <div class="mlrs-peel-bar">
+          <button type="button" class="mlrs-peel-btn" data-role="peel-toggle">🩹 Peel Back Stencil</button>
+          <input type="range" min="0" max="100" value="${peelPct}" data-role="peel-range" style="width:105px;cursor:pointer;accent-color:#0284c7"/>
+          <span data-role="peel-lbl" style="font-weight:700;min-width:110px;text-align:left">Stencil On (0%)</span>
+          <span style="color:#0284c7;font-weight:700">${linkedTitle}</span>
+        </div>
+        <div class="mlrs-peel-stack" data-role="peel-stack">
+          <div class="mlrs-peel-under" data-role="under-stage"></div>
+          <div class="mlrs-peel-over" data-role="over-stage"></div>
+          <div class="mlrs-peel-flap" data-role="peel-flap"></div>
+          <div class="mlrs-peel-corner-hit" data-role="peel-corner" title="Click corner to peel back custom stencil"></div>
+        </div>
+      </div>
+    `;
+
+    const stackEl = containerEl.querySelector('[data-role="peel-stack"]');
+    const underEl = containerEl.querySelector('[data-role="under-stage"]');
+    const overEl  = containerEl.querySelector('[data-role="over-stage"]');
+    const flapEl  = containerEl.querySelector('[data-role="peel-flap"]');
+    const cornerEl = containerEl.querySelector('[data-role="peel-corner"]');
+    const btnEl   = containerEl.querySelector('[data-role="peel-toggle"]');
+    const rangeEl = containerEl.querySelector('[data-role="peel-range"]');
+    const lblEl   = containerEl.querySelector('[data-role="peel-lbl"]');
+
+    const underCtrl = mountInteractiveStage(underEl, {
+      model: physicalModel, uid: `${opts.uid || 'peel'}_phys`, maxHeight: maxH,
+      facia: null, touchZones: null,
+      calibration: opts.physicalCalibration || opts.calibration, activeZone: opts.activeZone ?? 1,
+      onZoneChange: (z) => { if (opts.onZoneChange) opts.onZoneChange(z); },
+      onScrubPreview: opts.onScrubPreview,
+      onAction: (act, val, z, lbl) => { if (opts.onPhysicalAction) opts.onPhysicalAction(act, val, z, lbl); else if (opts.onAction) opts.onAction(act, val, z, lbl); }
+    });
+
+    const overCtrl = mountInteractiveStage(overEl, {
+      model: overlayModel, uid: `${opts.uid || 'peel'}_cust`, maxHeight: maxH,
+      facia: opts.facia || (overlayModel && overlayModel.facia),
+      touchZones: opts.touchZones || (overlayModel && overlayModel.touchZones),
+      calibration: opts.calibration, activeZone: opts.activeZone ?? 1,
+      onZoneChange: (z) => { if (opts.onZoneChange) opts.onZoneChange(z); },
+      onScrubPreview: opts.onScrubPreview,
+      onAction: (act, val, z, lbl) => { if (opts.onCustomAction) opts.onCustomAction(act, val, z, lbl); else if (opts.onAction) opts.onAction(act, val, z, lbl); }
+    });
+
+    function applyPeel(nextPct, isScrub) {
+      peelPct = Math.max(0, Math.min(100, Number(nextPct) || 0));
+      if (stackEl) stackEl.classList.toggle('scrubbing', Boolean(isScrub));
+      const clips = computePeelClipPolygons(peelPct);
+      if (overEl) { overEl.style.clipPath = clips.overClip; overEl.style.pointerEvents = peelPct >= 85 ? 'none' : 'auto'; }
+      if (flapEl) { flapEl.style.clipPath = clips.flapClip; flapEl.style.opacity = String(clips.flapOpacity); }
+      if (rangeEl && Number(rangeEl.value) !== Math.round(peelPct)) rangeEl.value = String(Math.round(peelPct));
+      if (btnEl) {
+        btnEl.classList.toggle('peeled', peelPct >= 50);
+        btnEl.textContent = peelPct >= 85 ? '🩹 Re-Apply Stencil' : (peelPct > 10 ? '🩹 Peel Fully (100%)' : '🩹 Peel Back Stencil');
+      }
+      if (lblEl) lblEl.textContent = peelPct === 0 ? 'Stencil On (0%)' : (peelPct >= 98 ? `Bare ${physicalModel.id}` : `Peeled ${Math.round(peelPct)}%`);
+    }
+    const cyclePeel = () => applyPeel(peelPct < 40 ? 52 : (peelPct < 92 ? 100 : 0), false);
+    if (btnEl) btnEl.onclick = cyclePeel;
+    if (cornerEl) cornerEl.onclick = (e) => { e.stopPropagation(); cyclePeel(); };
+    if (rangeEl) { rangeEl.oninput = (e) => applyPeel(e.target.value, true); rangeEl.onchange = (e) => applyPeel(e.target.value, false); }
+    applyPeel(peelPct, false);
+
+    return {
+      underCtrl, overCtrl,
+      pulseAction: (action, zone, isRf, val, sourceLayer) => {
+        if (sourceLayer === 'physical') {
+          if (underCtrl && underCtrl.pulseAction) underCtrl.pulseAction(action, zone, isRf, val);
+          const conv = resolvePhysicalToCustomAction(action, val ?? -1, zone, opts.touchZones || (overlayModel && overlayModel.touchZones), opts.calibration);
+          if (overCtrl && overCtrl.pulseAction) overCtrl.pulseAction(conv.converted ? conv.action : action, zone, isRf, conv.converted ? conv.value : val);
+        } else {
+          if (overCtrl && overCtrl.pulseAction) overCtrl.pulseAction(action, zone, isRf, val);
+          const rev = resolveCustomToPhysicalAction(action, val, zone, opts.touchZones || (overlayModel && overlayModel.touchZones), opts.physicalCalibration || opts.calibration);
+          if (underCtrl && underCtrl.pulseAction) underCtrl.pulseAction(rev.action, zone, isRf, rev.value);
+        }
+      }
+    };
+  }
+
   root.MiLightRemoteStudio = {
-    version: '2.3.0',
-    normalizeTouchZones, defaultCalibration, resolvePhysicalToCustomAction, resolveCustomToPhysicalAction, mountInteractiveStage,
+    version: '2.4.0',
+    normalizeTouchZones, defaultCalibration, resolvePhysicalToCustomAction, resolveCustomToPhysicalAction, mountInteractiveStage, mountPeelableStage,
     buildOneToOnePrintSvg, openPrintSheetWindow, openFaciaDesigner
   };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -246,7 +246,17 @@ export default function RemotesPage() {
         s.onerror = () => resolve();
         document.head.appendChild(s);
       });
-    Promise.all([loadScript("/miboxer_catalog.js?v=1795344248"), loadScript("/remote-studio.js?v=1795344248")]).then(async () => { await window.MiBoxerCatalog?.syncCustomModelsFromHub?.(''); setCatalogReady(true); setCatalogTick((t) => t + 1); });
+    (async () => {
+      for (let attempt = 0; attempt < 3 && !window.MiBoxerCatalog; attempt++) {
+        await loadScript(`/miboxer_catalog.js?v=240_${attempt}`);
+      }
+      for (let attempt = 0; attempt < 3 && !(window as any).MiLightRemoteStudio; attempt++) {
+        await loadScript(`/remote-studio.js?v=240_${attempt}`);
+      }
+      await window.MiBoxerCatalog?.syncCustomModelsFromHub?.("");
+      setCatalogReady(true);
+      setCatalogTick((t) => t + 1);
+    })();
   }, []);
 
   const loadRemotes = useCallback(async () => {
@@ -270,10 +280,18 @@ export default function RemotesPage() {
 
   const currentRemote = remotes.find((r) => r.device_id === selectedId) || null;
   const catalogModels = window.MiBoxerCatalog?.MODELS || [];
-  const currentCatalogModel =
-    catalogModels.find((m) => m.id === currentRemote?.visual_model) ||
-    catalogModels.find((m) => m.proto === currentRemote?.remote_type) ||
-    catalogModels[0];
+  const currentCatalogModel = (() => {
+    const exact = catalogModels.find((m) => m.id === currentRemote?.visual_model);
+    if (exact) return exact;
+    if (currentRemote && (currentRemote.visual_model?.startsWith("CUST_") || (currentRemote as any).facia)) {
+      const bId = (currentRemote as any).base_model || "B8";
+      const baseM = catalogModels.find((m) => m.id === bId) || catalogModels.find((m) => m.proto === currentRemote.remote_type) || catalogModels[0];
+      if (baseM) {
+        return { ...baseM, id: currentRemote.visual_model, baseModel: baseM.id, name: currentRemote.name, isCustom: true, facia: (currentRemote as any).facia, touchZones: currentRemote.touch_zones };
+      }
+    }
+    return catalogModels.find((m) => m.proto === currentRemote?.remote_type) || catalogModels[0];
+  })();
 
   const linkedPartner = (() => {
     if (!currentRemote) return null;
@@ -388,40 +406,48 @@ export default function RemotesPage() {
   );
 
 
-  useEffect(() => {
-    const cStage = companionStageRef.current;
-    if (!cStage || !linkedPartner || !partnerCatalogModel || pairViewMode !== "split" || !window.MiLightRemoteStudio?.mountInteractiveStage) {
-      if (cStage) cStage.innerHTML = "";
-      companionCtrlRef.current = null;
-      return;
-    }
-    companionCtrlRef.current = window.MiLightRemoteStudio.mountInteractiveStage(cStage, {
-      model: partnerCatalogModel,
-      uid: `hub_comp_${linkedPartner.device_id}`,
-      maxHeight: "340px",
-      facia: linkedPartner.facia,
-      touchZones: linkedPartner.touch_zones,
-      calibration: linkedPartner.calibration,
-      activeZone: activeZone,
-      onZoneChange: (z: number) => setActiveZone(z),
-      onAction: (act: string, val: number, z: number, lbl?: string) => {
-        sendVirtualTx(act, val, z, linkedPartner, lbl);
-      },
-    });
-  }, [linkedPartner, partnerCatalogModel, pairViewMode, activeZone, catalogReady, sendVirtualTx]);
-
-  // Render interactive 1:1 SVG faceplate + Graphical Segmented Ring & Bar Overlays!
+  // Render interactive 1:1 SVG faceplate (with Diagonal Peel-Back Stencil when custom or linked!)
   useEffect(() => {
     const stage = svgStageRef.current;
     if (!stage || !catalogReady || !window.MiBoxerCatalog || !currentCatalogModel || !currentRemote) {
       if (stage && !currentRemote) stage.innerHTML = "";
       return;
     }
-    if (window.MiLightRemoteStudio && window.MiLightRemoteStudio.mountInteractiveStage) {
-      stageCtrlRef.current = window.MiLightRemoteStudio.mountInteractiveStage(stage, {
+    const wAny = window as any;
+    const isCust = Boolean(currentCatalogModel?.isCustom || currentRemote.visual_model?.startsWith("CUST_") || currentRemote.facia);
+    if (wAny.MiLightRemoteStudio?.mountPeelableStage && (isCust || linkedPartner)) {
+      const custRem = isCust ? currentRemote : linkedPartner!;
+      const physRem = isCust ? linkedPartner : currentRemote;
+      const custMod = isCust ? currentCatalogModel : partnerCatalogModel || currentCatalogModel;
+      const baseId = (custMod as any)?.baseModel || custMod?.base || physRem?.visual_model || "B8";
+      const physMod = (physRem && catalogModels.find((m) => m.id === physRem.visual_model && !m.isCustom)) || catalogModels.find((m) => m.id === baseId && !m.isCustom) || catalogModels[0];
+      stageCtrlRef.current = wAny.MiLightRemoteStudio.mountPeelableStage(stage, {
+        overlayModel: custMod,
+        physicalModel: physMod,
+        uid: `hub_peel_${custRem.device_id}`,
+        maxHeight: "385px",
+        facia: custRem.facia,
+        touchZones: custRem.touch_zones,
+        calibration: custRem.calibration,
+        physicalCalibration: physRem?.calibration || custRem.calibration,
+        activeZone: activeZone,
+        linkedBadgeText: physRem ? `${custRem.hex_id} 🩹 over Live ${physRem.hex_id}` : `${custRem.hex_id} 🩹 over Bare ${physMod.id}`,
+        onZoneChange: (z: number) => setActiveZone(z),
+        onScrubPreview: (act: string, v: number) => {
+          if (act === "hue") setHueVal(v);
+          if (act === "brightness") setBriVal(v);
+          if (act === "kelvin") setCctVal(v);
+        },
+        onCustomAction: (act: string, val: number, z: number, lbl?: string) => sendVirtualTx(act, val, z, custRem, lbl),
+        onPhysicalAction: (act: string, val: number, z: number, lbl?: string) => sendVirtualTx(act, val, z, physRem || custRem, lbl),
+      });
+      return;
+    }
+    if (wAny.MiLightRemoteStudio && wAny.MiLightRemoteStudio.mountInteractiveStage) {
+      stageCtrlRef.current = wAny.MiLightRemoteStudio.mountInteractiveStage(stage, {
         model: currentCatalogModel,
         uid: `hub_${currentRemote.device_id}`,
-        maxHeight: "375px",
+        maxHeight: "385px",
         facia: currentRemote.facia,
         touchZones: currentRemote.touch_zones,
         calibration: currentRemote.calibration,
@@ -942,7 +968,7 @@ export default function RemotesPage() {
             </span>
           </span>
         </div>
-        <div className="flex flex-wrap items-center gap-2"><Button variant="outline" onClick={() => loadRemotes()}>Sync Remotes</Button><Button variant="outline" onClick={() => window.open("http://192.168.6.196:8588", "milight_3d_twin_singleton")}>3D Twin (:8588) ↗</Button><Button onClick={() => openConfigurator("add")}>+ Detect / Add Remote</Button></div>
+        <div className="flex flex-wrap items-center gap-2"><Button variant="outline" onClick={() => loadRemotes()}>Sync Remotes</Button><Button onClick={() => openConfigurator("add")}>+ Detect / Add Remote</Button></div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -1097,7 +1123,7 @@ export default function RemotesPage() {
                         });
                       }}
                     >
-                      {currentCatalogModel?.isCustom ? "Edit Custom Stencil" : "+ Create Custom Remote"}
+                      🎨 {currentCatalogModel?.isCustom ? "Edit Custom Stencil" : "Stencil Studio"}
                     </Button>
                   )}
                   <Button size="sm" onClick={openMacroStudio}>
@@ -1300,62 +1326,14 @@ export default function RemotesPage() {
               })()}
               {currentRemote && (
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
-                  {/* 1:1 Vector Faceplate + Side-by-Side Linked Companion Stage */}
-                  <div className={`${linkedPartner && pairViewMode === "split" ? "md:col-span-7" : "md:col-span-5"} flex flex-col items-center rounded-xl border bg-muted/30 p-4`}>
-                    {linkedPartner && (
-                      <div className="flex flex-wrap items-center justify-center gap-1.5 mb-3 p-1 rounded-lg border bg-background/80 text-xs">
-                        <Button size="sm" variant={pairViewMode === "split" ? "default" : "ghost"} className="h-7 px-2.5 text-xs" onClick={() => setPairViewMode("split")}>
-                          ⇄ Side-by-Side (Linked)
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant={pairViewMode === "custom" ? "default" : "ghost"}
-                          className="h-7 px-2.5 text-xs"
-                          onClick={() => {
-                            const cust = currentRemote.linked_device_id ? currentRemote : linkedPartner;
-                            setPairViewMode("custom");
-                            setSelectedId(cust.device_id);
-                          }}
-                        >
-                          🎨 Custom Overlay ({(currentRemote.linked_device_id ? currentRemote : linkedPartner).hex_id})
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant={pairViewMode === "physical" ? "default" : "ghost"}
-                          className="h-7 px-2.5 text-xs"
-                          onClick={() => {
-                            const phys = currentRemote.linked_device_id ? linkedPartner : currentRemote;
-                            setPairViewMode("physical");
-                            setSelectedId(phys.device_id);
-                          }}
-                        >
-                          📡 Live Panel ({(currentRemote.linked_device_id ? linkedPartner : currentRemote).hex_id})
-                        </Button>
-                      </div>
-                    )}
-                    <div className="flex flex-wrap md:flex-nowrap items-start justify-center gap-4 w-full">
-                      <div className="flex-1 flex flex-col items-center min-w-[190px]">
-                        {linkedPartner && pairViewMode === "split" && (
-                          <div className="text-[11px] font-semibold mb-1.5 text-emerald-600 dark:text-emerald-400">
-                            {currentRemote.linked_device_id ? `🎨 Custom Overlay (${currentRemote.hex_id})` : `📡 Live Panel (${currentRemote.hex_id})`}
-                          </div>
-                        )}
-                        <div ref={svgStageRef} className="min-h-[340px] flex items-center justify-center w-full" />
-                      </div>
-                      {linkedPartner && pairViewMode === "split" && (
-                        <div className="flex-1 flex flex-col items-center min-w-[190px] border-t md:border-t-0 md:border-l border-dashed pt-3 md:pt-0 md:pl-4">
-                          <div className="text-[11px] font-semibold mb-1.5 text-sky-600 dark:text-sky-400">
-                            {linkedPartner.linked_device_id ? `🎨 Linked Overlay (${linkedPartner.hex_id})` : `📡 Linked Live Panel (${linkedPartner.hex_id})`}
-                          </div>
-                          <div ref={companionStageRef} className="min-h-[340px] flex items-center justify-center w-full" />
-                        </div>
-                      )}
-                    </div>
+                  {/* 1:1 Vector Faceplate + Interactive Peel-Back Stencil Stage */}
+                  <div className="md:col-span-5 flex flex-col items-center rounded-xl border bg-muted/30 p-4">
+                    <div ref={svgStageRef} className="min-h-[380px] flex items-center justify-center w-full" />
                     <div className="mt-3 text-center text-xs font-mono text-muted-foreground">{svgCaption}</div>
                   </div>
 
                   {/* Virtual Transmitter + Segmented Quick Pad + Log */}
-                  <div className={`${linkedPartner && pairViewMode === "split" ? "md:col-span-5" : "md:col-span-7"} space-y-4`}>
+                  <div className="md:col-span-7 space-y-4">
                     <div>
                       <Label className="text-xs uppercase tracking-wider text-muted-foreground">Active Zone</Label>
                       <div className="flex flex-wrap gap-1.5 mt-1.5">
@@ -1790,7 +1768,7 @@ export default function RemotesPage() {
               <Button variant="outline" onClick={() => setMacroOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={saveMacroStudio}>Save Gestures &amp; Touch Zones</Button>
+              {(window as any).MiLightRemoteStudio && currentRemote && (<Button variant="outline" onClick={() => { setMacroModalOpen(false); (document.querySelector("[data-hub-stencil-btn]") as HTMLElement)?.click(); }}>🎨 Open Stencil Studio</Button>)}<Button onClick={saveMacroStudio}>Save Gestures &amp; Touch Zones</Button>
             </div>
           </div>
         </div>

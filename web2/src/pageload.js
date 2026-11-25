@@ -48,9 +48,7 @@
   }
 
   function tryLoadFile(file) {
-    return tryLoadUrl(file.localPath, file.size, 0, 2).catch(() =>
-      tryLoadUrl(file.cdnPath, file.size, 0, 2)
-    );
+    return tryLoadUrl('/' + file.localPath.replace(/^\/+/, ''), file.size, 0, 4);
   }
 
   function loadPage() {
