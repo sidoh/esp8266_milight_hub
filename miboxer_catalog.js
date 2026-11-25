@@ -1555,20 +1555,18 @@
     } else if (facia.bgPattern === 'brushed') {
       defs += `<pattern id="pat_${u}" width="8" height="3" patternUnits="userSpaceOnUse"><line x1="0" y1="1" x2="8" y2="1" stroke="${col.padStroke}" stroke-width="0.35" opacity="0.3"/></pattern>`;
     }
-    const lumCfg = facia.luminous || {};
     const anyLum = Boolean(lumCfg.enabled || lumCfg.border || lumCfg.header || lumCfg.slots || Object.values(pads).some(p => p && p.luminous));
     if (anyLum) {
       defs += `<filter id="glow_${u}" x="-35%" y="-35%" width="170%" height="170%"><feGaussianBlur stdDeviation="2.2" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>`;
     }
     defs += `</defs>`;
 
+    const bgCol = facia.bgColor || col.bg;
+    const glassCol = facia.bgColor || col.glass;
+    const bdrCol = facia.boundaryColor || col.padStroke || col.bezel;
+    const borderGlow = (lumCfg.enabled && lumCfg.border) ? ` filter="url(#glow_${u})"` : '';
+
     let body = `${defs}
-      const bgCol = facia.bgColor || col.bg;
-      const glassCol = facia.bgColor || col.glass;
-      const bdrCol = facia.boundaryColor || col.padStroke || col.bezel;
-      const lumCfg = facia.luminous || {};
-      const borderGlow = (lumCfg.enabled && lumCfg.border) ? ` filter="url(#glow_${u})"` : '';
-      body += `
       <rect x="${bp.outer.x}" y="${bp.outer.y}" width="${bp.outer.w}" height="${bp.outer.h}" rx="${bp.outer.rx}" fill="${bgCol}" stroke="${bdrCol}" stroke-width="2"${borderGlow}/>
       <rect x="${bp.glass.x}" y="${bp.glass.y}" width="${bp.glass.w}" height="${bp.glass.h}" rx="${bp.glass.rx}" fill="${glassCol}" stroke="${bdrCol}" stroke-width="0.8"${borderGlow}/>`;
 
