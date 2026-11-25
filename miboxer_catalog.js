@@ -1077,6 +1077,21 @@
     'fut089', 'fut092', 'c_wheel', 'c_slot'
   ]);
 
+  const SINGLE_STICK_ON_LAYOUTS = new Set([
+    'b8', 'b_strip', 'b0', 'b5', 'u_panel', 'm4',
+    's_puck', 'fut087'
+  ]);
+
+  function getStencilFitMode(modelOrId) {
+    const m = typeof modelOrId === 'string' ? (MODELS.find(x => x.id === modelOrId) || {}) : (modelOrId || {});
+    if (m.isCustom) return 'single_sheet';
+    return SINGLE_STICK_ON_LAYOUTS.has(m.layout) ? 'single_sheet' : 'cut_stickers';
+  }
+
+  function isSingleStickOnStencilReady(modelOrId) {
+    return getStencilFitMode(modelOrId) === 'single_sheet';
+  }
+
   function isCapacitiveFlatPanel(modelOrId) {
     const m = typeof modelOrId === 'string' ? (MODELS.find(x => x.id === modelOrId) || {}) : (modelOrId || {});
     if (m.isCustom) return true;
@@ -2001,6 +2016,8 @@
     FACIA_ICONS,
     FACIA_THEMES,
     isCapacitiveFlatPanel,
+    isSingleStickOnStencilReady,
+    getStencilFitMode,
     resolveBaseModel,
     registerCustomModels,
     syncCustomModelsFromHub,
