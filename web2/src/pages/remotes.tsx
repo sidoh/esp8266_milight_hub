@@ -190,7 +190,7 @@ export default function RemotesPage() {
   const svgStageRef = useRef<HTMLDivElement | null>(null);
   const hubTourRef = useRef<HTMLDivElement | null>(null);
   const tourActionsRef = useRef<any>({});
-  const [rightTab, setRightTab] = useState<'controls' | 'log'>('controls');
+  const [rightTab, setRightTab] = useState<'controls' | 'link' | 'log'>('controls');
   const stageCtrlRef = useRef<any>(null);
   const remotesRef = useRef<RegisteredRemote[]>([]);
   const [pairingCustomId, setPairingCustomId] = useState<number | null>(null);
@@ -217,7 +217,16 @@ export default function RemotesPage() {
     const st = document.createElement("style");
     st.id = "mbx-studio-styles";
     st.textContent = `
-      [data-rtab="log"] > div:not(:first-child):not(:last-child) { display: none !important; }
+      
+      body:has([data-hub-cockpit="1"]) header,
+      body:has([data-hub-cockpit="1"]) nav { padding-top: 4px !important; padding-bottom: 4px !important; min-height: 40px !important; margin-bottom: 4px !important; }
+      body:has([data-hub-cockpit="1"]) main,
+      body:has([data-hub-cockpit="1"]) .container { padding-top: 6px !important; padding-bottom: 6px !important; max-width: 98vw !important; }
+      [data-hub-cockpit="1"]:not([data-active-rtab="link"]) [data-right-hdr="1"] > :nth-child(n+2) { display: none !important; }
+      [data-rtab="controls"] > [data-log-pane="1"],
+      [data-rtab="link"] > div:not(:first-child) { display: none !important; }
+      [data-rtab="log"] > div:not(:first-child):not([data-log-pane="1"]) { display: none !important; }
+
       .mbx-hit, .mbx-seg-hit { cursor: pointer; transition: filter 0.14s ease, fill 0.15s ease; }
       .mbx-hit:hover, .mbx-seg-hit:hover { filter: brightness(1.12); }
       .mbx-seg-hit:hover { fill: rgba(2, 132, 199, 0.28) !important; }
@@ -252,10 +261,10 @@ export default function RemotesPage() {
       });
     (async () => {
       for (let attempt = 0; attempt < 3 && !window.MiBoxerCatalog; attempt++) {
-        await loadScript(`/miboxer_catalog.js?v=252_${attempt}`);
+        await loadScript(`/miboxer_catalog.js?v=253_${attempt}`);
       }
       for (let attempt = 0; attempt < 3 && !(window as any).MiLightRemoteStudio; attempt++) {
-        await loadScript(`/remote-studio.js?v=252_${attempt}`);
+        await loadScript(`/remote-studio.js?v=253_${attempt}`);
       }
       await window.MiBoxerCatalog?.syncCustomModelsFromHub?.("");
       setCatalogReady(true);
@@ -470,7 +479,7 @@ export default function RemotesPage() {
         overlayModel: custMod,
         physicalModel: physMod,
         uid: `hub_peel_${custRem.device_id}`,
-        maxHeight: "385px",
+        maxHeight: "min(56vh, 490px)",
         facia: custRem.facia,
         touchZones: custRem.touch_zones,
         calibration: custRem.calibration,
@@ -492,7 +501,7 @@ export default function RemotesPage() {
       stageCtrlRef.current = wAny.MiLightRemoteStudio.mountInteractiveStage(stage, {
         model: currentCatalogModel,
         uid: `hub_${currentRemote.device_id}`,
-        maxHeight: "385px",
+        maxHeight: "min(56vh, 490px)",
         facia: currentRemote.facia,
         touchZones: currentRemote.touch_zones,
         calibration: currentRemote.calibration,
@@ -1001,10 +1010,10 @@ export default function RemotesPage() {
   tourActionsRef.current = { sendVirtualTx, openConfigurator, openMacroStudio };
 
   return (
-    <div className="rounded-2xl border bg-card/50 p-4 md:p-5 shadow-sm space-y-4">
+    <div data-hub-cockpit="1" data-active-rtab={rightTab} className="rounded-2xl border bg-card/60 px-4 py-3 shadow-sm flex flex-col gap-2.5 lg:h-[calc(100vh-62px)] lg:min-h-[630px] lg:overflow-hidden">
       <div className="flex flex-wrap items-center justify-between gap-4 border-b pb-4">
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-bold tracking-tight">Remotes Studio</h1>
+          <h1 className="text-lg font-bold tracking-tight">Remotes Studio</h1>
           <Badge variant="secondary">Dual-Radio 2.4GHz + Multi-Tap + Touch-Zone Macro Pads</Badge>
           <span className="flex items-center gap-3 text-xs text-muted-foreground ml-2">
             <span className="inline-flex items-center gap-1.5">
@@ -1019,9 +1028,9 @@ export default function RemotesPage() {
       </div>
 
       <div ref={hubTourRef} />
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 flex-1 min-h-0 lg:overflow-hidden">
         {/* LEFT COLUMN */}
-        <div className="lg:col-span-4 space-y-6">
+        <div className="lg:col-span-3 flex flex-col gap-3 min-h-0 lg:overflow-y-auto pr-0.5">
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Configured Remotes &amp; Wall Panels ({remotes.length})</CardTitle>
@@ -1373,15 +1382,16 @@ export default function RemotesPage() {
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
                   {/* 1:1 Vector Faceplate + Interactive Peel-Back Stencil Stage */}
                   <div className="md:col-span-5 flex flex-col items-center rounded-xl border bg-muted/30 p-4">
-                    <div ref={svgStageRef} className="min-h-[380px] flex items-center justify-center w-full" />
+                    <div ref={svgStageRef} className="flex-1 min-h-[360px] flex items-center justify-center w-full" />
                     <div className="mt-3 text-center text-xs font-mono text-muted-foreground">{svgCaption}</div>
                   </div>
 
                   {/* Tabbed Right Inspector: Controls vs Live Log */}
                   <div className="md:col-span-7 space-y-4" data-rtab={rightTab}>
-                    <div className="flex flex-wrap gap-1.5 p-1 rounded-lg border bg-muted/40">
-                      <Button size="sm" variant={rightTab === "controls" ? "default" : "ghost"} className="flex-1 h-8 text-xs font-semibold" onClick={() => setRightTab("controls")}>🎛️ 1. Zones, Pads &amp; Sliders</Button>
-                      <Button size="sm" variant={rightTab === "log" ? "default" : "ghost"} className="flex-1 h-8 text-xs font-semibold" onClick={() => setRightTab("log")}>📡 2. Live 2.4GHz RF &amp; MQTT Log ({logs.length})</Button>
+                    <div className="flex flex-wrap gap-1 p-1 rounded-lg border bg-muted/40">
+                      <Button size="sm" variant={rightTab === "controls" ? "default" : "ghost"} className="flex-1 h-8 text-xs font-semibold" onClick={() => setRightTab("controls")}>🎛️ 1. Zones &amp; Pads</Button>
+                      <Button size="sm" variant={rightTab === "link" ? "default" : "ghost"} className="flex-1 h-8 text-xs font-semibold" onClick={() => setRightTab("link")}>🔗 2. Hardware Link {linkedPartner ? "🟢" : ""}</Button>
+                      <Button size="sm" variant={rightTab === "log" ? "default" : "ghost"} className="flex-1 h-8 text-xs font-semibold" onClick={() => setRightTab("log")}>📡 3. RF &amp; MQTT Log ({logs.length})</Button>
                     </div>
                     <div>
                       <Label className="text-xs uppercase tracking-wider text-muted-foreground">Active Zone</Label>

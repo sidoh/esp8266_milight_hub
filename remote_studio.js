@@ -176,7 +176,7 @@
   // 1. INTERACTIVE STAGE CONTROLLER (Finger Pucks, Segmented Pads & Step/Hold)
   // ============================================================================
   function mountInteractiveStage(stageEl, opts) {
-    injectStudioStyles();
+    injectStudioStyles(stageEl);
     const Cat = root.MiBoxerCatalog;
     if (!stageEl || !Cat) return null;
 
@@ -200,7 +200,8 @@
 
     const svgEl = stageEl.querySelector('svg');
     if (!svgEl) return null;
-    svgEl.style.maxHeight = opts.maxHeight || '410px';
+    svgEl.style.maxHeight = opts.maxHeight || 'min(62vh, 540px)';
+    svgEl.style.height = '100%';
     svgEl.style.width = 'auto';
     svgEl.style.display = 'block';
     svgEl.style.userSelect = 'none';
@@ -844,7 +845,7 @@
       const stageBox = backdrop.querySelector('#mlrsCanvasStage');
       const refreshStageOnly = () => {
         mountInteractiveStage(stageBox, {
-          model, uid: 'facia_editor_svg', maxHeight: '425px',
+          model, uid: 'facia_editor_svg', maxHeight: 'min(68vh, 600px)',
           facia: draft, touchZones: tz, calibration: cal, activeZone,
           editMode: mode === 'edit', selectedPadKey: mode === 'edit' ? selectedPadKey : null,
           stepState,
@@ -1162,7 +1163,7 @@
   }
 
   function mountPeelableStage(containerEl, opts) {
-    injectStudioStyles();
+    injectStudioStyles(containerEl);
     const Cat = root.MiBoxerCatalog;
     if (!containerEl || !Cat) return null;
     const overlayModel = typeof opts.overlayModel === 'string' ? (Cat.MODELS.find(m => m.id === opts.overlayModel) || Cat.MODELS[0]) : opts.overlayModel;
@@ -1175,7 +1176,7 @@
       : (Cat.MODELS.find(m => m.id === baseId && !m.isCustom) || Cat.MODELS.find(m => (m.base || m.id) === String(baseId).replace(/-B$/, '') && !m.isCustom) || Cat.MODELS[0]);
 
     let peelPct = Math.max(0, Math.min(100, Number(opts.initialPeelPct || 0)));
-    const maxH = opts.maxHeight || '385px';
+    const maxH = opts.maxHeight || 'min(60vh, 520px)';
     const linkedTitle = opts.linkedBadgeText || `Custom Stencil ⇄ Bare ${physicalModel.id}`;
 
     containerEl.innerHTML = `
@@ -1316,7 +1317,7 @@
   }
 
   function mountShowcaseTour(containerEl, opts) {
-    injectStudioStyles();
+    injectStudioStyles(containerEl);
     if (!containerEl || !opts || !Array.isArray(opts.steps) || !opts.steps.length) return null;
     const storageKey = `mlrs_tour_${opts.tourId || 'default'}`;
     let idx = Number(localStorage.getItem(storageKey + '_idx') || 0);
