@@ -1078,6 +1078,39 @@
     return (m.cat === 'panel' || m.isCustom) && CAPACITIVE_LAYOUTS.has(m.layout);
   }
 
+
+  function resolveBaseHardwareId(modelOrId) {
+    if (!modelOrId) return '';
+    const m = typeof modelOrId === 'string'
+      ? (MODELS.find(x => x.id === modelOrId) || { id: modelOrId })
+      : modelOrId;
+    const bId = m.baseModel || m.base_model || m.base || m.id || '';
+    const baseObj = MODELS.find(x => x.id === bId && !x.isCustom) || MODELS.find(x => x.id === String(bId).replace(/-B$/, '') && !x.isCustom);
+    return baseObj ? (baseObj.base || baseObj.id) : String(bId).replace(/-B$/, '');
+  }
+
+  function areModelsPhysicallyCompatible(customModelOrRem, physModelOrRem) {
+    if (!customModelOrRem || !physModelOrRem) return false;
+    const getMod = (item) => {
+      if (typeof item === 'string') return MODELS.find(x => x.id === item) || { id: item };
+      const vm = item.visual_model || item.model || item.id || '';
+      const found = MODELS.find(x => x.id === vm);
+      if (found) return found;
+      if (item.base_model || item.baseModel) {
+        const bm = MODELS.find(x => x.id === (item.base_model || item.baseModel));
+        if (bm) return Object.assign({}, bm, { id: vm, baseModel: bm.id, isCustom: true });
+      }
+      return item;
+    };
+    const cm = getMod(customModelOrRem);
+    const pm = getMod(physModelOrRem);
+    if (pm.isCustom || String(pm.id || '').startsWith('CUST_')) return false;
+    const cBase = resolveBaseHardwareId(cm);
+    const pBase = resolveBaseHardwareId(pm);
+    if (!cBase || !pBase) return false;
+    return cBase.toUpperCase() === pBase.toUpperCase();
+  }
+
   function getPhysicalDims(modelOrId) {
     const m = typeof modelOrId === 'string' ? (MODELS.find(x => x.id === modelOrId) || { id: modelOrId }) : (modelOrId || {});
     const layout = m.layout || '';
@@ -1856,6 +1889,8 @@
     resolveBaseModel,
     registerCustomModels,
     syncCustomModelsFromHub,
+    resolveBaseHardwareId,
+    areModelsPhysicallyCompatible,
     getPhysicalDims,
     getPanelBlueprint,
     getSamplePresetsForModel,

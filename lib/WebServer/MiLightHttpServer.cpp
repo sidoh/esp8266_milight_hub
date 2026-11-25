@@ -1344,6 +1344,38 @@ void MiLightHttpServer::handleStudioMetaGet(RequestContext& request) {
   server.send(200, APPLICATION_JSON, out.c_str());
 }
 
+
+static String normalizeShellBase(const String& modelId) {
+  if (modelId.endsWith("-B") && modelId.length() > 2) {
+    return modelId.substring(0, modelId.length() - 2);
+  }
+  return modelId;
+}
+
+static bool areShellsCompatibleServer(const String& customVisualModel, const DynamicJsonDocument& cmDoc, uint16_t physDevId) {
+  if (physDevId == 0) return true;
+  String reqBase = "";
+  if (customVisualModel == "CUST_B8_3D_ESTATE") reqBase = "B8";
+  else if (customVisualModel == "CUST_B0_3D_SUITE") reqBase = "B0";
+  else if (customVisualModel == "CUST_B4_3D_HYBRID") reqBase = "B4";
+  if (reqBase.length() == 0 && cmDoc.is<JsonArray>()) {
+    for (JsonObjectConst cm : cmDoc.as<JsonArrayConst>()) {
+      if (String(cm["id"] | "") == customVisualModel) {
+        reqBase = String(cm["base_model"] | "");
+        break;
+      }
+    }
+  }
+  if (reqBase.length() == 0) return true;
+  for (const auto& r : RemoteRegistry::instance().remotes) {
+    if (r.deviceId == physDevId) {
+      if (r.visualModel.startsWith("CUST_")) return false;
+      return normalizeShellBase(reqBase) == normalizeShellBase(r.visualModel);
+    }
+  }
+  return true;
+}
+
 void MiLightHttpServer::handleStudioMetaPost(RequestContext& request) {
   JsonVariant bodyVar = request.getJsonBody();
   DynamicJsonDocument metaDoc(16384);
@@ -1372,6 +1404,17 @@ void MiLightHttpServer::handleStudioMetaPost(RequestContext& request) {
         entry.remove("linked_device_id");
         entry.remove("linked_hex_id");
       } else {
+        String cVis = "";
+        for (const auto& r : RemoteRegistry::instance().remotes) {
+          if (r.deviceId == devId || normalizeHexKey(r.deviceId, "") == hx) { cVis = r.visualModel; break; }
+        }
+        DynamicJsonDocument cmCheck(24576);
+        loadCustomModelsDoc(cmCheck);
+        if (!areShellsCompatibleServer(cVis, cmCheck, linkId)) {
+          server.sendHeader("Access-Control-Allow-Origin", "*");
+          server.send(400, APPLICATION_JSON, R"({"success":false,"error":"Incompatible physical remote shell for this custom stencil"})");
+          return;
+        }
         entry["linked_device_id"] = linkId;
         entry["linked_hex_id"] = String(body["linked_hex_id"] | "");
       }

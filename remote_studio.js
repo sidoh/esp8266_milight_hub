@@ -1146,9 +1146,12 @@
     if (!containerEl || !Cat) return null;
     const overlayModel = typeof opts.overlayModel === 'string' ? (Cat.MODELS.find(m => m.id === opts.overlayModel) || Cat.MODELS[0]) : opts.overlayModel;
     const baseId = (overlayModel && (overlayModel.baseModel || overlayModel.base)) || opts.physicalModelId || 'B8';
-    const physicalModel = opts.physicalModel
-      ? (typeof opts.physicalModel === 'string' ? (Cat.MODELS.find(m => m.id === opts.physicalModel) || Cat.MODELS[0]) : opts.physicalModel)
-      : (Cat.MODELS.find(m => m.id === baseId && !m.isCustom) || Cat.MODELS[0]);
+    const candPhys = opts.physicalModel
+      ? (typeof opts.physicalModel === 'string' ? Cat.MODELS.find(m => m.id === opts.physicalModel) : opts.physicalModel)
+      : null;
+    const physicalModel = (candPhys && (!Cat.areModelsPhysicallyCompatible || Cat.areModelsPhysicallyCompatible(overlayModel, candPhys)))
+      ? candPhys
+      : (Cat.MODELS.find(m => m.id === baseId && !m.isCustom) || Cat.MODELS.find(m => (m.base || m.id) === String(baseId).replace(/-B$/, '') && !m.isCustom) || Cat.MODELS[0]);
 
     let peelPct = Math.max(0, Math.min(100, Number(opts.initialPeelPct || 0)));
     const maxH = opts.maxHeight || '385px';

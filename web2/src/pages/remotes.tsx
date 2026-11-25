@@ -293,12 +293,36 @@ export default function RemotesPage() {
     return catalogModels.find((m) => m.proto === currentRemote?.remote_type) || catalogModels[0];
   })();
 
+  const getShellFamily = (modelIdOrRem: any): string => {
+    const wCat = (window as any).MiBoxerCatalog;
+    if (wCat?.resolveBaseHardwareId) return String(wCat.resolveBaseHardwareId(modelIdOrRem) || "").toUpperCase();
+    const vm = typeof modelIdOrRem === "string" ? modelIdOrRem : (modelIdOrRem?.base_model || modelIdOrRem?.visual_model || "");
+    const m = catalogModels.find((x) => x.id === vm);
+    const b = (m as any)?.baseModel || m?.base || vm;
+    return String(b).replace(/-B$/i, "").toUpperCase();
+  };
+
+  const areRemotesCompat = (custRem: RegisteredRemote | null | undefined, physRem: RegisteredRemote | null | undefined): boolean => {
+    if (!custRem || !physRem) return false;
+    if (physRem.visual_model?.startsWith("CUST_") || physRem.name?.includes("[Showcase]")) return false;
+    const cMod = catalogModels.find((m) => m.id === custRem.visual_model) || { id: custRem.visual_model, baseModel: (custRem as any).base_model };
+    const pMod = catalogModels.find((m) => m.id === physRem.visual_model) || { id: physRem.visual_model };
+    const cShell = getShellFamily(cMod);
+    const pShell = getShellFamily(pMod);
+    return Boolean(cShell && pShell && cShell === pShell);
+  };
+
   const linkedPartner = (() => {
     if (!currentRemote) return null;
-    if (currentRemote.linked_device_id) {
-      return remotes.find((r) => r.device_id === currentRemote.linked_device_id) || null;
+    const curIsCust = Boolean(currentRemote.visual_model?.startsWith("CUST_") || (currentRemote as any).is_custom_model || currentRemote.name?.includes("[Showcase]"));
+    if (curIsCust && currentRemote.linked_device_id) {
+      const p = remotes.find((r) => r.device_id === currentRemote.linked_device_id) || null;
+      return p && areRemotesCompat(currentRemote, p) ? p : null;
     }
-    return remotes.find((c) => c.linked_device_id === currentRemote.device_id) || null;
+    if (!curIsCust) {
+      return remotes.find((c) => c.linked_device_id === currentRemote.device_id && areRemotesCompat(c, currentRemote)) || null;
+    }
+    return null;
   })();
   const partnerCatalogModel = linkedPartner
     ? catalogModels.find((m) => m.id === linkedPartner.visual_model) ||
@@ -998,13 +1022,13 @@ export default function RemotesPage() {
                       <div className="font-semibold text-sm">{r.name}</div>
                       <div className="text-xs text-muted-foreground font-mono">
                         {r.visual_model} • {r.hex_id} • {r.num_zones}Z {hasMulti ? "• 2x/3x" : ""}
-                        {r.linked_hex_id ? (
+                        {(r.linked_device_id && remotes.some((p) => p.device_id === r.linked_device_id && areRemotesCompat(r, p))) ? (
                           <span className="ml-1.5 text-emerald-600 dark:text-emerald-400 font-sans font-semibold">
                             🔗 {r.linked_hex_id}
                           </span>
-                        ) : remotes.some((c) => c.linked_device_id === r.device_id) ? (
+                        ) : remotes.some((c) => c.linked_device_id === r.device_id && areRemotesCompat(c, r)) ? (
                           <span className="ml-1.5 text-sky-600 dark:text-sky-400 font-sans font-semibold">
-                            🔗 Overlay {remotes.find((c) => c.linked_device_id === r.device_id)?.hex_id || 'Linked'}
+                            🔗 Overlay {remotes.find((c) => c.linked_device_id === r.device_id && areRemotesCompat(c, r))?.hex_id || 'Linked'}
                           </span>
                         ) : null}
                       </div>
@@ -1154,41 +1178,37 @@ export default function RemotesPage() {
                 );
 
                 if (isCustomEntry) {
-                  const linkedPhys = remotes.find((r) => r.device_id === currentRemote.linked_device_id);
-                  const baseId = (currentCatalogModel as any)?.baseModel || currentCatalogModel?.base || "";
-                  const sortedPhys = [...physicalRemotes].sort((a, b) => {
-                    const aMatch = a.visual_model === baseId || a.remote_type === currentRemote.remote_type ? 0 : 1;
-                    const bMatch = b.visual_model === baseId || b.remote_type === currentRemote.remote_type ? 0 : 1;
-                    return aMatch - bMatch;
-                  });
+                  const baseId = getShellFamily(currentCatalogModel || currentRemote) || "B8";
+                  const sortedPhys = physicalRemotes.filter((p) => areRemotesCompat(currentRemote, p));
+                  const linkedPhys = sortedPhys.find((r) => r.device_id === currentRemote.linked_device_id) || null;
                   const isListening = pairingCustomId === currentRemote.device_id;
 
                   return (
                     <div
                       className={`rounded-lg border px-4 py-3 flex flex-wrap items-center justify-between gap-3 text-xs ${
-                        currentRemote.linked_device_id
+                        linkedPhys
                           ? "border-emerald-500/40 bg-emerald-500/10"
                           : "border-border bg-muted/40"
                       }`}
                     >
                       <div className="space-y-0.5">
                         <div className="font-semibold text-sm">
-                          {currentRemote.linked_device_id
-                            ? `🟢 Linked to Live Hardware: ${linkedPhys ? linkedPhys.name : currentRemote.linked_hex_id} (${currentRemote.linked_hex_id})`
+                          {linkedPhys
+                            ? `🟢 Linked to Live ${baseId} Hardware: ${linkedPhys.name} (${linkedPhys.hex_id})`
                             : "🔗 Link to Live / Detected Panel"}
                         </div>
                         <div className="text-muted-foreground">
                           {isListening
                             ? "Listening on Radio #2... Press ANY button on your physical wall panel or remote now!"
-                            : currentRemote.linked_device_id
-                            ? `Physical 2.4GHz presses on ${currentRemote.linked_hex_id} animate this custom stencil & its segmented buttons in real time.`
+                            : linkedPhys
+                            ? `Physical 2.4GHz presses on ${linkedPhys.hex_id} animate this ${baseId} stencil & peel back to reveal ${linkedPhys.visual_model} underneath.`
                             : `Currently acting as virtual ${currentRemote.hex_id}. Link to your physical ${baseId || "MiBoxer"} panel to see & send live button presses:`}
                         </div>
                       </div>
 
                       <div className="flex flex-wrap items-center gap-2">
                         <select
-                          value={currentRemote.linked_device_id ? String(currentRemote.linked_device_id) : ""}
+                          value={linkedPhys ? String(linkedPhys.device_id) : ""}
                           onChange={(e) => {
                             const valId = Number(e.target.value);
                             if (!valId) {
@@ -1207,7 +1227,7 @@ export default function RemotesPage() {
                           }}
                           className="h-8 rounded-md border border-input bg-background px-2.5 text-xs font-medium"
                         >
-                          <option value="">Unlinked (Virtual {currentRemote.hex_id} Only)</option>
+                          <option value="">{sortedPhys.length > 0 ? `Unlinked (Virtual ${currentRemote.hex_id} — Select ${baseId} Panel)` : `No ${baseId} Hardware Registered (Virtual ${currentRemote.hex_id} Only)`}</option>
                           {sortedPhys.map((p) => {
                             const compat = p.visual_model === baseId || p.visual_model.startsWith(baseId);
                             return (
@@ -1242,8 +1262,9 @@ export default function RemotesPage() {
                   );
                 }
 
-                const linkedCompanions = customEntries.filter((c) => c.linked_device_id === currentRemote.device_id);
-                const sortedCompatibleCustom = [...customEntries].sort((a, b) => {
+                const compatibleCustomForThisPhys = customEntries.filter((c) => areRemotesCompat(c, currentRemote));
+                const linkedCompanions = compatibleCustomForThisPhys.filter((c) => c.linked_device_id === currentRemote.device_id);
+                const sortedCompatibleCustom = [...compatibleCustomForThisPhys].sort((a, b) => {
                   const modA = catalogModels.find((m) => m.id === a.visual_model);
                   const modB = catalogModels.find((m) => m.id === b.visual_model);
                   const aOk = modA?.baseModel === currentRemote.visual_model || modA?.base === currentRemote.visual_model ? 0 : 1;
