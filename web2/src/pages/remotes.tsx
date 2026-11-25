@@ -188,6 +188,7 @@ export default function RemotesPage() {
   const [activeSurfaceTab, setActiveSurfaceTab] = useState<"hue_ring" | "cct_bar" | "sat_bar" | "bri_bar">("hue_ring");
 
   const svgStageRef = useRef<HTMLDivElement | null>(null);
+  const hubTourRef = useRef<HTMLDivElement | null>(null);
   const stageCtrlRef = useRef<any>(null);
   const remotesRef = useRef<RegisteredRemote[]>([]);
   const [pairingCustomId, setPairingCustomId] = useState<number | null>(null);
@@ -248,10 +249,10 @@ export default function RemotesPage() {
       });
     (async () => {
       for (let attempt = 0; attempt < 3 && !window.MiBoxerCatalog; attempt++) {
-        await loadScript(`/miboxer_catalog.js?v=240_${attempt}`);
+        await loadScript(`/miboxer_catalog.js?v=250_${attempt}`);
       }
       for (let attempt = 0; attempt < 3 && !(window as any).MiLightRemoteStudio; attempt++) {
-        await loadScript(`/remote-studio.js?v=240_${attempt}`);
+        await loadScript(`/remote-studio.js?v=250_${attempt}`);
       }
       await window.MiBoxerCatalog?.syncCustomModelsFromHub?.("");
       setCatalogReady(true);
@@ -429,6 +430,23 @@ export default function RemotesPage() {
     [currentRemote, pulseFaceplate]
   );
 
+
+
+  useEffect(() => {
+    const wAny = window as any;
+    if (!hubTourRef.current || !catalogReady || !wAny.MiLightRemoteStudio?.mountShowcaseTour) return;
+    wAny.MiLightRemoteStudio.mountShowcaseTour(hubTourRef.current, {
+      tourId: "esp32_hub_remotes",
+      steps: [
+        { title: "Dual-Radio 2.4 GHz Live Sniffer", body: "Radio #2 listens continuously for physical MiBoxer remotes & wall panels (flashing Green RF) while virtual clicks transmit & publish MQTT (flashing Amber UI).", actionLabel: "Fire Virtual Test", onAction: () => sendVirtualTx("on", 100) },
+        { title: "61-Model Vector Hardware Catalog", body: "Click Edit Faceplate to map any 2.4 GHz Hex ID to its exact white or black MiBoxer handheld or glass wall panel model and MQTT topic prefix.", actionLabel: "Open Faceplate Catalog", onAction: () => openConfigurator("edit") },
+        { title: "Multi-Tap Gestures & Segmented Wheel/Sliders", body: "Turn continuous color rings & sliders into 2 to 12 discrete debounced macro buttons with 1x, 2x, 3x & Long-Hold gestures.", actionLabel: "Open Gestures & Segments", onAction: () => openMacroStudio() },
+        { title: "Reference Custom Showcase Stencils", body: "Inspect 0x3DB0 (1-Zone Suite B0), 0x3DB8 (8-Room Estate B8), and 0x3DB4 (Matte Hybrid B4-B) with standardized icons & Step-Cycle + Hold pads.", actionLabel: "Jump to 0x3DB8 Estate B8", onAction: () => { const r = remotesRef.current.find((x) => x.hex_id === "0x3DB8"); if (r) setSelectedId(r.device_id); } },
+        { title: "Strict Base-Shell Hardware Pairing", body: "Custom stencils pair exclusively with matching physical shells (e.g. B8 stencil onto B8 Wall Panel) via dropdown or Press Panel to Link.", actionLabel: "Open Stencil Studio", onAction: () => (document.querySelector("[data-hub-stencil-btn]") as HTMLElement)?.click() },
+        { title: "Real-World Peel-Back Stencil X-Ray", body: "Peel back any custom stencil diagonally to inspect the bare factory glass panel underneath while keeping RF & Virtual reticles synchronized!", actionLabel: "Peel Back Stencil (55%)", onAction: () => { if (stageCtrlRef.current?.setPeel) stageCtrlRef.current.setPeel(55); } },
+      ],
+    });
+  }, [catalogReady, openMacroStudio, sendVirtualTx]);
 
   // Render interactive 1:1 SVG faceplate (with Diagonal Peel-Back Stencil when custom or linked!)
   useEffect(() => {
@@ -995,6 +1013,7 @@ export default function RemotesPage() {
         <div className="flex flex-wrap items-center gap-2"><Button variant="outline" onClick={() => loadRemotes()}>Sync Remotes</Button><Button onClick={() => openConfigurator("add")}>+ Detect / Add Remote</Button></div>
       </div>
 
+      <div ref={hubTourRef} />
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* LEFT COLUMN */}
         <div className="lg:col-span-4 space-y-6">

@@ -147,6 +147,14 @@
       .mlrs-peel-corner-hit { position: absolute; top: 2px; right: 2px; width: 42px; height: 42px; z-index: 5; cursor: pointer; border-radius: 0 10px 0 28px; background: linear-gradient(225deg, rgba(148,163,184,0.38) 0%, rgba(255,255,255,0.88) 48%, rgba(15,23,42,0.16) 52%, transparent 56%); box-shadow: -2px 2px 5px rgba(15,23,42,0.18); }
       .mlrs-peel-flap { position: absolute; inset: 6px; z-index: 4; pointer-events: none; background: linear-gradient(225deg, rgba(241,245,249,0.97) 0%, rgba(203,213,225,0.94) 55%, rgba(148,163,184,0.88) 100%); filter: drop-shadow(-6px 7px 10px rgba(15,23,42,0.34)); transition: clip-path 0.24s cubic-bezier(.22,.9,.3,1), opacity 0.2s ease; }
 
+
+      .mlrs-tour-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 10px 14px; border-radius: 10px; border: 1px solid rgba(2,132,199,0.38); background: linear-gradient(90deg, rgba(2,132,199,0.10), rgba(16,185,129,0.07)); margin-bottom: 12px; font-size: 12.5px; line-height: 1.45; box-sizing: border-box; }
+      .mlrs-tour-step-badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; background: #0284c7; color: #fff; font-weight: 800; font-size: 11px; margin-right: 6px; }
+      .mlrs-tour-nav { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+      .mlrs-tour-btn { padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(100,116,139,0.4); background: rgba(255,255,255,0.85); color: #0f172a; font-weight: 700; font-size: 11.5px; cursor: pointer; }
+      .mlrs-tour-btn.demo { background: #0284c7; border-color: #0284c7; color: #fff; }
+      .mlrs-tour-reopen { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 999px; border: 1px solid rgba(2,132,199,0.45); background: rgba(2,132,199,0.10); color: #0284c7; font-weight: 700; font-size: 11.5px; cursor: pointer; }
+
       .mlrs-box-sub { padding: 9px 10px; border-radius: 8px; background: var(--mlrs-muted); border: 1px solid var(--mlrs-border); margin-bottom: 10px; }
     `;
     document.head.appendChild(st);
@@ -678,6 +686,7 @@
             </div>
           </div>
 
+          <div id="mlrsStudioTourMount" style="padding:8px 20px 0;background:var(--mlrs-bg)"></div>
           <div class="mlrs-body">
             <!-- LEFT: Touch Bar/Ring Segmentation + Surface Theme -->
             <div class="mlrs-col">
@@ -1223,6 +1232,7 @@
 
     return {
       underCtrl, overCtrl,
+      setPeel: (p) => applyPeel(p, false),
       pulseAction: (action, zone, isRf, val, sourceLayer) => {
         if (sourceLayer === 'physical') {
           if (underCtrl && underCtrl.pulseAction) underCtrl.pulseAction(action, zone, isRf, val);
@@ -1237,9 +1247,106 @@
     };
   }
 
+
+  async function downloadTextFile(filename, content, mimeType) {
+    const safeName = String(filename || 'stencil_1to1.svg').replace(/[^a-zA-Z0-9._-]/g, '_');
+    const mime = mimeType || 'image/svg+xml';
+    const text = String(content || '');
+    if (root.__MLRS_STAGE_DOWNLOAD) {
+      try {
+        const dlUrl = await root.__MLRS_STAGE_DOWNLOAD(safeName, text, mime);
+        if (dlUrl) {
+          const iframe = document.createElement('iframe');
+          iframe.style.display = 'none';
+          iframe.src = dlUrl;
+          document.body.appendChild(iframe);
+          setTimeout(() => iframe.remove(), 60000);
+          return true;
+        }
+      } catch (_) {}
+    }
+    if (typeof window !== 'undefined' && typeof window.showSaveFilePicker === 'function') {
+      try {
+        const ext = safeName.endsWith('.json') ? '.json' : '.svg';
+        const handle = await window.showSaveFilePicker({
+          suggestedName: safeName,
+          types: [{ description: ext === '.json' ? 'POD JSON' : '1:1 Vector SVG', accept: { [mime]: [ext] } }]
+        });
+        const writable = await handle.createWritable();
+        await writable.write(text);
+        await writable.close();
+        return true;
+      } catch (err) {
+        if (err && err.name === 'AbortError') return false;
+      }
+    }
+    try {
+      const b64 = btoa(unescape(encodeURIComponent(text)));
+      const a = document.createElement('a');
+      a.href = `data:application/octet-stream;base64,${b64}`;
+      a.setAttribute('download', safeName);
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => a.remove(), 4000);
+      return true;
+    } catch (_) {
+      const blob = new Blob([text], { type: 'application/octet-stream' });
+      const bUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = bUrl;
+      a.setAttribute('download', safeName);
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => { a.remove(); URL.revokeObjectURL(bUrl); }, 120000);
+      return true;
+    }
+  }
+
+  function mountShowcaseTour(containerEl, opts) {
+    injectStudioStyles();
+    if (!containerEl || !opts || !Array.isArray(opts.steps) || !opts.steps.length) return null;
+    const storageKey = `mlrs_tour_${opts.tourId || 'default'}`;
+    let idx = Number(localStorage.getItem(storageKey + '_idx') || 0);
+    if (idx < 0 || idx >= opts.steps.length) idx = 0;
+    let hidden = localStorage.getItem(storageKey + '_hide') === '1';
+
+    function render() {
+      if (hidden) {
+        containerEl.innerHTML = `<div style="display:flex;justify-content:flex-end;margin-bottom:8px"><button type="button" class="mlrs-tour-reopen" data-tour="open">💡 Guided Showcase Tour (${opts.steps.length} Interactive Tips)</button></div>`;
+        const ob = containerEl.querySelector('[data-tour="open"]');
+        if (ob) ob.onclick = () => { hidden = false; localStorage.setItem(storageKey + '_hide', '0'); render(); };
+        return;
+      }
+      const step = opts.steps[idx];
+      containerEl.innerHTML = `
+        <div class="mlrs-tour-bar">
+          <div style="flex:1;min-width:260px">
+            <span class="mlrs-tour-step-badge">💡 Tip ${idx + 1} / ${opts.steps.length}</span>
+            <strong style="font-size:13px">${step.title}</strong>
+            <div style="margin-top:3px;opacity:0.92">${step.body}</div>
+          </div>
+          <div class="mlrs-tour-nav">
+            <button type="button" class="mlrs-tour-btn" data-tour="prev">◀ Prev</button>
+            ${step.actionLabel ? `<button type="button" class="mlrs-tour-btn demo" data-tour="demo">✨ ${step.actionLabel}</button>` : ''}
+            <button type="button" class="mlrs-tour-btn" data-tour="next">Next ▶</button>
+            <button type="button" class="mlrs-tour-btn" data-tour="hide" title="Minimize Guided Tour">✕ Hide</button>
+          </div>
+        </div>
+      `;
+      containerEl.querySelector('[data-tour="prev"]').onclick = () => { idx = (idx - 1 + opts.steps.length) % opts.steps.length; localStorage.setItem(storageKey + '_idx', String(idx)); render(); };
+      containerEl.querySelector('[data-tour="next"]').onclick = () => { idx = (idx + 1) % opts.steps.length; localStorage.setItem(storageKey + '_idx', String(idx)); render(); };
+      containerEl.querySelector('[data-tour="hide"]').onclick = () => { hidden = true; localStorage.setItem(storageKey + '_hide', '1'); render(); };
+      const db = containerEl.querySelector('[data-tour="demo"]');
+      if (db && typeof step.onAction === 'function') db.onclick = () => step.onAction();
+    }
+    render();
+    return { show: () => { hidden = false; localStorage.setItem(storageKey + '_hide', '0'); render(); } };
+  }
+
   root.MiLightRemoteStudio = {
-    version: '2.4.0',
-    normalizeTouchZones, defaultCalibration, resolvePhysicalToCustomAction, resolveCustomToPhysicalAction, mountInteractiveStage, mountPeelableStage,
+    version: '2.5.0',
+    normalizeTouchZones, defaultCalibration, resolvePhysicalToCustomAction, resolveCustomToPhysicalAction, mountInteractiveStage, mountPeelableStage, downloadTextFile, mountShowcaseTour,
     buildOneToOnePrintSvg, openPrintSheetWindow, openFaciaDesigner
   };
 })(typeof window !== 'undefined' ? window : globalThis);
