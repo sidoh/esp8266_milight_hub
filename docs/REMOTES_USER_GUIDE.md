@@ -30,3 +30,20 @@ A simple, plain-English guide to setting up and using inexpensive 2.4 GHz MiBoxe
 ## Step 3: Single Stick-On Stencils (Flat Panels & Touch Pucks)
 * **Single stick-on stencils** are designed for remotes and panels with a **flat, smooth face** where a single overlay sits cleanly without folding over raised rockers, rotary knobs, or physical pushbuttons—covering the **30 flat glass wall panels and flat circular touch pucks** in the catalog (while remotes with knobs, LCDs, rockers, or physical buttons are suited to individual cut stickers later).
 * Select a flat panel or touch puck, open **Stencil Studio**, add clear room or appliance labels/icons, and print at **100% actual size** (check the **10 mm × 10 mm** scale box with a ruler before cutting or applying).
+---
+
+## Printable 1-Page Household Button Cheat Sheet
+
+Print this section at **100% actual scale** (A4 or Letter) and stick it on the fridge, hallway cupboard, or bedside drawer so guests, kids, and family members have a quick reference without needing a phone or voice assistant.
+
+| Remote / Panel Name | Room / Location | Single Tap | Long Hold | Double / Triple Tap | Child Lock Unlock (if enabled) |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| *e.g. Main 8-Zone Remote* | *Lounge / Kitchen* | *Light ON / OFF or Zone toggle* | *Hold OFF = Goodnight / All Off* | *2x = Scene / 3x = Boost* | *ON -> OFF -> ON (or 1 -> 2 -> 3)* |
+| *e.g. B8 Wall Panel* | *Hallway / Entry* | *Room light or fan step* | *Hold = All off / Lock* | *2x = Evening / 3x = Away* | *ON -> OFF -> ON* |
+| *e.g. K6 Rotary Puck* | *Bedroom / Study* | *Power / Zone / Mode* | *Hold OFF = Night / Sleep* | *Optional shortcut* | *ON -> OFF -> ON* |
+| *e.g. S2 / FUT087 Puck* | *Desk / Living Area* | *ON / OFF / Dimmer* | *Hold = Night / Off* | *Optional shortcut* | *ON -> OFF -> ON* |
+
+### Quick Household Reminders
+* **Single Stick-On Stencils:** Best for the **30 flat glass wall panels and flat circular touch pucks**—always check the **10 mm x 10 mm** scale square with a ruler before cutting or sticking.
+* **Knobs, LCDs, Rockers & Physical Buttons:** Best suited to individual cut stickers later rather than a single stick-on sheet.
+* **Child / Safety Lock:** If a remote has been idle past its timeout, smart actions stay safely paused until the 3-tap unlock sequence is pressed.
