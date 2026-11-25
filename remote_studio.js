@@ -780,9 +780,29 @@
                   <option value="minimal" ${draft.defaultPadStyle === 'minimal' ? 'selected' : ''}>Frameless Icon + Label</option>
                 </select>
               </div>
+              <div class="mlrs-field" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                <div>
+                  <label>Background Color</label>
+                  <input type="color" class="mlrs-input" id="mlrsBgColor" style="height:32px;padding:2px" value="${draft.bgColor || '#111827'}"/>
+                </div>
+                <div>
+                  <label>Boundary Line Color</label>
+                  <input type="color" class="mlrs-input" id="mlrsBoundaryColor" style="height:32px;padding:2px" value="${draft.boundaryColor || '#94a3b8'}"/>
+                </div>
+              </div>
               <div class="mlrs-field">
                 <label>Panel Header Title</label>
                 <input type="text" class="mlrs-input" id="mlrsPanelTitle" placeholder="e.g. MASTER SUITE" value="${draft.panelTitle || ''}"/>
+              </div>
+              <div class="mlrs-box-sub" style="margin-bottom:8px">
+                <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:5px">
+                  <input type="checkbox" id="mlrsLumMaster" ${(draft.luminous && draft.luminous.enabled) ? 'checked' : ''}/> Luminous / Glow-in-the-Dark (POD)
+                </label>
+                <div style="display:flex;flex-wrap:wrap;gap:10px;font-size:11px">
+                  <label style="display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="mlrsLumBorder" ${(draft.luminous && draft.luminous.border) ? 'checked' : ''}/> Outer Boundary</label>
+                  <label style="display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="mlrsLumHeader" ${(draft.luminous && draft.luminous.header) ? 'checked' : ''}/> Header / Title</label>
+                  <label style="display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="mlrsLumSlots" ${(draft.luminous && draft.luminous.slots) ? 'checked' : ''}/> All Pads / Ring</label>
+                </div>
               </div>
               <div class="mlrs-field" style="display:flex;flex-direction:column;gap:5px">
                 <label style="display:flex;align-items:center;gap:6px;font-weight:500;cursor:pointer"><input type="checkbox" id="mlrsMonoChk" ${draft.monochrome ? 'checked' : ''}/> Pure Monochrome / B&amp;W Ink</label>
@@ -827,6 +847,11 @@
                 </div>` : ''}
               </div>` : ''}
 
+              <div class="mlrs-field">
+                <label style="display:flex;align-items:center;gap:6px;font-weight:600;cursor:pointer">
+                  <input type="checkbox" id="mlrsPadLuminous" ${curPad.luminous ? 'checked' : ''}/> Luminous / Glow on This Slot (POD)
+                </label>
+              </div>
               <div class="mlrs-field">
                 <label>Slot Visibility / Style</label>
                 <select class="mlrs-select" id="mlrsPadStyle">
@@ -1015,6 +1040,21 @@
       });
       backdrop.querySelector('#mlrsDefPadStyle').onchange = (e) => { draft.defaultPadStyle = e.target.value; renderModal(); };
       backdrop.querySelector('#mlrsPanelTitle').oninput = (e) => { draft.panelTitle = e.target.value; refreshStageOnly(); };
+      const bgColEl = backdrop.querySelector('#mlrsBgColor');
+      if (bgColEl) bgColEl.oninput = (e) => { draft.bgColor = e.target.value; refreshStageOnly(); };
+      const bdrColEl = backdrop.querySelector('#mlrsBoundaryColor');
+      if (bdrColEl) bdrColEl.oninput = (e) => { draft.boundaryColor = e.target.value; refreshStageOnly(); };
+      const ensureLum = () => { if (!draft.luminous) draft.luminous = { enabled: false, border: true, header: false, slots: false }; return draft.luminous; };
+      const lumMasterEl = backdrop.querySelector('#mlrsLumMaster');
+      if (lumMasterEl) lumMasterEl.onchange = (e) => { const l = ensureLum(); l.enabled = e.target.checked; if (e.target.checked && !l.border && !l.header && !l.slots) l.border = true; refreshStageOnly(); };
+      const lumBorderEl = backdrop.querySelector('#mlrsLumBorder');
+      if (lumBorderEl) lumBorderEl.onchange = (e) => { const l = ensureLum(); l.border = e.target.checked; if (e.target.checked) l.enabled = true; refreshStageOnly(); };
+      const lumHeaderEl = backdrop.querySelector('#mlrsLumHeader');
+      if (lumHeaderEl) lumHeaderEl.onchange = (e) => { const l = ensureLum(); l.header = e.target.checked; if (e.target.checked) l.enabled = true; refreshStageOnly(); };
+      const lumSlotsEl = backdrop.querySelector('#mlrsLumSlots');
+      if (lumSlotsEl) lumSlotsEl.onchange = (e) => { const l = ensureLum(); l.slots = e.target.checked; if (e.target.checked) l.enabled = true; refreshStageOnly(); };
+      const padLumEl = backdrop.querySelector('#mlrsPadLuminous');
+      if (padLumEl) padLumEl.onchange = (e) => { const p = ensurePad(); p.luminous = e.target.checked; refreshStageOnly(); };
       backdrop.querySelector('#mlrsMonoChk').onchange = (e) => { draft.monochrome = e.target.checked; renderModal(); };
       backdrop.querySelector('#mlrsLedHole').onchange = (e) => { draft.showLedPinhole = e.target.checked; refreshStageOnly(); };
 

@@ -1555,11 +1555,22 @@
     } else if (facia.bgPattern === 'brushed') {
       defs += `<pattern id="pat_${u}" width="8" height="3" patternUnits="userSpaceOnUse"><line x1="0" y1="1" x2="8" y2="1" stroke="${col.padStroke}" stroke-width="0.35" opacity="0.3"/></pattern>`;
     }
+    const lumCfg = facia.luminous || {};
+    const anyLum = Boolean(lumCfg.enabled || lumCfg.border || lumCfg.header || lumCfg.slots || Object.values(pads).some(p => p && p.luminous));
+    if (anyLum) {
+      defs += `<filter id="glow_${u}" x="-35%" y="-35%" width="170%" height="170%"><feGaussianBlur stdDeviation="2.2" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>`;
+    }
     defs += `</defs>`;
 
     let body = `${defs}
-      <rect x="${bp.outer.x}" y="${bp.outer.y}" width="${bp.outer.w}" height="${bp.outer.h}" rx="${bp.outer.rx}" fill="${col.bg}" stroke="${col.bezel}" stroke-width="2"/>
-      <rect x="${bp.glass.x}" y="${bp.glass.y}" width="${bp.glass.w}" height="${bp.glass.h}" rx="${bp.glass.rx}" fill="${col.glass}" stroke="${col.bezel}" stroke-width="0.8"/>`;
+      const bgCol = facia.bgColor || col.bg;
+      const glassCol = facia.bgColor || col.glass;
+      const bdrCol = facia.boundaryColor || col.padStroke || col.bezel;
+      const lumCfg = facia.luminous || {};
+      const borderGlow = (lumCfg.enabled && lumCfg.border) ? ` filter="url(#glow_${u})"` : '';
+      body += `
+      <rect x="${bp.outer.x}" y="${bp.outer.y}" width="${bp.outer.w}" height="${bp.outer.h}" rx="${bp.outer.rx}" fill="${bgCol}" stroke="${bdrCol}" stroke-width="2"${borderGlow}/>
+      <rect x="${bp.glass.x}" y="${bp.glass.y}" width="${bp.glass.w}" height="${bp.glass.h}" rx="${bp.glass.rx}" fill="${glassCol}" stroke="${bdrCol}" stroke-width="0.8"${borderGlow}/>`;
 
     if (facia.bgPattern === 'grid' || facia.bgPattern === 'brushed') {
       body += `<rect x="${bp.glass.x}" y="${bp.glass.y}" width="${bp.glass.w}" height="${bp.glass.h}" rx="${bp.glass.rx}" fill="url(#pat_${u})" pointer-events="none"/>`;
@@ -1857,7 +1868,9 @@
         const cfg = pads[s.key] || {};
         const pc = padColors(cfg);
         const zAttr = (s.zone !== undefined && s.zone !== null) ? `data-zone="${s.zone}"` : '';
-        body += `<circle class="mbx-hit" data-act="${s.act}" ${zAttr} data-pad-key="${s.key}" ${pc.st === 'blank' ? 'data-blanked="1"' : ''} cx="${s.cx}" cy="${s.cy}" r="${s.r}" fill="${pc.fill}" stroke="${selKey === s.key ? col.accent : pc.stroke}" stroke-width="${selKey === s.key ? 1.9 : 1.0}" ${pc.dash ? `stroke-dasharray="${pc.dash}"` : ''} opacity="${pc.op}" style="cursor:pointer"/>`;
+        const isLumC = Boolean((facia.luminous && facia.luminous.enabled && facia.luminous.slots) || (cfg && cfg.luminous));
+        const glowAttrC = isLumC ? ` filter="url(#glow_${u})"` : '';
+        body += `<circle class="mbx-hit" data-act="${s.act}" ${zAttr} data-pad-key="${s.key}" ${pc.st === 'blank' ? 'data-blanked="1"' : ''} cx="${s.cx}" cy="${s.cy}" r="${s.r}" fill="${pc.fill}" stroke="${selKey === s.key ? col.accent : pc.stroke}" stroke-width="${selKey === s.key ? 1.9 : 1.0}" ${pc.dash ? `stroke-dasharray="${pc.dash}"` : ''} opacity="${pc.op}"${glowAttrC} style="cursor:pointer"/>`;
         if (pc.st !== 'blank') {
           body += drawGlyphContent(s.cx, s.cy, s.r * 1.85, s.r * 1.85, cfg, s.label, s.sublabel || '');
         } else if (showStencilSlots && selKey === s.key) {
