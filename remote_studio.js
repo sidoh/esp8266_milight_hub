@@ -135,6 +135,11 @@
       .mlrs-pill-group .mlrs-btn { border: none; padding: 5px 11px; font-size: 12px; border-radius: 6px; background: transparent; }
       .mlrs-pill-group .mlrs-btn.active-tab { background: var(--mlrs-primary); color: var(--mlrs-primary-fg); }
 
+      
+      .mlrs-modal-backdrop.mlrs-backdrop-fs, .mlrs-modal-backdrop:fullscreen { padding: 0 !important; width: 100vw !important; height: 100vh !important; }
+      .mlrs-modal-backdrop:fullscreen .mlrs-modal { width: 100vw !important; max-width: 100vw !important; height: 100vh !important; border-radius: 0 !important; border: none !important; }
+      .mlrs-modal.mlrs-fullscreen .mlrs-body, .mlrs-modal-backdrop:fullscreen .mlrs-body { grid-template-columns: 340px 1fr 390px !important; }
+
       .mlrs-modal.mlrs-fullscreen { width: 100vw !important; max-width: 100vw !important; height: 100vh !important; border-radius: 0 !important; border: none !important; }
       .mlrs-peel-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; flex: 1; min-height: 0; user-select: none; }
       .mlrs-peel-bar { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; padding: 6px 10px; border-radius: 9px; border: 1px solid rgba(2,132,199,0.32); background: rgba(2,132,199,0.07); font-size: 11.5px; width: 100%; box-sizing: border-box; }
@@ -652,6 +657,17 @@
     let selectedPadKey = tz.hue_ring.enabled ? 'hue_seg_1' : (bp.slots.find(s => s.key === 'zone_1') ? 'zone_1' : 'btn_on');
     let lastTestReadout = 'Load a Showcase Preset above or click any stencil slot on the panel to customize.';
     const stepState = {};
+    let isFullscreen = false;
+    const onFsChange = () => {
+      const nativeFs = Boolean(document.fullscreenElement === backdrop);
+      if (!nativeFs && isFullscreen && document.fullscreenEnabled) { isFullscreen = false; }
+      backdrop.classList.toggle('mlrs-backdrop-fs', isFullscreen || nativeFs);
+      const m = backdrop.querySelector('.mlrs-modal');
+      if (m) m.classList.toggle('mlrs-fullscreen', isFullscreen || nativeFs);
+      const fb = backdrop.querySelector('#mlrsFullBtn');
+      if (fb) fb.textContent = (isFullscreen || nativeFs) ? '❐ Exit Fullscreen' : '⤢ Fullscreen';
+    };
+    document.addEventListener('fullscreenchange', onFsChange);
 
     const backdrop = document.createElement('div');
     backdrop.className = 'mlrs-modal-backdrop' + (isHostDark() ? ' mlrs-dark' : '');
@@ -676,7 +692,7 @@
       const iconEntries = Object.entries(Cat.FACIA_ICONS).filter(([k, ic]) => k === 'none' || ic.group === iconTab);
 
       backdrop.innerHTML = `
-        <div class="mlrs-modal" onclick="event.stopPropagation()">
+        <div class="mlrs-modal ${isFullscreen ? 'mlrs-fullscreen' : ''}" onclick="event.stopPropagation()">
           <div class="mlrs-topbar">
             <div>
               <div style="font-size:16px;font-weight:700">Capacitive Panel Facia &amp; Stencil Studio — ${remoteName} (${model.id})</div>
@@ -688,7 +704,7 @@
                 <button type="button" class="mlrs-btn ${mode === 'test' ? 'active-tab' : ''}" id="mlrsModeTest">2. Interactive Test (Tap / Hold)</button>
               </div>
               ${opts.onOpenGestures ? `<button type="button" class="mlrs-btn" id="mlrsOpenGestBtn">🎛️ Gestures &amp; Segments</button>` : ''}
-              <button type="button" class="mlrs-btn" id="mlrsFullBtn">⤢ Fullscreen</button>
+              <button type="button" class="mlrs-btn ${isFullscreen ? 'active-tab' : ''}" id="mlrsFullBtn">${isFullscreen ? '❐ Exit Fullscreen' : '⤢ Fullscreen'}</button>
               <button type="button" class="mlrs-btn" id="mlrsCloseBtn">✕ Close</button>
             </div>
           </div>
@@ -854,7 +870,8 @@
       const stageBox = backdrop.querySelector('#mlrsCanvasStage');
       const refreshStageOnly = () => {
         mountInteractiveStage(stageBox, {
-          model, uid: 'facia_editor_svg', maxHeight: 'min(68vh, 600px)',
+          model, uid: 'facia_editor_svg', maxHeight: isFullscreen ? 'min(78vh, 820px)' : 'min(66vh, 590px)',
+          squareHeight: isFullscreen ? 'min(70vh, 720px)' : 'min(56vh, 500px)',
           facia: draft, touchZones: tz, calibration: cal, activeZone,
           editMode: mode === 'edit', selectedPadKey: mode === 'edit' ? selectedPadKey : null,
           stepState,
@@ -874,14 +891,34 @@
       backdrop.querySelector('#mlrsModeEdit').onclick = () => { mode = 'edit'; renderModal(); };
       backdrop.querySelector('#mlrsModeTest').onclick = () => { mode = 'test'; lastTestReadout = 'Tap any multi-function device button to cycle steps (1→6), or Hold 0.6s to toggle ON/OFF!'; renderModal(); };
       backdrop.querySelector('#mlrsCloseBtn').onclick = () => backdrop.remove();
+      const cleanClose = () => {
+        document.removeEventListener('fullscreenchange', onFsChange);
+        if (document.fullscreenElement === backdrop && document.exitFullscreen) {
+          document.exitFullscreen().catch(() => {});
+        }
+        backdrop.remove();
+      };
+      backdrop.querySelector('#mlrsCloseBtn').onclick = cleanClose;
+      backdrop.querySelector('#mlrsCancelBtn').onclick = cleanClose;
+
       const fb = backdrop.querySelector('#mlrsFullBtn');
       if (fb) {
-        fb.onclick = () => {
-          const m = backdrop.querySelector('.mlrs-modal');
-          if (m) {
-            m.classList.toggle('mlrs-fullscreen');
-            fb.textContent = m.classList.contains('mlrs-fullscreen') ? '❐ Windowed' : '⤢ Fullscreen';
+        fb.onclick = async () => {
+          const currentlyFs = isFullscreen || (document.fullscreenElement === backdrop);
+          if (!currentlyFs) {
+            isFullscreen = true;
+            backdrop.classList.add('mlrs-backdrop-fs');
+            if (backdrop.requestFullscreen) {
+              try { await backdrop.requestFullscreen(); } catch (_) {}
+            }
+          } else {
+            isFullscreen = false;
+            backdrop.classList.remove('mlrs-backdrop-fs');
+            if (document.fullscreenElement && document.exitFullscreen) {
+              try { await document.exitFullscreen(); } catch (_) {}
+            }
           }
+          renderModal();
         };
       }
       const gb = backdrop.querySelector('#mlrsOpenGestBtn');

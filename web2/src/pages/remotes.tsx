@@ -262,10 +262,10 @@ export default function RemotesPage() {
       });
     (async () => {
       for (let attempt = 0; attempt < 3 && !window.MiBoxerCatalog; attempt++) {
-        await loadScript(`/miboxer_catalog.js?v=255_${attempt}`);
+        await loadScript(`/miboxer_catalog.js?v=256_${attempt}`);
       }
       for (let attempt = 0; attempt < 3 && !(window as any).MiLightRemoteStudio; attempt++) {
-        await loadScript(`/remote-studio.js?v=255_${attempt}`);
+        await loadScript(`/remote-studio.js?v=256_${attempt}`);
       }
       await window.MiBoxerCatalog?.syncCustomModelsFromHub?.("");
       setCatalogReady(true);
