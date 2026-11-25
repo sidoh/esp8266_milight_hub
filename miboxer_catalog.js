@@ -1213,6 +1213,87 @@
     return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
+  // Individual cut-sticker sheet builder for knobs, LCDs, rockers, physical buttons & handhelds
+  function getCutStickerSheet(modelOrId) {
+    const m = typeof modelOrId === 'string' ? (MODELS.find(x => x.id === modelOrId) || MODELS[0]) : (modelOrId || MODELS[0]);
+    const dims = getPhysicalDims(m);
+    const bp = getPanelBlueprint(m);
+    const stickers = [];
+
+    if (Array.isArray(bp.slots) && bp.slots.length > 0) {
+      bp.slots.forEach((sl, idx) => {
+        const wMm = sl.w ? Math.max(8, Math.round((sl.w / (bp.vw || 190)) * (dims.width_mm || 72) * 10) / 10) : 12;
+        const hMm = sl.h ? Math.max(8, Math.round((sl.h / (bp.vh || 190)) * (dims.height_mm || 72) * 10) / 10) : wMm;
+        stickers.push({
+          key: sl.key || `stk_${idx + 1}`,
+          label: sl.label || `Key ${idx + 1}`,
+          shape: sl.type === 'circle' ? 'circle' : 'rect',
+          width_mm: wMm,
+          height_mm: hMm,
+          action: sl.act || 'button_press',
+          zone: sl.zone != null ? sl.zone : null
+        });
+      });
+    } else {
+      const zCount = Math.min(8, Math.max(1, Number(m.zones || 4)));
+      stickers.push({ key: 'stk_on', label: 'ON', shape: 'rect', width_mm: 14, height_mm: 10, action: 'on', zone: null });
+      stickers.push({ key: 'stk_off', label: 'OFF', shape: 'rect', width_mm: 14, height_mm: 10, action: 'off', zone: null });
+      for (let z = 1; z <= zCount; z++) {
+        stickers.push({ key: `stk_z${z}`, label: `Z${z}`, shape: 'rect', width_mm: 12, height_mm: 10, action: 'zone', zone: z });
+      }
+    }
+
+    return {
+      model_id: m.id,
+      model_name: m.name || m.id,
+      layout: m.layout || 'standard',
+      fit_mode: getStencilFitMode(m),
+      base_dims_mm: { width_mm: dims.width_mm, height_mm: dims.height_mm },
+      sticker_count: stickers.length,
+      stickers
+    };
+  }
+
+  function renderCutStickerSheetSvg(modelOrId, opts) {
+    const o = opts || {};
+    const sheet = getCutStickerSheet(modelOrId);
+    const cols = 4;
+    const cellW = 54;
+    const cellH = 44;
+    const padX = 14;
+    const padY = 34;
+    const rows = Math.max(1, Math.ceil(sheet.stickers.length / cols));
+    const vw = padX * 2 + cols * cellW;
+    const vh = padY + rows * cellH + 28;
+
+    let itemsSvg = '';
+    sheet.stickers.forEach((stk, i) => {
+      const r = Math.floor(i / cols);
+      const c = i % cols;
+      const cx = padX + c * cellW + cellW / 2;
+      const cy = padY + r * cellH + cellH / 2 - 4;
+      const sw = Math.min(40, Math.max(18, stk.width_mm * 1.4));
+      const sh = Math.min(24, Math.max(14, stk.height_mm * 1.4));
+      if (stk.shape === 'circle') {
+        const rad = Math.min(sw, sh) / 2;
+        itemsSvg += `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${rad.toFixed(1)}" fill="#ffffff" stroke="#0f172a" stroke-width="1.2" stroke-dasharray="3,1.5"/>`;
+      } else {
+        itemsSvg += `<rect x="${(cx - sw / 2).toFixed(1)}" y="${(cy - sh / 2).toFixed(1)}" width="${sw.toFixed(1)}" height="${sh.toFixed(1)}" rx="3" fill="#ffffff" stroke="#0f172a" stroke-width="1.2" stroke-dasharray="3,1.5"/>`;
+      }
+      itemsSvg += `<text x="${cx.toFixed(1)}" y="${(cy + 2.5).toFixed(1)}" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="7.5" font-weight="700" fill="#0f172a">${escXml(stk.label)}</text>`;
+      itemsSvg += `<text x="${cx.toFixed(1)}" y="${(cy + sh / 2 + 9).toFixed(1)}" text-anchor="middle" font-family="monospace" font-size="5.5" fill="#475569">${stk.width_mm}x${stk.height_mm}mm</text>`;
+    });
+
+    const calY = vh - 20;
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${vw} ${vh}" width="${o.width || vw * 2}" height="${o.height || vh * 2}">
+      <rect x="1" y="1" width="${vw - 2}" height="${vh - 2}" rx="6" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/>
+      <text x="${padX}" y="17" font-family="Inter,system-ui,sans-serif" font-size="8.5" font-weight="800" fill="#0f172a">${escXml(sheet.model_name)} — Cut Stickers (${sheet.sticker_count})</text>
+      ${itemsSvg}
+      <rect x="${padX}" y="${calY}" width="12" height="12" fill="none" stroke="#0f172a" stroke-width="1"/>
+      <text x="${padX + 16}" y="${calY + 8.5}" font-family="monospace" font-size="6" fill="#334155">10x10mm Scale Check (Print 100%)</text>
+    </svg>`;
+  }
+
   // Exact hardware stencil geometry for every capacitive flat panel layout!
   function getPanelBlueprint(model) {
     const m = typeof model === 'string' ? (MODELS.find(x => x.id === model) || MODELS[0]) : (model || MODELS[0]);
@@ -2018,6 +2099,8 @@
     isCapacitiveFlatPanel,
     isSingleStickOnStencilReady,
     getStencilFitMode,
+    getCutStickerSheet,
+    renderCutStickerSheetSvg,
     resolveBaseModel,
     registerCustomModels,
     syncCustomModelsFromHub,
