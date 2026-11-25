@@ -874,6 +874,33 @@
       backdrop.querySelector('#mlrsModeEdit').onclick = () => { mode = 'edit'; renderModal(); };
       backdrop.querySelector('#mlrsModeTest').onclick = () => { mode = 'test'; lastTestReadout = 'Tap any multi-function device button to cycle steps (1→6), or Hold 0.6s to toggle ON/OFF!'; renderModal(); };
       backdrop.querySelector('#mlrsCloseBtn').onclick = () => backdrop.remove();
+      const fb = backdrop.querySelector('#mlrsFullBtn');
+      if (fb) {
+        fb.onclick = () => {
+          const m = backdrop.querySelector('.mlrs-modal');
+          if (m) {
+            m.classList.toggle('mlrs-fullscreen');
+            fb.textContent = m.classList.contains('mlrs-fullscreen') ? '❐ Windowed' : '⤢ Fullscreen';
+          }
+        };
+      }
+      const gb = backdrop.querySelector('#mlrsOpenGestBtn');
+      if (gb && typeof opts.onOpenGestures === 'function') {
+        gb.onclick = () => { backdrop.remove(); opts.onOpenGestures(); };
+      }
+      const tourBox = backdrop.querySelector('#mlrsStudioTourMount');
+      if (tourBox) {
+        mountShowcaseTour(tourBox, {
+          tourId: 'stencil_editor',
+          steps: [
+            { title: 'Full-Viewport Canvas & Starter Templates', body: 'Click Fullscreen above for maximum design space, or load a Starter Template to auto-populate room icons & segmented wheel buttons.', actionLabel: 'Toggle Fullscreen', onAction: () => backdrop.querySelector('#mlrsFullBtn')?.click() },
+            { title: 'Split Rings & Sliders Into Discrete Buttons', body: 'Use Left Panel Section 1 to turn continuous Color Rings or Touch Bars into 2 to 8 labeled macro buttons.', actionLabel: 'Select Ring Slot #1', onAction: () => { selectedPadKey = 'hue_seg_1'; mode = 'edit'; renderModal(); } },
+            { title: 'Architectural Themes & Blank Pad Masking', body: 'Switch between Pure White, Warm Travertine, or Matte Black vinyl palettes and set unused buttons to Blank Masked.', actionLabel: 'Preview Warm Stone', onAction: () => { draft.theme = 'warm_stone'; draft.colors = null; renderModal(); } },
+            { title: 'Single-Button Step-Cycling + Hold Toggle', body: 'Enable Multi-Function on any pad so short taps cycle speeds/positions (1 to 6) while a long hold toggles OFF — test it live in Mode 2!', actionLabel: 'Switch to Interactive Test', onAction: () => { mode = 'test'; renderModal(); } },
+            { title: 'Calibrated 1:1 Millimeter Print & SVG Export', body: 'Print Sheet adds a 10 mm verification square, and Download 1:1 SVG uses an HTTP attachment stream compatible with download extensions.', actionLabel: 'Download 1:1 SVG', onAction: () => backdrop.querySelector('#mlrsDlSvgBtn')?.click() }
+          ]
+        });
+      }
       backdrop.querySelector('#mlrsCancelBtn').onclick = () => backdrop.remove();
 
       // Preset Showcase Loader buttons
@@ -960,10 +987,11 @@
 
       // Print & Export
       backdrop.querySelector('#mlrsPrintBtn').onclick = () => openPrintSheetWindow(remoteName, hexId, model, draft, tz, activeZone);
-      backdrop.querySelector('#mlrsDlSvgBtn').onclick = () => {
-        const blob = new Blob([buildOneToOnePrintSvg(model, draft, tz, activeZone)], { type: 'image/svg+xml' });
-        const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-        a.download = `${model.id.toLowerCase()}_${hexId.toLowerCase()}_stencil_1to1.svg`; a.click();
+      backdrop.querySelector('#mlrsDlSvgBtn').onclick = (ev) => {
+        if (ev) { ev.preventDefault(); ev.stopPropagation(); }
+        const svgStr = buildOneToOnePrintSvg(model, draft, tz, activeZone);
+        const fName = `${model.id.toLowerCase()}_${hexId.toLowerCase()}_stencil_1to1.svg`;
+        downloadTextFile(fName, svgStr, 'image/svg+xml', { hubBase });
       };
 
       const nameInp = backdrop.querySelector('#mlrsCustomModelName');
@@ -1270,7 +1298,33 @@
   }
 
 
-  async function downloadTextFile(filename, content, mimeType) {
+  function submitPostDownloadForm(actionUrl, safeName, text) {
+    let ifr = document.getElementById('mlrs_hidden_dl_iframe');
+    if (!ifr) {
+      ifr = document.createElement('iframe');
+      ifr.id = 'mlrs_hidden_dl_iframe';
+      ifr.name = 'mlrs_hidden_dl_iframe';
+      ifr.style.display = 'none';
+      document.body.appendChild(ifr);
+    }
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = actionUrl;
+    form.target = 'mlrs_hidden_dl_iframe';
+    form.enctype = 'application/x-www-form-urlencoded';
+    form.style.display = 'none';
+    const fnInput = document.createElement('input');
+    fnInput.type = 'hidden'; fnInput.name = 'filename'; fnInput.value = safeName;
+    const ctInput = document.createElement('input');
+    ctInput.type = 'hidden'; ctInput.name = 'content'; ctInput.value = text;
+    form.appendChild(fnInput);
+    form.appendChild(ctInput);
+    document.body.appendChild(form);
+    form.submit();
+    setTimeout(() => form.remove(), 5000);
+  }
+
+  async function downloadTextFile(filename, content, mimeType, opts) {
     const safeName = String(filename || 'stencil_1to1.svg').replace(/[^a-zA-Z0-9._-]/g, '_');
     const mime = mimeType || 'image/svg+xml';
     const text = String(content || '');
@@ -1286,6 +1340,12 @@
           return true;
         }
       } catch (_) {}
+    }
+    const postEndpoint = (opts && opts.downloadEndpoint)
+      || (opts && opts.hubBase ? `${String(opts.hubBase).replace(/\/+$/, '')}/api/remotes/download` : '/api/remotes/download');
+    if (postEndpoint && !root.__MLRS_STAGE_DOWNLOAD) {
+      submitPostDownloadForm(postEndpoint, safeName, text);
+      return true;
     }
     if (typeof window !== 'undefined' && typeof window.showSaveFilePicker === 'function') {
       try {

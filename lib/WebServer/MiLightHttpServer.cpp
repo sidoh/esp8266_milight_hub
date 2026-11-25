@@ -48,6 +48,25 @@ void MiLightHttpServer::begin() {
     });
 
   server
+    .buildHandler("/api/remotes/download")
+    .onSimple(HTTP_POST, [this](const UrlTokenBindings*) {
+      String fn = server.arg("filename");
+      if (fn.length() == 0) fn = "stencil_1to1.svg";
+      String cleanFn = "";
+      for (size_t i = 0; i < fn.length() && cleanFn.length() < 64; i++) {
+        char c = fn.charAt(i);
+        if (isalnum(c) || c == '.' || c == '_' || c == '-') cleanFn += c;
+        else cleanFn += '_';
+      }
+      String content = server.arg("content");
+      server.sendHeader("Access-Control-Allow-Origin", "*");
+      server.sendHeader("Content-Disposition", String("attachment; filename=\"") + cleanFn + "\"");
+      server.sendHeader("Cache-Control", "no-store");
+      server.sendHeader("Connection", "close");
+      server.send(200, "application/octet-stream", content);
+    });
+
+  server
     .buildHandler("/api/remotes")
     .on(HTTP_GET, std::bind(&MiLightHttpServer::handleListRemotes, this, _1))
     .on(HTTP_POST, std::bind(&MiLightHttpServer::handleUpsertRemote, this, _1));
