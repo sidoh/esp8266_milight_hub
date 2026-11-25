@@ -189,6 +189,8 @@ export default function RemotesPage() {
 
   const svgStageRef = useRef<HTMLDivElement | null>(null);
   const hubTourRef = useRef<HTMLDivElement | null>(null);
+  const tourActionsRef = useRef<any>({});
+  const [rightTab, setRightTab] = useState<'controls' | 'log'>('controls');
   const stageCtrlRef = useRef<any>(null);
   const remotesRef = useRef<RegisteredRemote[]>([]);
   const [pairingCustomId, setPairingCustomId] = useState<number | null>(null);
@@ -215,6 +217,7 @@ export default function RemotesPage() {
     const st = document.createElement("style");
     st.id = "mbx-studio-styles";
     st.textContent = `
+      [data-rtab="log"] > div:not(:first-child):not(:last-child) { display: none !important; }
       .mbx-hit, .mbx-seg-hit { cursor: pointer; transition: filter 0.14s ease, fill 0.15s ease; }
       .mbx-hit:hover, .mbx-seg-hit:hover { filter: brightness(1.12); }
       .mbx-seg-hit:hover { fill: rgba(2, 132, 199, 0.28) !important; }
@@ -249,10 +252,10 @@ export default function RemotesPage() {
       });
     (async () => {
       for (let attempt = 0; attempt < 3 && !window.MiBoxerCatalog; attempt++) {
-        await loadScript(`/miboxer_catalog.js?v=250_${attempt}`);
+        await loadScript(`/miboxer_catalog.js?v=252_${attempt}`);
       }
       for (let attempt = 0; attempt < 3 && !(window as any).MiLightRemoteStudio; attempt++) {
-        await loadScript(`/remote-studio.js?v=250_${attempt}`);
+        await loadScript(`/remote-studio.js?v=252_${attempt}`);
       }
       await window.MiBoxerCatalog?.syncCustomModelsFromHub?.("");
       setCatalogReady(true);
@@ -438,15 +441,15 @@ export default function RemotesPage() {
     wAny.MiLightRemoteStudio.mountShowcaseTour(hubTourRef.current, {
       tourId: "esp32_hub_remotes",
       steps: [
-        { title: "Dual-Radio 2.4 GHz Live Sniffer", body: "Radio #2 listens continuously for physical MiBoxer remotes & wall panels (flashing Green RF) while virtual clicks transmit & publish MQTT (flashing Amber UI).", actionLabel: "Fire Virtual Test", onAction: () => sendVirtualTx("on", 100) },
-        { title: "61-Model Vector Hardware Catalog", body: "Click Edit Faceplate to map any 2.4 GHz Hex ID to its exact white or black MiBoxer handheld or glass wall panel model and MQTT topic prefix.", actionLabel: "Open Faceplate Catalog", onAction: () => openConfigurator("edit") },
-        { title: "Multi-Tap Gestures & Segmented Wheel/Sliders", body: "Turn continuous color rings & sliders into 2 to 12 discrete debounced macro buttons with 1x, 2x, 3x & Long-Hold gestures.", actionLabel: "Open Gestures & Segments", onAction: () => openMacroStudio() },
+        { title: "Dual-Radio 2.4 GHz Live Sniffer", body: "Radio #2 listens continuously for physical MiBoxer remotes & wall panels (flashing Green RF) while virtual clicks transmit & publish MQTT (flashing Amber UI).", actionLabel: "Fire Virtual Test", onAction: () => tourActionsRef.current.sendVirtualTx?.("on", 100) },
+        { title: "61-Model Vector Hardware Catalog", body: "Click Edit Faceplate to map any 2.4 GHz Hex ID to its exact white or black MiBoxer handheld or glass wall panel model and MQTT topic prefix.", actionLabel: "Open Faceplate Catalog", onAction: () => tourActionsRef.current.openConfigurator?.("edit") },
+        { title: "Multi-Tap Gestures & Segmented Wheel/Sliders", body: "Turn continuous color rings & sliders into 2 to 12 discrete debounced macro buttons with 1x, 2x, 3x & Long-Hold gestures.", actionLabel: "Open Gestures & Segments", onAction: () => tourActionsRef.current.openMacroStudio?.() },
         { title: "Reference Custom Showcase Stencils", body: "Inspect 0x3DB0 (1-Zone Suite B0), 0x3DB8 (8-Room Estate B8), and 0x3DB4 (Matte Hybrid B4-B) with standardized icons & Step-Cycle + Hold pads.", actionLabel: "Jump to 0x3DB8 Estate B8", onAction: () => { const r = remotesRef.current.find((x) => x.hex_id === "0x3DB8"); if (r) setSelectedId(r.device_id); } },
         { title: "Strict Base-Shell Hardware Pairing", body: "Custom stencils pair exclusively with matching physical shells (e.g. B8 stencil onto B8 Wall Panel) via dropdown or Press Panel to Link.", actionLabel: "Open Stencil Studio", onAction: () => (document.querySelector("[data-hub-stencil-btn]") as HTMLElement)?.click() },
         { title: "Real-World Peel-Back Stencil X-Ray", body: "Peel back any custom stencil diagonally to inspect the bare factory glass panel underneath while keeping RF & Virtual reticles synchronized!", actionLabel: "Peel Back Stencil (55%)", onAction: () => { if (stageCtrlRef.current?.setPeel) stageCtrlRef.current.setPeel(55); } },
       ],
     });
-  }, [catalogReady, openMacroStudio, sendVirtualTx]);
+  }, [catalogReady]);
 
   // Render interactive 1:1 SVG faceplate (with Diagonal Peel-Back Stencil when custom or linked!)
   useEffect(() => {
@@ -995,8 +998,10 @@ export default function RemotesPage() {
       ].filter(Boolean)
     : [];
 
+  tourActionsRef.current = { sendVirtualTx, openConfigurator, openMacroStudio };
+
   return (
-    <div className="space-y-6 pb-10">
+    <div className="rounded-2xl border bg-card/50 p-4 md:p-5 shadow-sm space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-4 border-b pb-4">
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-2xl font-bold tracking-tight">Remotes Studio</h1>
@@ -1372,8 +1377,12 @@ export default function RemotesPage() {
                     <div className="mt-3 text-center text-xs font-mono text-muted-foreground">{svgCaption}</div>
                   </div>
 
-                  {/* Virtual Transmitter + Segmented Quick Pad + Log */}
-                  <div className="md:col-span-7 space-y-4">
+                  {/* Tabbed Right Inspector: Controls vs Live Log */}
+                  <div className="md:col-span-7 space-y-4" data-rtab={rightTab}>
+                    <div className="flex flex-wrap gap-1.5 p-1 rounded-lg border bg-muted/40">
+                      <Button size="sm" variant={rightTab === "controls" ? "default" : "ghost"} className="flex-1 h-8 text-xs font-semibold" onClick={() => setRightTab("controls")}>🎛️ 1. Zones, Pads &amp; Sliders</Button>
+                      <Button size="sm" variant={rightTab === "log" ? "default" : "ghost"} className="flex-1 h-8 text-xs font-semibold" onClick={() => setRightTab("log")}>📡 2. Live 2.4GHz RF &amp; MQTT Log ({logs.length})</Button>
+                    </div>
                     <div>
                       <Label className="text-xs uppercase tracking-wider text-muted-foreground">Active Zone</Label>
                       <div className="flex flex-wrap gap-1.5 mt-1.5">

@@ -148,12 +148,24 @@
       .mlrs-peel-flap { position: absolute; inset: 6px; z-index: 4; pointer-events: none; background: linear-gradient(225deg, rgba(241,245,249,0.97) 0%, rgba(203,213,225,0.94) 55%, rgba(148,163,184,0.88) 100%); filter: drop-shadow(-6px 7px 10px rgba(15,23,42,0.34)); transition: clip-path 0.24s cubic-bezier(.22,.9,.3,1), opacity 0.2s ease; }
 
 
-      .mlrs-tour-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 10px 14px; border-radius: 10px; border: 1px solid rgba(2,132,199,0.38); background: linear-gradient(90deg, rgba(2,132,199,0.10), rgba(16,185,129,0.07)); margin-bottom: 12px; font-size: 12.5px; line-height: 1.45; box-sizing: border-box; }
-      .mlrs-tour-step-badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; background: #0284c7; color: #fff; font-weight: 800; font-size: 11px; margin-right: 6px; }
-      .mlrs-tour-nav { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-      .mlrs-tour-btn { padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(100,116,139,0.4); background: rgba(255,255,255,0.85); color: #0f172a; font-weight: 700; font-size: 11.5px; cursor: pointer; }
-      .mlrs-tour-btn.demo { background: #0284c7; border-color: #0284c7; color: #fff; }
-      .mlrs-tour-reopen { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 999px; border: 1px solid rgba(2,132,199,0.45); background: rgba(2,132,199,0.10); color: #0284c7; font-weight: 700; font-size: 11.5px; cursor: pointer; }
+      .mlrs-tour-bar {
+        display: flex !important; align-items: center !important; justify-content: space-between !important; gap: 14px !important;
+        flex-wrap: wrap !important; padding: 10px 14px !important; border-radius: 11px !important;
+        border: 1px solid rgba(2,132,199,0.35) !important;
+        background: linear-gradient(135deg, rgba(2,132,199,0.09) 0%, rgba(15,23,42,0.03) 100%) !important;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), 0 2px 6px rgba(15,23,42,0.05) !important;
+        margin: 0 0 10px 0 !important; font-size: 12.5px !important; line-height: 1.4 !important; box-sizing: border-box !important;
+      }
+      .mlrs-tour-left { display: flex !important; align-items: center !important; gap: 11px !important; flex: 1 !important; min-width: 240px !important; }
+      .mlrs-tour-icon { width: 34px !important; height: 34px !important; border-radius: 9px !important; background: #0284c7 !important; color: #fff !important; display: flex !important; align-items: center !important; justify-content: center !important; font-size: 16px !important; flex-shrink: 0 !important; }
+      .mlrs-tour-step-badge { display: inline-flex !important; align-items: center !important; padding: 2px 8px !important; border-radius: 999px !important; background: rgba(2,132,199,0.16) !important; color: #0284c7 !important; font-weight: 800 !important; font-size: 10.5px !important; text-transform: uppercase !important; letter-spacing: 0.04em !important; margin-right: 7px !important; }
+      .mlrs-tour-dots { display: inline-flex !important; gap: 4px !important; align-items: center !important; margin-left: 8px !important; vertical-align: middle !important; }
+      .mlrs-tour-dot { width: 6px !important; height: 6px !important; border-radius: 999px !important; background: rgba(100,116,139,0.35) !important; }
+      .mlrs-tour-dot.on { width: 16px !important; background: #0284c7 !important; }
+      .mlrs-tour-nav { display: flex !important; align-items: center !important; gap: 6px !important; flex-wrap: wrap !important; }
+      button.mlrs-tour-btn { padding: 5px 11px !important; border-radius: 7px !important; border: 1px solid rgba(100,116,139,0.38) !important; background: #ffffff !important; color: #0f172a !important; font-weight: 700 !important; font-size: 11.5px !important; cursor: pointer !important; }
+      button.mlrs-tour-btn.demo { background: #0284c7 !important; border-color: #0284c7 !important; color: #ffffff !important; }
+      button.mlrs-tour-reopen { display: inline-flex !important; align-items: center !important; gap: 6px !important; padding: 5px 12px !important; border-radius: 999px !important; border: 1px solid rgba(2,132,199,0.45) !important; background: rgba(2,132,199,0.10) !important; color: #0284c7 !important; font-weight: 700 !important; font-size: 11.5px !important; cursor: pointer !important; }
 
       .mlrs-box-sub { padding: 9px 10px; border-radius: 8px; background: var(--mlrs-muted); border: 1px solid var(--mlrs-border); margin-bottom: 10px; }
     `;
@@ -1319,18 +1331,25 @@
         return;
       }
       const step = opts.steps[idx];
+      const dotsHtml = opts.steps.map((_, di) => `<span class="mlrs-tour-dot ${di === idx ? 'on' : ''}"></span>`).join('');
       containerEl.innerHTML = `
         <div class="mlrs-tour-bar">
-          <div style="flex:1;min-width:260px">
-            <span class="mlrs-tour-step-badge">💡 Tip ${idx + 1} / ${opts.steps.length}</span>
-            <strong style="font-size:13px">${step.title}</strong>
-            <div style="margin-top:3px;opacity:0.92">${step.body}</div>
+          <div class="mlrs-tour-left">
+            <div class="mlrs-tour-icon">💡</div>
+            <div style="min-width:0">
+              <div>
+                <span class="mlrs-tour-step-badge">Guided Tip ${idx + 1} of ${opts.steps.length}</span>
+                <strong style="font-size:13px">${step.title}</strong>
+                <span class="mlrs-tour-dots">${dotsHtml}</span>
+              </div>
+              <div style="margin-top:2px;opacity:0.88;font-size:12px">${step.body}</div>
+            </div>
           </div>
           <div class="mlrs-tour-nav">
             <button type="button" class="mlrs-tour-btn" data-tour="prev">◀ Prev</button>
             ${step.actionLabel ? `<button type="button" class="mlrs-tour-btn demo" data-tour="demo">✨ ${step.actionLabel}</button>` : ''}
             <button type="button" class="mlrs-tour-btn" data-tour="next">Next ▶</button>
-            <button type="button" class="mlrs-tour-btn" data-tour="hide" title="Minimize Guided Tour">✕ Hide</button>
+            <button type="button" class="mlrs-tour-btn" data-tour="hide" title="Minimize Tour Frame">✕ Hide</button>
           </div>
         </div>
       `;
