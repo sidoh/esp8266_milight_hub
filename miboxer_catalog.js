@@ -1722,11 +1722,25 @@
                   body += `<g transform="translate(${(ip.x - isz / 2).toFixed(2)},${(ip.y - isz / 2).toFixed(2)}) scale(${(isz / 24).toFixed(4)})" pointer-events="none">${inner}</g>`;
                 }
                 if (cfg && cfg.segmentMode === 'slider') {
+                  const sMin = Number(cfg.sliderMin ?? 0);
+                  const sMax = Number(cfg.sliderMax ?? 100);
                   const trkR = s.rIn + ringThick * 0.88;
                   const p1 = polarPt(s.cx, s.cy, trkR, sDeg + 3);
                   const p2 = polarPt(s.cx, s.cy, trkR, eDeg - 3);
                   const lg = Math.abs(eDeg - sDeg - 6) > 180 ? '1' : '0';
                   body += `<path d="M ${p1.x.toFixed(2)} ${p1.y.toFixed(2)} A ${trkR.toFixed(2)} ${trkR.toFixed(2)} 0 ${lg} 1 ${p2.x.toFixed(2)} ${p2.y.toFixed(2)}" fill="none" stroke="${ink}" stroke-width="1.2" stroke-dasharray="2,2" opacity="0.85" pointer-events="none"/>`;
+                  const rngTxt = `${sMin}–${sMax}%`;
+                  const rngFs = Math.max(3.8, Math.min(5.0, ringThick * 0.30));
+                  const rArcR = s.rIn + ringThick * 0.16;
+                  const ra1 = isLowerArc ? (eDeg - 4) : (sDeg + 4);
+                  const ra2 = isLowerArc ? (sDeg + 4) : (eDeg - 4);
+                  const rpA = polarPt(s.cx, s.cy, rArcR, ra1);
+                  const rpB = polarPt(s.cx, s.cy, rArcR, ra2);
+                  const rSwp = isLowerArc ? '0' : '1';
+                  const rLg = Math.abs(eDeg - sDeg - 8) > 180 ? '1' : '0';
+                  const rArcId = `rng_${u}_${i}`;
+                  body += `<defs><path id="${rArcId}" d="M ${rpA.x.toFixed(2)} ${rpA.y.toFixed(2)} A ${rArcR.toFixed(2)} ${rArcR.toFixed(2)} 0 ${rLg} ${rSwp} ${rpB.x.toFixed(2)} ${rpB.y.toFixed(2)}"/></defs>`;
+                  body += `<text font-family="monospace" font-size="${rngFs.toFixed(2)}" font-weight="700" fill="${col.subInk}" pointer-events="none"><textPath href="#${rArcId}" startOffset="50%" text-anchor="middle">${escXml(rngTxt)}</textPath></text>`;
                 }
               } else {
                 // Narrower clock segments (6, 8, 12 slots): show crisp icon OR clean clock numeral/short label without ellipsis clutter
@@ -1794,11 +1808,14 @@
             if (pc.st !== 'blank') {
               body += drawGlyphContent(rx + rw / 2, ry + rh / 2, rw, rh, cfg, defL, '');
               if (cfg && cfg.segmentMode === 'slider') {
+                const sMin = Number(cfg.sliderMin ?? 0);
+                const sMax = Number(cfg.sliderMax ?? 100);
                 if (vert) {
                   body += `<line x1="${(rx + 3).toFixed(1)}" y1="${(ry + rh - 3.5).toFixed(1)}" x2="${(rx + rw - 3).toFixed(1)}" y2="${(ry + rh - 3.5).toFixed(1)}" stroke="${ink}" stroke-width="1.3" stroke-dasharray="2,1.8" opacity="0.85" pointer-events="none"/>`;
                 } else {
                   body += `<line x1="${(rx + 3.5).toFixed(1)}" y1="${(ry + rh - 3).toFixed(1)}" x2="${(rx + rw - 3.5).toFixed(1)}" y2="${(ry + rh - 3).toFixed(1)}" stroke="${ink}" stroke-width="1.3" stroke-dasharray="2,1.8" opacity="0.85" pointer-events="none"/>`;
                 }
+                body += `<text x="${(rx + rw / 2).toFixed(1)}" y="${(ry + rh - 4.8).toFixed(1)}" text-anchor="middle" font-family="monospace" font-size="4.4" font-weight="700" fill="${col.subInk}" pointer-events="none">${escXml(`${sMin}–${sMax}%`)}</text>`;
               }
             }
           }

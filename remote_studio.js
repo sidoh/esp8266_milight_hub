@@ -474,10 +474,13 @@
         const px = (sp && !Number.isNaN(sp.x) && sp.x !== 0) ? sp.x : (bb ? bb.x + bb.width / 2 : 0);
         const py = (sp && !Number.isNaN(sp.y) && sp.y !== 0) ? sp.y : (bb ? bb.y + bb.height / 2 : 0);
         if (padCfg.segmentMode === 'slider') {
-          const pct = Math.max(0, Math.min(100, Math.round(((px - (bb ? bb.x : 0)) / Math.max(1, bb ? bb.width : 1)) * 100)));
-          const badge = `${padCfg.label || pKey}: ${pct}% Slider`;
-          showFingerPuck(px, py, `${pct}%`, false, 'ui_btn');
-          if (typeof opts.onAction === 'function') opts.onAction(baseAct, pct, zNext, badge);
+          const frac = Math.max(0, Math.min(1, (px - (bb ? bb.x : 0)) / Math.max(1, bb ? bb.width : 1)));
+          const sMin = Number(padCfg.sliderMin ?? 0);
+          const sMax = Number(padCfg.sliderMax ?? 100);
+          const mappedVal = Math.round(sMin + frac * (sMax - sMin));
+          const badge = `${padCfg.label || pKey}: ${mappedVal}% (${sMin}%–${sMax}%)`;
+          showFingerPuck(px, py, `${mappedVal}%`, false, 'ui_btn');
+          if (typeof opts.onAction === 'function') opts.onAction(baseAct, mappedVal, zNext, badge);
           return;
         }
         if (mf) {
@@ -809,8 +812,19 @@
                 <label>Segment Behavior (Button vs. Variable Slider)</label>
                 <select class="mlrs-select" id="mlrsSegMode">
                   <option value="button" ${(curPad.segmentMode || 'button') === 'button' ? 'selected' : ''}>Button (Tap / Step / Hold)</option>
-                  <option value="slider" ${curPad.segmentMode === 'slider' ? 'selected' : ''}>Variable Slider (0–100% Cover / Dim / Level)</option>
+                  <option value="slider" ${curPad.segmentMode === 'slider' ? 'selected' : ''}>Variable Slider (Custom X% to Y% Range)</option>
                 </select>
+                ${curPad.segmentMode === 'slider' ? `
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px">
+                  <div>
+                    <label style="font-size:11px">Start End (X %)</label>
+                    <input type="number" min="0" max="100" class="mlrs-input" id="mlrsSegMin" value="${curPad.sliderMin ?? 0}"/>
+                  </div>
+                  <div>
+                    <label style="font-size:11px">Far / Max End (Y %)</label>
+                    <input type="number" min="0" max="100" class="mlrs-input" id="mlrsSegMax" value="${curPad.sliderMax ?? 100}"/>
+                  </div>
+                </div>` : ''}
               </div>` : ''}
 
               <div class="mlrs-field">
@@ -1013,6 +1027,18 @@
         p.segmentMode = e.target.value;
         if (p.segmentMode === 'slider' && p.multifunc) p.multifunc.enabled = false;
         renderModal();
+      };
+      const segMinEl = backdrop.querySelector('#mlrsSegMin');
+      if (segMinEl) segMinEl.oninput = (e) => {
+        const p = ensurePad();
+        p.sliderMin = Math.max(0, Math.min(100, Number(e.target.value || 0)));
+        refreshStageOnly();
+      };
+      const segMaxEl = backdrop.querySelector('#mlrsSegMax');
+      if (segMaxEl) segMaxEl.oninput = (e) => {
+        const p = ensurePad();
+        p.sliderMax = Math.max(0, Math.min(100, Number(e.target.value || 100)));
+        refreshStageOnly();
       };
       backdrop.querySelector('#mlrsPadLabel').oninput = (e) => { const p = ensurePad(); p.label = e.target.value; syncLabelToTouchZone(selectedPadKey, e.target.value); refreshStageOnly(); };
       backdrop.querySelector('#mlrsPadSub').oninput = (e) => { const p = ensurePad(); p.sublabel = e.target.value; refreshStageOnly(); };
