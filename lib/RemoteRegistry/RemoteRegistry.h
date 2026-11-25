@@ -10,6 +10,18 @@
 #include <MiLightClient.h>
 #include <MiLightRemoteType.h>
 
+struct ChildLockConfig {
+  bool enabled = false;
+  uint16_t idleTimeoutSec = 300; // Auto-relock after N seconds idle (default 5 min)
+  String sequence = "on_off_on"; // "on_off_on", "z1_z2_z3", "off_off_on"
+};
+
+struct ChildLockRuntime {
+  uint32_t lastActivityMs = 0; // 0 = locked until unlocked!
+  uint8_t progress = 0;
+  uint32_t lastStepMs = 0;
+};
+
 struct GestureConfig {
   bool shortEnabled = true;
   bool longEnabled = true;
@@ -35,6 +47,7 @@ struct RegisteredRemote {
   uint8_t numZones = 8;
   bool active = true;
   GestureConfig gestures;
+  ChildLockConfig childLock;
   SurfaceSegmentConfig hueRing;
   SurfaceSegmentConfig cctBar;
   SurfaceSegmentConfig satBar;
@@ -163,6 +176,11 @@ private:
   std::map<uint32_t, PendingTapTracker> tapTrackers;
   std::map<uint32_t, PendingSegmentSettle> segSettleTrackers;
   std::map<uint32_t, uint8_t> lastSegmentBySurface;
+  std::map<uint16_t, ChildLockRuntime> childLockStates;
+public:
+  bool isRemoteLocked(uint16_t deviceId) const;
+  void setRemoteLockState(uint16_t deviceId, bool locked);
+private:
 };
 
 #endif

@@ -67,6 +67,20 @@ void MiLightHttpServer::begin() {
     });
 
   server
+    .buildHandler("/api/remotes/lock")
+    .onSimple(HTTP_POST, [this](const UrlTokenBindings*) {
+      StaticJsonDocument<256> doc;
+      deserializeJson(doc, server.arg("plain"));
+      uint16_t devId = doc["device_id"] | 0;
+      bool lockNow = doc["locked"] | true;
+      if (devId != 0) {
+        RemoteRegistry::instance().setRemoteLockState(devId, lockNow);
+      }
+      server.sendHeader("Access-Control-Allow-Origin", "*");
+      server.send(200, "application/json", "{\"ok\":true}");
+    });
+
+  server
     .buildHandler("/api/remotes")
     .on(HTTP_GET, std::bind(&MiLightHttpServer::handleListRemotes, this, _1))
     .on(HTTP_POST, std::bind(&MiLightHttpServer::handleUpsertRemote, this, _1));

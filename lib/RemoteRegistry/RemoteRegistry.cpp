@@ -50,6 +50,14 @@ void RemoteRegistry::parseRemoteFromJson(const JsonObject& obj, RegisteredRemote
     r.gestures.multiTapWindowMs = (uint16_t)constrain((int)(g["window_ms"] | 360), 180, 800);
   }
 
+  if (obj.containsKey("child_lock") && obj["child_lock"].is<JsonObject>()) {
+    JsonObject cl = obj["child_lock"].as<JsonObject>();
+    r.childLock.enabled = cl["enabled"] | false;
+    r.childLock.idleTimeoutSec = (uint16_t)constrain((int)(cl["timeout_sec"] | 300), 30, 7200);
+    const char* seq = cl["sequence"] | "on_off_on";
+    r.childLock.sequence = String(seq);
+  }
+
   if (obj.containsKey("touch_zones") && obj["touch_zones"].is<JsonObject>()) {
     JsonObject tz = obj["touch_zones"].as<JsonObject>();
     if (tz.containsKey("hue_ring")) parseSurfaceJson(tz["hue_ring"].as<JsonObject>(), r.hueRing, 12, 6);
@@ -88,6 +96,14 @@ void RemoteRegistry::writeRemoteToJson(const RegisteredRemote& r, JsonObject& ob
   g["double"] = r.gestures.doubleEnabled;
   g["triple"] = r.gestures.tripleEnabled;
   g["window_ms"] = r.gestures.multiTapWindowMs;
+
+  JsonObject cl = obj.createNestedObject("child_lock");
+  cl["enabled"] = r.childLock.enabled;
+  cl["timeout_sec"] = r.childLock.idleTimeoutSec;
+  cl["sequence"] = r.childLock.sequence;
+  if (!compactKeys) {
+    cl["locked"] = RemoteRegistry::instance().isRemoteLocked(r.deviceId);
+  }
 
   JsonObject tz = obj.createNestedObject("touch_zones");
   JsonObject hr = tz.createNestedObject("hue_ring");
@@ -429,6 +445,37 @@ uint8_t RemoteRegistry::computeLinearSegment(int32_t normPct, const SurfaceSegme
   return rawSeg;
 }
 
+bool RemoteRegistry::isRemoteLocked(uint16_t deviceId) const {
+  const RegisteredRemote* r = find(deviceId);
+  if (r == nullptr || !r->childLock.enabled) return false;
+  auto it = childLockStates.find(deviceId);
+  if (it == childLockStates.end() || it->second.lastActivityMs == 0) return true;
+  uint32_t elapsedMs = millis() - it->second.lastActivityMs;
+  return elapsedMs > ((uint32_t)r->childLock.idleTimeoutSec * 1000UL);
+}
+
+void RemoteRegistry::setRemoteLockState(uint16_t deviceId, bool locked) {
+  ChildLockRuntime& rt = childLockStates[deviceId];
+  rt.progress = 0;
+  rt.lastStepMs = 0;
+  rt.lastActivityMs = locked ? 0 : (millis() ? millis() : 1);
+}
+
+static bool matchesUnlockStep(const String& seqName, uint8_t stepIdx, uint8_t groupId, const String& action) {
+  if (seqName == "z1_z2_z3") {
+    uint8_t expectedZone = stepIdx + 1;
+    return (groupId == expectedZone && action == "on");
+  }
+  if (seqName == "off_off_on") {
+    if (stepIdx == 0 || stepIdx == 1) return (action == "off");
+    return (action == "on");
+  }
+  // Default "on_off_on": ON -> OFF -> ON on any zone
+  if (stepIdx == 0) return (action == "on");
+  if (stepIdx == 1) return (action == "off");
+  return (action == "on");
+}
+
 void RemoteRegistry::handlePacket(uint16_t deviceId, uint8_t groupId, const String& remoteTypeName, const JsonObject& result, bool fromVirtual) {
   if (!loaded) load();
 
@@ -497,6 +544,51 @@ void RemoteRegistry::handlePacket(uint16_t deviceId, uint8_t groupId, const Stri
   if (r == nullptr) {
     emitResolvedEvent(nullptr, deviceId, groupId, remoteTypeName, action, "single", value, fromVirtual, "", 0, 0, "", v2DecStr);
     return;
+  }
+
+  // Firmware Idle-Timeout Child / Safety Lock Gatekeeper (applies to physical 2.4GHz RF presses)
+  if (!fromVirtual && r->childLock.enabled) {
+    ChildLockRuntime& clRt = childLockStates[deviceId];
+    bool currentlyLocked = (clRt.lastActivityMs == 0) || ((now - clRt.lastActivityMs) > ((uint32_t)r->childLock.idleTimeoutSec * 1000UL));
+    if (currentlyLocked) {
+      clRt.lastActivityMs = 0; // Ensure latched locked
+      if (isSlider) {
+        // Ignore continuous wheel/slider brushes silently while locked
+        return;
+      }
+      if (clRt.progress > 0 && (now - clRt.lastStepMs > 6000UL)) {
+        clRt.progress = 0; // Reset partial combo if >6s elapsed between taps
+      }
+      if (matchesUnlockStep(r->childLock.sequence, clRt.progress, groupId, action)) {
+        clRt.progress++;
+        clRt.lastStepMs = now;
+        if (clRt.progress >= 3) {
+          clRt.progress = 0;
+          clRt.lastActivityMs = now ? now : 1;
+          // Emit non-MQTT UI notification via lastSeen ring so UI shows instant Unlock!
+          emitResolvedEvent(nullptr, deviceId, groupId, remoteTypeName, "child_lock_unlocked", "unlocked", 3, false, "", 3, 3, "Unlocked!", v2DecStr);
+          return;
+        } else {
+          String progLbl = String("Child Lock ") + String(clRt.progress) + "/3";
+          emitResolvedEvent(nullptr, deviceId, groupId, remoteTypeName, action, "locked", clRt.progress, false, "", clRt.progress, 3, progLbl, v2DecStr);
+          return;
+        }
+      } else {
+        // Check if this tap starts step 1 fresh
+        if (matchesUnlockStep(r->childLock.sequence, 0, groupId, action)) {
+          clRt.progress = 1;
+          clRt.lastStepMs = now;
+          emitResolvedEvent(nullptr, deviceId, groupId, remoteTypeName, action, "locked", 1, false, "", 1, 3, "Child Lock 1/3", v2DecStr);
+        } else {
+          clRt.progress = 0;
+          emitResolvedEvent(nullptr, deviceId, groupId, remoteTypeName, action, "locked", 0, false, "", 0, 3, "Locked (Enter 3-Tap Code)", v2DecStr);
+        }
+        return;
+      }
+    } else {
+      // Remote is currently unlocked — refresh idle countdown timer on every physical press!
+      clRt.lastActivityMs = now ? now : 1;
+    }
   }
 
   // Check if this zone matches a Segmented Ring / Slider Macro-Pad surface!

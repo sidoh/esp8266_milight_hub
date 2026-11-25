@@ -69,6 +69,7 @@ interface RegisteredRemote {
   num_zones: number;
   active: boolean;
   gestures?: GestureConfig;
+  child_lock?: { enabled: boolean; timeout_sec: number; sequence: string; locked?: boolean };
   touch_zones?: TouchZonesConfig;
   facia?: any;
   calibration?: any;
@@ -182,6 +183,18 @@ export default function RemotesPage() {
   const [wPrefix, setWPrefix] = useState<string>("milight/actions/rem_125c");
   const [wZones, setWZones] = useState<number>(8);
   const [modalSniffBanner, setModalSniffBanner] = useState<string>("Listening on 2.4GHz... Press ANY button on your physical remote!");
+  const [pairStep, setPairStep] = useState<number>(0); // 0=waiting any press, 1=waiting ON, 2=waiting OFF, 3=verified!
+  const [pairCandidateId, setPairCandidateId] = useState<number>(0);
+  const [pairBypassed, setPairBypassed] = useState<boolean>(false);
+  const pairStepRef = useRef<number>(0);
+  const pairCandidateIdRef = useRef<number>(0);
+  pairStepRef.current = pairStep;
+  pairCandidateIdRef.current = pairCandidateId;
+  const [editChildLock, setEditChildLock] = useState<{ enabled: boolean; timeout_sec: number; sequence: string }>({
+    enabled: false,
+    timeout_sec: 300,
+    sequence: "on_off_on",
+  });
 
   // Gestures & Graphical Touch-Zone Configurator Modal
   const [macroOpen, setMacroOpen] = useState<boolean>(false);
@@ -760,6 +773,10 @@ export default function RemotesPage() {
               ? " [3x TRIPLE]"
               : ev.gesture === "long"
               ? " [LONG HOLD]"
+              : ev.gesture === "locked"
+              ? " 🔒 [CHILD LOCKED]"
+              : ev.gesture === "unlocked"
+              ? " 🔓 [UNLOCKED]"
               : "";
           const segText = ev.label ? ` -> "${ev.label}"` : ev.value !== -1 ? ` (${ev.value})` : "";
           setLogs((prev) => [
@@ -767,18 +784,40 @@ export default function RemotesPage() {
             ...prev.slice(0, 79),
           ]);
 
+          if (ev.gesture === "unlocked" || ev.gesture === "locked") {
+            loadRemotes();
+          }
+
           if (modalOpenRef.current && modalModeRef.current === "add" && !isVirtual && ev.device_id) {
-            setWHex(ev.hex_id);
-            setWProto(ev.remote_type);
-            const cleanHex = ev.hex_id.replace(/^0x/i, "").toLowerCase();
-            setWPrefix(`milight/actions/rem_${cleanHex}`);
-            const matchingMod = (window.MiBoxerCatalog?.MODELS || []).find((m) => m.proto === ev.remote_type);
-            if (matchingMod) {
-              setWModel(matchingMod.id);
-              setWZones(matchingMod.zones || 8);
-              setWName(`${matchingMod.id} (${ev.hex_id})`);
+            if (pairStepRef.current === 0) {
+              // Step 1 complete: Lock onto this candidate remote ID so stray neighbor remotes can't hijack setup!
+              setPairCandidateId(ev.device_id);
+              setPairStep(1);
+              setWHex(ev.hex_id);
+              setWProto(ev.remote_type);
+              setWizCat("proto_match");
+              const cleanHex = ev.hex_id.replace(/^0x/i, "").toLowerCase();
+              setWPrefix(`milight/actions/rem_${cleanHex}`);
+              const matchingMod = (window.MiBoxerCatalog?.MODELS || []).find((m) => m.proto === ev.remote_type && !m.isCustom);
+              if (matchingMod) {
+                setWModel(matchingMod.id);
+                setWZones(matchingMod.zones || 8);
+                setWName(`${matchingMod.id} (${ev.hex_id})`);
+              }
+              setModalSniffBanner(`Step 1/3 Locked onto ${ev.hex_id} (${ev.remote_type})! Now press ANY [ON] or Zone button on that same remote.`);
+            } else if (ev.device_id === pairCandidateIdRef.current) {
+              if (pairStepRef.current === 1 && ev.action === "on") {
+                setPairStep(2);
+                if (ev.group_id >= 5) {
+                  // Automatically proved it has 8 zones!
+                  setWZones(8);
+                }
+                setModalSniffBanner(`Step 2/3 Confirmed [ON] on ${ev.hex_id}! Final check: press [OFF] on that remote.`);
+              } else if (pairStepRef.current === 2 && (ev.action === "off" || ev.action === "night_mode")) {
+                setPairStep(3);
+                setModalSniffBanner(`✅ Verified Physical Remote ${ev.hex_id}! Confirm matching picture below & click Save Remote.`);
+              }
             }
-            setModalSniffBanner(`🟢 Captured Physical Remote ${ev.hex_id} (${ev.remote_type}, Zone ${ev.group_id} ${ev.action})!`);
           }
 
           if (!isVirtual && pairingCustomIdRef.current && ev.device_id && ev.device_id !== pairingCustomIdRef.current) {
@@ -908,6 +947,7 @@ export default function RemotesPage() {
   const openMacroStudio = () => {
     if (!currentRemote) return;
     setEditGestures({ ...DEFAULT_GESTURES, ...(currentRemote.gestures || {}) });
+                        setEditChildLock({ enabled: false, timeout_sec: 300, sequence: "on_off_on", ...(currentRemote.child_lock || {}) });
     setEditTouch(normalizeTouchZones(currentRemote.touch_zones));
     const proto = currentRemote.remote_type;
     if (proto === "fut091" || proto === "cct") setActiveSurfaceTab("cct_bar");
@@ -929,6 +969,7 @@ export default function RemotesPage() {
         num_zones: currentRemote.num_zones,
         active: true,
         gestures: editGestures,
+        child_lock: editChildLock,
         touch_zones: editTouch,
       }),
     });
@@ -1826,6 +1867,59 @@ export default function RemotesPage() {
               </div>
             </div>
 
+            <div className="rounded-xl border p-4 bg-muted/15 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <div className="text-sm font-bold flex items-center gap-2">
+                    🔒 Idle-Timeout Child &amp; Safety Lock
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Automatically locks smart-home actions (garage doors, gates, blinds, AC, MQTT/HomeKit triggers) when this remote hasn&apos;t been used for a while, requiring a 3-tap unlock sequence.
+                  </p>
+                </div>
+                <label className="flex items-center gap-2 text-xs font-bold cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={editChildLock.enabled}
+                    onChange={(e) => setEditChildLock({ ...editChildLock, enabled: e.target.checked })}
+                    className="h-4 w-4"
+                  />
+                  Enable Child Lock
+                </label>
+              </div>
+              {editChildLock.enabled && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Auto-Lock After Inactivity</Label>
+                    <select
+                      value={editChildLock.timeout_sec}
+                      onChange={(e) => setEditChildLock({ ...editChildLock, timeout_sec: Number(e.target.value) })}
+                      className="flex h-9 w-full rounded-md border border-input bg-background px-2.5 py-1 text-xs"
+                    >
+                      <option value={60}>After 1 minute idle (Testing / High Security)</option>
+                      <option value={120}>After 2 minutes idle</option>
+                      <option value={300}>After 5 minutes idle (Recommended)</option>
+                      <option value={900}>After 15 minutes idle</option>
+                      <option value={1800}>After 30 minutes idle</option>
+                      <option value={3600}>After 60 minutes idle</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">3-Tap Unlock Key Sequence (within 6s)</Label>
+                    <select
+                      value={editChildLock.sequence}
+                      onChange={(e) => setEditChildLock({ ...editChildLock, sequence: e.target.value })}
+                      className="flex h-9 w-full rounded-md border border-input bg-background px-2.5 py-1 text-xs"
+                    >
+                      <option value="on_off_on">Tap: ON → OFF → ON (Works on all 1Z / 4Z / 8Z remotes)</option>
+                      <option value="z1_z2_z3">Tap: Zone 1 ON → Zone 2 ON → Zone 3 ON (1 – 2 – 3)</option>
+                      <option value="off_off_on">Tap: OFF → OFF → ON</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="flex justify-end gap-2 border-t pt-4">
               <Button variant="outline" onClick={() => setMacroOpen(false)}>
                 Cancel
@@ -1887,10 +1981,51 @@ export default function RemotesPage() {
                   <h2 className="text-lg font-bold">
                     {modalMode === "edit" ? "Choose Remote Faceplate & Hardware Settings" : `Find & Pair Your MiBoxer Remote (${catalogModels.length} Models)`}
                   </h2>
-                  <div className="rounded-full border border-green-500/40 bg-green-500/10 px-3.5 py-1 text-xs font-medium flex items-center gap-2">
-                    <span className="h-2.5 w-2.5 rounded-full bg-green-500 animate-pulse inline-block shrink-0" />
-                    <span>{modalSniffBanner}</span>
-                  </div>
+                  {modalMode === "add" && (
+                    <div className="flex flex-wrap items-center gap-2">
+                      {[
+                        [1, pairStep >= 1 ? `✓ 1. Locked ${wHex}` : "👉 1. Press ANY Button"],
+                        [2, pairStep >= 2 ? "✓ 2. Pressed [ON]" : pairStep === 1 ? "👉 2. Press [ON]" : "2. Press [ON]"],
+                        [3, pairStep >= 3 ? "🔒 3. Verified!" : pairStep === 2 ? "👉 3. Press [OFF]" : "3. Press [OFF]"],
+                      ].map(([stNum, stLabel]) => {
+                        const done = pairStep >= Number(stNum);
+                        const active = pairStep + 1 === Number(stNum);
+                        return (
+                          <span
+                            key={String(stNum)}
+                            className={`px-2.5 py-1 rounded-full text-xs font-bold border transition-all ${
+                              done
+                                ? "bg-emerald-500/15 border-emerald-500/50 text-emerald-700"
+                                : active
+                                ? "bg-amber-500/15 border-amber-500/50 text-amber-700 animate-pulse"
+                                : "bg-muted/40 border-border text-muted-foreground"
+                            }`}
+                          >
+                            {stLabel}
+                          </span>
+                        );
+                      })}
+                      {pairCandidateId !== 0 && pairStep < 3 && (
+                        <button
+                          type="button"
+                          onClick={() => { setPairStep(0); setPairCandidateId(0); setModalSniffBanner("Reset! Press ANY button on your physical remote to start."); }}
+                          className="text-xs underline text-muted-foreground hover:text-foreground"
+                        >
+                          Reset
+                        </button>
+                      )}
+                      {pairStep < 3 && !pairBypassed && (
+                        <button
+                          type="button"
+                          onClick={() => setPairBypassed(true)}
+                          className="text-xs underline text-muted-foreground hover:text-foreground ml-1"
+                          title="Allow saving manually without physical 3-tap verification"
+                        >
+                          Skip check (manual ID)
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <Button variant="outline" size="sm" onClick={() => setModalOpen(false)}>
                   ✕ Close
@@ -2098,8 +2233,15 @@ export default function RemotesPage() {
                         <Button variant="outline" onClick={() => setModalOpen(false)}>
                           Cancel
                         </Button>
-                        <Button onClick={saveRemoteConfig} className="font-bold px-5">
-                          ✓ Save Remote ({wModel})
+                        <Button
+                          onClick={saveRemoteConfig}
+                          disabled={modalMode === "add" && pairStep < 3 && !pairBypassed}
+                          className="font-bold px-5"
+                          title={modalMode === "add" && pairStep < 3 && !pairBypassed ? "Complete the 3-tap physical remote check above (or click Skip check)" : ""}
+                        >
+                          {modalMode === "add" && pairStep < 3 && !pairBypassed
+                            ? `Complete 3-Tap Check (${pairStep}/3)`
+                            : `✓ Save Remote (${wModel})`}
                         </Button>
                       </div>
                     </div>
