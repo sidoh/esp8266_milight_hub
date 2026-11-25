@@ -1,3 +1,5 @@
+> **Everyday Household User Guide:** See [docs/REMOTES_USER_GUIDE.md](docs/REMOTES_USER_GUIDE.md) for simple, plain-English setup and button/stencil usage without phones or voice control.
+
 # esp8266_milight_hub [![Build Status](https://travis-ci.org/sidoh/esp8266_milight_hub.svg?branch=master)](https://travis-ci.org/sidoh/esp8266_milight_hub) [![License][shield-license]][info-license]
 
 This is a replacement for a Milight/LimitlessLED remote/gateway hosted on an ESP8266. Leverages [Henryk Plötz's awesome reverse-engineering work](https://hackaday.io/project/5888-reverse-engineering-the-milight-on-air-protocol).
