@@ -1573,9 +1573,9 @@
         const tr = bp.outer.w / 2 + 5.5;
         const tArcId = `ptArc_${u}`;
         // Bottom-half clock arc from 135 deg to 225 deg (left-to-right upright)
-        const pA = polarPt(tcx, tcy, tr, 135);
-        const pB = polarPt(tcx, tcy, tr, 225);
-        body += `<defs><path id="${tArcId}" d="M ${pA.x.toFixed(2)} ${pA.y.toFixed(2)} A ${tr.toFixed(2)} ${tr.toFixed(2)} 0 0 1 ${pB.x.toFixed(2)} ${pB.y.toFixed(2)}"/></defs>`;
+        const pA = polarPt(tcx, tcy, tr, 225);
+        const pB = polarPt(tcx, tcy, tr, 135);
+        body += `<defs><path id="${tArcId}" d="M ${pA.x.toFixed(2)} ${pA.y.toFixed(2)} A ${tr.toFixed(2)} ${tr.toFixed(2)} 0 0 0 ${pB.x.toFixed(2)} ${pB.y.toFixed(2)}"/></defs>`;
         body += `<text font-family="Inter,system-ui,sans-serif" font-size="6.4" font-weight="800" letter-spacing="0.9" fill="${col.subInk}" pointer-events="none"><textPath href="#${tArcId}" startOffset="50%" text-anchor="middle">${escXml(titleTxt)}</textPath></text>`;
       } else {
         body += `<text x="${(bp.vw / 2).toFixed(1)}" y="${bp.titleY}" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="7.2" font-weight="800" letter-spacing="0.7" fill="${col.subInk}" pointer-events="none">${escXml(titleTxt)}</text>`;

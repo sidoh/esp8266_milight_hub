@@ -1008,7 +1008,12 @@
       const ensurePad = () => { if (!draft.pads[selectedPadKey]) draft.pads[selectedPadKey] = {}; return draft.pads[selectedPadKey]; };
       backdrop.querySelector('#mlrsPadStyle').onchange = (e) => { const p = ensurePad(); if (e.target.value) p.style = e.target.value; else delete p.style; renderModal(); };
       const segModeEl = backdrop.querySelector('#mlrsSegMode');
-      if (segModeEl) segModeEl.onchange = (e) => { const p = ensurePad(); p.segmentMode = e.target.value; renderModal(); };
+      if (segModeEl) segModeEl.onchange = (e) => {
+        const p = ensurePad();
+        p.segmentMode = e.target.value;
+        if (p.segmentMode === 'slider' && p.multifunc) p.multifunc.enabled = false;
+        renderModal();
+      };
       backdrop.querySelector('#mlrsPadLabel').oninput = (e) => { const p = ensurePad(); p.label = e.target.value; syncLabelToTouchZone(selectedPadKey, e.target.value); refreshStageOnly(); };
       backdrop.querySelector('#mlrsPadSub').oninput = (e) => { const p = ensurePad(); p.sublabel = e.target.value; refreshStageOnly(); };
       backdrop.querySelector('#mlrsMfChk').onchange = (e) => {
