@@ -1409,23 +1409,24 @@
       const isK6 = m.kind === 'k6';
       const slots = [];
       if (isK6) {
-        slots.push({ key: 'hue_ring', type: 'ring', surf: 'hue_ring', act: 'hue', cx: 95, cy: 95, rIn: 66, rOut: 80, label: 'COLOR' });
+        slots.push({ key: 'hue_ring', type: 'ring', surf: 'hue_ring', act: 'hue', cx: 95, cy: 95, rIn: 65, rOut: 81, label: 'COLOR' });
       }
+      // Inner buttons positioned cleanly inside rIn=65 and clear of center LED cutout (y=56..74)
       slots.push(
-        { key: 'btn_on',  type: 'circle', act: 'on',          cx: 95,  cy: 99,  r: 14, label: 'PWR', sublabel: 'Hold Off' },
-        { key: 'btn_bri', type: 'circle', act: 'brightness',  cx: 60,  cy: 52,  r: 12.5, label: 'BRI' },
-        { key: 'btn_cct', type: 'circle', act: 'kelvin',      cx: 130, cy: 52,  r: 12.5, label: 'CCT' },
-        { key: 'btn_pal', type: 'circle', act: 'set_white',   cx: 43,  cy: 99,  r: 12.5, label: isK6 ? 'RGB/W' : 'Z1' },
-        { key: 'btn_sat', type: 'circle', act: 'saturation',  cx: 147, cy: 99,  r: 12.5, label: isK6 ? 'SAT' : 'Z4' },
-        { key: 'btn_m',   type: 'circle', act: 'mode',        cx: 64,  cy: 143, r: 12.5, label: isK6 ? 'MODE' : 'Z2' },
-        { key: 'btn_dly', type: 'circle', act: 'night_mode',  cx: 126, cy: 143, r: 12.5, label: isK6 ? 'DELAY' : 'Z3' }
+        { key: 'btn_on',  type: 'circle', act: 'on',          cx: 95,  cy: 103, r: 12.2, label: 'PWR', sublabel: 'Hold Off' },
+        { key: 'btn_bri', type: 'circle', act: 'brightness',  cx: 62,  cy: 56,  r: 11.0, label: 'BRI' },
+        { key: 'btn_cct', type: 'circle', act: 'kelvin',      cx: 128, cy: 56,  r: 11.0, label: 'CCT' },
+        { key: 'btn_pal', type: 'circle', act: 'set_white',   cx: 49,  cy: 95,  r: 11.0, label: isK6 ? 'RGB/W' : 'Z1' },
+        { key: 'btn_sat', type: 'circle', act: 'saturation',  cx: 141, cy: 95,  r: 11.0, label: isK6 ? 'SAT' : 'Z4' },
+        { key: 'btn_m',   type: 'circle', act: 'mode',        cx: 65,  cy: 133, r: 11.0, label: isK6 ? 'MODE' : 'Z2' },
+        { key: 'btn_dly', type: 'circle', act: 'night_mode',  cx: 125, cy: 133, r: 11.0, label: isK6 ? 'DELAY' : 'Z3' }
       );
       return {
         vw: 190, vh: 190,
-        outer: { x: 11, y: 11, w: 168, h: 168, rx: 84 },
-        glass: { x: 15, y: 15, w: 160, h: 160, rx: 80 },
-        cutout: { x: 73, y: 55, w: 44, h: 20, rx: 5, text: '100%' },
-        titleY: 168,
+        outer: { x: 10, y: 10, w: 170, h: 170, rx: 85 },
+        glass: { x: 14, y: 14, w: 162, h: 162, rx: 81 },
+        cutout: { x: 75, y: 57, w: 40, h: 18, rx: 4.5, text: '100%' },
+        titleY: 169,
         slots
       };
     }
@@ -1667,18 +1668,45 @@
           const n = Math.min(12, Math.max(2, Number(surfCfg.segments || 6)));
           const span = 360 / n;
           const off = Number(surfCfg.offset_deg || 0);
+          const ringThick = Math.max(8, s.rOut - s.rIn);
           for (let i = 0; i < n; i++) {
             const sKey = `hue_seg_${i + 1}`;
             const cfg = pads[sKey] || {};
             const pc = padColors(cfg);
             const sDeg = off + i * span + 1.5, eDeg = off + (i + 1) * span - 1.5;
+            const midDeg = off + (i + 0.5) * span;
             const d = ringWedgePath(s.cx, s.cy, s.rIn, s.rOut, sDeg, eDeg);
             const isSelected = selKey === sKey;
             body += `<path class="mbx-seg-hit" data-seg-act="${sKey}" data-pad-key="${sKey}" ${pc.st === 'blank' ? 'data-blanked="1"' : ''} d="${d}" fill="${pc.fill}" stroke="${isSelected ? col.accent : pc.stroke}" stroke-width="${isSelected ? 2 : 1.05}" ${pc.dash ? `stroke-dasharray="${pc.dash}"` : ''} style="cursor:pointer"/>`;
-            const mp = polarPt(s.cx, s.cy, (s.rIn + s.rOut) / 2, off + (i + 0.5) * span);
             const defL = (surfCfg.labels && surfCfg.labels[i]) || `S${i + 1}`;
+            const lblStr = (cfg && cfg.label !== undefined) ? String(cfg.label).trim() : defL;
+            const icoKey = (cfg && cfg.icon) || 'none';
+            const ico = FACIA_ICONS[icoKey];
+            const hasIco = Boolean(ico && ico.svg);
+            const ink = (cfg && cfg.color) || col.ink;
             if (pc.st !== 'blank') {
-              body += drawGlyphContent(mp.x, mp.y, (s.rOut - s.rIn) * 0.98, (s.rOut - s.rIn) * 0.98, cfg, defL, '');
+              const arcSpan = Math.max(10, eDeg - sDeg);
+              const useArcText = arcSpan >= 62 && lblStr.length > 0;
+              if (useArcText) {
+                const textR = hasIco ? (s.rIn + ringThick * 0.34) : (s.rIn + ringThick * 0.56);
+                const pStart = polarPt(s.cx, s.cy, textR, sDeg + 5);
+                const pEnd = polarPt(s.cx, s.cy, textR, eDeg - 5);
+                const lgFlag = (eDeg - sDeg - 10) > 180 ? '1' : '0';
+                const arcId = `arc_${u}_${i}`;
+                const arcPath = `M ${pStart.x.toFixed(2)} ${pStart.y.toFixed(2)} A ${textR.toFixed(2)} ${textR.toFixed(2)} 0 ${lgFlag} 1 ${pEnd.x.toFixed(2)} ${pEnd.y.toFixed(2)}`;
+                const arcFs = Math.max(4.6, Math.min(6.6, ringThick * 0.42));
+                body += `<defs><path id="${arcId}" d="${arcPath}"/></defs>`;
+                body += `<text font-family="Inter,system-ui,sans-serif" font-size="${arcFs.toFixed(2)}" font-weight="800" fill="${ink}" pointer-events="none"><textPath href="#${arcId}" startOffset="50%" text-anchor="middle">${escXml(lblStr)}</textPath></text>`;
+                if (hasIco) {
+                  const ip = polarPt(s.cx, s.cy, s.rIn + ringThick * 0.72, midDeg);
+                  const isz = Math.max(5.5, Math.min(8.5, ringThick * 0.54));
+                  const inner = ico.svg.replace(/currentColor/g, ink);
+                  body += `<g transform="translate(${(ip.x - isz / 2).toFixed(2)},${(ip.y - isz / 2).toFixed(2)}) scale(${(isz / 24).toFixed(4)})" pointer-events="none">${inner}</g>`;
+                }
+              } else {
+                const mp = polarPt(s.cx, s.cy, (s.rIn + s.rOut) / 2, midDeg);
+                body += drawGlyphContent(mp.x, mp.y, ringThick * 0.96, ringThick * 0.96, cfg, defL, '');
+              }
             }
           }
           return;
