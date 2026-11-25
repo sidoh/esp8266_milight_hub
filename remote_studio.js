@@ -566,9 +566,64 @@
   // ============================================================================
   // 2. 1:1 PRINT / CUT STENCIL SHEET BUILDER
   // ============================================================================
+  function buildPodOrderPayload(remoteName, hexId, model, facia, touchZones, activeZone) {
+    const Cat = root.MiBoxerCatalog;
+    const dims = Cat.getPhysicalDims(model);
+    const f = facia || {};
+    const preset = (Cat.FACIA_THEMES && Cat.FACIA_THEMES[f.theme]) || {};
+    const pads = f.pads || {};
+    const lum = Object.assign({ enabled: false, border: false, header: false, slots: false }, f.luminous || {});
+    const luminousSlots = Object.entries(pads)
+      .filter(([, cfg]) => Boolean(cfg && cfg.luminous))
+      .map(([slotKey]) => slotKey);
+    const sliderSegments = Object.entries(pads)
+      .filter(([, cfg]) => Boolean(cfg && cfg.segmentMode === 'slider'))
+      .map(([slotKey, cfg]) => ({
+        slot: slotKey,
+        label: cfg.label || slotKey,
+        min_pct: Number(cfg.sliderMin ?? 0),
+        max_pct: Number(cfg.sliderMax ?? 100)
+      }));
+
+    return {
+      schema: 'milight_remote_studio.pod_order.v1',
+      created_at: new Date().toISOString(),
+      remote_name: remoteName || model.name || model.id,
+      device_id: hexId || '',
+      hardware_model: model.id,
+      fit_mode: Cat.getStencilFitMode ? Cat.getStencilFitMode(model) : 'single_sheet',
+      dimensions_mm: {
+        width_mm: dims.width_mm,
+        height_mm: dims.height_mm,
+        corner_radius_mm: dims.corner_radius_mm || 0
+      },
+      appearance: {
+        theme: f.theme || 'pure_white',
+        material: f.material || 'matte_vinyl_peelable',
+        monochrome: Boolean(f.monochrome),
+        background_color: f.bgColor || (f.colors && f.colors.bg) || preset.bg || '#ffffff',
+        boundary_line_color: f.boundaryColor || (f.colors && f.colors.padStroke) || preset.padStroke || '#0f172a',
+        panel_title: f.panelTitle || '',
+        show_led_pinhole: f.showLedPinhole !== false
+      },
+      luminous_glow: {
+        enabled: Boolean(lum.enabled || luminousSlots.length > 0),
+        pigment: 'strontium_aluminate',
+        outer_boundary: Boolean(lum.enabled && lum.border),
+        header_title: Boolean(lum.enabled && lum.header),
+        all_slots: Boolean(lum.enabled && lum.slots),
+        individual_slots: luminousSlots
+      },
+      slider_segments: sliderSegments,
+      facia: f,
+      touch_zones: touchZones || null
+    };
+  }
+
   function buildOneToOnePrintSvg(model, facia, touchZones, activeZone) {
     const Cat = root.MiBoxerCatalog;
     const dims = Cat.getPhysicalDims(model);
+    const podMeta = buildPodOrderPayload(model.name || model.id, '', model, facia, touchZones, activeZone);
     const rendered = Cat.renderCapacitiveStencilSvg(model, {
       size: 'large', uid: 'print_1to1',
       facia: Object.assign({}, facia || {}, { enabled: true }),
@@ -577,7 +632,8 @@
     const vbMatch = rendered.match(/viewBox="([^"]+)"/);
     const vb = vbMatch ? vbMatch[1] : '0 0 210 210';
     const inner = rendered.replace(/^<svg[^>]*>/, '').replace(/<\/svg>$/, '');
-    return `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${dims.width_mm}mm" height="${dims.height_mm}mm" viewBox="${vb}" data-model="${model.id}">\n${inner}\n</svg>`;
+    const safeJson = JSON.stringify(podMeta).replace(/]]>/g, ']]&gt;');
+    return `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${dims.width_mm}mm" height="${dims.height_mm}mm" viewBox="${vb}" data-model="${model.id}" data-bg-color="${podMeta.appearance.background_color}" data-boundary-color="${podMeta.appearance.boundary_line_color}" data-luminous="${podMeta.luminous_glow.enabled ? '1' : '0'}">\n<metadata><pod_order><![CDATA[${safeJson}]]></pod_order></metadata>\n${inner}\n</svg>`;
   }
 
   function openPrintSheetWindow(remoteName, hexId, model, facia, touchZones, activeZone) {
@@ -914,6 +970,7 @@
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
               <button type="button" class="mlrs-btn" id="mlrsPrintBtn">Print 1:1 Stencil Sheet</button>
               <button type="button" class="mlrs-btn" id="mlrsDlSvgBtn">Download 1:1 SVG</button>
+              <button type="button" class="mlrs-btn" id="mlrsDlPodBtn">Download POD Spec JSON</button>
               ${isEditingExistingCustom ? `<button type="button" class="mlrs-btn" id="mlrsSaveCopyBtn">Save as New Copy</button>` : ''}
               <button type="button" class="mlrs-btn" id="mlrsCancelBtn">Cancel</button>
               <button type="button" class="mlrs-btn primary" id="mlrsDeployBtn">${isEditingExistingCustom ? 'Update Custom Remote' : '+ Create Custom Remote'}</button>
@@ -1118,6 +1175,13 @@
         const svgStr = buildOneToOnePrintSvg(model, draft, tz, activeZone);
         const fName = `${model.id.toLowerCase()}_${hexId.toLowerCase()}_stencil_1to1.svg`;
         downloadTextFile(fName, svgStr, 'image/svg+xml', { hubBase });
+      };
+      const podBtn = backdrop.querySelector('#mlrsDlPodBtn');
+      if (podBtn) podBtn.onclick = (ev) => {
+        if (ev) { ev.preventDefault(); ev.stopPropagation(); }
+        const podObj = buildPodOrderPayload(remoteName, hexId, model, draft, tz, activeZone);
+        const fName = `${model.id.toLowerCase()}_${hexId.toLowerCase()}_pod_order.json`;
+        downloadTextFile(fName, JSON.stringify(podObj, null, 2), 'application/json', { hubBase });
       };
 
       const nameInp = backdrop.querySelector('#mlrsCustomModelName');
@@ -1562,6 +1626,6 @@
   root.MiLightRemoteStudio = {
     version: '2.5.0',
     normalizeTouchZones, defaultCalibration, resolvePhysicalToCustomAction, resolveCustomToPhysicalAction, mountInteractiveStage, mountPeelableStage, downloadTextFile, mountShowcaseTour,
-    buildOneToOnePrintSvg, openPrintSheetWindow, openFaciaDesigner
+    buildPodOrderPayload, buildOneToOnePrintSvg, openPrintSheetWindow, openFaciaDesigner
   };
 })(typeof window !== 'undefined' ? window : globalThis);
