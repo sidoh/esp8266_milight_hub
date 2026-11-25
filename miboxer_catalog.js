@@ -1721,6 +1721,13 @@
                   const inner = ico.svg.replace(/currentColor/g, ink);
                   body += `<g transform="translate(${(ip.x - isz / 2).toFixed(2)},${(ip.y - isz / 2).toFixed(2)}) scale(${(isz / 24).toFixed(4)})" pointer-events="none">${inner}</g>`;
                 }
+                if (cfg && cfg.segmentMode === 'slider') {
+                  const trkR = s.rIn + ringThick * 0.88;
+                  const p1 = polarPt(s.cx, s.cy, trkR, sDeg + 3);
+                  const p2 = polarPt(s.cx, s.cy, trkR, eDeg - 3);
+                  const lg = Math.abs(eDeg - sDeg - 6) > 180 ? '1' : '0';
+                  body += `<path d="M ${p1.x.toFixed(2)} ${p1.y.toFixed(2)} A ${trkR.toFixed(2)} ${trkR.toFixed(2)} 0 ${lg} 1 ${p2.x.toFixed(2)} ${p2.y.toFixed(2)}" fill="none" stroke="${ink}" stroke-width="1.2" stroke-dasharray="2,2" opacity="0.85" pointer-events="none"/>`;
+                }
               } else {
                 // Narrower clock segments (6, 8, 12 slots): show crisp icon OR clean clock numeral/short label without ellipsis clutter
                 const mp = polarPt(s.cx, s.cy, (s.rIn + s.rOut) / 2, midDeg);
@@ -1784,7 +1791,16 @@
             const isSelected = selKey === sKey;
             body += `<rect class="mbx-seg-hit" data-seg-act="${sKey}" data-pad-key="${sKey}" ${pc.st === 'blank' ? 'data-blanked="1"' : ''} x="${rx.toFixed(2)}" y="${ry.toFixed(2)}" width="${rw.toFixed(2)}" height="${rh.toFixed(2)}" rx="3" fill="${pc.fill}" stroke="${isSelected ? col.accent : pc.stroke}" stroke-width="${isSelected ? 1.9 : 1.0}" ${pc.dash ? `stroke-dasharray="${pc.dash}"` : ''} style="cursor:pointer"/>`;
             const defL = (surfCfg.labels && surfCfg.labels[i]) || `${i + 1}`;
-            if (pc.st !== 'blank') body += drawGlyphContent(rx + rw / 2, ry + rh / 2, rw, rh, cfg, defL, '');
+            if (pc.st !== 'blank') {
+              body += drawGlyphContent(rx + rw / 2, ry + rh / 2, rw, rh, cfg, defL, '');
+              if (cfg && cfg.segmentMode === 'slider') {
+                if (vert) {
+                  body += `<line x1="${(rx + 3).toFixed(1)}" y1="${(ry + rh - 3.5).toFixed(1)}" x2="${(rx + rw - 3).toFixed(1)}" y2="${(ry + rh - 3.5).toFixed(1)}" stroke="${ink}" stroke-width="1.3" stroke-dasharray="2,1.8" opacity="0.85" pointer-events="none"/>`;
+                } else {
+                  body += `<line x1="${(rx + 3.5).toFixed(1)}" y1="${(ry + rh - 3).toFixed(1)}" x2="${(rx + rw - 3.5).toFixed(1)}" y2="${(ry + rh - 3).toFixed(1)}" stroke="${ink}" stroke-width="1.3" stroke-dasharray="2,1.8" opacity="0.85" pointer-events="none"/>`;
+                }
+              }
+            }
           }
           return;
         }

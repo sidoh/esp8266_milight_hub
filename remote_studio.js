@@ -473,6 +473,13 @@
         const bb = el.getBBox ? el.getBBox() : null;
         const px = (sp && !Number.isNaN(sp.x) && sp.x !== 0) ? sp.x : (bb ? bb.x + bb.width / 2 : 0);
         const py = (sp && !Number.isNaN(sp.y) && sp.y !== 0) ? sp.y : (bb ? bb.y + bb.height / 2 : 0);
+        if (padCfg.segmentMode === 'slider') {
+          const pct = Math.max(0, Math.min(100, Math.round(((px - (bb ? bb.x : 0)) / Math.max(1, bb ? bb.width : 1)) * 100)));
+          const badge = `${padCfg.label || pKey}: ${pct}% Slider`;
+          showFingerPuck(px, py, `${pct}%`, false, 'ui_btn');
+          if (typeof opts.onAction === 'function') opts.onAction(baseAct, pct, zNext, badge);
+          return;
+        }
         if (mf) {
           const maxS = Math.max(2, Number(mf.steps || 4));
           const st = stepCounters[pKey] || { step: 0, on: true };
@@ -797,6 +804,15 @@
             <div class="mlrs-col">
               <div class="mlrs-sec-title" style="margin-bottom:6px">3. Selected Slot: <code style="padding:2px 6px;border-radius:4px;background:var(--mlrs-muted);border:1px solid var(--mlrs-border)">${selectedPadKey}</code></div>
 
+              ${/^(hue|bri|cct|sat)_seg_\d+$/.test(selectedPadKey) ? `
+              <div class="mlrs-field">
+                <label>Segment Behavior (Button vs. Variable Slider)</label>
+                <select class="mlrs-select" id="mlrsSegMode">
+                  <option value="button" ${(curPad.segmentMode || 'button') === 'button' ? 'selected' : ''}>Button (Tap / Step / Hold)</option>
+                  <option value="slider" ${curPad.segmentMode === 'slider' ? 'selected' : ''}>Variable Slider (0–100% Cover / Dim / Level)</option>
+                </select>
+              </div>` : ''}
+
               <div class="mlrs-field">
                 <label>Slot Visibility / Style</label>
                 <select class="mlrs-select" id="mlrsPadStyle">
@@ -991,6 +1007,8 @@
       // Right Column Inspector
       const ensurePad = () => { if (!draft.pads[selectedPadKey]) draft.pads[selectedPadKey] = {}; return draft.pads[selectedPadKey]; };
       backdrop.querySelector('#mlrsPadStyle').onchange = (e) => { const p = ensurePad(); if (e.target.value) p.style = e.target.value; else delete p.style; renderModal(); };
+      const segModeEl = backdrop.querySelector('#mlrsSegMode');
+      if (segModeEl) segModeEl.onchange = (e) => { const p = ensurePad(); p.segmentMode = e.target.value; renderModal(); };
       backdrop.querySelector('#mlrsPadLabel').oninput = (e) => { const p = ensurePad(); p.label = e.target.value; syncLabelToTouchZone(selectedPadKey, e.target.value); refreshStageOnly(); };
       backdrop.querySelector('#mlrsPadSub').oninput = (e) => { const p = ensurePad(); p.sublabel = e.target.value; refreshStageOnly(); };
       backdrop.querySelector('#mlrsMfChk').onchange = (e) => {
