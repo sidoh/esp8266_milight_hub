@@ -1566,7 +1566,20 @@
     }
 
     if (facia.panelTitle) {
-      body += `<text x="${(bp.vw / 2).toFixed(1)}" y="${bp.titleY}" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="7.2" font-weight="800" letter-spacing="0.7" fill="${col.subInk}" pointer-events="none">${escXml(facia.panelTitle.toUpperCase())}</text>`;
+      const titleTxt = String(facia.panelTitle).trim().toUpperCase();
+      if (bp.outer && bp.outer.rx >= bp.outer.w * 0.45 && bp.outer.w === bp.outer.h) {
+        const tcx = bp.outer.x + bp.outer.w / 2;
+        const tcy = bp.outer.y + bp.outer.h / 2;
+        const tr = bp.outer.w / 2 + 5.5;
+        const tArcId = `ptArc_${u}`;
+        // Bottom-half clock arc from 135 deg to 225 deg (left-to-right upright)
+        const pA = polarPt(tcx, tcy, tr, 135);
+        const pB = polarPt(tcx, tcy, tr, 225);
+        body += `<defs><path id="${tArcId}" d="M ${pA.x.toFixed(2)} ${pA.y.toFixed(2)} A ${tr.toFixed(2)} ${tr.toFixed(2)} 0 0 1 ${pB.x.toFixed(2)} ${pB.y.toFixed(2)}"/></defs>`;
+        body += `<text font-family="Inter,system-ui,sans-serif" font-size="6.4" font-weight="800" letter-spacing="0.9" fill="${col.subInk}" pointer-events="none"><textPath href="#${tArcId}" startOffset="50%" text-anchor="middle">${escXml(titleTxt)}</textPath></text>`;
+      } else {
+        body += `<text x="${(bp.vw / 2).toFixed(1)}" y="${bp.titleY}" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="7.2" font-weight="800" letter-spacing="0.7" fill="${col.subInk}" pointer-events="none">${escXml(titleTxt)}</text>`;
+      }
     } else if (facia.hideLogo === false) {
       body += `<text x="${bp.glass.x + 12}" y="${bp.titleY}" font-family="Inter,system-ui,sans-serif" font-size="8" font-weight="800" fill="${col.subInk}" pointer-events="none">MiBOXER®</text>`;
     }
@@ -1674,11 +1687,11 @@
             const cfg = pads[sKey] || {};
             const pc = padColors(cfg);
             const sDeg = off + i * span + 1.5, eDeg = off + (i + 1) * span - 1.5;
-            const midDeg = off + (i + 0.5) * span;
+            const midDeg = ((off + (i + 0.5) * span) % 360 + 360) % 360;
             const d = ringWedgePath(s.cx, s.cy, s.rIn, s.rOut, sDeg, eDeg);
             const isSelected = selKey === sKey;
             body += `<path class="mbx-seg-hit" data-seg-act="${sKey}" data-pad-key="${sKey}" ${pc.st === 'blank' ? 'data-blanked="1"' : ''} d="${d}" fill="${pc.fill}" stroke="${isSelected ? col.accent : pc.stroke}" stroke-width="${isSelected ? 2 : 1.05}" ${pc.dash ? `stroke-dasharray="${pc.dash}"` : ''} style="cursor:pointer"/>`;
-            const defL = (surfCfg.labels && surfCfg.labels[i]) || `S${i + 1}`;
+            const defL = (surfCfg.labels && surfCfg.labels[i]) || `${i + 1}`;
             const lblStr = (cfg && cfg.label !== undefined) ? String(cfg.label).trim() : defL;
             const icoKey = (cfg && cfg.icon) || 'none';
             const ico = FACIA_ICONS[icoKey];
@@ -1686,26 +1699,40 @@
             const ink = (cfg && cfg.color) || col.ink;
             if (pc.st !== 'blank') {
               const arcSpan = Math.max(10, eDeg - sDeg);
-              const useArcText = arcSpan >= 62 && lblStr.length > 0;
-              if (useArcText) {
-                const textR = hasIco ? (s.rIn + ringThick * 0.34) : (s.rIn + ringThick * 0.56);
-                const pStart = polarPt(s.cx, s.cy, textR, sDeg + 5);
-                const pEnd = polarPt(s.cx, s.cy, textR, eDeg - 5);
-                const lgFlag = (eDeg - sDeg - 10) > 180 ? '1' : '0';
+              const isLowerArc = midDeg > 95 && midDeg < 265;
+              // Wide segments (>= 62 deg, e.g. 1/4 clock quadrants) flow text cleanly along a non-overlapping arc
+              if (arcSpan >= 62 && lblStr.length > 0) {
+                const textR = hasIco ? (s.rIn + ringThick * 0.30) : (s.rIn + ringThick * 0.54);
+                const padAng = Math.min(8, arcSpan * 0.12);
+                const a1 = isLowerArc ? (eDeg - padAng) : (sDeg + padAng);
+                const a2 = isLowerArc ? (sDeg + padAng) : (eDeg - padAng);
+                const pStart = polarPt(s.cx, s.cy, textR, a1);
+                const pEnd = polarPt(s.cx, s.cy, textR, a2);
+                const sweep = isLowerArc ? '0' : '1';
+                const lgFlag = Math.abs(eDeg - sDeg - padAng * 2) > 180 ? '1' : '0';
                 const arcId = `arc_${u}_${i}`;
-                const arcPath = `M ${pStart.x.toFixed(2)} ${pStart.y.toFixed(2)} A ${textR.toFixed(2)} ${textR.toFixed(2)} 0 ${lgFlag} 1 ${pEnd.x.toFixed(2)} ${pEnd.y.toFixed(2)}`;
-                const arcFs = Math.max(4.6, Math.min(6.6, ringThick * 0.42));
+                const arcPath = `M ${pStart.x.toFixed(2)} ${pStart.y.toFixed(2)} A ${textR.toFixed(2)} ${textR.toFixed(2)} 0 ${lgFlag} ${sweep} ${pEnd.x.toFixed(2)} ${pEnd.y.toFixed(2)}`;
+                const arcFs = Math.max(4.4, Math.min(6.0, ringThick * 0.36));
                 body += `<defs><path id="${arcId}" d="${arcPath}"/></defs>`;
                 body += `<text font-family="Inter,system-ui,sans-serif" font-size="${arcFs.toFixed(2)}" font-weight="800" fill="${ink}" pointer-events="none"><textPath href="#${arcId}" startOffset="50%" text-anchor="middle">${escXml(lblStr)}</textPath></text>`;
                 if (hasIco) {
-                  const ip = polarPt(s.cx, s.cy, s.rIn + ringThick * 0.72, midDeg);
-                  const isz = Math.max(5.5, Math.min(8.5, ringThick * 0.54));
+                  const ip = polarPt(s.cx, s.cy, s.rIn + ringThick * 0.74, midDeg);
+                  const isz = Math.max(5.2, Math.min(7.6, ringThick * 0.48));
                   const inner = ico.svg.replace(/currentColor/g, ink);
                   body += `<g transform="translate(${(ip.x - isz / 2).toFixed(2)},${(ip.y - isz / 2).toFixed(2)}) scale(${(isz / 24).toFixed(4)})" pointer-events="none">${inner}</g>`;
                 }
               } else {
+                // Narrower clock segments (6, 8, 12 slots): show crisp icon OR clean clock numeral/short label without ellipsis clutter
                 const mp = polarPt(s.cx, s.cy, (s.rIn + s.rOut) / 2, midDeg);
-                body += drawGlyphContent(mp.x, mp.y, ringThick * 0.96, ringThick * 0.96, cfg, defL, '');
+                if (hasIco) {
+                  const isz = Math.max(6.2, Math.min(9.5, ringThick * 0.62));
+                  const inner = ico.svg.replace(/currentColor/g, ink);
+                  body += `<g transform="translate(${(mp.x - isz / 2).toFixed(2)},${(mp.y - isz / 2).toFixed(2)}) scale(${(isz / 24).toFixed(4)})" pointer-events="none">${inner}</g>`;
+                } else if (lblStr) {
+                  const clockLbl = lblStr.length > 4 ? String(i + 1) : lblStr;
+                  const cFs = Math.max(5.0, Math.min(7.2, ringThick * 0.46));
+                  body += `<text x="${mp.x.toFixed(2)}" y="${(mp.y + cFs * 0.35).toFixed(2)}" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="${cFs.toFixed(2)}" font-weight="800" fill="${ink}" pointer-events="none">${escXml(clockLbl)}</text>`;
+                }
               }
             }
           }
