@@ -173,6 +173,8 @@ export default function RemotesPage() {
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const [modalMode, setModalMode] = useState<"add" | "edit">("add");
   const [wizCat, setWizCat] = useState<string>("all");
+  const [wizSearch, setWizSearch] = useState("");
+  const [wizHoverId, setWizHoverId] = useState<string | null>(null);
   const [wHex, setWHex] = useState<string>("0x125C");
   const [wProto, setWProto] = useState<string>("fut089");
   const [wModel, setWModel] = useState<string>("FUT089");
@@ -1828,166 +1830,286 @@ export default function RemotesPage() {
               <Button variant="outline" onClick={() => setMacroOpen(false)}>
                 Cancel
               </Button>
-              {(window as any).MiLightRemoteStudio && currentRemote && (<Button variant="outline" onClick={() => { setMacroModalOpen(false); (document.querySelector("[data-hub-stencil-btn]") as HTMLElement)?.click(); }}>🎨 Open Stencil Studio</Button>)}<Button onClick={saveMacroStudio}>Save Gestures &amp; Touch Zones</Button>
+              {(window as any).MiLightRemoteStudio && currentRemote && (<Button variant="outline" onClick={() => { setMacroOpen(false); (document.querySelector("[data-hub-stencil-btn]") as HTMLElement)?.click(); }}>🎨 Open Stencil Studio</Button>)}<Button onClick={saveMacroStudio}>Save Gestures &amp; Touch Zones</Button>
             </div>
           </div>
         </div>
       )}
 
       {/* ======================================================================= */}
-      {/* MODAL 2: 61-Model Hardware Faceplate & Auto-Detect Configurator         */}
+      {/* MODAL 2: Responsive Full-Viewport Remote Showroom & Hero Preview        */}
       {/* ======================================================================= */}
-      {modalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-background text-foreground border rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-5">
-            <div className="flex items-center justify-between border-b pb-3">
-              <h2 className="text-lg font-bold">
-                {modalMode === "edit" ? "Edit MiBoxer Remote & Faceplate" : "Detect / Add MiBoxer Remote (61 Models)"}
-              </h2>
-              <Button variant="ghost" size="sm" onClick={() => setModalOpen(false)}>
-                ✕ Close
-              </Button>
-            </div>
+      {modalOpen && (() => {
+        const q = wizSearch.trim().toLowerCase();
+        const showroomModels = filteredWizardModels.filter((m) => {
+          if (wizCat === "proto_match" && wProto && m.proto !== wProto) return false;
+          if (!q) return true;
+          const hay = `${m.id} ${m.name || ""} ${m.proto || ""} ${m.zones || ""}z ${m.cat || ""} ${m.baseModel || ""}`.toLowerCase();
+          return hay.includes(q);
+        });
+        const basePool = wizCat === "proto_match"
+          ? catalogModels.filter((m) => (!wProto || m.proto === wProto) && (!q || `${m.id} ${m.name || ""} ${m.proto || ""} ${m.zones || ""}z`.toLowerCase().includes(q)))
+          : showroomModels;
+        const displayModels = wizCat === "proto_match" ? basePool : showroomModels;
 
-            <div className="rounded-lg border border-green-500/40 bg-green-500/10 px-4 py-2.5 text-xs font-medium flex items-center gap-2">
-              <span className="h-2.5 w-2.5 rounded-full bg-green-500 animate-pulse inline-block" />
-              <span>{modalSniffBanner}</span>
-            </div>
+        const activePreviewId = wizHoverId || wModel;
+        const previewModel =
+          catalogModels.find((m) => m.id === activePreviewId) ||
+          catalogModels.find((m) => m.id === wModel) ||
+          displayModels[0] ||
+          catalogModels[0];
 
-            <div className="space-y-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <Label className="text-sm font-semibold">
-                  1. Choose Remote Model ({catalogModels.filter((m) => m.isCustom).length} Custom • 61 Read-Only Factory)
-                </Label>
-                <div className="flex flex-wrap gap-1.5">
-                  {[
-                    ["all", `All (${catalogModels.length})`],
-                    ["custom", `Custom (${catalogModels.filter((m) => m.isCustom).length})`],
-                    ["panel", "Wall Panels (20)"],
-                    ["rgbcct", "RGB+CCT / RGBW (18)"],
-                    ["cct", "CCT & Dimmer (23)"],
-                  ].map(([catKey, label]) => (
-                    <Button
-                      key={catKey}
-                      size="sm"
-                      variant={wizCat === catKey ? "default" : "outline"}
-                      className="h-7 text-xs"
-                      onClick={() => setWizCat(catKey)}
-                    >
-                      {label}
-                    </Button>
-                  ))}
+        const curIdx = displayModels.findIndex((m) => m.id === wModel);
+        const stepModel = (delta: number) => {
+          if (!displayModels.length) return;
+          const nextIdx = curIdx < 0 ? 0 : (curIdx + delta + displayModels.length) % displayModels.length;
+          const nextM = displayModels[nextIdx];
+          if (!nextM) return;
+          setWizHoverId(null);
+          setWModel(nextM.id);
+          setWProto(nextM.proto);
+          setWZones(nextM.zones || 8);
+          if (modalMode === "add") setWName(`${nextM.id} (${wHex})`);
+        };
+
+        const heroSvgRaw = previewModel && window.MiBoxerCatalog
+          ? window.MiBoxerCatalog.renderModelSvg(previewModel, { size: "large", uid: `wiz_hero_${previewModel.id}` })
+              .replace(/\swidth="[^"]*"/, "")
+              .replace(/\sheight="[^"]*"/, "")
+          : "";
+
+        return (
+          <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
+            <div className="bg-background text-foreground border rounded-2xl shadow-2xl w-[96vw] max-w-[1540px] h-[92vh] flex flex-col overflow-hidden">
+              {/* Top Header + Live 2.4GHz Auto-Detect Strip */}
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-3 bg-muted/20 shrink-0">
+                <div className="flex flex-wrap items-center gap-3">
+                  <h2 className="text-lg font-bold">
+                    {modalMode === "edit" ? "Choose Remote Faceplate & Hardware Settings" : `Find & Pair Your MiBoxer Remote (${catalogModels.length} Models)`}
+                  </h2>
+                  <div className="rounded-full border border-green-500/40 bg-green-500/10 px-3.5 py-1 text-xs font-medium flex items-center gap-2">
+                    <span className="h-2.5 w-2.5 rounded-full bg-green-500 animate-pulse inline-block shrink-0" />
+                    <span>{modalSniffBanner}</span>
+                  </div>
                 </div>
+                <Button variant="outline" size="sm" onClick={() => setModalOpen(false)}>
+                  ✕ Close
+                </Button>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-2.5 max-h-60 overflow-y-auto p-2 border rounded-lg bg-muted/20">
-                {filteredWizardModels.map((m) => {
-                  const sel = wModel === m.id;
-                  const svgThumb = window.MiBoxerCatalog
-                    ? window.MiBoxerCatalog.renderModelSvg(m, { size: "thumb", uid: `wiz_${m.id}` })
-                    : "";
-                  return (
-                    <div
-                      key={m.id}
-                      onClick={() => {
-                        setWModel(m.id);
-                        setWProto(m.proto);
-                        setWZones(m.zones || 8);
-                        if (modalMode === "add") setWName(`${m.id} (${wHex})`);
-                      }}
-                      className={`p-2 rounded-lg border text-center cursor-pointer flex flex-col items-center justify-between transition-all ${
-                        sel ? "border-primary ring-2 ring-primary/30 bg-accent" : "hover:border-primary/50 bg-background"
-                      }`}
-                    >
-                      <div
-                        className="h-20 flex items-center justify-center overflow-hidden [&>svg]:max-h-16 [&>svg]:w-auto"
-                        dangerouslySetInnerHTML={{ __html: svgThumb }}
+              {/* Main Responsive 2-Pane Showroom Body */}
+              <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 overflow-hidden">
+                {/* LEFT PANE (7 cols): Search, Category Filters & Large Scannable Remote Cards */}
+                <div className="lg:col-span-7 flex flex-col min-h-0 border-b lg:border-b-0 lg:border-r p-4 gap-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2 shrink-0">
+                    <div className="flex flex-wrap gap-1.5">
+                      {[
+                        ["all", `All (${catalogModels.length})`],
+                        ["proto_match", `✨ Protocol: ${wProto} (${catalogModels.filter((m) => m.proto === wProto).length})`],
+                        ["panel", `Wall Panels (${catalogModels.filter((m) => !m.isCustom && m.cat === "panel").length || 20})`],
+                        ["rgbcct", "RGB+CCT / RGBW"],
+                        ["cct", "CCT & Dimmer"],
+                        ["custom", `Custom (${catalogModels.filter((m) => m.isCustom).length})`],
+                      ].map(([catKey, label]) => (
+                        <Button
+                          key={catKey}
+                          size="sm"
+                          variant={wizCat === catKey ? "default" : "outline"}
+                          className="h-8 text-xs font-semibold"
+                          onClick={() => setWizCat(catKey)}
+                        >
+                          {label}
+                        </Button>
+                      ))}
+                    </div>
+                    <div className="relative min-w-[210px] flex-1 sm:max-w-[260px]">
+                      <Input
+                        placeholder="Search model (e.g. FUT089, B8, 4Z)..."
+                        value={wizSearch}
+                        onChange={(e) => setWizSearch(e.target.value)}
+                        className="h-8 text-xs pr-7"
                       />
-                      <div className="mt-1 w-full">
-                        <div className="text-xs font-bold leading-tight truncate" title={m.name || m.id}>
-                          {m.isCustom ? m.name : m.id}
+                      {wizSearch && (
+                        <button
+                          type="button"
+                          onClick={() => setWizSearch("")}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex-1 min-h-0 overflow-y-auto pr-1 grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 content-start p-2 rounded-xl border bg-muted/15">
+                    {displayModels.map((m) => {
+                      const sel = wModel === m.id;
+                      const svgCard = window.MiBoxerCatalog
+                        ? window.MiBoxerCatalog.renderModelSvg(m, { size: "thumb", uid: `wiz_${m.id}` })
+                            .replace(/\swidth="[^"]*"/, "")
+                            .replace(/\sheight="[^"]*"/, "")
+                        : "";
+                      return (
+                        <div
+                          key={m.id}
+                          onMouseEnter={() => setWizHoverId(m.id)}
+                          onMouseLeave={() => setWizHoverId(null)}
+                          onClick={() => {
+                            setWModel(m.id);
+                            setWProto(m.proto);
+                            setWZones(m.zones || 8);
+                            if (modalMode === "add") setWName(`${m.id} (${wHex})`);
+                          }}
+                          className={`p-3 rounded-xl border text-center cursor-pointer flex flex-col items-center justify-between transition-all ${
+                            sel
+                              ? "border-primary ring-2 ring-primary/40 bg-primary/5 shadow-sm"
+                              : "hover:border-primary/60 hover:bg-accent/40 bg-background"
+                          }`}
+                        >
+                          <div
+                            className="h-36 w-full flex items-center justify-center overflow-hidden py-1 [&>svg]:h-full [&>svg]:max-h-32 [&>svg]:w-auto [&>svg]:drop-shadow-sm"
+                            dangerouslySetInnerHTML={{ __html: svgCard }}
+                          />
+                          <div className="mt-2 w-full pt-1.5 border-t border-border/50">
+                            <div className="text-xs font-bold leading-tight truncate" title={m.name || m.id}>
+                              {m.isCustom ? m.name : m.id}
+                            </div>
+                            <div className="text-[11px] text-muted-foreground flex items-center justify-center gap-1 mt-0.5">
+                              <span>{m.isCustom ? `Custom ${m.baseModel}` : `${m.zones}Z • ${m.proto}`}</span>
+                              {m.isCustom && (
+                                <button
+                                  type="button"
+                                  title="Delete Custom Remote Model"
+                                  className="text-destructive hover:underline ml-1 font-bold"
+                                  onClick={async (ev) => {
+                                    ev.stopPropagation();
+                                    if (!confirm(`Delete custom remote "${m.name}"? Bound remotes will revert to ${m.baseModel}.`)) return;
+                                    await fetch("/api/remotes/custom_models/delete", {
+                                      method: "POST",
+                                      headers: { "Content-Type": "application/json" },
+                                      body: JSON.stringify({ id: m.id }),
+                                    });
+                                    await window.MiBoxerCatalog?.syncCustomModelsFromHub?.("");
+                                    setCatalogTick((t) => t + 1);
+                                    if (wModel === m.id) setWModel(m.baseModel || "B8");
+                                    await loadRemotes();
+                                  }}
+                                >
+                                  ✕
+                                </button>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                        <div className="text-[10px] text-muted-foreground flex items-center justify-center gap-1 mt-0.5">
-                          <span>{m.isCustom ? `Custom ${m.baseModel}` : `${m.proto} • ${m.zones}Z`}</span>
-                          {m.isCustom ? (
-                            <button
-                              type="button"
-                              title="Delete Custom Remote Model"
-                              className="text-destructive hover:underline ml-1 font-semibold"
-                              onClick={async (ev) => {
-                                ev.stopPropagation();
-                                if (!confirm(`Delete custom remote "${m.name}"? Bound remotes will revert to ${m.baseModel}.`)) return;
-                                await fetch("/api/remotes/custom_models/delete", {
-                                  method: "POST",
-                                  headers: { "Content-Type": "application/json" },
-                                  body: JSON.stringify({ id: m.id }),
-                                });
-                                await window.MiBoxerCatalog?.syncCustomModelsFromHub?.("");
-                                setCatalogTick((t) => t + 1);
-                                if (wModel === m.id) setWModel(m.baseModel || "B8");
-                                await loadRemotes();
-                              }}
-                            >
-                              ✕
-                            </button>
-                          ) : (
-                            <span className="opacity-60">• RO</span>
+                      );
+                    })}
+                    {displayModels.length === 0 && (
+                      <div className="col-span-full py-12 text-center text-sm text-muted-foreground">
+                        No remotes match "{wizSearch}". Click <b>All ({catalogModels.length})</b> or clear search to view every model.
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* RIGHT PANE (5 cols): Giant Hero Spotlight Remote + Prev/Next Flipper + Save Form */}
+                <div className="lg:col-span-5 flex flex-col justify-between min-h-0 p-4 bg-muted/10 overflow-y-auto gap-3">
+                  {/* Spotlight Card */}
+                  <div className="flex-1 min-h-[300px] rounded-xl border bg-background p-4 flex flex-col items-center justify-between shadow-sm">
+                    <div className="w-full flex items-center justify-between gap-2 border-b pb-2">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-base font-extrabold truncate">
+                            {previewModel ? (previewModel.isCustom ? previewModel.name : previewModel.id) : wModel}
+                          </span>
+                          {wizHoverId && wizHoverId !== wModel && (
+                            <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600">
+                              Hover Preview — Click Card to Select
+                            </span>
                           )}
                         </div>
+                        <div className="text-xs text-muted-foreground truncate">
+                          {previewModel
+                            ? `${previewModel.name || previewModel.id} • ${previewModel.zones || 8} Zones • Protocol: ${previewModel.proto}`
+                            : ""}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <Button type="button" variant="outline" size="sm" className="h-8 px-2.5 text-xs font-semibold" onClick={() => stepModel(-1)} title="Previous Remote">
+                          ◀ Prev
+                        </Button>
+                        <Button type="button" variant="outline" size="sm" className="h-8 px-2.5 text-xs font-semibold" onClick={() => stepModel(1)} title="Next Remote">
+                          Next ▶
+                        </Button>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="space-y-1.5">
-                <Label>Remote Hex ID</Label>
-                <Input value={wHex} onChange={(e) => setWHex(e.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>RF Protocol</Label>
-                <select
-                  value={wProto}
-                  onChange={(e) => setWProto(e.target.value)}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                >
-                  <option value="fut089">fut089 (8-Zone RGB+CCT / B8 / FUT089)</option>
-                  <option value="rgb_cct">rgb_cct (4-Zone RGB+CCT / FUT092 / B4)</option>
-                  <option value="rgbw">rgbw (4-Zone RGBW / FUT096 / B3)</option>
-                  <option value="fut091">fut091 (4-Zone CCT / K1 / B2)</option>
-                  <option value="cct">cct (Legacy CCT / FUT007)</option>
-                  <option value="fut020">fut020 (RGB / FUT020)</option>
-                  <option value="fut100">fut100 (100-Zone FUT100)</option>
-                </select>
-              </div>
-              <div className="space-y-1.5">
-                <Label>Zones Count</Label>
-                <Input type="number" min={1} max={100} value={wZones} onChange={(e) => setWZones(Number(e.target.value))} />
-              </div>
-            </div>
+                    <div
+                      className="flex-1 w-full flex items-center justify-center py-3 min-h-[250px] [&>svg]:h-[clamp(250px,42vh,410px)] [&>svg]:w-auto [&>svg]:max-w-full [&>svg]:drop-shadow-lg"
+                      dangerouslySetInnerHTML={{ __html: heroSvgRaw }}
+                    />
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label>Friendly Name</Label>
-                <Input value={wName} onChange={(e) => setWName(e.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>MQTT Topic Prefix</Label>
-                <Input value={wPrefix} onChange={(e) => setWPrefix(e.target.value)} />
-              </div>
-            </div>
+                    <div className="text-[11px] text-muted-foreground text-center">
+                      Compare button layout &amp; zone count above with the physical remote in your hand, or use <b>◀ Prev / Next ▶</b> to flip through models.
+                    </div>
+                  </div>
 
-            <div className="flex justify-end gap-2 border-t pt-4">
-              <Button variant="outline" onClick={() => setModalOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={saveRemoteConfig}>Save Remote</Button>
+                  {/* Compact Hardware & Name Settings */}
+                  <div className="rounded-xl border bg-background p-3.5 space-y-3 shrink-0">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Friendly Name (Room / Person)</Label>
+                        <Input className="h-9 text-sm" value={wName} onChange={(e) => setWName(e.target.value)} placeholder="e.g. Bedroom 8-Zone Remote" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Remote Hex ID (Auto-filled on button press)</Label>
+                        <Input className="h-9 text-sm font-mono" value={wHex} onChange={(e) => setWHex(e.target.value)} />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                      <div className="sm:col-span-2 space-y-1">
+                        <Label className="text-xs">RF Protocol</Label>
+                        <select
+                          value={wProto}
+                          onChange={(e) => setWProto(e.target.value)}
+                          className="flex h-9 w-full rounded-md border border-input bg-background px-2.5 py-1 text-xs"
+                        >
+                          <option value="fut089">fut089 (8-Zone RGB+CCT / B8 / FUT089)</option>
+                          <option value="rgb_cct">rgb_cct (4-Zone RGB+CCT / FUT092 / B4)</option>
+                          <option value="rgbw">rgbw (4-Zone RGBW / FUT096 / B3)</option>
+                          <option value="fut091">fut091 (4-Zone CCT / K1 / B2)</option>
+                          <option value="cct">cct (Legacy CCT / FUT007)</option>
+                          <option value="fut020">fut020 (RGB / FUT020)</option>
+                          <option value="fut100">fut100 (100-Zone FUT100)</option>
+                        </select>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Zones</Label>
+                        <Input className="h-9 text-sm" type="number" min={1} max={100} value={wZones} onChange={(e) => setWZones(Number(e.target.value))} />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-end justify-between gap-2 pt-1 border-t">
+                      <div className="space-y-1 flex-1 min-w-[180px]">
+                        <Label className="text-[11px] text-muted-foreground">MQTT Topic Prefix</Label>
+                        <Input className="h-8 text-xs font-mono" value={wPrefix} onChange={(e) => setWPrefix(e.target.value)} />
+                      </div>
+                      <div className="flex gap-2 shrink-0">
+                        <Button variant="outline" onClick={() => setModalOpen(false)}>
+                          Cancel
+                        </Button>
+                        <Button onClick={saveRemoteConfig} className="font-bold px-5">
+                          ✓ Save Remote ({wModel})
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
