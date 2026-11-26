@@ -1,8 +1,11 @@
+#include "MiBoxerCatalogAsset.h"
+#include "RemoteStudioAsset.h"
 #include <FS.h>
 #include <WiFiUdp.h>
 #include <IntParsing.h>
 #include <Settings.h>
 #include <MiLightHttpServer.h>
+#include <RemoteRegistry.h>
 #include <MiLightRadioConfig.h>
 #include <string.h>
 #include <TokenIterator.h>
@@ -27,6 +30,104 @@ void MiLightHttpServer::begin() {
   server
     .buildHandler("/")
     .onSimple(HTTP_GET, std::bind(&MiLightHttpServer::handleServe_P, this, index_html_gz, index_html_gz_len, "text/html"));
+
+  server
+    .buildHandler("/remotes-ui")
+    .onSimple(HTTP_GET, [this](const UrlTokenBindings*) { server.sendHeader("Location", "/#/remotes", true); server.send(302, "text/plain", ""); });
+
+  server
+    .buildHandler("/miboxer_catalog.js")
+    .onSimple(HTTP_GET, std::bind(&MiLightHttpServer::handleServe_P, this, miboxer_catalog_js_gz, miboxer_catalog_js_gz_len, "application/javascript"));
+
+  server
+    .buildHandler("/remote-studio.js")
+    .onSimple(HTTP_GET, [this](const UrlTokenBindings*) {
+      server.sendHeader("Access-Control-Allow-Origin", "*");
+      server.sendHeader("Cache-Control", "no-cache");
+      this->handleServe_P(remote_studio_js_gz, remote_studio_js_gz_len, "application/javascript");
+    });
+
+  server
+    .buildHandler("/api/remotes/download")
+    .onSimple(HTTP_POST, [this](const UrlTokenBindings*) {
+      String fn = server.arg("filename");
+      if (fn.length() == 0) fn = "stencil_1to1.svg";
+      String cleanFn = "";
+      for (size_t i = 0; i < fn.length() && cleanFn.length() < 64; i++) {
+        char c = fn.charAt(i);
+        if (isalnum(c) || c == '.' || c == '_' || c == '-') cleanFn += c;
+        else cleanFn += '_';
+      }
+      String content = server.arg("content");
+      server.sendHeader("Access-Control-Allow-Origin", "*");
+      server.sendHeader("Content-Disposition", String("attachment; filename=\"") + cleanFn + "\"");
+      server.sendHeader("Cache-Control", "no-store");
+      server.sendHeader("Connection", "close");
+      server.send(200, "application/octet-stream", content);
+    });
+
+  server
+    .buildHandler("/api/remotes/lock")
+    .onSimple(HTTP_POST, [this](const UrlTokenBindings*) {
+      StaticJsonDocument<256> doc;
+      deserializeJson(doc, server.arg("plain"));
+      uint16_t devId = doc["device_id"] | 0;
+      bool lockNow = doc["locked"] | true;
+      if (devId != 0) {
+        RemoteRegistry::instance().setRemoteLockState(devId, lockNow);
+      }
+      server.sendHeader("Access-Control-Allow-Origin", "*");
+      server.send(200, "application/json", "{\"ok\":true}");
+    });
+
+  server
+    .buildHandler("/api/remotes")
+    .on(HTTP_GET, std::bind(&MiLightHttpServer::handleListRemotes, this, _1))
+    .on(HTTP_POST, std::bind(&MiLightHttpServer::handleUpsertRemote, this, _1));
+
+  server
+    .buildHandler("/api/remotes/delete")
+    .on(HTTP_POST, std::bind(&MiLightHttpServer::handleDeleteRemote, this, _1));
+
+  server
+    .buildHandler("/api/remotes/last_seen")
+    .on(HTTP_GET, std::bind(&MiLightHttpServer::handleLastSeenRemote, this, _1));
+
+  server
+    .buildHandler("/api/remotes/virtual_send")
+    .on(HTTP_POST, std::bind(&MiLightHttpServer::handleVirtualRemoteSend, this, _1));
+
+  server
+    .buildHandler("/api/remotes/studio_meta")
+    .on(HTTP_GET, std::bind(&MiLightHttpServer::handleStudioMetaGet, this, _1))
+    .on(HTTP_POST, std::bind(&MiLightHttpServer::handleStudioMetaPost, this, _1))
+    .onSimple(HTTP_OPTIONS, [this](const UrlTokenBindings*) {
+      server.sendHeader("Access-Control-Allow-Origin", "*");
+      server.sendHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+      server.sendHeader("Access-Control-Allow-Headers", "Content-Type");
+      server.send(204, "text/plain", "");
+    });
+
+  server
+    .buildHandler("/api/remotes/custom_models")
+    .on(HTTP_GET, std::bind(&MiLightHttpServer::handleCustomModelsGet, this, _1))
+    .on(HTTP_POST, std::bind(&MiLightHttpServer::handleCustomModelsPost, this, _1))
+    .onSimple(HTTP_OPTIONS, [this](const UrlTokenBindings*) {
+      server.sendHeader("Access-Control-Allow-Origin", "*");
+      server.sendHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+      server.sendHeader("Access-Control-Allow-Headers", "Content-Type");
+      server.send(204, "text/plain", "");
+    });
+
+  server
+    .buildHandler("/api/remotes/custom_models/delete")
+    .on(HTTP_POST, std::bind(&MiLightHttpServer::handleCustomModelsDelete, this, _1))
+    .onSimple(HTTP_OPTIONS, [this](const UrlTokenBindings*) {
+      server.sendHeader("Access-Control-Allow-Origin", "*");
+      server.sendHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+      server.sendHeader("Access-Control-Allow-Headers", "Content-Type");
+      server.send(204, "text/plain", "");
+    });
 
   server
     .buildHandler(bundle_css_filename)
@@ -690,8 +791,9 @@ void MiLightHttpServer::handleServe_P(const char* data, size_t length, const cha
   const size_t CHUNK_SIZE = 4096; 
 
   server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+  server.sendHeader("Access-Control-Allow-Origin", "*");
   server.sendHeader("Content-Encoding", "gzip");
-  server.sendHeader("Cache-Control", "public, max-age=31536000");
+  server.sendHeader("Cache-Control", "no-cache");
   server.send(200, contentType);
 
   WiFiClient client = server.client();
@@ -1089,4 +1191,406 @@ void MiLightHttpServer::handleBatchUpdateGroups(RequestContext& request) {
   }
 
   request.response.json[F("success")] = true;
+}
+
+static const char* STUDIO_META_FILE = "/studio_meta.json";
+static const char* CUSTOM_MODELS_FILE = "/custom_models.json";
+
+static void loadCustomModelsDoc(DynamicJsonDocument& cmDoc) {
+  cmDoc.to<JsonArray>();
+  if (ProjectFS.exists(CUSTOM_MODELS_FILE)) {
+    File f = ProjectFS.open(CUSTOM_MODELS_FILE, "r");
+    if (f) {
+      DeserializationError err = deserializeJson(cmDoc, f);
+      f.close();
+      if (err || !cmDoc.is<JsonArray>()) {
+        cmDoc.clear();
+        cmDoc.to<JsonArray>();
+      }
+    }
+  }
+}
+
+static bool saveCustomModelsDoc(const DynamicJsonDocument& cmDoc) {
+  File f = ProjectFS.open(CUSTOM_MODELS_FILE, "w");
+  if (!f) return false;
+  serializeJson(cmDoc, f);
+  f.close();
+  return true;
+}
+
+static String normalizeHexKey(uint16_t devId, const char* rawHex = nullptr) {
+  if (devId > 0) {
+    char buf[10];
+    snprintf(buf, sizeof(buf), "0x%04X", devId);
+    return String(buf);
+  }
+  if (rawHex && rawHex[0]) {
+    uint32_t parsed = strtoul(rawHex, nullptr, 16);
+    if (parsed > 0 && parsed <= 0xFFFF) {
+      char buf[10];
+      snprintf(buf, sizeof(buf), "0x%04X", (uint16_t)parsed);
+      return String(buf);
+    }
+  }
+  return String("");
+}
+
+static void loadStudioMetaDoc(DynamicJsonDocument& metaDoc) {
+  metaDoc.to<JsonObject>();
+  if (ProjectFS.exists(STUDIO_META_FILE)) {
+    File f = ProjectFS.open(STUDIO_META_FILE, "r");
+    if (f) {
+      DeserializationError err = deserializeJson(metaDoc, f);
+      f.close();
+      if (err || !metaDoc.is<JsonObject>()) {
+        metaDoc.clear();
+        metaDoc.to<JsonObject>();
+      }
+    }
+  }
+}
+
+static bool saveStudioMetaDoc(const DynamicJsonDocument& metaDoc) {
+  File f = ProjectFS.open(STUDIO_META_FILE, "w");
+  if (!f) return false;
+  serializeJson(metaDoc, f);
+  f.close();
+  return true;
+}
+
+void MiLightHttpServer::handleListRemotes(RequestContext& request) {
+  DynamicJsonDocument doc(24576);
+  JsonArray arr = doc.to<JsonArray>();
+  RemoteRegistry::instance().serializeRemotes(arr);
+
+  DynamicJsonDocument metaDoc(16384);
+  loadStudioMetaDoc(metaDoc);
+  JsonObject metaRoot = metaDoc.as<JsonObject>();
+
+  DynamicJsonDocument cmDoc(24576);
+  loadCustomModelsDoc(cmDoc);
+  JsonArray cmArr = cmDoc.as<JsonArray>();
+
+  for (JsonObject remObj : arr) {
+    uint16_t devId = remObj["device_id"] | 0;
+    String vm = String(remObj["visual_model"] | "");
+    for (JsonObject cm : cmArr) {
+      if (vm.length() > 0 && vm == String(cm["id"] | "")) {
+        remObj["base_model"] = cm["base_model"] | "B8";
+        remObj["is_custom_model"] = true;
+        if (cm.containsKey("facia")) remObj["facia"] = cm["facia"];
+        break;
+      }
+    }
+    String hx = normalizeHexKey(devId, remObj["hex_id"] | "");
+    if (hx.length() > 0 && metaRoot.containsKey(hx)) {
+      JsonObject m = metaRoot[hx].as<JsonObject>();
+      if (!remObj.containsKey("facia") && m.containsKey("facia")) remObj["facia"] = m["facia"];
+      if (m.containsKey("calibration")) remObj["calibration"] = m["calibration"];
+      if (m.containsKey("linked_device_id")) remObj["linked_device_id"] = m["linked_device_id"];
+      if (m.containsKey("linked_hex_id")) remObj["linked_hex_id"] = m["linked_hex_id"];
+    }
+  }
+
+  String out;
+  serializeJson(doc, out);
+  request.response.setCode(200);
+  server.sendHeader("Access-Control-Allow-Origin", "*");
+  server.send(200, APPLICATION_JSON, out.c_str());
+}
+
+void MiLightHttpServer::handleUpsertRemote(RequestContext& request) {
+  JsonObject body = request.getJsonBody().as<JsonObject>();
+  uint16_t devId = body["device_id"] | (body["id"] | 0);
+  if (devId == 0) {
+    const char* hxStr = body["hex_id"] | (body["hex"] | "");
+    if (hxStr && hxStr[0]) {
+      devId = (uint16_t)strtoul(hxStr, nullptr, 16);
+      if (devId > 0) body["device_id"] = devId;
+    }
+  }
+
+  RegisteredRemote item;
+  const RegisteredRemote* existing = RemoteRegistry::instance().find(devId);
+  if (existing != nullptr) {
+    item = *existing; // Preserve existing gestures & touch_zones if caller only updates name/model!
+  }
+  RemoteRegistry::parseRemoteFromJson(body, item);
+  if (item.deviceId == 0 && devId > 0) item.deviceId = devId;
+
+  bool ok = RemoteRegistry::instance().upsert(item);
+
+  // Persist optional studio metadata (facia & calibration) alongside remote upsert
+  if (ok && (body.containsKey("facia") || body.containsKey("calibration"))) {
+    String hx = normalizeHexKey(item.deviceId);
+    if (hx.length() > 0) {
+      DynamicJsonDocument metaDoc(16384);
+      loadStudioMetaDoc(metaDoc);
+      JsonObject metaRoot = metaDoc.as<JsonObject>();
+      JsonObject entry = metaRoot.containsKey(hx) ? metaRoot[hx].as<JsonObject>() : metaRoot.createNestedObject(hx);
+      if (body.containsKey("facia")) {
+        if (body["facia"].isNull()) entry.remove("facia");
+        else entry["facia"] = body["facia"];
+      }
+      if (body.containsKey("calibration")) {
+        if (body["calibration"].isNull()) entry.remove("calibration");
+        else entry["calibration"] = body["calibration"];
+      }
+      saveStudioMetaDoc(metaDoc);
+    }
+  }
+
+  server.sendHeader("Access-Control-Allow-Origin", "*");
+  server.send(ok ? 200 : 400, APPLICATION_JSON, ok ? "{\"success\":true}" : "{\"success\":false}");
+}
+
+void MiLightHttpServer::handleDeleteRemote(RequestContext& request) {
+  JsonObject body = request.getJsonBody().as<JsonObject>();
+  uint16_t devId = body["device_id"] | 0;
+  if (devId == 0) {
+    const char* hxStr = body["hex_id"] | (body["hex"] | "");
+    if (hxStr && hxStr[0]) devId = (uint16_t)strtoul(hxStr, nullptr, 16);
+  }
+  bool ok = RemoteRegistry::instance().remove(devId);
+  if (devId > 0) {
+    String hx = normalizeHexKey(devId);
+    DynamicJsonDocument metaDoc(16384);
+    loadStudioMetaDoc(metaDoc);
+    JsonObject metaRoot = metaDoc.as<JsonObject>();
+    if (metaRoot.containsKey(hx)) {
+      metaRoot.remove(hx);
+      saveStudioMetaDoc(metaDoc);
+    }
+  }
+  server.sendHeader("Access-Control-Allow-Origin", "*");
+  server.send(200, APPLICATION_JSON, ok ? "{\"success\":true}" : "{\"success\":false}");
+}
+
+void MiLightHttpServer::handleStudioMetaGet(RequestContext& request) {
+  DynamicJsonDocument metaDoc(16384);
+  loadStudioMetaDoc(metaDoc);
+  String out;
+  serializeJson(metaDoc, out);
+  request.response.setCode(200);
+  server.sendHeader("Access-Control-Allow-Origin", "*");
+  server.send(200, APPLICATION_JSON, out.c_str());
+}
+
+
+static String normalizeShellBase(const String& modelId) {
+  if (modelId.endsWith("-B") && modelId.length() > 2) {
+    return modelId.substring(0, modelId.length() - 2);
+  }
+  return modelId;
+}
+
+static bool areShellsCompatibleServer(const String& customVisualModel, const DynamicJsonDocument& cmDoc, uint16_t physDevId) {
+  if (physDevId == 0) return true;
+  String reqBase = "";
+  if (customVisualModel == "CUST_B8_3D_ESTATE") reqBase = "B8";
+  else if (customVisualModel == "CUST_B0_3D_SUITE") reqBase = "B0";
+  else if (customVisualModel == "CUST_B4_3D_HYBRID") reqBase = "B4";
+  if (reqBase.length() == 0 && cmDoc.is<JsonArray>()) {
+    for (JsonObjectConst cm : cmDoc.as<JsonArrayConst>()) {
+      if (String(cm["id"] | "") == customVisualModel) {
+        reqBase = String(cm["base_model"] | "");
+        break;
+      }
+    }
+  }
+  if (reqBase.length() == 0) return true;
+  for (const auto& r : RemoteRegistry::instance().remotes) {
+    if (r.deviceId == physDevId) {
+      if (r.visualModel.startsWith("CUST_")) return false;
+      return normalizeShellBase(reqBase) == normalizeShellBase(r.visualModel);
+    }
+  }
+  return true;
+}
+
+void MiLightHttpServer::handleStudioMetaPost(RequestContext& request) {
+  JsonVariant bodyVar = request.getJsonBody();
+  DynamicJsonDocument metaDoc(16384);
+  loadStudioMetaDoc(metaDoc);
+  JsonObject metaRoot = metaDoc.as<JsonObject>();
+
+  if (bodyVar.is<JsonObject>()) {
+    JsonObject body = bodyVar.as<JsonObject>();
+    const char* singleHex = body["hex_id"] | (body["hex"] | "");
+    uint16_t devId = body["device_id"] | 0;
+    if ((singleHex && singleHex[0]) || devId > 0) {
+      String hx = normalizeHexKey(devId, singleHex);
+      if (hx.length() > 0) {
+        JsonObject entry = metaRoot.containsKey(hx) ? metaRoot[hx].as<JsonObject>() : metaRoot.createNestedObject(hx);
+        if (body.containsKey("facia")) {
+          if (body["facia"].isNull()) entry.remove("facia");
+          else entry["facia"] = body["facia"];
+        }
+        if (body.containsKey("calibration")) {
+          if (body["calibration"].isNull()) entry.remove("calibration");
+          else entry["calibration"] = body["calibration"];
+        }
+    if (body.containsKey("linked_device_id")) {
+      uint16_t linkId = body["linked_device_id"] | 0;
+      if (linkId == 0 || body["linked_device_id"].isNull()) {
+        entry.remove("linked_device_id");
+        entry.remove("linked_hex_id");
+      } else {
+        String cVis = "";
+        for (const auto& r : RemoteRegistry::instance().remotes) {
+          if (r.deviceId == devId || normalizeHexKey(r.deviceId, "") == hx) { cVis = r.visualModel; break; }
+        }
+        DynamicJsonDocument cmCheck(24576);
+        loadCustomModelsDoc(cmCheck);
+        if (!areShellsCompatibleServer(cVis, cmCheck, linkId)) {
+          server.sendHeader("Access-Control-Allow-Origin", "*");
+          server.send(400, APPLICATION_JSON, R"({"success":false,"error":"Incompatible physical remote shell for this custom stencil"})");
+          return;
+        }
+        entry["linked_device_id"] = linkId;
+        entry["linked_hex_id"] = String(body["linked_hex_id"] | "");
+      }
+    }
+      }
+    } else {
+      // Bulk map merge: { "0x4542": { "facia": ..., "calibration": ... } }
+      for (JsonPair kv : body) {
+        String hx = normalizeHexKey(0, kv.key().c_str());
+        if (hx.length() > 0 && kv.value().is<JsonObject>()) {
+          JsonObject src = kv.value().as<JsonObject>();
+          JsonObject entry = metaRoot.containsKey(hx) ? metaRoot[hx].as<JsonObject>() : metaRoot.createNestedObject(hx);
+          if (src.containsKey("facia")) {
+            if (src["facia"].isNull()) entry.remove("facia");
+            else entry["facia"] = src["facia"];
+          }
+          if (src.containsKey("calibration")) {
+            if (src["calibration"].isNull()) entry.remove("calibration");
+            else entry["calibration"] = src["calibration"];
+          }
+        }
+      }
+    }
+  }
+  bool ok = saveStudioMetaDoc(metaDoc);
+  server.sendHeader("Access-Control-Allow-Origin", "*");
+  server.send(ok ? 200 : 500, APPLICATION_JSON, ok ? "{\"success\":true}" : "{\"success\":false}");
+}
+
+void MiLightHttpServer::handleCustomModelsGet(RequestContext& request) {
+  DynamicJsonDocument cmDoc(24576);
+  loadCustomModelsDoc(cmDoc);
+  String out;
+  serializeJson(cmDoc, out);
+  request.response.setCode(200);
+  server.sendHeader("Access-Control-Allow-Origin", "*");
+  server.send(200, APPLICATION_JSON, out.c_str());
+}
+
+void MiLightHttpServer::handleCustomModelsPost(RequestContext& request) {
+  JsonObject body = request.getJsonBody().as<JsonObject>();
+  String id = String(body["id"] | "");
+  String baseModel = String(body["base_model"] | (body["baseModel"] | ""));
+  if (id.length() == 0 || baseModel.length() == 0 || !id.startsWith("CUST_")) {
+    server.sendHeader("Access-Control-Allow-Origin", "*");
+    server.send(400, APPLICATION_JSON, "{\"success\":false,\"error\":\"Custom model id must start with CUST_ and specify base_model\"}");
+    return;
+  }
+
+  DynamicJsonDocument cmDoc(24576);
+  loadCustomModelsDoc(cmDoc);
+  JsonArray arr = cmDoc.as<JsonArray>();
+
+  bool updated = false;
+  for (JsonObject item : arr) {
+    if (String(item["id"] | "") == id) {
+      item["name"] = body["name"] | id;
+      item["base_model"] = baseModel;
+      item["stencil_mode"] = body["stencil_mode"] | "full_panel";
+      if (body.containsKey("facia")) item["facia"] = body["facia"];
+      if (body.containsKey("touch_zones")) item["touch_zones"] = body["touch_zones"];
+      updated = true;
+      break;
+    }
+  }
+
+  if (!updated) {
+    JsonObject created = arr.createNestedObject();
+    created["id"] = id;
+    created["name"] = body["name"] | id;
+    created["base_model"] = baseModel;
+    created["stencil_mode"] = body["stencil_mode"] | "full_panel";
+    if (body.containsKey("facia")) created["facia"] = body["facia"];
+    if (body.containsKey("touch_zones")) created["touch_zones"] = body["touch_zones"];
+  }
+
+  bool ok = saveCustomModelsDoc(cmDoc);
+  server.sendHeader("Access-Control-Allow-Origin", "*");
+  server.send(ok ? 200 : 500, APPLICATION_JSON, ok ? "{\"success\":true}" : "{\"success\":false}");
+}
+
+void MiLightHttpServer::handleCustomModelsDelete(RequestContext& request) {
+  JsonObject body = request.getJsonBody().as<JsonObject>();
+  String id = String(body["id"] | "");
+  if (id.length() == 0 || !id.startsWith("CUST_")) {
+    server.sendHeader("Access-Control-Allow-Origin", "*");
+    server.send(400, APPLICATION_JSON, "{\"success\":false,\"error\":\"Default factory models are read-only\"}");
+    return;
+  }
+
+  DynamicJsonDocument cmDoc(24576);
+  loadCustomModelsDoc(cmDoc);
+  JsonArray arr = cmDoc.as<JsonArray>();
+
+  String fallbackBase = "B8";
+  bool removed = false;
+  for (size_t i = 0; i < arr.size(); i++) {
+    JsonObject item = arr[i].as<JsonObject>();
+    if (String(item["id"] | "") == id) {
+      fallbackBase = String(item["base_model"] | "B8");
+      arr.remove(i);
+      removed = true;
+      break;
+    }
+  }
+
+  if (removed) {
+    saveCustomModelsDoc(cmDoc);
+    // Safe Fallback: Revert any bound RegisteredRemote using this custom model back to its factory base_model!
+    bool regChanged = false;
+    for (auto& rem : RemoteRegistry::instance().remotes) {
+      if (rem.visualModel == id) {
+        rem.visualModel = fallbackBase;
+        regChanged = true;
+      }
+    }
+    if (regChanged) {
+      RemoteRegistry::instance().save();
+      RemoteRegistry::instance().publishDiscovery();
+    }
+  }
+
+  server.sendHeader("Access-Control-Allow-Origin", "*");
+  server.send(200, APPLICATION_JSON, removed ? "{\"success\":true}" : "{\"success\":false}");
+}
+
+void MiLightHttpServer::handleLastSeenRemote(RequestContext& request) {
+  DynamicJsonDocument doc(4096);
+  JsonObject obj = doc.to<JsonObject>();
+  RemoteRegistry::instance().serializeLastSeen(obj);
+  String out;
+  serializeJson(doc, out);
+  server.send(200, APPLICATION_JSON, out.c_str());
+}
+
+void MiLightHttpServer::handleVirtualRemoteSend(RequestContext& request) {
+  JsonObject body = request.getJsonBody().as<JsonObject>();
+  uint16_t devId = body["device_id"] | 0x125C;
+  String rType = body["remote_type"] | "fut089";
+  uint8_t grp = body["group_id"] | 1;
+  String action = body["action"] | "on";
+  int32_t val = body["value"] | 0;
+
+  RemoteRegistry::instance().virtualSend(devId, rType, grp, action, val);
+  server.send(200, APPLICATION_JSON, "{\"success\":true}");
 }

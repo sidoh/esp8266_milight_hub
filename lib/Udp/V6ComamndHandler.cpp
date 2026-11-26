@@ -1,5 +1,6 @@
 #include <V6CommandHandler.h>
 #include <V6RgbCctCommandHandler.h>
+#include <V6Fut089CommandHandler.h>
 #include <V6RgbwCommandHandler.h>
 #include <V6RgbCommandHandler.h>
 #include <V6CctCommandHandler.h>
@@ -7,6 +8,7 @@
 
 V6CommandHandler* V6CommandHandler::ALL_HANDLERS[] = {
   new V6RgbCctCommandHandler(),
+  new V6Fut089CommandHandler(),
   new V6RgbwCommandHandler(),
   new V6RgbCommandHandler(),
   new V6CctCommandHandler()
@@ -21,7 +23,12 @@ bool V6CommandHandler::handleCommand(MiLightClient* client,
   uint32_t command,
   uint32_t commandArg)
 {
-  client->prepare(&remoteConfig, deviceId, group);
+  // Bridge v6 RGBW (0x0700) Zone 1 -> FUT089 (8-zone) Group 7 ("Fence Lights") on same gateway
+  if (commandId == 0x0700 && group == 1) {
+    client->prepare(&FUT089Config, deviceId, 7);
+  } else {
+    client->prepare(&remoteConfig, deviceId, group);
+  }
 
   if (commandType == V6_PAIR) {
     client->pair();
@@ -46,7 +53,7 @@ bool V6CommandDemuxer::handleCommand(MiLightClient* client,
   uint32_t commandArg)
 {
   for (size_t i = 0; i < numHandlers; i++) {
-    if (((handlers[i]->commandId & command) == handlers[i]->commandId)
+    if (((command & 0xFF00) == handlers[i]->commandId)
       && handlers[i]->handleCommand(client, deviceId, group, commandType, command, commandArg)) {
       return true;
     }

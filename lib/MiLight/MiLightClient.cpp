@@ -78,6 +78,8 @@ MiLightClient::MiLightClient(
   , packetSender(packetSender)
   , transitions(transitions)
   , repeatsOverride(0)
+  , internalOriginFlag(false)
+  , newPacketsEnqueuedAccum(0)
 { }
 
 void MiLightClient::setHeld(bool held) {
@@ -651,11 +653,24 @@ void MiLightClient::clearRepeatsOverride() {
   this->repeatsOverride = PacketSender::DEFAULT_PACKET_SENDS_VALUE;
 }
 
+void MiLightClient::setInternalOrigin(bool internalOrigin) {
+  this->internalOriginFlag = internalOrigin;
+}
+
+size_t MiLightClient::takeLastNewPacketsEnqueued() {
+  size_t count = newPacketsEnqueuedAccum;
+  newPacketsEnqueuedAccum = 0;
+  return count;
+}
+
 void MiLightClient::flushPacket() {
   PacketStream& stream = currentRemote->packetFormatter->buildPackets();
 
   while (stream.hasNext()) {
-    packetSender.enqueue(stream.next(), currentRemote, repeatsOverride);
+    bool coalesced = packetSender.enqueue(stream.next(), currentRemote, repeatsOverride, internalOriginFlag);
+    if (!coalesced) {
+      newPacketsEnqueuedAccum++;
+    }
   }
 
   currentRemote->packetFormatter->reset();

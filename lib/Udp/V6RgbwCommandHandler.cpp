@@ -6,7 +6,9 @@ bool V6RgbwCommandHandler::handlePreset(
     uint32_t commandArg)
 {
   if (commandLsb == 0) {
-    client->updateColorRaw(commandArg >> 24);
+    const uint8_t rawColor = (commandArg >> 24) & 0xFF;
+    client->updateColorRaw(rawColor + 0xF6);
+    client->updateSaturation(100);
     client->updateBrightness(commandArg >> 16);
   } else if (commandLsb == 1) {
     client->updateColorWhite();
@@ -60,7 +62,9 @@ bool V6RgbwCommandHandler::handleCommand(
 
     return true;
   } else if (cmd == V2_RGBW_COLOR_PREFIX) {
-    client->updateColorRaw(arg);
+    // node-milight-promise sends 4 color bytes in commandArg; FUT089 expects +0xF6 hue offset & 100% sat
+    client->updateColorRaw((uint8_t)(arg + 0xF6));
+    client->updateSaturation(100);
     return true;
   } else if (cmd == V2_RGBW_BRIGHTNESS_PREFIX) {
     client->updateBrightness(arg);

@@ -1,3 +1,6 @@
+#ifdef ESP32
+#include <WiFi.h>
+#endif
 #include <stddef.h>
 #include <MqttClient.h>
 #include <TokenIterator.h>
@@ -37,7 +40,12 @@ void MqttClient::onConnect(OnConnectFn fn) {
 }
 
 void MqttClient::begin() {
-#ifdef MQTT_DEBUG
+#ifdef ESP32
+  if (WiFi.getMode() == WIFI_MODE_NULL || WiFi.status() != WL_CONNECTED) {
+    return;
+  }
+#endif
+  #ifdef MQTT_DEBUG
   printf_P(
     PSTR("MqttClient - Connecting to: %s\nparsed:%s:%u\n"),
     settings._mqttServer.c_str(),
@@ -56,6 +64,11 @@ void MqttClient::begin() {
 }
 
 bool MqttClient::connect() {
+#ifdef ESP32
+  if (WiFi.getMode() == WIFI_MODE_NULL || WiFi.status() != WL_CONNECTED) return false;
+  tcpClient.stop();
+  tcpClient.setTimeout(2);
+#endif
   char nameBuffer[30];
   sprintf_P(nameBuffer, PSTR("milight-hub-%u"), getESPId());
 

@@ -8,6 +8,7 @@ import SettingsPage from "./pages/settings/settings-index";
 import { Toaster } from "@/components/ui/toaster";
 import { WebSocketProvider } from "@/lib/websocket";
 import SnifferPage from "./pages/sniffer";
+import RemotesPage from "./pages/remotes";
 import { SettingsProvider } from "@/lib/settings";
 import { LightProvider } from "@/lib/light-state";
 
@@ -16,6 +17,7 @@ const PAGES = {
   "/not-found": NotFound,
   "/settings": SettingsPage,
   "/sniffer": SnifferPage,
+  "/remotes": RemotesPage,
 };
 
 export default function App() {

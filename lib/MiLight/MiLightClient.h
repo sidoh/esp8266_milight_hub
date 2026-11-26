@@ -109,6 +109,8 @@ public:
 
   // Clear the repeats override so that the default is used
   void clearRepeatsOverride();
+  void setInternalOrigin(bool internalOrigin);
+  size_t takeLastNewPacketsEnqueued();
 
   uint8_t parseStatus(JsonVariant object);
   JsonVariant extractStatus(JsonObject object);
@@ -138,6 +140,8 @@ protected:
 
   // If set, override the number of packet repeats used.
   size_t repeatsOverride;
+  bool internalOriginFlag;
+  size_t newPacketsEnqueuedAccum;
 
   void flushPacket();
 };
