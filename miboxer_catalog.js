@@ -1187,6 +1187,15 @@
     warm_cool:  { group: 'device', name: 'Warm / Cool CCT', svg: '<path d="M12 4a8 8 0 1 0 0 16 8 8 0 0 0 0-16zm0 0v16" fill="none" stroke="currentColor" stroke-width="1.9"/>' }
   };
 
+  const FACIA_FONTS = {
+    sans:      { name: 'Clean Sans (Inter)',        stack: 'Inter,system-ui,-apple-system,sans-serif', charFactor: 0.55 },
+    geometric: { name: 'Geometric (Century/Futura)', stack: '"Century Gothic",Futura,"Trebuchet MS",sans-serif', charFactor: 0.58 },
+    condensed: { name: 'Condensed (Space-Saving)',  stack: '"Arial Narrow","Roboto Condensed",Impact,sans-serif', charFactor: 0.44 },
+    rounded:   { name: 'Soft Rounded',              stack: '"SF Pro Rounded","Nunito","Segoe UI",sans-serif', charFactor: 0.56 },
+    mono:      { name: 'Technical Mono',            stack: 'ui-monospace,SFMono-Regular,Consolas,monospace', charFactor: 0.60 },
+    serif:     { name: 'Architectural Serif',       stack: 'Georgia,"Times New Roman",serif', charFactor: 0.54 }
+  };
+
   const FACIA_THEMES = {
     pure_white:      { name: 'Pure White Architectural',  bg: '#f1f5f9', glass: '#ffffff', bezel: '#cbd5e1', padFill: '#f8fafc', padStroke: '#cbd5e1', ink: '#0f172a', subInk: '#64748b', accent: '#0284c7', mono: false },
     matte_black:     { name: 'Matte Black Glass',         bg: '#0f1115', glass: '#171a21', bezel: '#2d3340', padFill: '#212631', padStroke: '#384152', ink: '#f8fafc', subInk: '#94a3b8', accent: '#38bdf8', mono: false },
@@ -1575,6 +1584,11 @@
       body += `<rect x="${bp.glass.x}" y="${bp.glass.y}" width="${bp.glass.w}" height="${bp.glass.h}" rx="${bp.glass.rx}" fill="url(#pat_${u})" pointer-events="none"/>`;
     }
 
+    const panelFontObj = FACIA_FONTS[facia.fontFamily || 'sans'] || FACIA_FONTS.sans;
+    const panelFontStack = panelFontObj.stack;
+    const panelFontScale = Math.max(0.6, Math.min(1.6, Number(facia.fontScale || 100) / 100));
+    const headerGlow = (lumCfg.enabled && lumCfg.header) ? ` filter="url(#glow_${u})"` : '';
+
     if (facia.panelTitle) {
       const titleTxt = String(facia.panelTitle).trim().toUpperCase();
       if (bp.outer && bp.outer.rx >= bp.outer.w * 0.45 && bp.outer.w === bp.outer.h) {
@@ -1582,13 +1596,12 @@
         const tcy = bp.outer.y + bp.outer.h / 2;
         const tr = bp.outer.w / 2 + 5.5;
         const tArcId = `ptArc_${u}`;
-        // Bottom-half clock arc from 135 deg to 225 deg (left-to-right upright)
         const pA = polarPt(tcx, tcy, tr, 225);
         const pB = polarPt(tcx, tcy, tr, 135);
         body += `<defs><path id="${tArcId}" d="M ${pA.x.toFixed(2)} ${pA.y.toFixed(2)} A ${tr.toFixed(2)} ${tr.toFixed(2)} 0 0 0 ${pB.x.toFixed(2)} ${pB.y.toFixed(2)}"/></defs>`;
-        body += `<text font-family="Inter,system-ui,sans-serif" font-size="6.4" font-weight="800" letter-spacing="0.9" fill="${col.subInk}" pointer-events="none"><textPath href="#${tArcId}" startOffset="50%" text-anchor="middle">${escXml(titleTxt)}</textPath></text>`;
+        body += `<text font-family="${escXml(panelFontStack)}" font-size="${(6.4 * panelFontScale).toFixed(2)}" font-weight="800" letter-spacing="0.9" fill="${col.subInk}"${headerGlow} pointer-events="none"><textPath href="#${tArcId}" startOffset="50%" text-anchor="middle">${escXml(titleTxt)}</textPath></text>`;
       } else {
-        body += `<text x="${(bp.vw / 2).toFixed(1)}" y="${bp.titleY}" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="7.2" font-weight="800" letter-spacing="0.7" fill="${col.subInk}" pointer-events="none">${escXml(titleTxt)}</text>`;
+        body += `<text x="${(bp.vw / 2).toFixed(1)}" y="${bp.titleY}" text-anchor="middle" font-family="${escXml(panelFontStack)}" font-size="${(7.2 * panelFontScale).toFixed(2)}" font-weight="800" letter-spacing="0.7" fill="${col.subInk}"${headerGlow} pointer-events="none">${escXml(titleTxt)}</text>`;
       }
     } else if (facia.hideLogo === false) {
       body += `<text x="${bp.glass.x + 12}" y="${bp.titleY}" font-family="Inter,system-ui,sans-serif" font-size="8" font-weight="800" fill="${col.subInk}" pointer-events="none">MiBOXER®</text>`;
@@ -1608,62 +1621,93 @@
       body += `<circle cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="1.5" fill="${o.stencilMode ? '#ffffff' : col.bg}" stroke="${col.padStroke}" stroke-width="0.6" pointer-events="none"/>`;
     }
 
-    // Automatic box-aware autofit: sizes icon & text to fit safely inside pad width & height without overflow
-    function fitText(str, maxW, desiredFs, minFs) {
+    // Automatic box-aware autofit with per-pad font family, font scale, and top/bottom icon positioning
+    function resolvePadFont(cfg) {
+      const fKey = (cfg && cfg.fontFamily) || facia.fontFamily || 'sans';
+      const fObj = FACIA_FONTS[fKey] || FACIA_FONTS.sans;
+      const scPct = (cfg && cfg.fontScale) ? Number(cfg.fontScale) : Number(facia.fontScale || 100);
+      const fScale = Math.max(0.6, Math.min(1.6, (scPct || 100) / 100));
+      return { stack: fObj.stack, charFactor: fObj.charFactor || 0.55, scale: fScale };
+    }
+
+    function fitText(str, maxW, desiredFs, minFs, charFactor) {
       const s = String(str || '').trim();
       if (!s) return { text: '', fs: minFs };
-      const usableW = Math.max(8, maxW - 3.5);
-      const charFactor = 0.56;
-      const byWidth = usableW / Math.max(1, s.length * charFactor);
+      const usableW = Math.max(7, maxW - 3.0);
+      const cf = charFactor || 0.55;
+      const byWidth = usableW / Math.max(1, s.length * cf);
       const fs = Math.max(minFs, Math.min(desiredFs, byWidth));
-      const maxChars = Math.max(1, Math.floor(usableW / Math.max(0.1, fs * charFactor)));
+      const maxChars = Math.max(1, Math.floor(usableW / Math.max(0.1, fs * cf)));
       const clipped = s.length > maxChars ? (maxChars > 2 ? s.slice(0, maxChars - 1) + '…' : s.slice(0, maxChars)) : s;
       return { text: clipped, fs };
     }
 
     function drawGlyphContent(cx, cy, bw, bh, cfg, fallbackLbl, fallbackSub) {
-      const icoKey = (cfg && cfg.icon) || 'none';
+      const iconPos = (cfg && cfg.iconPos) || 'top';
+      const icoKey = iconPos === 'none' ? 'none' : ((cfg && cfg.icon) || 'none');
       const ico = FACIA_ICONS[icoKey];
       const hasIco = Boolean(ico && ico.svg);
       const rawLbl = (cfg && cfg.label !== undefined) ? String(cfg.label) : (fallbackLbl || '');
       let rawSub = (cfg && cfg.sublabel !== undefined) ? String(cfg.sublabel) : (fallbackSub || '');
-      if (!rawSub && cfg && cfg.multifunc && cfg.multifunc.enabled) {
-        rawSub = `1-${cfg.multifunc.steps || 4} • Hold`;
+      if (!rawSub && cfg) {
+        if (cfg.segmentMode === 'slider') {
+          rawSub = `${Number(cfg.sliderMin ?? 0)}–${Number(cfg.sliderMax ?? 100)}%`;
+        } else if (cfg.multifunc && cfg.multifunc.enabled) {
+          rawSub = `1-${cfg.multifunc.steps || 4} • Hold`;
+        }
       }
       const ink = (cfg && cfg.color) || col.ink;
+      const pf = resolvePadFont(cfg);
 
-      const padW = Math.max(8, bw - 3);
-      const padH = Math.max(8, bh - 3);
+      const padW = Math.max(8, bw - 2.6);
+      const padH = Math.max(8, bh - 2.6);
       const minD = Math.min(padW, padH);
 
-      const lblFit = rawLbl ? fitText(rawLbl, padW, Math.min(7.4, minD * (hasIco ? 0.24 : 0.36)), 3.6) : { text: '', fs: 0 };
-      const subFit = rawSub ? fitText(rawSub, padW, Math.min(4.8, (lblFit.fs || minD * 0.22) * 0.72), 3.0) : { text: '', fs: 0 };
+      const baseLblFs = Math.min(7.8, minD * (hasIco ? 0.25 : 0.36)) * pf.scale;
+      const lblFit = rawLbl ? fitText(rawLbl, padW, baseLblFs, 3.2, pf.charFactor) : { text: '', fs: 0 };
+      const baseSubFs = Math.min(4.9, (lblFit.fs || minD * 0.22 * pf.scale) * 0.72);
+      const wantSub = rawSub && (padH >= (hasIco ? 16.5 : 12.0));
+      const subFit = wantSub ? fitText(rawSub, padW, baseSubFs, 2.8, pf.charFactor) : { text: '', fs: 0 };
 
-      const textBlockH = (lblFit.text ? lblFit.fs * 1.15 : 0) + (subFit.text ? subFit.fs * 1.2 : 0);
-      const availForIco = hasIco ? (lblFit.text || subFit.text ? Math.max(5.5, padH - textBlockH - 2.2) : Math.min(padW * 0.68, padH * 0.68)) : 0;
-      const icoSz = hasIco ? Math.max(5.2, Math.min(14.5, availForIco)) : 0;
+      const textBlockH = (lblFit.text ? lblFit.fs * 1.12 : 0) + (subFit.text ? subFit.fs * 1.15 : 0);
+      const availForIco = hasIco ? (textBlockH > 0 ? Math.max(4.8, padH - textBlockH - 2.0) : Math.min(padW * 0.68, padH * 0.68)) : 0;
+      const icoSz = hasIco ? Math.max(4.8, Math.min(13.8, availForIco)) : 0;
 
-      const totalH = icoSz + (hasIco && textBlockH > 0 ? 1.8 : 0) + textBlockH;
+      const gap = (hasIco && textBlockH > 0) ? 1.5 : 0;
+      const totalH = icoSz + gap + textBlockH;
       let yCursor = cy - totalH / 2;
       let out = '';
 
-      if (hasIco) {
+      const renderIconAt = (iy) => {
         const ix = cx - icoSz / 2;
-        const iy = yCursor;
         const inner = ico.svg.replace(/currentColor/g, ink);
-        out += `<g transform="translate(${ix.toFixed(2)},${iy.toFixed(2)}) scale(${(icoSz / 24).toFixed(4)})" pointer-events="none">${inner}</g>`;
-        yCursor += icoSz + 1.8;
-      }
+        return `<g transform="translate(${ix.toFixed(2)},${iy.toFixed(2)}) scale(${(icoSz / 24).toFixed(4)})" pointer-events="none">${inner}</g>`;
+      };
 
-      if (lblFit.text) {
-        const baselineY = yCursor + lblFit.fs * 0.82;
-        out += `<text x="${cx.toFixed(2)}" y="${baselineY.toFixed(2)}" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="${lblFit.fs.toFixed(2)}" font-weight="700" fill="${ink}" pointer-events="none">${escXml(lblFit.text)}</text>`;
-        yCursor += lblFit.fs * 1.15;
-      }
+      const renderTextAt = (yStart) => {
+        let ty = yStart;
+        let tOut = '';
+        if (lblFit.text) {
+          const baselineY = ty + lblFit.fs * 0.82;
+          tOut += `<text x="${cx.toFixed(2)}" y="${baselineY.toFixed(2)}" text-anchor="middle" font-family="${escXml(pf.stack)}" font-size="${lblFit.fs.toFixed(2)}" font-weight="700" fill="${ink}" pointer-events="none">${escXml(lblFit.text)}</text>`;
+          ty += lblFit.fs * 1.12;
+        }
+        if (subFit.text) {
+          const subBaselineY = ty + subFit.fs * 0.82;
+          tOut += `<text x="${cx.toFixed(2)}" y="${subBaselineY.toFixed(2)}" text-anchor="middle" font-family="${escXml(pf.stack)}" font-size="${subFit.fs.toFixed(2)}" font-weight="600" fill="${col.subInk}" pointer-events="none">${escXml(subFit.text)}</text>`;
+        }
+        return tOut;
+      };
 
-      if (subFit.text) {
-        const subBaselineY = yCursor + subFit.fs * 0.82;
-        out += `<text x="${cx.toFixed(2)}" y="${subBaselineY.toFixed(2)}" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="${subFit.fs.toFixed(2)}" font-weight="600" fill="${col.subInk}" pointer-events="none">${escXml(subFit.text)}</text>`;
+      if (hasIco && iconPos === 'bottom') {
+        out += renderTextAt(yCursor);
+        out += renderIconAt(yCursor + textBlockH + gap);
+      } else {
+        if (hasIco) {
+          out += renderIconAt(yCursor);
+          yCursor += icoSz + gap;
+        }
+        out += renderTextAt(yCursor);
       }
 
       return out;
@@ -1700,69 +1744,109 @@
             const midDeg = ((off + (i + 0.5) * span) % 360 + 360) % 360;
             const d = ringWedgePath(s.cx, s.cy, s.rIn, s.rOut, sDeg, eDeg);
             const isSelected = selKey === sKey;
-            body += `<path class="mbx-seg-hit" data-seg-act="${sKey}" data-pad-key="${sKey}" ${pc.st === 'blank' ? 'data-blanked="1"' : ''} d="${d}" fill="${pc.fill}" stroke="${isSelected ? col.accent : pc.stroke}" stroke-width="${isSelected ? 2 : 1.05}" ${pc.dash ? `stroke-dasharray="${pc.dash}"` : ''} style="cursor:pointer"/>`;
+            const isLumSeg = Boolean((lumCfg.enabled && lumCfg.slots) || cfg.luminous);
+            const glowSeg = isLumSeg ? ` filter="url(#glow_${u})"` : '';
+            body += `<path class="mbx-seg-hit" data-seg-act="${sKey}" data-pad-key="${sKey}" data-sdeg="${sDeg.toFixed(1)}" data-edeg="${eDeg.toFixed(1)}" data-cx="${s.cx}" data-cy="${s.cy}" ${pc.st === 'blank' ? 'data-blanked="1"' : ''} d="${d}" fill="${pc.fill}" stroke="${isSelected ? col.accent : pc.stroke}" stroke-width="${isSelected ? 2 : 1.05}" ${pc.dash ? `stroke-dasharray="${pc.dash}"` : ''}${glowSeg} style="cursor:pointer"/>`;
             const defL = (surfCfg.labels && surfCfg.labels[i]) || `${i + 1}`;
             const lblStr = (cfg && cfg.label !== undefined) ? String(cfg.label).trim() : defL;
-            const icoKey = (cfg && cfg.icon) || 'none';
+            const iconPos = (cfg && cfg.iconPos) || 'top';
+            const icoKey = iconPos === 'none' ? 'none' : ((cfg && cfg.icon) || 'none');
             const ico = FACIA_ICONS[icoKey];
             const hasIco = Boolean(ico && ico.svg);
             const ink = (cfg && cfg.color) || col.ink;
+            const pf = resolvePadFont(cfg);
+
             if (pc.st !== 'blank') {
               const arcSpan = Math.max(10, eDeg - sDeg);
               const isLowerArc = midDeg > 95 && midDeg < 265;
-              // Wide segments (>= 62 deg, e.g. 1/4 clock quadrants) flow text cleanly along a non-overlapping arc
-              if (arcSpan >= 62 && lblStr.length > 0) {
-                const textR = hasIco ? (s.rIn + ringThick * 0.30) : (s.rIn + ringThick * 0.54);
-                const padAng = Math.min(8, arcSpan * 0.12);
+              const isSlider = Boolean(cfg && cfg.segmentMode === 'slider');
+              const isMf = Boolean(!isSlider && cfg && cfg.multifunc && cfg.multifunc.enabled);
+
+              // Helper to emit a curved textPath centered along the segment's circular arc at radius rBand
+              const emitArcText = (idSuffix, rBand, txt, desiredFs, minFs, weight, fillCol, fontStack) => {
+                if (!txt) return;
+                const padAng = Math.min(6.5, arcSpan * 0.10);
+                const effDeg = Math.max(8, arcSpan - padAng * 2);
+                const arcLen = (effDeg * Math.PI / 180) * rBand;
+                const fitted = fitText(txt, arcLen + 2.5, desiredFs, minFs, pf.charFactor);
+                if (!fitted.text) return;
                 const a1 = isLowerArc ? (eDeg - padAng) : (sDeg + padAng);
                 const a2 = isLowerArc ? (sDeg + padAng) : (eDeg - padAng);
-                const pStart = polarPt(s.cx, s.cy, textR, a1);
-                const pEnd = polarPt(s.cx, s.cy, textR, a2);
+                const pStart = polarPt(s.cx, s.cy, rBand, a1);
+                const pEnd = polarPt(s.cx, s.cy, rBand, a2);
                 const sweep = isLowerArc ? '0' : '1';
-                const lgFlag = Math.abs(eDeg - sDeg - padAng * 2) > 180 ? '1' : '0';
-                const arcId = `arc_${u}_${i}`;
-                const arcPath = `M ${pStart.x.toFixed(2)} ${pStart.y.toFixed(2)} A ${textR.toFixed(2)} ${textR.toFixed(2)} 0 ${lgFlag} ${sweep} ${pEnd.x.toFixed(2)} ${pEnd.y.toFixed(2)}`;
-                const arcFs = Math.max(4.4, Math.min(6.0, ringThick * 0.36));
-                body += `<defs><path id="${arcId}" d="${arcPath}"/></defs>`;
-                body += `<text font-family="Inter,system-ui,sans-serif" font-size="${arcFs.toFixed(2)}" font-weight="800" fill="${ink}" pointer-events="none"><textPath href="#${arcId}" startOffset="50%" text-anchor="middle">${escXml(lblStr)}</textPath></text>`;
+                const lgFlag = effDeg > 180 ? '1' : '0';
+                const arcId = `arc_${u}_${i}_${idSuffix}`;
+                body += `<defs><path id="${arcId}" d="M ${pStart.x.toFixed(2)} ${pStart.y.toFixed(2)} A ${rBand.toFixed(2)} ${rBand.toFixed(2)} 0 ${lgFlag} ${sweep} ${pEnd.x.toFixed(2)} ${pEnd.y.toFixed(2)}"/></defs>`;
+                // dy="0.34em" vertically centers baseline along the circular arc radius!
+                body += `<text font-family="${escXml(fontStack || pf.stack)}" font-size="${fitted.fs.toFixed(2)}" font-weight="${weight}" fill="${fillCol}" pointer-events="none"><textPath href="#${arcId}" startOffset="50%" text-anchor="middle" dy="0.34em">${escXml(fitted.text)}</textPath></text>`;
+              };
+
+              if (arcSpan >= 38) {
+                // Radial band allocation so Icon ('top' = outer edge, 'bottom' = inner edge) NEVER collides with central arc text!
+                let icoFrac = 0.77;
+                let lblFrac = 0.50;
+                let cueFrac = 0.22;
+                let trkFrac = 0.90;
+
+                if (hasIco && iconPos === 'top') {
+                  icoFrac = 0.76;
+                  lblFrac = (isSlider || isMf || cfg.sublabel) ? 0.44 : 0.34;
+                  cueFrac = 0.18;
+                  trkFrac = 0.91;
+                } else if (hasIco && iconPos === 'bottom') {
+                  icoFrac = 0.26;
+                  lblFrac = (isSlider || isMf || cfg.sublabel) ? 0.58 : 0.66;
+                  cueFrac = 0.82;
+                  trkFrac = 0.11;
+                } else {
+                  // No icon: Primary label sits dead-center on the circular arc (0.52), with optional slider/toggle cue below
+                  lblFrac = (isSlider || isMf || cfg.sublabel) ? 0.56 : 0.50;
+                  cueFrac = 0.25;
+                  trkFrac = 0.88;
+                }
+
+                if (lblStr) {
+                  const baseArcFs = Math.max(4.0, Math.min(6.4, ringThick * (hasIco ? 0.30 : 0.36))) * pf.scale;
+                  emitArcText('lbl', s.rIn + ringThick * lblFrac, lblStr, baseArcFs, 3.1, '800', ink, pf.stack);
+                }
+
                 if (hasIco) {
-                  const ip = polarPt(s.cx, s.cy, s.rIn + ringThick * 0.74, midDeg);
-                  const isz = Math.max(5.2, Math.min(7.6, ringThick * 0.48));
+                  const ip = polarPt(s.cx, s.cy, s.rIn + ringThick * icoFrac, midDeg);
+                  const isz = Math.max(4.6, Math.min(7.2, ringThick * (lblStr ? 0.36 : 0.52)));
                   const inner = ico.svg.replace(/currentColor/g, ink);
                   body += `<g transform="translate(${(ip.x - isz / 2).toFixed(2)},${(ip.y - isz / 2).toFixed(2)}) scale(${(isz / 24).toFixed(4)})" pointer-events="none">${inner}</g>`;
                 }
-                if (cfg && cfg.segmentMode === 'slider') {
+
+                if (isSlider) {
                   const sMin = Number(cfg.sliderMin ?? 0);
                   const sMax = Number(cfg.sliderMax ?? 100);
-                  const trkR = s.rIn + ringThick * 0.88;
+                  const trkR = s.rIn + ringThick * trkFrac;
                   const p1 = polarPt(s.cx, s.cy, trkR, sDeg + 3);
                   const p2 = polarPt(s.cx, s.cy, trkR, eDeg - 3);
                   const lg = Math.abs(eDeg - sDeg - 6) > 180 ? '1' : '0';
-                  body += `<path d="M ${p1.x.toFixed(2)} ${p1.y.toFixed(2)} A ${trkR.toFixed(2)} ${trkR.toFixed(2)} 0 ${lg} 1 ${p2.x.toFixed(2)} ${p2.y.toFixed(2)}" fill="none" stroke="${ink}" stroke-width="1.2" stroke-dasharray="2,2" opacity="0.85" pointer-events="none"/>`;
-                  const rngTxt = `${sMin}–${sMax}%`;
-                  const rngFs = Math.max(3.8, Math.min(5.0, ringThick * 0.30));
-                  const rArcR = s.rIn + ringThick * 0.16;
-                  const ra1 = isLowerArc ? (eDeg - 4) : (sDeg + 4);
-                  const ra2 = isLowerArc ? (sDeg + 4) : (eDeg - 4);
-                  const rpA = polarPt(s.cx, s.cy, rArcR, ra1);
-                  const rpB = polarPt(s.cx, s.cy, rArcR, ra2);
-                  const rSwp = isLowerArc ? '0' : '1';
-                  const rLg = Math.abs(eDeg - sDeg - 8) > 180 ? '1' : '0';
-                  const rArcId = `rng_${u}_${i}`;
-                  body += `<defs><path id="${rArcId}" d="M ${rpA.x.toFixed(2)} ${rpA.y.toFixed(2)} A ${rArcR.toFixed(2)} ${rArcR.toFixed(2)} 0 ${rLg} ${rSwp} ${rpB.x.toFixed(2)} ${rpB.y.toFixed(2)}"/></defs>`;
-                  body += `<text font-family="monospace" font-size="${rngFs.toFixed(2)}" font-weight="700" fill="${col.subInk}" pointer-events="none"><textPath href="#${rArcId}" startOffset="50%" text-anchor="middle">${escXml(rngTxt)}</textPath></text>`;
+                  body += `<path d="M ${p1.x.toFixed(2)} ${p1.y.toFixed(2)} A ${trkR.toFixed(2)} ${trkR.toFixed(2)} 0 ${lg} 1 ${p2.x.toFixed(2)} ${p2.y.toFixed(2)}" fill="none" stroke="${ink}" stroke-width="1.15" stroke-dasharray="2,1.8" opacity="0.85" pointer-events="none"/>`;
+                  if (ringThick >= 14 && arcSpan >= 52) {
+                    const rngFs = Math.max(3.2, Math.min(4.6, ringThick * 0.24)) * pf.scale;
+                    emitArcText('cue', s.rIn + ringThick * cueFrac, `${sMin}–${sMax}%`, rngFs, 2.8, '700', col.subInk, 'ui-monospace,SFMono-Regular,Consolas,monospace');
+                  }
+                } else if (ringThick >= 15.5 && arcSpan >= 58) {
+                  const cueStr = cfg.sublabel !== undefined ? String(cfg.sublabel).trim() : (isMf ? `1-${cfg.multifunc.steps || 4}•Hold` : '');
+                  if (cueStr) {
+                    const cueFs = Math.max(3.1, Math.min(4.4, ringThick * 0.23)) * pf.scale;
+                    emitArcText('cue', s.rIn + ringThick * cueFrac, cueStr, cueFs, 2.8, '700', col.subInk, pf.stack);
+                  }
                 }
               } else {
-                // Narrower clock segments (6, 8, 12 slots): show crisp icon OR clean clock numeral/short label without ellipsis clutter
+                // Ultra-narrow 10-12 slice clock segments
                 const mp = polarPt(s.cx, s.cy, (s.rIn + s.rOut) / 2, midDeg);
                 if (hasIco) {
-                  const isz = Math.max(6.2, Math.min(9.5, ringThick * 0.62));
+                  const isz = Math.max(5.5, Math.min(8.5, ringThick * 0.56));
                   const inner = ico.svg.replace(/currentColor/g, ink);
                   body += `<g transform="translate(${(mp.x - isz / 2).toFixed(2)},${(mp.y - isz / 2).toFixed(2)}) scale(${(isz / 24).toFixed(4)})" pointer-events="none">${inner}</g>`;
                 } else if (lblStr) {
-                  const clockLbl = lblStr.length > 4 ? String(i + 1) : lblStr;
-                  const cFs = Math.max(5.0, Math.min(7.2, ringThick * 0.46));
-                  body += `<text x="${mp.x.toFixed(2)}" y="${(mp.y + cFs * 0.35).toFixed(2)}" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="${cFs.toFixed(2)}" font-weight="800" fill="${ink}" pointer-events="none">${escXml(clockLbl)}</text>`;
+                  const cFs = Math.max(4.4, Math.min(6.6, ringThick * 0.42)) * pf.scale;
+                  body += `<text x="${mp.x.toFixed(2)}" y="${(mp.y + cFs * 0.35).toFixed(2)}" text-anchor="middle" font-family="${escXml(pf.stack)}" font-size="${cFs.toFixed(2)}" font-weight="800" fill="${ink}" pointer-events="none">${escXml(lblStr.slice(0, 4))}</text>`;
                 }
               }
             }
@@ -1816,16 +1900,21 @@
             body += `<rect class="mbx-seg-hit" data-seg-act="${sKey}" data-pad-key="${sKey}" ${pc.st === 'blank' ? 'data-blanked="1"' : ''} x="${rx.toFixed(2)}" y="${ry.toFixed(2)}" width="${rw.toFixed(2)}" height="${rh.toFixed(2)}" rx="3" fill="${pc.fill}" stroke="${isSelected ? col.accent : pc.stroke}" stroke-width="${isSelected ? 1.9 : 1.0}" ${pc.dash ? `stroke-dasharray="${pc.dash}"` : ''} style="cursor:pointer"/>`;
             const defL = (surfCfg.labels && surfCfg.labels[i]) || `${i + 1}`;
             if (pc.st !== 'blank') {
-              body += drawGlyphContent(rx + rw / 2, ry + rh / 2, rw, rh, cfg, defL, '');
-              if (cfg && cfg.segmentMode === 'slider') {
-                const sMin = Number(cfg.sliderMin ?? 0);
-                const sMax = Number(cfg.sliderMax ?? 100);
-                if (vert) {
-                  body += `<line x1="${(rx + 3).toFixed(1)}" y1="${(ry + rh - 3.5).toFixed(1)}" x2="${(rx + rw - 3).toFixed(1)}" y2="${(ry + rh - 3.5).toFixed(1)}" stroke="${ink}" stroke-width="1.3" stroke-dasharray="2,1.8" opacity="0.85" pointer-events="none"/>`;
+              const barInk = (cfg && cfg.color) || col.ink;
+              const isBarSlider = Boolean(cfg && cfg.segmentMode === 'slider');
+              const iconOnBottom = (cfg && cfg.iconPos) === 'bottom';
+              // Reserve 3.2mm at the edge opposite the icon for the dashed linear slider track
+              const glyphCy = isBarSlider ? (iconOnBottom ? (ry + rh / 2 + 1.4) : (ry + rh / 2 - 1.4)) : (ry + rh / 2);
+              const glyphH = isBarSlider ? Math.max(8, rh - 3.2) : rh;
+              body += drawGlyphContent(rx + rw / 2, glyphCy, rw, glyphH, cfg, defL, '');
+              if (isBarSlider) {
+                const trkY = iconOnBottom ? (ry + 2.4) : (ry + rh - 2.4);
+                if (vert && rw < rh * 0.75) {
+                  const trkX = rx + rw - 2.2;
+                  body += `<line x1="${trkX.toFixed(1)}" y1="${(ry + 3.0).toFixed(1)}" x2="${trkX.toFixed(1)}" y2="${(ry + rh - 3.0).toFixed(1)}" stroke="${barInk}" stroke-width="1.25" stroke-dasharray="2,1.6" opacity="0.85" pointer-events="none"/>`;
                 } else {
-                  body += `<line x1="${(rx + 3.5).toFixed(1)}" y1="${(ry + rh - 3).toFixed(1)}" x2="${(rx + rw - 3.5).toFixed(1)}" y2="${(ry + rh - 3).toFixed(1)}" stroke="${ink}" stroke-width="1.3" stroke-dasharray="2,1.8" opacity="0.85" pointer-events="none"/>`;
+                  body += `<line x1="${(rx + 3.2).toFixed(1)}" y1="${trkY.toFixed(1)}" x2="${(rx + rw - 3.2).toFixed(1)}" y2="${trkY.toFixed(1)}" stroke="${barInk}" stroke-width="1.25" stroke-dasharray="2,1.6" opacity="0.85" pointer-events="none"/>`;
                 }
-                body += `<text x="${(rx + rw / 2).toFixed(1)}" y="${(ry + rh - 4.8).toFixed(1)}" text-anchor="middle" font-family="monospace" font-size="4.4" font-weight="700" fill="${col.subInk}" pointer-events="none">${escXml(`${sMin}–${sMax}%`)}</text>`;
               }
             }
           }
@@ -1990,6 +2079,46 @@
     if (m.layout === 'b8') {
       return [
         {
+          id: 'b8_hybrid_arc_and_bar_sliders',
+          name: 'Hybrid Arc + Straight Sliders Showcase (0–100% & 100–0%)',
+          desc: 'Showcases centered circular arc labels with top/bottom icons, 2 curved variable sliders (Blinds 100–0%, Fan 0–100%), 2 multi-tap slices, AND 2 straight variable sliders (Dimmer 15–100%, Warmth 0–100%)',
+          touch_zones: {
+            hue_ring: { enabled: true, segments: 4, offset_deg: -45, zone_mask: 65535, labels: ['Blinds','Fan','Climate','Cinema'] },
+            sat_bar:  { enabled: true, segments: 2, offset_deg: 0,   zone_mask: 65535, labels: ['Dimmer','Warmth'] },
+            bri_bar:  { enabled: false, segments: 4, offset_deg: 0,  zone_mask: 65535, labels: ['','','',''] },
+            cct_bar:  { enabled: false, segments: 4, offset_deg: 0,  zone_mask: 65535, labels: ['','','',''] }
+          },
+          facia: {
+            enabled: true, theme: defTheme, fontFamily: 'geometric', fontScale: 105,
+            panelTitle: 'HYBRID SLIDER STUDIO', defaultPadStyle: 'keycap', showLedPinhole: true, hideLogo: true,
+            luminous: { enabled: true, border: true, header: true, slots: false },
+            pads: {
+              hue_seg_1: { icon: 'blinds',     iconPos: 'top',    label: 'Blinds',  segmentMode: 'slider', sliderMin: 100, sliderMax: 0, luminous: true },
+              hue_seg_2: { icon: 'fan',        iconPos: 'top',    label: 'Fan Spd', segmentMode: 'slider', sliderMin: 0,   sliderMax: 100, luminous: true },
+              hue_seg_3: { icon: 'ac',         iconPos: 'bottom', label: 'Climate', multifunc: { enabled: true, steps: 5, unit: 'Temp' } },
+              hue_seg_4: { icon: 'tv',         iconPos: 'bottom', label: 'Cinema',  sublabel: 'Toggle' },
+              sat_seg_1: { icon: 'sun',        iconPos: 'top',    label: 'Dimmer',  segmentMode: 'slider', sliderMin: 15,  sliderMax: 100 },
+              sat_seg_2: { icon: 'coffee',     iconPos: 'top',    label: 'Warmth',  segmentMode: 'slider', sliderMin: 0,   sliderMax: 100 },
+              center_w:  { icon: 'downlight',  iconPos: 'top',    label: 'Main W' },
+              btn_on:    { icon: 'power',      iconPos: 'top',    label: 'ON', luminous: true },
+              btn_off:   { icon: 'moon',       iconPos: 'top',    label: 'OFF' },
+              btn_sdn:   { icon: 'curtains',   iconPos: 'top',    label: 'Privacy' },
+              btn_m:     { icon: 'sparkles',   iconPos: 'top',    label: 'Scene' },
+              btn_sup:   { icon: 'speaker',    iconPos: 'top',    label: 'Sonos',   multifunc: { enabled: true, steps: 5, unit: 'Vol' } },
+              zone_0:    { icon: 'home_all',   label: 'All' },
+              zone_1:    { icon: 'sofa',       label: 'Living' },
+              zone_2:    { icon: 'kitchen',    label: 'Kitchen' },
+              zone_3:    { icon: 'dining',     label: 'Dining' },
+              zone_4:    { icon: 'bed',        label: 'Master' },
+              btn_60s:   { icon: 'lock',       label: 'Away' },
+              zone_5:    { icon: 'bed_single', label: 'Guest' },
+              zone_6:    { icon: 'desk',       label: 'Study' },
+              zone_7:    { icon: 'bath',       label: 'Bath' },
+              zone_8:    { icon: 'garden',     label: 'Patio' }
+            }
+          }
+        },
+        {
           id: 'b8_whole_home_devices',
           name: '8-Room Standardized Icons + 6-Device Segmented Wheel',
           desc: 'Zones 1-8 mapped to standardized rooms; Color Ring segmented into Fan (1-6), Blinds, Curtains, AC, Sonos & Strip',
@@ -2064,6 +2193,30 @@
     const topSurf = (m.kind === 'b1' || m.kind === 'u1') ? 'bri_bar' : (m.kind === 'b2' || m.kind === 'u2') ? 'cct_bar' : 'hue_ring';
     const segPref = topSurf === 'bri_bar' ? 'bri_seg_' : topSurf === 'cct_bar' ? 'cct_seg_' : 'hue_seg_';
     return [
+      {
+        id: 'strip_dual_linear_sliders',
+        name: 'Dual Straight Variable Sliders (Sheer 0–100% + Blockout 100–0%)',
+        desc: 'Splits the straight top touch bar into two independent variable sliders (0–100% & inverted 100–0%) above 4 room rockers',
+        touch_zones: {
+          hue_ring: { enabled: topSurf === 'hue_ring', segments: 2, offset_deg: 0, zone_mask: 65535, labels: ['Sheer','Blockout'] },
+          cct_bar:  { enabled: topSurf === 'cct_bar',  segments: 2, offset_deg: 0, zone_mask: 65535, labels: ['Sheer','Blockout'] },
+          bri_bar:  { enabled: topSurf === 'bri_bar',  segments: 2, offset_deg: 0, zone_mask: 65535, labels: ['Sheer','Blockout'] },
+          sat_bar:  { enabled: false, segments: 4, offset_deg: 0, zone_mask: 65535, labels: ['','','',''] }
+        },
+        facia: {
+          enabled: true, theme: defTheme, fontFamily: 'sans', fontScale: 105,
+          panelTitle: 'DUAL LINEAR SLIDERS', defaultPadStyle: 'keycap', showLedPinhole: true, hideLogo: true,
+          pads: {
+            [segPref + '1']: { icon: 'curtains', iconPos: 'top', label: 'Sheer',    segmentMode: 'slider', sliderMin: 0,   sliderMax: 100 },
+            [segPref + '2']: { icon: 'blinds',   iconPos: 'top', label: 'Blockout', segmentMode: 'slider', sliderMin: 100, sliderMax: 0 },
+            zone_0: { icon: 'home_all', label: 'All' },
+            zone_1: { icon: 'sofa',     label: 'Living' },
+            zone_2: { icon: 'kitchen',  label: 'Kitchen' },
+            zone_3: { icon: 'bed',      label: 'Master' },
+            zone_4: { icon: 'desk',     label: 'Study' }
+          }
+        }
+      },
       {
         id: 'strip_rooms_plus_devices',
         name: 'Room Rockers + 4-Device Segmented Bar (Fan/Blinds/AC/Audio)',
@@ -2185,6 +2338,46 @@
     return _baseRenderModelSvg(m, o);
   }
 
+  // Built-in Custom Showcase Remotes demonstrating Segmented Arc Sliders + Straight Bar Sliders
+  (function seedBuiltInShowcaseRemotes() {
+    const b8Presets = getSamplePresetsForModel('B8');
+    const b8Hybrid = b8Presets && b8Presets[0];
+    const b3Presets = getSamplePresetsForModel('B3');
+    const b3Dual = b3Presets && b3Presets[0];
+    const seeds = [];
+    if (b8Hybrid) {
+      seeds.push({
+        id: 'CUST_B8_SLIDER_SHOWCASE',
+        baseId: 'B8',
+        name: 'B8 Showcase: Arc + Bar Variable Sliders',
+        series: 'Custom Stencil Showcase',
+        protocol: 'fut089',
+        zones: 8,
+        isCustom: true,
+        isBuiltInShowcase: true,
+        touchZones: b8Hybrid.touch_zones,
+        facia: b8Hybrid.facia
+      });
+    }
+    if (b3Dual) {
+      seeds.push({
+        id: 'CUST_B3_LINEAR_SHOWCASE',
+        baseId: 'B3',
+        name: 'B3 Showcase: Dual Straight Sliders (0–100% / 100–0%)',
+        series: 'Custom Stencil Showcase',
+        protocol: 'fut089',
+        zones: 4,
+        isCustom: true,
+        isBuiltInShowcase: true,
+        touchZones: b3Dual.touch_zones,
+        facia: b3Dual.facia
+      });
+    }
+    if (seeds.length && typeof registerCustomModels === 'function') {
+      registerCustomModels(seeds);
+    }
+  })();
+
   // Auto-hydrate custom models if loaded inside a browser pointing at Hub
   if (typeof fetch === 'function' && typeof document !== 'undefined') {
     const curScript = document.currentScript && document.currentScript.src ? new URL(document.currentScript.src, location.href).origin : '';
@@ -2196,6 +2389,7 @@
     FACTORY_MODELS,
     FACIA_ICONS,
     FACIA_THEMES,
+    FACIA_FONTS,
     isCapacitiveFlatPanel,
     isSingleStickOnStencilReady,
     getStencilFitMode,

@@ -474,11 +474,28 @@
         const px = (sp && !Number.isNaN(sp.x) && sp.x !== 0) ? sp.x : (bb ? bb.x + bb.width / 2 : 0);
         const py = (sp && !Number.isNaN(sp.y) && sp.y !== 0) ? sp.y : (bb ? bb.y + bb.height / 2 : 0);
         if (padCfg.segmentMode === 'slider') {
-          const frac = Math.max(0, Math.min(1, (px - (bb ? bb.x : 0)) / Math.max(1, bb ? bb.width : 1)));
+          let frac = 0.5;
+          const sDegAttr = el.getAttribute('data-sdeg');
+          const eDegAttr = el.getAttribute('data-edeg');
+          if (sDegAttr !== null && eDegAttr !== null) {
+            const cxRing = Number(el.getAttribute('data-cx') || 0);
+            const cyRing = Number(el.getAttribute('data-cy') || 0);
+            const sDeg = Number(sDegAttr), eDeg = Number(eDegAttr);
+            // polarPt uses 0 deg = 12 o'clock clockwise: ang = atan2(dx, -dy)
+            let ang = Math.atan2(px - cxRing, -(py - cyRing)) * 180 / Math.PI;
+            while (ang < sDeg - 15) ang += 360;
+            while (ang > eDeg + 345) ang -= 360;
+            frac = Math.max(0, Math.min(1, (ang - sDeg) / Math.max(1, eDeg - sDeg)));
+          } else if (bb && bb.height > bb.width * 1.35) {
+            // Vertical bar segment: bottom = 0 (start), top = 1 (far/max)
+            frac = Math.max(0, Math.min(1, 1 - (py - bb.y) / Math.max(1, bb.height)));
+          } else {
+            frac = Math.max(0, Math.min(1, (px - (bb ? bb.x : 0)) / Math.max(1, bb ? bb.width : 1)));
+          }
           const sMin = Number(padCfg.sliderMin ?? 0);
           const sMax = Number(padCfg.sliderMax ?? 100);
           const mappedVal = Math.round(sMin + frac * (sMax - sMin));
-          const badge = `${padCfg.label || pKey}: ${mappedVal}% (${sMin}%–${sMax}%)`;
+          const badge = `${padCfg.label || pKey}: ${mappedVal}% (${sMin}%→${sMax}%)`;
           showFingerPuck(px, py, `${mappedVal}%`, false, 'ui_btn');
           if (typeof opts.onAction === 'function') opts.onAction(baseAct, mappedVal, zNext, badge);
           return;
@@ -603,6 +620,8 @@
         monochrome: Boolean(f.monochrome),
         background_color: f.bgColor || (f.colors && f.colors.bg) || preset.bg || '#ffffff',
         boundary_line_color: f.boundaryColor || (f.colors && f.colors.padStroke) || preset.padStroke || '#0f172a',
+        default_font: f.fontFamily || 'sans',
+        default_font_scale_pct: Number(f.fontScale || 100),
         panel_title: f.panelTitle || '',
         show_led_pinhole: f.showLedPinhole !== false
       },
@@ -795,7 +814,10 @@
             <!-- LEFT: Touch Bar/Ring Segmentation + Surface Theme -->
             <div class="mlrs-col">
               ${panelSurfaces.length ? `
-                <div class="mlrs-sec-title">1. Segment Sliders / Ring Into Buttons</div>
+                <div class="mlrs-sec-title">1. Segment Wheels &amp; Bars (Buttons or Sliders)</div>
+                <div style="background:var(--mlrs-muted);border:1px solid var(--mlrs-border);border-left:3px solid var(--mlrs-primary);border-radius:6px;padding:7px 9px;margin-bottom:9px;font-size:11px;line-height:1.42;color:var(--mlrs-fg)">
+                  <b>💡 Segmented Slider Pro-Tips:</b> Any slice on a <b>360° Ring</b> or <b>Straight Bar</b> can act independently as a <b>Tap/Hold Button</b> <i>or</i> a <b>Variable Slider</b> with custom <b>X% → Y%</b> endpoints (e.g. <code>15–80%</code> night-safe dimmer, <code>100–0%</code> inverted blind drop, or two half-bars for Sheer &amp; Blockout).
+                </div>
                 <div class="mlrs-box-sub">
                   ${panelSurfaces.map(ps => {
                     const sc = tz[ps.surf];
@@ -850,6 +872,18 @@
                 <label>Panel Header Title</label>
                 <input type="text" class="mlrs-input" id="mlrsPanelTitle" placeholder="e.g. MASTER SUITE" value="${draft.panelTitle || ''}"/>
               </div>
+              <div class="mlrs-field" style="display:grid;grid-template-columns:1.35fr 0.85fr;gap:8px">
+                <div>
+                  <label>Default Stencil Font</label>
+                  <select class="mlrs-select" id="mlrsPanelFont">
+                    ${Object.entries(Cat.FACIA_FONTS || { sans: { name: 'Clean Sans' } }).map(([fk, fv]) => `<option value="${fk}" ${(draft.fontFamily || 'sans') === fk ? 'selected' : ''}>${fv.name}</option>`).join('')}
+                  </select>
+                </div>
+                <div>
+                  <label>Font Size (%)</label>
+                  <input type="number" min="65" max="145" step="5" class="mlrs-input" id="mlrsPanelFontScale" value="${draft.fontScale || 100}"/>
+                </div>
+              </div>
               <div class="mlrs-box-sub" style="margin-bottom:8px">
                 <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:5px">
                   <input type="checkbox" id="mlrsLumMaster" ${(draft.luminous && draft.luminous.enabled) ? 'checked' : ''}/> Luminous / Glow-in-the-Dark (POD)
@@ -900,7 +934,8 @@
                     <label style="font-size:11px">Far / Max End (Y %)</label>
                     <input type="number" min="0" max="100" class="mlrs-input" id="mlrsSegMax" value="${curPad.sliderMax ?? 100}"/>
                   </div>
-                </div>` : ''}
+                </div>
+                <div style="font-size:10.5px;color:var(--mlrs-muted-fg);margin-top:4px">Tip: Set <code>100</code> → <code>0</code> to invert direction (e.g. blinds lowering), or cap range (e.g. <code>15</code> → <code>85</code>). Scrub across the segment in <b>Mode 2</b> to test!</div>` : ''}
               </div>` : ''}
 
               <div class="mlrs-field">
@@ -925,8 +960,30 @@
                   <input type="text" class="mlrs-input" id="mlrsPadLabel" placeholder="e.g. Living, Fan" value="${curPad.label !== undefined ? curPad.label : ''}"/>
                 </div>
                 <div>
-                  <label>Sub-Label / Hint</label>
-                  <input type="text" class="mlrs-input" id="mlrsPadSub" placeholder="Auto or custom" value="${curPad.sublabel !== undefined ? curPad.sublabel : ''}"/>
+                  <label>Sub-Label / Function Hint</label>
+                  <input type="text" class="mlrs-input" id="mlrsPadSub" placeholder="Auto (X–Y% / Hold) or custom" value="${curPad.sublabel !== undefined ? curPad.sublabel : ''}"/>
+                </div>
+              </div>
+
+              <div class="mlrs-field" style="display:grid;grid-template-columns:1fr 1fr 0.72fr;gap:7px">
+                <div>
+                  <label title="Keep icon out of the way so arc/button text stays centered">Icon Position</label>
+                  <select class="mlrs-select" id="mlrsPadIconPos">
+                    <option value="top" ${(curPad.iconPos || 'top') === 'top' ? 'selected' : ''}>Top / Outer Edge</option>
+                    <option value="bottom" ${curPad.iconPos === 'bottom' ? 'selected' : ''}>Bottom / Inner Edge</option>
+                    <option value="none" ${curPad.iconPos === 'none' ? 'selected' : ''}>Text Only (No Icon)</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Slot Font</label>
+                  <select class="mlrs-select" id="mlrsPadFont">
+                    <option value="" ${!curPad.fontFamily ? 'selected' : ''}>Panel Default</option>
+                    ${Object.entries(Cat.FACIA_FONTS || {}).map(([fk, fv]) => `<option value="${fk}" ${curPad.fontFamily === fk ? 'selected' : ''}>${fv.name.split(' (')[0]}</option>`).join('')}
+                  </select>
+                </div>
+                <div>
+                  <label>Size %</label>
+                  <input type="number" min="65" max="145" step="5" class="mlrs-input" id="mlrsPadFontScale" placeholder="${draft.fontScale || 100}" value="${curPad.fontScale || ''}"/>
                 </div>
               </div>
 
@@ -1043,7 +1100,7 @@
           tourId: 'stencil_editor',
           steps: [
             { title: 'Full-Viewport Canvas & Starter Templates', body: 'Click Fullscreen above for maximum design space, or load a Starter Template to auto-populate room icons & segmented wheel buttons.', actionLabel: 'Toggle Fullscreen', onAction: () => backdrop.querySelector('#mlrsFullBtn')?.click() },
-            { title: 'Split Rings & Sliders Into Discrete Buttons', body: 'Use Left Panel Section 1 to turn continuous Color Rings or Touch Bars into 2 to 8 labeled macro buttons.', actionLabel: 'Select Ring Slot #1', onAction: () => { selectedPadKey = 'hue_seg_1'; mode = 'edit'; renderModal(); } },
+            { title: 'Hybrid Buttons & Variable X%–Y% Sliders on Rings or Bars', body: 'Any segmented ring arc or straight bar slice can be a Tap/Hold Button OR a Variable Slider (0–100%, capped 15–80%, or inverted 100–0%) with centered arc text & top/bottom icon placement!', actionLabel: 'Load Hybrid Slider Showcase', onAction: () => { const btn = backdrop.querySelector('[data-preset-idx="0"]'); if (btn) btn.click(); } },
             { title: 'Architectural Themes & Blank Pad Masking', body: 'Switch between Pure White, Warm Travertine, or Matte Black vinyl palettes and set unused buttons to Blank Masked.', actionLabel: 'Preview Warm Stone', onAction: () => { draft.theme = 'warm_stone'; draft.colors = null; renderModal(); } },
             { title: 'Single-Button Step-Cycling + Hold Toggle', body: 'Enable Multi-Function on any pad so short taps cycle speeds/positions (1 to 6) while a long hold toggles OFF — test it live in Mode 2!', actionLabel: 'Switch to Interactive Test', onAction: () => { mode = 'test'; renderModal(); } },
             { title: 'Calibrated 1:1 Millimeter Print & SVG Export', body: 'Print Sheet adds a 10 mm verification square, and Download 1:1 SVG uses an HTTP attachment stream compatible with download extensions.', actionLabel: 'Download 1:1 SVG', onAction: () => backdrop.querySelector('#mlrsDlSvgBtn')?.click() }
@@ -1137,6 +1194,18 @@
         p.sliderMax = Math.max(0, Math.min(100, Number(e.target.value || 100)));
         refreshStageOnly();
       };
+      const pFontEl = backdrop.querySelector('#mlrsPanelFont');
+      if (pFontEl) pFontEl.onchange = (e) => { draft.fontFamily = e.target.value || 'sans'; refreshStageOnly(); };
+      const pScaleEl = backdrop.querySelector('#mlrsPanelFontScale');
+      if (pScaleEl) pScaleEl.oninput = (e) => { draft.fontScale = Math.max(65, Math.min(145, Number(e.target.value || 100))); refreshStageOnly(); };
+
+      const iconPosEl = backdrop.querySelector('#mlrsPadIconPos');
+      if (iconPosEl) iconPosEl.onchange = (e) => { ensurePad().iconPos = e.target.value || 'top'; refreshStageOnly(); };
+      const padFontEl = backdrop.querySelector('#mlrsPadFont');
+      if (padFontEl) padFontEl.onchange = (e) => { const p = ensurePad(); if (e.target.value) p.fontFamily = e.target.value; else delete p.fontFamily; refreshStageOnly(); };
+      const padScaleEl = backdrop.querySelector('#mlrsPadFontScale');
+      if (padScaleEl) padScaleEl.oninput = (e) => { const p = ensurePad(); const v = Number(e.target.value); if (v >= 65 && v <= 145) p.fontScale = v; else delete p.fontScale; refreshStageOnly(); };
+
       backdrop.querySelector('#mlrsPadLabel').oninput = (e) => { const p = ensurePad(); p.label = e.target.value; syncLabelToTouchZone(selectedPadKey, e.target.value); refreshStageOnly(); };
       backdrop.querySelector('#mlrsPadSub').oninput = (e) => { const p = ensurePad(); p.sublabel = e.target.value; refreshStageOnly(); };
       backdrop.querySelector('#mlrsMfChk').onchange = (e) => {
